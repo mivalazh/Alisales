@@ -1,0 +1,26 @@
+project_id = "alisales"
+
+[api]
+enabled = true
+port = 54321
+schemas = ["public", "storage"]
+
+[db]
+port = 54322
+major_version = 16
+
+[studio]
+enabled = true
+port = 54323
+
+[auth]
+enabled = true
+site_url = "http://localhost:3000"
+additional_redirect_urls = ["http://localhost:3000"]
+
+[storage]
+enabled = true
+
+# NOTE: `supabase start` is optional for development — the app data layer falls
+# back to seeded fixtures, and the DB test suite runs migrations on PGlite
+# (see tests/helpers/pg.ts), which needs no Docker.

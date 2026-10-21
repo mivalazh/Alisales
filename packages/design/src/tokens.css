@@ -1,0 +1,118 @@
+/**
+ * CSS custom properties generated from src/tokens.ts (strict 60-30-10 palette).
+ * Keep both files in sync — tests/tokens.test.ts enforces parity.
+ */
+:root {
+  /* 60% · Surfaces */
+  --color-surface: #ffffff;
+  --color-surface-subtle: #f4f5f7;
+  --color-surface-sunken: #e8eaee;
+  --color-surface-inverse: #161224;
+
+  /* 30% · Structure & typography */
+  --color-text-primary: #161224;
+  --color-text-secondary: #4a5568;
+  --color-text-tertiary: #5c6676;
+  --color-text-inverse: #ffffff;
+  --color-text-on-accent: #161224;
+  --color-border-subtle: #e2e4ea;
+  --color-border-strong: #c6cad4;
+
+  /* 10% · Accent (CTAs only) */
+  --color-accent: #ff4000;
+  --color-accent-hover: #ff5722;
+  --color-accent-pressed: #ff4000;
+  --color-accent-soft: #ffece5;
+  --color-focus-ring: #ff4000;
+
+  /* Semantic status */
+  --color-success-fg: #14532d;
+  --color-success-bg: #dcfce7;
+  --color-warning-fg: #78350f;
+  --color-warning-bg: #fef3c7;
+  --color-danger-fg: #991b1b;
+  --color-danger-bg: #fee2e2;
+  --color-info-fg: #1c3d9b;
+  --color-info-bg: #dbeafe;
+
+  /* Status badges — core */
+  --color-badge-new-bg: #dcfce7;
+  --color-badge-new-fg: #14532d;
+  --color-badge-new-border: #a9e7c3;
+  --color-badge-used-bg: #e7ecf2;
+  --color-badge-used-fg: #3a4759;
+  --color-badge-used-border: #c6cfda;
+  --color-badge-kish_plate-bg: #cbf5ef;
+  --color-badge-kish_plate-fg: #0b4f4e;
+  --color-badge-kish_plate-border: #9fe3dc;
+  --color-badge-temporary_transit-bg: #fef3c7;
+  --color-badge-temporary_transit-fg: #78350f;
+  --color-badge-temporary_transit-border: #f5de9b;
+  --color-badge-verified_report-bg: #dbeafe;
+  --color-badge-verified_report-fg: #1d3fa8;
+  --color-badge-verified_report-border: #b9cdf9;
+
+  /* Status badges — listing lifecycle */
+  --color-badge-draft-bg: #eef1f5;
+  --color-badge-draft-fg: #3f4c5f;
+  --color-badge-draft-border: #d3dae3;
+  --color-badge-pending_review-bg: #ede9fe;
+  --color-badge-pending_review-fg: #4c1d95;
+  --color-badge-pending_review-border: #cfc6f7;
+  --color-badge-active-bg: #e0eaff;
+  --color-badge-active-fg: #1e3a8a;
+  --color-badge-active-border: #b9ccf7;
+  --color-badge-paused-bg: #fff7ed;
+  --color-badge-paused-fg: #9a3412;
+  --color-badge-paused-border: #fad9b5;
+  --color-badge-sold-bg: #161224;
+  --color-badge-sold-fg: #f8fafc;
+  --color-badge-sold-border: #3d3752;
+  --color-badge-expired-bg: #f1f5f9;
+  --color-badge-expired-fg: #4b5a6e;
+  --color-badge-expired-border: #cbd5e1;
+  --color-badge-rejected-bg: #fee2e2;
+  --color-badge-rejected-fg: #991b1b;
+  --color-badge-rejected-border: #f5b5b5;
+
+  /* Spacing */
+  --space-0: 0px;
+  --space-1: 4px;
+  --space-2: 8px;
+  --space-3: 12px;
+  --space-4: 16px;
+  --space-5: 20px;
+  --space-6: 24px;
+  --space-8: 32px;
+  --space-10: 40px;
+  --space-12: 48px;
+
+  /* Radii */
+  --radius-sm: 6px;
+  --radius-md: 10px;
+  --radius-lg: 14px;
+  --radius-xl: 20px;
+  --radius-pill: 999px;
+
+  /* Typography */
+  --font-size-xs: 12px;
+  --font-size-sm: 13px;
+  --font-size-base: 15px;
+  --font-size-md: 17px;
+  --font-size-lg: 20px;
+  --font-size-xl: 24px;
+  --font-size-2xl: 30px;
+  --font-size-3xl: 38px;
+  --line-height-tight: 1.25;
+  --line-height-normal: 1.55;
+
+  /* Motion — minimal: bottom sheets 250ms, press feedback only */
+  --motion-sheet-duration: 250ms;
+  --motion-press-duration: 100ms;
+  --motion-ease-standard: cubic-bezier(0.2, 0, 0, 1);
+
+  /* Layout */
+  --touch-min: 44px;
+  --content-max: 1180px;
+  --photo-aspect: 4 / 3;
+}

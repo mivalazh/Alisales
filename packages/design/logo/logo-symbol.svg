@@ -1,0 +1,8 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512" width="512" height="512" role="img" aria-label="Alisales app icon">
+  <title>Alisales</title>
+  <rect width="512" height="512" rx="112" fill="#161224"/>
+  <g fill="none" stroke="#FFFFFF" stroke-width="46" stroke-linecap="round" stroke-linejoin="round">
+    <path d="M136 372 L256 128 L376 372"/>
+  </g>
+  <path d="M188 284 H324" fill="none" stroke="#FF4000" stroke-width="46" stroke-linecap="round"/>
+</svg>

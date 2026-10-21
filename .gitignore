@@ -1,0 +1,15 @@
+node_modules/
+.next/
+.expo/
+dist/
+build/
+coverage/
+*.tsbuildinfo
+*.log
+.env*
+!.env.example
+test-results/
+playwright-report/
+blob-report/
+.DS_Store
+supabase/.temp/
