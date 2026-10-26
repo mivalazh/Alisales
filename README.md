@@ -45,8 +45,12 @@ orange accent), `logo-dark.svg` (dark backgrounds), `logo-symbol.svg` (rounded
 
 ## Localization policy
 
-- All UI copy is Persian; `dir="rtl"` + `lang="fa"` at the document root.
-- Jalali dates and Persian digits rendered via `Intl` (`fa-IR-u-ca-persian`).
+- All UI copy is Persian; `dir="rtl"` + `lang="fa"` at the document root
+  (mobile forces RTL via `I18nManager`).
+- Jalali dates and Persian digits come from the `@alisales/schemas` locale
+  helpers (`src/locale.ts`): an arithmetic Jalali conversion that behaves
+  identically on Node, browsers and React Native Hermes — proven against ICU's
+  `fa-IR-u-ca-persian` calendar across a 45-year range in tests.
 - **Validation messages are Persian platform-wide**: importing
   `@alisales/schemas` installs a Zod error map (`src/errors.ts`); custom
   refinements carry inline Persian text.
@@ -60,7 +64,7 @@ packages/
   schemas/           @alisales/schemas — Zod: vehicle, listing (+photo rules),
                      subscription plans, inspection report form, search filters
                      + URL codec, plate-declaration copy (legal gate), Persian
-                     error map
+                     error map + Persian locale (digits, IRR, Jalali dates)
   inspection-core/   canonical JSON + SHA-256 hashing + tamper verification
   payments/          PaymentProvider adapter: Zarinpal (IDPay stub reserved)
 supabase/
@@ -69,8 +73,13 @@ supabase/
   seed_fixtures.sql  LOCAL/TEST ONLY demo accounts + listings
   functions/         edge functions (checkout, payment callback, inspection)
 apps/
-  web/               Next.js App Router (RTL, SEO: JSON-LD, sitemap, canonical)
-  mobile/            Expo Router + React Query
+  web/               Next.js App Router — RTL shell (Vazirmatn), fixture-backed
+                     listing grid + cards, create form, photo pipeline
+                     (EXIF-strip → WebP → ≤20), POST /api/listings (shared-schema
+                     400s in فارسی); SEO (JSON-LD, sitemap) lands in Phase 5
+  mobile/            Expo Router + React Query — my-listings CRUD with state
+                     transitions and free-quota paywall, plate-section form,
+                     photo picker pipeline, demo store / RLS-gated Supabase
 tests/               DB tests on PGlite (real Postgres in WASM — no Docker)
 e2e/                 Playwright visual-regression snapshots
 ```
@@ -82,7 +91,18 @@ npm install
 npm test                 # all unit + DB (PGlite) tests
 npm run typecheck        # every workspace
 npm run smoke:db         # apply migrations+seeds on PGlite, sanity counts
+npm run build            # next build (web) + workspace builds
+npm run dev -w @alisales/web        # web dev server (:3000)
+npm run start -w @alisales/mobile   # Expo dev server
+npm run generate:icons   # rebuild PNG app icons from the SVG mark
 ```
+
+**Offline demo modes** (no Supabase credentials needed, see `.env.example`):
+the web app serves the 7 seeded fixtures plus locally submitted listings
+(dev-only file store `apps/web/.dev-data/`, wiped with `rm -rf`); the mobile app
+runs an in-memory demo store with a visible «حالت نمایشی محلی» banner. With
+`NEXT_PUBLIC_SUPABASE_*` set, the grid reads the shared `search_listings` RPC
+and mutations are RLS-gated (auth lands in Phase 4).
 
 ## Product rules enforced in the database
 
@@ -117,7 +137,12 @@ npm run smoke:db         # apply migrations+seeds on PGlite, sanity counts
       (166 tests green; migrations on PGlite; full role matrix; plan-limit
       enforcement; search RPC; payment idempotency; golden-vector SHA-256;
       WCAG contrast; 60-30-10 palette lock; Persian error map)
-- [ ] Phase 2 — listings for individuals with photo pipeline
+- [x] **Phase 2** — listings for individuals with photo pipeline
+      (190 tests green; Next 16 RTL grid + create form with shared-schema
+      server validation; EXIF-strip → WebP → ≤20-photo client pipelines on web
+      and mobile; Expo CRUD screens: quota paywall, state transitions, delete;
+      branded icon set generated from the SVG mark; `next build`, dev-server
+      HTTP smoke and Metro bundle export verified)
 - [ ] Phase 3 — inspection report form + public report page
 - [ ] Phase 4 — showroom accounts + subscriptions (Zarinpal edge functions)
 - [ ] Phase 5 — search UI + SEO (JSON-LD, sitemap, canonical)

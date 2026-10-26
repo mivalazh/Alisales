@@ -62,6 +62,26 @@ export const listingPublishSchema = listingBaseSchema
 
 export type ListingPublish = z.infer<typeof listingPublishSchema>;
 
+/** Human labels for schema paths — inline فارسی errors in web & mobile forms. */
+export const LISTING_FIELD_LABELS: Record<string, string> = {
+  'vehicle.brand': 'برند',
+  'vehicle.model': 'مدل',
+  'vehicle.trim': 'تیپ',
+  'vehicle.year': 'سال ساخت',
+  'vehicle.mileageKm': 'کارکرد',
+  'vehicle.gearbox': 'گیربکس',
+  'vehicle.fuel': 'سوخت',
+  'vehicle.color': 'رنگ',
+  'vehicle.condition': 'وضعیت خودرو',
+  'vehicle.plateType': 'وضعیت پلاک',
+  'vehicle.vin': 'شماره شاسی (VIN)',
+  priceIRR: 'قیمت',
+  city: 'شهر',
+  description: 'توضیحات',
+  photos: 'عکس‌ها',
+  allowPhoneReveal: 'نمایش شماره تماس',
+};
+
 // ── State machine ────────────────────────────────────────────────────────────
 /** Owner-initiated transitions. Admins/system may move any state to any state. */
 export const listingTransitions: Record<ListingState, readonly ListingState[]> = {
@@ -69,7 +89,10 @@ export const listingTransitions: Record<ListingState, readonly ListingState[]> =
   pending_review: ['active', 'rejected', 'draft'],
   active: ['paused', 'sold', 'expired', 'pending_review'],
   paused: ['active', 'expired', 'sold'],
-  sold: [],
+  // Reactivation (Phase 2 / D2): a sold listing keeps its sold position in the
+  // catalog but the owner may bring it back to active; the migration clears
+  // sold_at and refreshes published_at/expires_at on that transition.
+  sold: ['active'],
   expired: ['draft'],
   rejected: ['draft'],
 };

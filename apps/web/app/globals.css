@@ -1,0 +1,191 @@
+@import 'tailwindcss';
+@import '@studio/design/tokens.css';
+
+/**
+ * Theme mapping: design tokens (single source of truth, parity-tested) exposed
+ * as Tailwind utility names. Names deliberately differ from the raw token
+ * names to avoid self-referential custom properties.
+ */
+@theme {
+  /* 60% · Surfaces */
+  --color-page: var(--color-surface-subtle);
+  --color-card: var(--color-surface);
+  --color-sunken: var(--color-surface-sunken);
+  --color-inverse: var(--color-surface-inverse);
+
+  /* 30% · Structure & typography */
+  --color-ink: var(--color-text-primary);
+  --color-muted: var(--color-text-secondary);
+  --color-faint: var(--color-text-tertiary);
+  --color-line: var(--color-border-subtle);
+  --color-line-strong: var(--color-border-strong);
+
+  /* 10% · Accent — CTAs only */
+  --color-cta: var(--color-accent);
+  --color-cta-hover: var(--color-accent-hover);
+  --color-cta-soft: var(--color-accent-soft);
+
+  /* Semantic status */
+  --color-ok: var(--color-success-fg);
+  --color-ok-soft: var(--color-success-bg);
+  --color-warn: var(--color-warning-fg);
+  --color-warn-soft: var(--color-warning-bg);
+  --color-bad: var(--color-danger-fg);
+  --color-bad-soft: var(--color-danger-bg);
+  --color-note: var(--color-info-fg);
+  --color-note-soft: var(--color-info-bg);
+
+  /* Type scale → design tokens */
+  --text-xs: var(--font-size-xs);
+  --text-sm: var(--font-size-sm);
+  --text-base: var(--font-size-base);
+  --text-md: var(--font-size-md);
+  --text-lg: var(--font-size-lg);
+  --text-xl: var(--font-size-xl);
+  --text-2xl: var(--font-size-2xl);
+  --text-3xl: var(--font-size-3xl);
+
+  /* Radii */
+  --radius-card: var(--radius-lg);
+  --radius-field: var(--radius-md);
+
+  /* Persian-first sans */
+  --font-sans:
+    'Vazirmatn Variable', 'Vazirmatn', Vazirmatn, Tahoma, 'Segoe UI', system-ui,
+    sans-serif;
+}
+
+@layer base {
+  html {
+    font-family: var(--font-sans);
+  }
+
+  body {
+    background-color: var(--color-page);
+    color: var(--color-ink);
+    line-height: var(--line-height-normal);
+    -webkit-font-smoothing: antialiased;
+    text-rendering: optimizeLegibility;
+  }
+
+  ::selection {
+    background: var(--color-accent-soft);
+    color: var(--color-text-primary);
+  }
+
+  :focus-visible {
+    outline: 2px solid var(--color-focus-ring);
+    outline-offset: 2px;
+  }
+
+  input,
+  select,
+  textarea {
+    font: inherit;
+    color: inherit;
+  }
+}
+
+@layer components {
+  /* Shared form control — RTL-safe, 44px touch target (design --touch-min). */
+  .field {
+    display: block;
+    width: 100%;
+    min-height: var(--touch-min);
+    padding: 10px 12px;
+    border: 1px solid var(--color-border-strong);
+    border-radius: var(--radius-field);
+    background: var(--color-surface);
+    color: var(--color-text-primary);
+    transition: border-color 100ms var(--motion-ease-standard);
+  }
+
+  .field:hover {
+    border-color: var(--color-text-tertiary);
+  }
+
+  .field:focus {
+    border-color: var(--color-accent);
+  }
+
+  .field::placeholder {
+    color: var(--color-text-tertiary);
+  }
+
+  .field[aria-invalid='true'] {
+    border-color: var(--color-danger-fg);
+  }
+
+  .label {
+    display: block;
+    margin-bottom: 6px;
+    font-size: var(--font-size-sm);
+    font-weight: 600;
+    color: var(--color-text-primary);
+  }
+
+  .hint {
+    margin-top: 4px;
+    font-size: var(--font-size-xs);
+    color: var(--color-text-tertiary);
+  }
+
+  .error-text {
+    margin-top: 4px;
+    font-size: var(--font-size-xs);
+    font-weight: 600;
+    color: var(--color-danger-fg);
+  }
+
+  /* Primary CTA — accent background with navy label (WCAG AA, tested). */
+  .btn-cta {
+    display: inline-flex;
+    min-height: var(--touch-min);
+    align-items: center;
+    justify-content: center;
+    gap: 8px;
+    padding: 10px 20px;
+    border-radius: var(--radius-pill);
+    background: var(--color-accent);
+    color: var(--color-text-on-accent);
+    font-weight: 700;
+    transition:
+      background 100ms var(--motion-ease-standard),
+      transform 100ms var(--motion-ease-standard);
+  }
+
+  .btn-cta:hover {
+    background: var(--color-accent-hover);
+  }
+
+  .btn-cta:active {
+    background: var(--color-accent-pressed);
+    transform: translateY(1px);
+  }
+
+  .btn-cta:disabled {
+    background: var(--color-surface-sunken);
+    color: var(--color-text-tertiary);
+    cursor: not-allowed;
+    transform: none;
+  }
+
+  .btn-ghost {
+    display: inline-flex;
+    min-height: var(--touch-min);
+    align-items: center;
+    justify-content: center;
+    gap: 8px;
+    padding: 10px 18px;
+    border: 1px solid var(--color-border-strong);
+    border-radius: var(--radius-pill);
+    background: var(--color-surface);
+    color: var(--color-text-primary);
+    font-weight: 600;
+    transition: border-color 100ms var(--motion-ease-standard);
+  }
+
+  .btn-ghost:hover {
+    border-color: var(--color-text-tertiary);
+  }
+}

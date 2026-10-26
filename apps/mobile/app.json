@@ -1,0 +1,47 @@
+{
+  "expo": {
+    "name": "Alisales",
+    "slug": "alisales",
+    "version": "0.1.0",
+    "orientation": "portrait",
+    "icon": "./assets/images/icon.png",
+    "scheme": "alisales",
+    "userInterfaceStyle": "light",
+    "ios": {
+      "supportsTablet": true
+    },
+    "android": {
+      "adaptiveIcon": {
+        "backgroundColor": "#161224",
+        "foregroundImage": "./assets/images/android-icon-foreground.png",
+        "monochromeImage": "./assets/images/android-icon-monochrome.png"
+      },
+      "predictiveBackGestureEnabled": false
+    },
+    "web": {
+      "output": "server",
+      "favicon": "./assets/images/favicon.png"
+    },
+    "plugins": [
+      "expo-router",
+      [
+        "expo-splash-screen",
+        {
+          "backgroundColor": "#161224",
+          "image": "./assets/images/splash-icon.png",
+          "imageWidth": 130
+        }
+      ],
+      [
+        "expo-image-picker",
+        {
+          "photosPermission": "برای افزودن عکس خودرو به آگهی، به دسترسی گالری نیاز است."
+        }
+      ]
+    ],
+    "experiments": {
+      "typedRoutes": true,
+      "reactCompiler": true
+    }
+  }
+}

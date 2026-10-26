@@ -20,10 +20,11 @@ async function search(filters: Record<string, unknown>, limit = 50): Promise<str
 }
 
 describe('search_listings RPC (single filter implementation)', () => {
-  it('returns only public listings by default', async () => {
+  it('returns active + sold listings by default (sold sorts last)', async () => {
     const slugs = await search({});
-    expect(slugs).toHaveLength(7);
-    expect(slugs).not.toContain('dena-plus-sold');
+    expect(slugs).toHaveLength(8); // 7 active + 1 sold (dena-plus-sold)
+    expect(slugs).toContain('dena-plus-sold'); // sold stays in the catalog (0005)
+    expect(slugs.at(-1)).toBe('dena-plus-sold'); // …but always after every active listing
     expect(slugs).not.toContain('tiba-alice-draft');
     expect(slugs).not.toContain('samaned-hidden');
   });
@@ -41,6 +42,7 @@ describe('search_listings RPC (single filter implementation)', () => {
     const slugs = await search({ kishOnly: true });
     expect(slugs).toContain('kiaqi-kish-showroom');
     expect(slugs).toContain('peugeot-206-alice');
+    expect(slugs).toContain('dena-plus-sold'); // sold stays filterable
     expect(slugs).not.toContain('shahin-new-tehran');
   });
 
@@ -48,7 +50,7 @@ describe('search_listings RPC (single filter implementation)', () => {
     expect((await search({ brand: 'saipa' })).sort()).toEqual(
       ['kiaqi-kish-showroom', 'kioqi-transit', 'shahin-new-tehran'].sort(),
     );
-    expect(await search({ brand: 'saipa,ikco' })).toHaveLength(7);
+    expect(await search({ brand: 'saipa,ikco' })).toHaveLength(8);
   });
 
   it('filters by model substring and quick search text', async () => {
@@ -59,15 +61,18 @@ describe('search_listings RPC (single filter implementation)', () => {
   it('filters by year range, price range and mileage', async () => {
     expect(await search({ yearFrom: 1403 })).toEqual(['shahin-new-tehran']);
     expect(await search({ yearTo: 1399 })).toEqual(['peugeot-206-alice']);
-    expect(await search({ priceFrom: 1_000_000_000_000 })).toHaveLength(5);
+    expect(await search({ priceFrom: 1_000_000_000_000 })).toHaveLength(6); // incl. dena (2.4T, sold)
     expect(await search({ priceTo: 900_000_000_000 }).then((s) => s.sort())).toEqual(
       ['kiaqi-kish-showroom', 'kioqi-transit'].sort(),
     );
-    expect(await search({ mileageMax: 50_000 })).toHaveLength(3);
+    expect(await search({ mileageMax: 50_000 })).toHaveLength(4); // incl. dena (24k, sold)
   });
 
   it('filters by gearbox, plate type, condition and city', async () => {
-    expect(await search({ gearbox: 'automatic' })).toEqual(['shahin-new-tehran']);
+    expect(await search({ gearbox: 'automatic' })).toEqual([
+      'shahin-new-tehran',
+      'dena-plus-sold', // automatic + sold → included, sorted last
+    ]);
     expect(await search({ plateType: 'kish' })).toHaveLength(3);
     expect(await search({ condition: 'new' })).toEqual(['shahin-new-tehran']);
     expect(await search({ city: 'tehran' })).toHaveLength(2);
@@ -94,6 +99,14 @@ describe('search_listings RPC (single filter implementation)', () => {
     expect(page1).toHaveLength(3);
     expect(page2.rows).toHaveLength(3);
     expect(page1.some((s) => page2.rows.map((r) => r.slug).includes(s))).toBe(false);
+    // sold stays at the tail across pages: page 3 holds the sold listing last
+    const page3 = await db.query<{ slug: string }>(
+      `select slug from public.search_listings('{}'::jsonb, 3, 6)`,
+    );
+    expect(page3.rows.map((r) => r.slug)).toEqual([
+      'peugeot-206-alice',
+      'dena-plus-sold',
+    ]);
   });
 
   it('gives identical results to anonymous visitors and signed-in users', async () => {

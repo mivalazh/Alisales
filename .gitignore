@@ -13,3 +13,6 @@ playwright-report/
 blob-report/
 .DS_Store
 supabase/.temp/
+
+# local dev store (fixture mode)
+apps/web/.dev-data/

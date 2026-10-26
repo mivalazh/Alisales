@@ -28,19 +28,27 @@ export type BrandSlug = (typeof BRANDS)[number]['slug'];
 
 export const brandSlugs = BRANDS.map((b) => b.slug) as [BrandSlug, ...BrandSlug[]];
 
-/** Launch cities — Kish first (launch region). */
+/**
+ * Launch cities — Kish first (launch region).
+ *
+ * `countyId` is the reference.gov.ir county code (same source as
+ * `listings.city` seed data); null where the county is not yet mapped.
+ * Consumed by `selectableCities()` in ./features while the `city_selection`
+ * flag is off — the catalog stays complete (D1) and every code path derives
+ * its active list from the flag instead of hardcoding a subset.
+ */
 export const CITIES = [
-  { slug: 'kish', label: 'کیش' },
-  { slug: 'tehran', label: 'تهران' },
-  { slug: 'mashhad', label: 'مشهد' },
-  { slug: 'isfahan', label: 'اصفهان' },
-  { slug: 'shiraz', label: 'شیراز' },
-  { slug: 'tabriz', label: 'تبریز' },
-  { slug: 'ahvaz', label: 'اهواز' },
-  { slug: 'rasht', label: 'رشت' },
-  { slug: 'kerman', label: 'کرمان' },
-  { slug: 'yazd', label: 'یزد' },
-  { slug: 'bandar-abbas', label: 'بندرعباس' },
+  { slug: 'kish', label: 'کیش', countyId: '1220003' },
+  { slug: 'tehran', label: 'تهران', countyId: null },
+  { slug: 'mashhad', label: 'مشهد', countyId: null },
+  { slug: 'isfahan', label: 'اصفهان', countyId: null },
+  { slug: 'shiraz', label: 'شیراز', countyId: null },
+  { slug: 'tabriz', label: 'تبریز', countyId: null },
+  { slug: 'ahvaz', label: 'اهواز', countyId: null },
+  { slug: 'rasht', label: 'رشت', countyId: null },
+  { slug: 'kerman', label: 'کرمان', countyId: null },
+  { slug: 'yazd', label: 'یزد', countyId: null },
+  { slug: 'bandar-abbas', label: 'بندرعباس', countyId: null },
 ] as const;
 
 export const citySlugs = CITIES.map((c) => c.slug);

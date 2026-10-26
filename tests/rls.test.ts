@@ -20,11 +20,12 @@ afterAll(async () => {
 });
 
 describe('public read model', () => {
-  it('anonymous visitors see only active, unhidden listings', async () => {
+  it('anonymous visitors see active and sold listings, never drafts/hidden', async () => {
     await asAnonymous(db);
     const r = await db.query<{ slug: string }>(`select slug from public.listings`);
     const slugs = r.rows.map((x) => x.slug).sort();
     expect(slugs).toEqual([
+      'dena-plus-sold', // sold stays public (migration 0005) — sorted last in search
       'kiaqi-kish-showroom',
       'kioqi-transit',
       'peugeot-206-alice',
@@ -33,7 +34,6 @@ describe('public read model', () => {
       'peugeot-206-showroom',
       'shahin-new-tehran',
     ]);
-    expect(slugs).not.toContain('dena-plus-sold');
     expect(slugs).not.toContain('tiba-alice-draft');
     expect(slugs).not.toContain('samaned-hidden');
   });
@@ -201,6 +201,62 @@ describe('inspection reports', () => {
       ),
       'row-level security',
     );
+  });
+});
+
+describe('sold listings (migration 0005)', () => {
+  it('owner may reactivate a sold listing back to active', async () => {
+    await asUser(db, IDS.bob); // dena-plus-sold's owner (showroom owner)
+    const r = await db.query(
+      `update public.listings set state = 'active' where id = $1`,
+      [LISTINGS.denaSold],
+    );
+    expect(r.affectedRows).toBe(1);
+
+    const row = await db.query<{ state: string; sold_at: string | null }>(
+      `select state, sold_at from public.listings where id = $1`,
+      [LISTINGS.denaSold],
+    );
+    expect(row.rows[0]?.state).toBe('active');
+    expect(row.rows[0]?.sold_at).toBeNull(); // reactivation clears the sold marker
+
+    await asSuper(db);
+    await db.query(`update public.listings set state = 'sold' where id = $1`, [
+      LISTINGS.denaSold,
+    ]);
+  });
+
+  it('a stranger still cannot reactivate someone else’s sold listing', async () => {
+    await asUser(db, IDS.dave);
+    // UPDATE policies filter rows silently — a stranger touches nothing
+    const r = await db.query(`update public.listings set state = 'active' where id = $1`, [
+      LISTINGS.denaSold,
+    ]);
+    expect(r.affectedRows).toBe(0);
+
+    const row = await db.query<{ state: string }>(
+      `select state from public.listings where id = $1`,
+      [LISTINGS.denaSold],
+    );
+    expect(row.rows[0]?.state).toBe('sold'); // unchanged
+  });
+
+  it('sold never yields a phone, even with allow_phone_reveal on', async () => {
+    await asSuper(db);
+    await db.query(`update public.listings set allow_phone_reveal = true where id = $1`, [
+      LISTINGS.denaSold,
+    ]);
+    await asAnonymous(db);
+    const r = await db.query<{ get_seller_phone: string | null }>(
+      `select public.get_seller_phone($1)`,
+      [LISTINGS.denaSold],
+    );
+    expect(r.rows[0]?.get_seller_phone).toBeNull();
+
+    await asSuper(db);
+    await db.query(`update public.listings set allow_phone_reveal = false where id = $1`, [
+      LISTINGS.denaSold,
+    ]);
   });
 });
 

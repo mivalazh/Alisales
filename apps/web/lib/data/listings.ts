@@ -1,0 +1,233 @@
+import { createClient } from '@supabase/supabase-js';
+import {
+  DEFAULT_CITY,
+  DEFAULT_FILTERS,
+  featureFlags,
+  filtersToRpcPayload,
+  type ColorSlug,
+  type Condition,
+  type Fuel,
+  type Gearbox,
+  type ListingState,
+  type PlateType,
+  type SearchFilters,
+} from '@alisales/schemas';
+import { fixtureListings } from './fixtures';
+import { devListings } from './dev-store';
+
+/** Row shape returned by the public.listing_cards view / search_listings RPC. */
+export interface ListingCardData {
+  id: string;
+  slug: string;
+  sellerId: string;
+  priceIRR: number;
+  city: string;
+  state: ListingState;
+  featured: boolean;
+  /** ISO timestamp — rendered as a Jalali date. */
+  publishedAt: string | null;
+  hasReport: boolean;
+  brand: string;
+  model: string;
+  trim: string | null;
+  year: number;
+  mileageKm: number;
+  gearbox: Gearbox;
+  fuel: Fuel;
+  color: ColorSlug;
+  condition: Condition;
+  plateType: PlateType;
+  /** Public storage URL, or null (no photo / credential-less fixture mode). */
+  coverUrl: string | null;
+  showroomName: string | null;
+  showroomVerified: boolean;
+  /** Seller opted into showing the phone (server still gates sold → never). */
+  allowPhoneReveal: boolean;
+}
+
+/** Detail projection: the card plus the long description. */
+export interface ListingDetailData extends ListingCardData {
+  description: string | null;
+}
+
+interface ListingCardRow {
+  id: string;
+  slug: string;
+  seller_id: string;
+  price_irr: number | string;
+  city: string;
+  state: ListingState;
+  featured: boolean;
+  published_at: string | null;
+  has_report: boolean;
+  brand: string;
+  model: string;
+  trim: string | null;
+  year: number;
+  mileage_km: number;
+  gearbox: Gearbox;
+  fuel: Fuel;
+  color: ColorSlug;
+  condition: Condition;
+  plate_type: PlateType;
+  cover_photo_path: string | null;
+  showroom_name: string | null;
+  showroom_verified: boolean;
+  allow_phone_reveal: boolean;
+  description?: string | null;
+}
+
+const STORAGE_BUCKET = 'listing-photos';
+
+function publicPhotoUrl(path: string): string | null {
+  const base = process.env.NEXT_PUBLIC_SUPABASE_URL;
+  return base ? `${base}/storage/v1/object/public/${STORAGE_BUCKET}/${path}` : null;
+}
+
+function mapRow(r: ListingCardRow): ListingDetailData {
+  return {
+    id: r.id,
+    slug: r.slug,
+    sellerId: r.seller_id,
+    priceIRR: Number(r.price_irr), // pg bigint arrives as string
+    city: r.city,
+    state: r.state,
+    featured: r.featured,
+    publishedAt: r.published_at,
+    hasReport: r.has_report,
+    brand: r.brand,
+    model: r.model,
+    trim: r.trim,
+    year: r.year,
+    mileageKm: r.mileage_km,
+    gearbox: r.gearbox,
+    fuel: r.fuel,
+    color: r.color,
+    condition: r.condition,
+    plateType: r.plate_type,
+    coverUrl: r.cover_photo_path ? publicPhotoUrl(r.cover_photo_path) : null,
+    showroomName: r.showroom_name,
+    showroomVerified: r.showroom_verified,
+    allowPhoneReveal: r.allow_phone_reveal,
+    description: r.description ?? null,
+  };
+}
+
+function supabaseClient() {
+  const url = process.env.NEXT_PUBLIC_SUPABASE_URL;
+  const anon = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY;
+  if (!url || !anon) return null;
+  return createClient(url, anon);
+}
+
+/**
+ * Launch rule: while `city_selection` is off, browse/search is Kish-only —
+ * one data path enforces it for the RPC, fixtures and the dev store alike.
+ */
+function launchFilters(filters: SearchFilters): SearchFilters {
+  if (featureFlags.city_selection) return filters;
+  return { ...filters, city: [DEFAULT_CITY] };
+}
+
+function matches(listing: ListingCardData, f: SearchFilters): boolean {
+  if (f.city.length && !f.city.includes(listing.city)) return false;
+  if (f.kishOnly && listing.city !== 'kish') return false;
+  if (f.brand.length && !f.brand.some((b) => b === listing.brand)) return false;
+  if (f.model && !listing.model.includes(f.model)) return false;
+  if (f.yearFrom !== undefined && listing.year < f.yearFrom) return false;
+  if (f.yearTo !== undefined && listing.year > f.yearTo) return false;
+  if (f.priceFrom !== undefined && listing.priceIRR < f.priceFrom) return false;
+  if (f.priceTo !== undefined && listing.priceIRR > f.priceTo) return false;
+  if (f.mileageMax !== undefined && listing.mileageKm > f.mileageMax) return false;
+  if (f.gearbox.length && !f.gearbox.includes(listing.gearbox)) return false;
+  if (f.plateType.length && !f.plateType.includes(listing.plateType)) return false;
+  if (f.condition.length && !f.condition.includes(listing.condition)) return false;
+  if (f.hasReport && !listing.hasReport) return false;
+  if (f.q && !`${listing.model} ${listing.trim ?? ''} ${listing.brand}`.includes(f.q)) {
+    return false;
+  }
+  return true;
+}
+
+/**
+ * Credential-less mode: same filter semantics as the RPC, applied locally so
+ * the offline catalog behaves exactly like the hosted one (chips included).
+ */
+export function applyFiltersLocally(
+  list: readonly ListingCardData[],
+  filters: SearchFilters,
+): ListingCardData[] {
+  const effective = launchFilters(filters);
+  return list.filter((l) => matches(l, effective)).sort(soldLastThenRecency);
+}
+
+/** Same ranking shape as the RPC: sold last, then most recent first. */
+function soldLastThenRecency(a: ListingCardData, b: ListingCardData): number {
+  const aSold = a.state === 'sold' ? 1 : 0;
+  const bSold = b.state === 'sold' ? 1 : 0;
+  if (aSold !== bSold) return aSold - bSold;
+  if (a.featured !== b.featured) return a.featured ? -1 : 1;
+  const at = a.publishedAt ? Date.parse(a.publishedAt) : 0;
+  const bt = b.publishedAt ? Date.parse(b.publishedAt) : 0;
+  return bt - at;
+}
+
+/**
+ * Search listings — the single data path for the web grid.
+ *
+ * With Supabase credentials the shared `search_listings` RPC runs (same filter
+ * implementation the mobile app uses, RLS-checked). Without them the seeded
+ * local fixtures are served so the UI is fully reviewable offline.
+ */
+export async function searchListings(
+  filters: SearchFilters = DEFAULT_FILTERS,
+): Promise<ListingCardData[]> {
+  const effective = launchFilters(filters);
+  const supabase = supabaseClient();
+  if (!supabase) {
+    return applyFiltersLocally([...devListings(), ...fixtureListings], filters);
+  }
+
+  const { data, error } = await supabase.rpc('search_listings', {
+    p_filters: filtersToRpcPayload(effective),
+    p_limit: 48,
+    p_offset: 0,
+  });
+  if (error) throw new Error(`search_listings RPC failed: ${error.message}`);
+  return (data as unknown as ListingCardRow[]).map(mapRow);
+}
+
+/**
+ * Listing detail by slug — null when missing or not public (the view's RLS
+ * enforces visibility, so sold shows and drafts/hidden 404 honestly).
+ */
+export async function getListing(slug: string): Promise<ListingDetailData | null> {
+  const supabase = supabaseClient();
+  if (!supabase) {
+    const all = [...devListings(), ...fixtureListings];
+    const found = all.find((l) => l.slug === slug);
+    return found ? { ...found, description: null } : null;
+  }
+
+  const { data, error } = await supabase
+    .from('listing_cards')
+    .select('*')
+    .eq('slug', slug)
+    .maybeSingle();
+  if (error) throw new Error(`listing_cards query failed: ${error.message}`);
+  return data ? mapRow(data as unknown as ListingCardRow) : null;
+}
+
+/**
+ * Seller phone — the RPC returns null for sold listings and for listings
+ * without allow_phone_reveal; the UI hides the call button when null.
+ */
+export async function getSellerPhone(listingId: string): Promise<string | null> {
+  const supabase = supabaseClient();
+  if (!supabase) return null; // credential-less fixture mode has no phone data
+  const { data, error } = await supabase.rpc('get_seller_phone', {
+    p_listing: listingId,
+  });
+  if (error) throw new Error(`get_seller_phone RPC failed: ${error.message}`);
+  return (data as string | null) ?? null;
+}

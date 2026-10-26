@@ -99,8 +99,12 @@ describe('state machine', () => {
     expect(canTransition('active', 'expired', 'owner')).toBe(true);
   });
 
-  it('never lets a sold listing be reactivated by an owner', () => {
-    expect(canTransition('sold', 'active', 'owner')).toBe(false);
+  it('lets the owner reactivate a sold listing, and only back to active', () => {
+    // Reactivation rule (Phase 2 / D2): sold stays in the catalog with its
+    // sold position; the owner may bring it back to active.
+    expect(canTransition('sold', 'active', 'owner')).toBe(true);
+    expect(canTransition('sold', 'paused', 'owner')).toBe(false);
+    expect(canTransition('sold', 'draft', 'owner')).toBe(false);
     expect(canTransition('sold', 'active', 'admin')).toBe(true);
   });
 

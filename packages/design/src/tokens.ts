@@ -1,90 +1,159 @@
 /**
  * @studio/design — single source of truth for design tokens (Alisales).
  *
- * Strict 60-30-10 palette:
- *  60% neutral backgrounds — ice white #F4F5F7 / pure white #FFFFFF
- *  30% structure & type    — dark navy #161224 / muted gray #4A5568
- *  10% accent              — vibrant orange #FF4000, reserved for primary
- *                            actions, CTAs and key interactive elements
+ * Palette A (approved) — the ONLY colors allowed anywhere in this package:
  *
- * Every value here has a matching CSS custom property in `tokens.css`
- * (parity enforced by tests/tokens.test.ts). Web consumes the CSS vars,
- * React Native reads the values from this file directly.
+ *   lusterWhite     #F4F1EC   asterFlowerBlue  #9BACD8   habanero       #F98513
+ *   jodhpurTan      #DAD1C8   deepSpaceRoyal   #223382   deadlyDepths   #111144
+ *
+ * plus ONE approved neutral exception: `neutral.white` (#FFFFFF), used only
+ * for light card surfaces and text on the primary navy button.
+ *
+ * Structure of this file:
+ *   - `palette` / `neutral` — raw approved values.
+ *   - `light` / `dark`      — canonical mode palettes (source of truth).
+ *   - `statusTag`           — the five fixed status-tag pairs (fg = text).
+ *   - `badgeTag`            — every badge (core + lifecycle) maps onto a
+ *                              statusTag pair; no badge may invent colors.
+ *   - `legacyColors`        — TRANSITIONAL view: old `color-*` keys mapped to
+ *                             canonical values so apps/web and apps/mobile keep
+ *                             compiling until their migration steps. Contains
+ *                             no hex literals of its own (purity-tested).
+ *   - `tokens`              — legacyColors + non-color structural tokens
+ *                             (spacing, radii, type, motion, layout).
+ *
+ * CSS parity (tests/tokens.test.ts): `light` and `statusTag` mirror the
+ * `:root` variables in tokens.css, `dark` mirrors `:root[data-theme='dark']`.
  */
-export const tokens = {
-  // ── 60% · Surfaces (neutral backgrounds) ────────────────────────────────
-  'color-surface': '#ffffff',
-  'color-surface-subtle': '#f4f5f7', // ice white
-  'color-surface-sunken': '#e8eaee',
-  'color-surface-inverse': '#161224', // dark nav / footer
+export const palette = {
+  lusterWhite: '#F4F1EC',
+  asterFlowerBlue: '#9BACD8',
+  habanero: '#F98513',
+  jodhpurTan: '#DAD1C8',
+  deepSpaceRoyal: '#223382',
+  deadlyDepths: '#111144',
+} as const;
 
-  // ── 30% · Structure & typography ────────────────────────────────────────
-  'color-text-primary': '#161224', // dark navy/charcoal
-  'color-text-secondary': '#4a5568', // muted gray
-  'color-text-tertiary': '#5c6676',
-  'color-text-inverse': '#ffffff',
-  'color-text-on-accent': '#161224', // navy label on orange CTAs (WCAG 6.1:1)
-  'color-border-subtle': '#e2e4ea',
-  'color-border-strong': '#c6cad4',
+/** Single approved neutral exception — never a brand color (see purity test). */
+export const neutral = {
+  white: '#FFFFFF',
+} as const;
 
-  // ── 10% · Accent / focal points (CTAs only) ─────────────────────────────
-  'color-accent': '#ff4000',
-  'color-accent-hover': '#ff5722',
-  'color-accent-pressed': '#ff4000', // press feedback is motion, not a hue shift
-  'color-accent-soft': '#ffece5',
-  'color-focus-ring': '#ff4000',
+export const light = {
+  bg: palette.lusterWhite,
+  surface: neutral.white,
+  surfaceMuted: palette.lusterWhite,
+  border: palette.jodhpurTan,
+  borderControl: palette.deepSpaceRoyal,
+  text: palette.deadlyDepths,
+  textMuted: palette.deepSpaceRoyal,
+  price: palette.deepSpaceRoyal,
+  primaryAction: palette.deepSpaceRoyal,
+  onPrimaryAction: neutral.white,
+  primaryActionHover: palette.deadlyDepths,
+  plusButton: palette.habanero,
+  onPlusButton: palette.deadlyDepths,
+  focusRing: palette.deepSpaceRoyal,
+  navActive: palette.deadlyDepths,
+  navInactive: palette.deepSpaceRoyal,
+  softAccent: palette.jodhpurTan,
+} as const;
 
-  // ── Semantic status (informational, not brand accent) ───────────────────
-  'color-success-fg': '#14532d',
-  'color-success-bg': '#dcfce7',
-  'color-warning-fg': '#78350f',
-  'color-warning-bg': '#fef3c7',
-  'color-danger-fg': '#991b1b',
-  'color-danger-bg': '#fee2e2',
-  'color-info-fg': '#1c3d9b',
-  'color-info-bg': '#dbeafe',
+export const dark = {
+  bg: palette.deadlyDepths,
+  surface: palette.deepSpaceRoyal,
+  surfaceMuted: palette.deepSpaceRoyal,
+  border: palette.deepSpaceRoyal,
+  borderControl: palette.asterFlowerBlue,
+  text: palette.lusterWhite,
+  textMuted: palette.asterFlowerBlue,
+  price: palette.habanero,
+  primaryAction: palette.habanero,
+  onPrimaryAction: palette.deadlyDepths,
+  primaryActionHover: palette.lusterWhite,
+  plusButton: palette.habanero,
+  onPlusButton: palette.deadlyDepths,
+  focusRing: palette.habanero,
+  navActive: palette.habanero,
+  navInactive: palette.asterFlowerBlue,
+  softAccent: palette.deepSpaceRoyal,
+} as const;
 
-  // ── Status badges — fixed color per badge (locked by tests) ─────────────
+/** The five status tags — fixed bg/text pairs (text also draws the 1px border). */
+export const statusTag = {
+  new: { bg: palette.deadlyDepths, text: palette.lusterWhite },
+  used: { bg: palette.jodhpurTan, text: palette.deadlyDepths },
+  kishPlate: { bg: palette.asterFlowerBlue, text: palette.deadlyDepths },
+  transit: { bg: palette.habanero, text: palette.deadlyDepths },
+  verified: { bg: palette.deepSpaceRoyal, text: palette.lusterWhite },
+} as const;
+
+export type StatusTagKey = keyof typeof statusTag;
+
+/**
+ * Every badge — five core product tags + seven lifecycle states — renders as
+ * a statusTag pair (decision: no new badge colors, ever).
+ *
+ *   neutral states → used · attention → transit · official · sold → transit
+ *   plates keep kishPlate · report keeps verified
+ *
+ * Note: `sold` renders on cards (Phase 2 / D2 — sold stays in the catalog)
+ * and borrows the `transit` pair (bg #F98513 / text #111144), so no new
+ * color enters the palette.
+ */
+export const badgeTag = {
   // Core product badges
-  'color-badge-new-bg': '#dcfce7',
-  'color-badge-new-fg': '#14532d',
-  'color-badge-new-border': '#a9e7c3',
-  'color-badge-used-bg': '#e7ecf2',
-  'color-badge-used-fg': '#3a4759',
-  'color-badge-used-border': '#c6cfda',
-  'color-badge-kish_plate-bg': '#cbf5ef',
-  'color-badge-kish_plate-fg': '#0b4f4e',
-  'color-badge-kish_plate-border': '#9fe3dc',
-  'color-badge-temporary_transit-bg': '#fef3c7',
-  'color-badge-temporary_transit-fg': '#78350f',
-  'color-badge-temporary_transit-border': '#f5de9b',
-  'color-badge-verified_report-bg': '#dbeafe',
-  'color-badge-verified_report-fg': '#1d3fa8',
-  'color-badge-verified_report-border': '#b9cdf9',
-  // Listing lifecycle badges
-  'color-badge-draft-bg': '#eef1f5',
-  'color-badge-draft-fg': '#3f4c5f',
-  'color-badge-draft-border': '#d3dae3',
-  'color-badge-pending_review-bg': '#ede9fe',
-  'color-badge-pending_review-fg': '#4c1d95',
-  'color-badge-pending_review-border': '#cfc6f7',
-  'color-badge-active-bg': '#e0eaff',
-  'color-badge-active-fg': '#1e3a8a',
-  'color-badge-active-border': '#b9ccf7',
-  'color-badge-paused-bg': '#fff7ed',
-  'color-badge-paused-fg': '#9a3412',
-  'color-badge-paused-border': '#fad9b5',
-  'color-badge-sold-bg': '#161224',
-  'color-badge-sold-fg': '#f8fafc',
-  'color-badge-sold-border': '#3d3752',
-  'color-badge-expired-bg': '#f1f5f9',
-  'color-badge-expired-fg': '#4b5a6e',
-  'color-badge-expired-border': '#cbd5e1',
-  'color-badge-rejected-bg': '#fee2e2',
-  'color-badge-rejected-fg': '#991b1b',
-  'color-badge-rejected-border': '#f5b5b5',
+  new: 'new',
+  used: 'used',
+  kish_plate: 'kishPlate',
+  temporary_transit: 'transit',
+  verified_report: 'verified',
+  // Listing lifecycle
+  draft: 'used',
+  pending_review: 'transit',
+  active: 'verified',
+  paused: 'used',
+  sold: 'transit', // approved Sold badge = the existing transit pair
+  expired: 'used',
+  rejected: 'transit',
+} as const satisfies Record<string, StatusTagKey>;
 
-  // ── Spacing scale ───────────────────────────────────────────────────────
+/**
+ * TRANSITIONAL — old `color-*` token names → canonical values.
+ * Deleted when web (S4) and mobile adopt the canonical keys.
+ * Every value derives from `light` / `palette`; no hex literals here.
+ */
+export const legacyColors = {
+  'color-surface': light.surface, // #FFFFFF — approved card surface
+  'color-surface-subtle': light.bg,
+  'color-surface-sunken': light.softAccent,
+  'color-surface-inverse': light.primaryAction,
+  'color-text-primary': light.text,
+  'color-text-secondary': light.textMuted,
+  'color-text-tertiary': light.textMuted, // no lighter AA-safe value exists
+  'color-text-inverse': palette.lusterWhite,
+  'color-text-on-accent': light.onPrimaryAction, // #FFFFFF — label on navy CTA
+  'color-border-subtle': light.border,
+  'color-border-strong': light.borderControl,
+  'color-accent': light.primaryAction, // primary CTA = navy
+  'color-accent-hover': light.primaryActionHover,
+  'color-accent-pressed': light.primaryActionHover, // press = motion, not a new hue
+  'color-accent-soft': light.softAccent,
+  'color-focus-ring': light.focusRing,
+  // Semantic trio — palette-only, mode-independent (never color alone in UI):
+  'color-success-fg': palette.deepSpaceRoyal, // check icon + text
+  'color-success-bg': light.softAccent,
+  'color-warning-fg': palette.deadlyDepths,
+  'color-warning-bg': palette.habanero, // habanero bg + deadlyDepths text
+  'color-danger-fg': palette.deadlyDepths, // error = text + alert icon
+  'color-danger-bg': light.softAccent,
+  'color-info-fg': palette.deepSpaceRoyal,
+  'color-info-bg': light.softAccent,
+} as const;
+
+/** Non-color structural tokens (spacing, radii, type, motion, layout). */
+const structural = {
+  // Spacing scale
   'space-0': '0px',
   'space-1': '4px',
   'space-2': '8px',
@@ -96,14 +165,14 @@ export const tokens = {
   'space-10': '40px',
   'space-12': '48px',
 
-  // ── Radii ───────────────────────────────────────────────────────────────
+  // Radii
   'radius-sm': '6px',
   'radius-md': '10px',
   'radius-lg': '14px',
   'radius-xl': '20px',
   'radius-pill': '999px',
 
-  // ── Typography (px) ─────────────────────────────────────────────────────
+  // Typography (px)
   'font-size-xs': '12px',
   'font-size-sm': '13px',
   'font-size-base': '15px',
@@ -115,30 +184,35 @@ export const tokens = {
   'line-height-tight': '1.25',
   'line-height-normal': '1.55',
 
-  // ── Motion — minimal: bottom sheets 250ms, press feedback only ──────────
+  // Price display rule (dark-card price is 4.503:1 — enforce size ≥16px/500)
+  'price-font-weight': '500',
+  'price-font-size': '16px',
+
+  // Motion — minimal: bottom sheets 250ms, press feedback only
   'motion-sheet-duration': '250ms',
   'motion-press-duration': '100ms',
   'motion-ease-standard': 'cubic-bezier(0.2, 0, 0, 1)',
 
-  // ── Layout ──────────────────────────────────────────────────────────────
+  // Layout
   'touch-min': '44px',
   'content-max': '1180px',
   'photo-aspect': '4 / 3',
 } as const;
 
+/**
+ * Transitional aggregate: legacy color keys + structural tokens.
+ * Apps keep reading `tokens['color-…']` until their migration step; new code
+ * should read `light` / `dark` / `statusTag` directly.
+ */
+export const tokens = {
+  ...legacyColors,
+  ...structural,
+} as const;
+
 export type TokenKey = keyof typeof tokens;
 export type TokenValue = (typeof tokens)[TokenKey];
 
-/** The five mandated 60-30-10 palette anchors (locked by tests). */
-export const PALETTE_60_30_10 = {
-  iceWhite: '#f4f5f7',
-  pureWhite: '#ffffff',
-  navyCharcoal: '#161224',
-  mutedGray: '#4a5568',
-  accentOrange: '#ff4000',
-} as const;
-
-/** `var(--color-surface)` style reference for a token key. */
+/** `var(--color-surface)` style reference for a legacy token key. */
 export function cssVar(key: TokenKey): string {
   return `var(--${key})`;
 }
@@ -148,3 +222,8 @@ export const motion = {
   pressDuration: tokens['motion-press-duration'],
   ease: tokens['motion-ease-standard'],
 } as const;
+
+/** camelCase → kebab-case (canonical token key → CSS variable name). */
+export function cssTokenName(key: string): string {
+  return key.replace(/[A-Z]/g, (c) => `-${c.toLowerCase()}`);
+}

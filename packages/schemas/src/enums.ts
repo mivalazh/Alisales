@@ -55,6 +55,33 @@ export const COLOR_LABELS: Record<ColorSlug, string> = {
   other: 'سایر',
 };
 
+export const GEARBOX_LABELS: Record<Gearbox, string> = {
+  manual: 'دنده دستی',
+  automatic: 'دنده اتوماتیک',
+  cvt: 'دنده CVT',
+  dual_clutch: 'دنده دوکلاچه',
+};
+
+export const FUEL_LABELS: Record<Fuel, string> = {
+  petrol: 'بنزینی',
+  diesel: 'دیزلی',
+  cng: 'دوگازسوز',
+  hybrid: 'هیبریدی',
+  electric: 'برقی',
+};
+
+export const CONDITION_LABELS: Record<Condition, string> = {
+  new: 'نو',
+  used: 'کارکرده',
+};
+
+export const PLATE_TYPE_LABELS: Record<PlateType, string> = {
+  standard: 'پلاک عادی',
+  kish: 'پلاک کیش',
+  temporary_transit: 'گذر موقت',
+  unplated: 'بدون پلاک',
+};
+
 /** account-level roles (showroom membership lives in showroom_staff) */
 export const userRoles = ['individual', 'inspector', 'admin'] as const;
 export type UserRole = (typeof userRoles)[number];

@@ -10,6 +10,10 @@ export {
   fuelTypes,
   colorSlugs,
   COLOR_LABELS,
+  GEARBOX_LABELS,
+  FUEL_LABELS,
+  CONDITION_LABELS,
+  PLATE_TYPE_LABELS,
   userRoles,
   showroomStaffRoles,
   subscriptionStatuses,
@@ -46,12 +50,17 @@ export {
 } from './vehicle';
 export type { BrandSlug, VehicleInput } from './vehicle';
 
+// Feature flags (one source for web + mobile)
+export { featureFlags, DEFAULT_CITY, selectableCities } from './features';
+export type { FeatureFlag } from './features';
+
 // Listing
 export {
   MAX_PHOTOS,
   MAX_PHOTO_BYTES,
   ALLOWED_PHOTO_MIME,
   listingPhotoSchema,
+  LISTING_FIELD_LABELS,
   listingDraftSchema,
   listingPublishSchema,
   listingTransitions,
@@ -71,6 +80,18 @@ export {
   canCreateListing,
 } from './subscription';
 export type { PlanCode, Plan } from './subscription';
+
+// Persian locale (digits, IRR amounts, Jalali dates) — shared by web, mobile, edge
+export {
+  toPersianDigits,
+  groupDigits,
+  formatIRR,
+  toJalali,
+  jalaliOf,
+  formatJalali,
+  formatJalaliDate,
+} from './locale';
+export type { JalaliDate } from './locale';
 
 // Search filters + URL codec
 export {
