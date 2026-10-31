@@ -13,7 +13,7 @@ export interface FavoriteSnapshot {
   priceIRR: number;
 }
 
-/** Favorites stored locally (auth-backed favorites arrive with Phase 4). */
+/** Device-local favorites — the guest list and an offline mirror for accounts. */
 export function readFavorites(): FavoriteSnapshot[] {
   try {
     const raw = localStorage.getItem(FAVORITES_KEY);
@@ -37,30 +37,74 @@ export function readFavorites(): FavoriteSnapshot[] {
   }
 }
 
+/**
+ * Favorite toggle. The device list always updates immediately (works for
+ * guests); when a listing id is provided the account list is synced too, and
+ * a 401 simply means the user is browsing as a guest.
+ */
 export function FavoriteButton({
   slug,
+  listingId,
   snapshot,
 }: {
   slug: string;
+  listingId?: string;
   snapshot?: Omit<FavoriteSnapshot, 'slug'>;
 }) {
   const [active, setActive] = useState(false);
 
   useEffect(() => {
+    let cancelled = false;
     setActive(readFavorites().some((f) => f.slug === slug));
-  }, [slug]);
+    if (!listingId) return;
+    void (async () => {
+      try {
+        const res = await fetch('/api/favorites');
+        if (!res.ok) return;
+        const data = (await res.json()) as { ids?: string[] };
+        if (!cancelled && Array.isArray(data.ids)) setActive(data.ids.includes(listingId));
+      } catch {
+        // guest / offline — the local state stands
+      }
+    })();
+    return () => {
+      cancelled = true;
+    };
+  }, [slug, listingId]);
 
   const toggle = () => {
     const favorites = readFavorites();
     const next = favorites.some((f) => f.slug === slug)
       ? favorites.filter((f) => f.slug !== slug)
-      : [...favorites, { slug, model: snapshot?.model ?? '', year: snapshot?.year ?? 0, priceIRR: snapshot?.priceIRR ?? 0 }];
+      : [
+          ...favorites,
+          {
+            slug,
+            model: snapshot?.model ?? '',
+            year: snapshot?.year ?? 0,
+            priceIRR: snapshot?.priceIRR ?? 0,
+          },
+        ];
     try {
       localStorage.setItem(FAVORITES_KEY, JSON.stringify(next));
     } catch {
       // private mode — the visual state still reflects the tap
     }
-    setActive(next.some((f) => f.slug === slug));
+    const nowActive = next.some((f) => f.slug === slug);
+    setActive(nowActive);
+
+    if (listingId) {
+      void (nowActive
+        ? fetch('/api/favorites', {
+            method: 'POST',
+            headers: { 'content-type': 'application/json' },
+            body: JSON.stringify({ listingId }),
+          })
+        : fetch(`/api/favorites?listingId=${encodeURIComponent(listingId)}`, {
+            method: 'DELETE',
+          })
+      ).catch(() => null);
+    }
   };
 
   return (

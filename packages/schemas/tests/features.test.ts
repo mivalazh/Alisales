@@ -22,6 +22,34 @@ describe('feature flags (one source shared by web + mobile)', () => {
     expect(DEFAULT_CITY).toBe('kish');
   });
 
+  it('ships every flag at its S2 spec default', () => {
+    expect(featureFlags).toEqual({
+      city_selection: false,
+      subscriptions: false,
+      stories: true,
+      parts_listings: true,
+      repair_inspection: false,
+      visit_request_chat: true,
+      public_favorite_count: false,
+      bump_up: true,
+      demo_screens: false,
+      demo_login: false,
+    });
+  });
+
+  it('exposes only boolean flags (no accidental non-boolean value)', () => {
+    for (const [key, value] of Object.entries(featureFlags)) {
+      expect(typeof value, `flag ${key}`).toBe('boolean');
+    }
+  });
+
+  it('keeps demo_login inert unless demo_screens is on', () => {
+    // Both default off; the dev bypass is only legal when screens are enabled.
+    if (featureFlags.demo_login) expect(featureFlags.demo_screens).toBe(true);
+    expect(featureFlags.demo_screens).toBe(false);
+    expect(featureFlags.demo_login).toBe(false);
+  });
+
   it('offers only Kish while the flag is off, the full catalog while on', () => {
     expect(selectableCities().map((c) => c.slug)).toEqual(['kish']);
     expect(selectableCities(false).map((c) => c.slug)).toEqual(['kish']);

@@ -8,16 +8,20 @@ import {
   CONDITION_LABELS,
   FUEL_LABELS,
   GEARBOX_LABELS,
+  PART_CATEGORY_LABELS,
+  PART_CONDITION_LABELS,
+  PART_ORIGIN_LABELS,
   PLATE_TYPE_LABELS,
-  formatIRR,
-  formatJalaliDate,
-  groupDigits,
-  toPersianDigits,
+  compatibilityLabel,
+  formatPriceLatin,
+  postingAgeLabel,
 } from '@alisales/schemas';
 import { ContactButtons } from '@/components/ContactButtons';
 import { FavoriteButton } from '@/components/FavoriteButton';
 import { Icon } from '@/components/Icon';
 import { getListing, getSellerPhone } from '@/lib/data/listings';
+import { getSession } from '@/lib/auth/session';
+import { recordView } from '@/lib/data/s2-store';
 
 const STATE_BADGE: Record<string, BadgeKey> = {
   draft: 'draft',
@@ -40,25 +44,58 @@ export default async function ListingDetailPage({
 
   // Server guarantees: null for sold / non-revealed phones.
   const phone = await getSellerPhone(listing.id);
-  const published = new Date(listing.publishedAt ?? Date.now());
   const sold = listing.state === 'sold';
+  const part = listing.part ?? null;
+
+  // Owner statistics (C2): a signed-in visitor counts one unique view.
+  const session = await getSession();
+  if (session && session.sub !== listing.sellerId) {
+    await recordView(listing.id, session.sub);
+  }
 
   const badges: BadgeKey[] = [];
-  if (listing.state !== 'active') badges.push(STATE_BADGE[listing.state] ?? 'active');
+  if (listing.state !== 'active' && listing.state !== 'sold') {
+    badges.push(STATE_BADGE[listing.state] ?? 'active');
+  }
   badges.push(listing.condition === 'new' ? 'new' : 'used');
-  if (listing.plateType === 'kish') badges.push('kish_plate');
-  if (listing.plateType === 'temporary_transit' || listing.plateType === 'unplated') {
-    badges.push('temporary_transit');
+  if (!part) {
+    if (listing.plateType === 'kish') badges.push('kish_plate');
+    if (listing.plateType === 'temporary_transit' || listing.plateType === 'unplated') {
+      badges.push('temporary_transit');
+    }
   }
   if (listing.hasReport) badges.push('verified_report');
 
-  const specs: Array<{ icon: 'mileage' | 'gear' | 'fuel' | 'plate' | 'car'; label: string; value: string }> = [
-    { icon: 'mileage', label: 'کارکرد', value: `${toPersianDigits(groupDigits(listing.mileageKm))} کیلومتر` },
-    { icon: 'gear', label: 'گیربکس', value: GEARBOX_LABELS[listing.gearbox] },
-    { icon: 'fuel', label: 'سوخت', value: FUEL_LABELS[listing.fuel] },
-    { icon: 'plate', label: 'وضعیت پلاک', value: PLATE_TYPE_LABELS[listing.plateType] },
-    { icon: 'car', label: 'نوع', value: CONDITION_LABELS[listing.condition] },
-  ];
+  type DetailSpec = {
+    icon: 'mileage' | 'gear' | 'fuel' | 'plate' | 'car' | 'clock' | 'shieldCheck';
+    label: string;
+    value: string;
+  };
+
+  const ageLabel = postingAgeLabel(listing.publishedAt ?? Date.now());
+  const specs: DetailSpec[] = part
+    ? [
+        { icon: 'car', label: 'دسته‌بندی', value: PART_CATEGORY_LABELS[part.category] },
+        { icon: 'shieldCheck', label: 'منشأ', value: PART_ORIGIN_LABELS[part.origin] },
+        { icon: 'car', label: 'سازگاری', value: compatibilityLabel(part.compatibility) },
+        ...(part.partNumber
+          ? [{ icon: 'gear' as const, label: 'شماره فنی', value: part.partNumber }]
+          : []),
+        ...(part.warranty
+          ? [{ icon: 'shieldCheck' as const, label: 'گارانتی', value: part.warranty }]
+          : []),
+        { icon: 'car', label: 'وضعیت', value: PART_CONDITION_LABELS[part.condition] },
+        { icon: 'clock', label: 'انتشار', value: ageLabel },
+      ]
+    : [
+        { icon: 'mileage', label: 'کارکرد', value: `${listing.mileageKm} کیلومتر` },
+        { icon: 'gear', label: 'گیربکس', value: GEARBOX_LABELS[listing.gearbox] },
+        { icon: 'fuel', label: 'سوخت', value: FUEL_LABELS[listing.fuel] },
+        { icon: 'plate', label: 'وضعیت پلاک', value: PLATE_TYPE_LABELS[listing.plateType] },
+        { icon: 'car', label: 'نوع', value: CONDITION_LABELS[listing.condition] },
+        { icon: 'car', label: 'رنگ', value: COLOR_LABELS[listing.color] },
+        { icon: 'clock', label: 'انتشار', value: ageLabel },
+      ];
 
   return (
     <article className="space-y-5">
@@ -76,7 +113,7 @@ export default async function ListingDetailPage({
             {listing.coverUrl ? (
               <Image
                 src={listing.coverUrl}
-                alt={`${listing.model} ${listing.year}`}
+                alt={part ? part.title : `${listing.model} ${listing.year}`}
                 fill
                 sizes="(min-width: 1024px) 66vw, 100vw"
                 className={`object-cover ${sold ? 'opacity-60 grayscale' : ''}`}
@@ -90,12 +127,24 @@ export default async function ListingDetailPage({
           </div>
 
           <div className="mt-4 rounded-card border border-line bg-card p-4 sm:p-5">
-            <h1 className="text-xl font-extrabold leading-tight">
-              {listing.model}
-              {listing.trim ? ` ${listing.trim}` : ''} — {toPersianDigits(listing.year)}
+            <h1
+              className="text-xl font-extrabold leading-tight"
+              style={sold ? { color: '#64748B' } : undefined}
+            >
+              {part
+                ? part.title
+                : `${listing.model}${listing.trim ? ` ${listing.trim}` : ''} — ${listing.year}`}
             </h1>
 
             <div className="mt-2 flex flex-wrap items-center gap-1.5">
+              {sold && (
+                <span
+                  className="px-2 py-0.5 text-xs font-extrabold"
+                  style={{ background: '#F98513', color: '#111144', borderRadius: 8 }}
+                >
+                  Sold
+                </span>
+              )}
               {badges.map((b) => {
                 const token = badgeFor(b);
                 return (
@@ -114,8 +163,11 @@ export default async function ListingDetailPage({
               })}
             </div>
 
-            <p className={`mt-3 text-2xl font-extrabold ${sold ? 'text-muted' : 'text-ink'}`}>
-              {formatIRR(listing.priceIRR)}
+            <p
+              className="mt-3 text-2xl font-extrabold"
+              style={sold ? { color: '#64748B' } : undefined}
+            >
+              {formatPriceLatin(listing.priceIRR)}
             </p>
 
             <dl className="mt-4 grid grid-cols-2 gap-3 sm:grid-cols-3">
@@ -128,22 +180,6 @@ export default async function ListingDetailPage({
                   <dd className="mt-1 text-sm font-extrabold">{spec.value}</dd>
                 </div>
               ))}
-              <div className="rounded-field border border-line bg-page p-3">
-                <dt className="flex items-center gap-1.5 text-xs font-bold text-muted">
-                  <Icon name="car" size={16} />
-                  رنگ
-                </dt>
-                <dd className="mt-1 text-sm font-extrabold">{COLOR_LABELS[listing.color]}</dd>
-              </div>
-              <div className="rounded-field border border-line bg-page p-3">
-                <dt className="flex items-center gap-1.5 text-xs font-bold text-muted">
-                  <Icon name="clock" size={16} />
-                  تاریخ انتشار
-                </dt>
-                <dd className="mt-1 text-sm font-extrabold">
-                  <time dateTime={published.toISOString()}>{formatJalaliDate(published)}</time>
-                </dd>
-              </div>
             </dl>
 
             {listing.description && (
@@ -174,17 +210,16 @@ export default async function ListingDetailPage({
                   )}
                 </p>
               </div>
-              <FavoriteButton slug={listing.slug} />
+              <FavoriteButton slug={listing.slug} listingId={listing.id} />
             </div>
 
             <div className="mt-4 border-t border-line pt-4">
-              {listing.state === 'active' ? (
-                <ContactButtons phone={phone} />
-              ) : (
-                <p className="rounded-field border border-line bg-page p-3 text-center text-sm font-bold text-muted">
-                  این آگهی فروخته شده است؛ امکان تماس وجود ندارد.
-                </p>
-              )}
+              <ContactButtons
+                listingId={listing.id}
+                slug={listing.slug}
+                phone={phone}
+                sold={sold}
+              />
             </div>
           </div>
 
@@ -198,6 +233,10 @@ export default async function ListingDetailPage({
           )}
         </aside>
       </div>
+
+      <p className="rounded-card border border-line bg-card p-4 text-xs leading-6 text-muted">
+        Ali Sales فقط محل نمایش آگهی است. خرید و فروش و پرداخت بین خود کاربران انجام می‌شود.
+      </p>
     </article>
   );
 }

@@ -13,6 +13,11 @@ import { Icon } from './Icon';
 export function BottomNav() {
   const pathname = usePathname();
 
+  // C8: the bar is hidden on the creation flow and on the inspection report.
+  if (pathname === '/new' || pathname.startsWith('/new/') || pathname.includes('/inspection')) {
+    return null;
+  }
+
   return (
     <nav
       aria-label="ناوبری اصلی"

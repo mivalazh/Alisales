@@ -9,11 +9,25 @@ import {
   type Fuel,
   type Gearbox,
   type ListingState,
+  type PartCategory,
+  type PartCondition,
+  type PartOrigin,
   type PlateType,
   type SearchFilters,
 } from '@alisales/schemas';
 import { fixtureListings } from './fixtures';
 import { devListings } from './dev-store';
+
+/** Structured part data for a non-vehicle listing (`parts_listings`). */
+export interface PartInfo {
+  title: string;
+  category: PartCategory;
+  origin: PartOrigin;
+  condition: PartCondition;
+  partNumber: string | null;
+  compatibility: string | null;
+  warranty: string | null;
+}
 
 /** Row shape returned by the public.listing_cards view / search_listings RPC. */
 export interface ListingCardData {
@@ -43,6 +57,10 @@ export interface ListingCardData {
   showroomVerified: boolean;
   /** Seller opted into showing the phone (server still gates sold → never). */
   allowPhoneReveal: boolean;
+  /** «vehicle» for cars; «part» for parts & accessories listings. */
+  kind?: 'vehicle' | 'part';
+  /** Present only for parts listings. */
+  part?: PartInfo | null;
 }
 
 /** Detail projection: the card plus the long description. */

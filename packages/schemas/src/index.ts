@@ -93,6 +93,14 @@ export {
 } from './locale';
 export type { JalaliDate } from './locale';
 
+// Posting age (relative text; Jalali day boundaries in Asia/Tehran)
+export {
+  TEHRAN_OFFSET_MS,
+  tehranDayIndex,
+  postingAgeDays,
+  postingAgeLabel,
+} from './posting-age';
+
 // Search filters + URL codec
 export {
   searchFiltersSchema,
@@ -117,3 +125,87 @@ export {
   plateStatement,
 } from './legal';
 export type { PlateSectionKey } from './legal';
+
+// Digits (S2): visible numbers always render with Latin digits
+export {
+  toLatinDigits,
+  groupLatinDigits,
+  formatAmountLatin,
+  formatPriceLatin,
+} from './digits';
+
+// Phone (S2 login)
+export { normalizePhone, isValidMobile, maskPhone } from './phone';
+
+// OTP policy (S2 login)
+export {
+  OTP_LENGTH,
+  OTP_TTL_MS,
+  OTP_MAX_ATTEMPTS,
+  OTP_RESEND_COOLDOWN_MS,
+  isOtpCode,
+  otpStatus,
+  otpEquals,
+  otpStatusMessage,
+  otpResendWaitSeconds,
+} from './otp';
+export type { OtpStatus } from './otp';
+
+// Account profile (S2 first login)
+export {
+  accountTypes,
+  ACCOUNT_TYPE_LABELS,
+  displayNameSchema,
+  profileSchema,
+  accountTypeLabel,
+} from './profile';
+export type { AccountType, ProfileInput } from './profile';
+
+// Open-redirect guard for ?next= (S2 security rule)
+export { DEFAULT_NEXT_PATH, safeNextPath, loginHref } from './safe-next';
+
+// Structured visit requests in chat (visit_request_chat)
+export {
+  VISIT_REQUEST_DEFAULT_MESSAGE,
+  visitSlotSchema,
+  isValidVisitDate,
+  messageKinds,
+  MESSAGE_KIND_LABELS,
+  isVisitKind,
+  visitSlotLabel,
+  visitMessageBody,
+} from './visit';
+export type { VisitSlot, MessageKind } from './visit';
+
+// Parts & accessories listings (parts_listings)
+export {
+  partCategories,
+  partOrigins,
+  partConditions,
+  PART_CATEGORY_LABELS,
+  PART_ORIGIN_LABELS,
+  PART_CONDITION_LABELS,
+  PART_COMPATIBILITY_GENERAL,
+  PART_FIELD_LABELS,
+  compatibilityLabel,
+  partListingPublishSchema,
+} from './parts';
+export type {
+  PartCategory,
+  PartOrigin,
+  PartCondition,
+  PartListingPublish,
+} from './parts';
+
+// Owner statistics (S2 / C2)
+export { summarizeOwnerStats, totalOwnerStats } from './stats';
+export type { ListingOwnerStats, OwnerStatsInput } from './stats';
+
+// Free-tier publish limit (S2 / C6)
+export {
+  FREE_THIRD_LISTING_MESSAGE,
+  countsTowardFreeLimit,
+  activeListingCount,
+  freeLimitDecision,
+} from './listing-limit';
+export type { FreeLimitDecision } from './listing-limit';

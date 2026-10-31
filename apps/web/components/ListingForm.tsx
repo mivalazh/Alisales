@@ -10,6 +10,10 @@ import {
   LISTING_FIELD_LABELS,
   MAX_VEHICLE_YEAR,
   MIN_VEHICLE_YEAR,
+  PART_CATEGORY_LABELS,
+  PART_CONDITION_LABELS,
+  PART_FIELD_LABELS,
+  PART_ORIGIN_LABELS,
   PLATE_DECLARATION_FOOTER,
   PLATE_TYPE_LABELS,
   colorSlugs,
@@ -18,6 +22,10 @@ import {
   gearboxTypes,
   formatIRR,
   listingPublishSchema,
+  partCategories,
+  partConditions,
+  partListingPublishSchema,
+  partOrigins,
   plateStatement,
   plateTypes,
   toAsciiDigits,
@@ -29,7 +37,7 @@ import { PhotoUploader } from './PhotoUploader';
 import type { ProcessedPhoto } from '@/lib/photos';
 
 /** Human labels for schema paths — shared with the mobile form. */
-const FIELD_LABELS: Record<string, string> = LISTING_FIELD_LABELS;
+const FIELD_LABELS: Record<string, string> = { ...LISTING_FIELD_LABELS, ...PART_FIELD_LABELS };
 
 const INITIAL_DRAFT = {
   brand: 'saipa',
@@ -50,6 +58,19 @@ const INITIAL_DRAFT = {
 };
 
 type Draft = typeof INITIAL_DRAFT;
+
+const INITIAL_PART_DRAFT = {
+  category: '',
+  title: '',
+  partNumber: '',
+  compatibility: '',
+  origin: '',
+  condition: '',
+  warranty: '',
+};
+
+type PartDraft = typeof INITIAL_PART_DRAFT;
+type ListingMode = 'vehicle' | 'part';
 
 function Field({
   htmlFor,
@@ -98,6 +119,9 @@ function parseIntLoose(raw: string): number {
 }
 
 export function ListingForm() {
+  // Step 1 (parts_listings): «خودرو» or «قطعه و لوازم جانبی».
+  const [mode, setMode] = useState<ListingMode>('vehicle');
+  const [partDraft, setPartDraft] = useState<PartDraft>(INITIAL_PART_DRAFT);
   const [draft, setDraft] = useState<Draft>(INITIAL_DRAFT);
   const [photos, setPhotos] = useState<ProcessedPhoto[]>([]);
   const [photosBusy, setPhotosBusy] = useState(false);
@@ -121,6 +145,15 @@ export function ListingForm() {
   const set = <K extends keyof Draft>(key: K, value: Draft[K]) =>
     setDraft((d) => ({ ...d, [key]: value }));
 
+  const setPart = <K extends keyof PartDraft>(key: K, value: PartDraft[K]) =>
+    setPartDraft((d) => ({ ...d, [key]: value }));
+
+  function switchMode(next: ListingMode): void {
+    setMode(next);
+    setFieldErrors({});
+    setFormError(null);
+  }
+
   const activeBrand = BRANDS.find((b) => b.slug === draft.brand) ?? BRANDS[0]!;
   const plateStatementText = draft.plateType
     ? plateStatement(draft.plateType as PlateType)
@@ -130,8 +163,38 @@ export function ListingForm() {
     return Number.isFinite(n) && n > 0 ? formatIRR(n) : null;
   })();
 
-  function buildPayload(): ListingPublish {
+  function photoPayload(): ListingPublish['photos'] {
+    return photos.map((p, i) => ({
+      path: `pending/${Date.now().toString(36)}-${i}.webp`,
+      mime: 'image/webp' as const,
+      bytes: p.bytes,
+      width: p.width,
+      height: p.height,
+      position: i,
+    }));
+  }
+
+  function buildPayload(): unknown {
+    if (mode === 'part') {
+      return {
+        kind: 'part',
+        category: partDraft.category,
+        title: partDraft.title.trim(),
+        partNumber: partDraft.partNumber.trim() || null,
+        compatibility: partDraft.compatibility.trim() || null,
+        origin: partDraft.origin,
+        condition: partDraft.condition,
+        warranty: partDraft.warranty.trim() || null,
+        priceIRR: parseIntLoose(draft.priceIRR),
+        city: draft.city,
+        description: draft.description.trim(),
+        photos: photoPayload(),
+        showroomId: null,
+        allowPhoneReveal: draft.allowPhoneReveal,
+      };
+    }
     return {
+      kind: 'vehicle',
       vehicle: {
         brand: draft.brand as ListingPublish['vehicle']['brand'],
         model: draft.model.trim(),
@@ -148,14 +211,7 @@ export function ListingForm() {
       priceIRR: parseIntLoose(draft.priceIRR),
       city: draft.city,
       description: draft.description.trim(),
-      photos: photos.map((p, i) => ({
-        path: `pending/${Date.now().toString(36)}-${i}.webp`,
-        mime: 'image/webp' as const,
-        bytes: p.bytes,
-        width: p.width,
-        height: p.height,
-        position: i,
-      })),
+      photos: photoPayload(),
       showroomId: null,
       allowPhoneReveal: draft.allowPhoneReveal,
     };
@@ -178,7 +234,11 @@ export function ListingForm() {
     setFormError(null);
     setFieldErrors({});
 
-    const parsed = listingPublishSchema.safeParse(buildPayload());
+    const payload = buildPayload();
+    const parsed =
+      mode === 'part'
+        ? partListingPublishSchema.safeParse(payload)
+        : listingPublishSchema.safeParse(payload);
     if (!parsed.success) {
       applyIssues(
         parsed.error.issues.map((i) => ({
@@ -214,6 +274,10 @@ export function ListingForm() {
         setFormError('اطلاعات ارسالی معتبر نیست.');
         return;
       }
+      if (res.status === 401) {
+        window.location.href = '/login?next=/new';
+        return;
+      }
       setFormError(
         body?.error ?? 'ارسال آگهی ناموفق بود؛ لطفاً دوباره تلاش کنید.',
       );
@@ -228,6 +292,7 @@ export function ListingForm() {
     photosRef.current.forEach((p) => URL.revokeObjectURL(p.previewUrl));
     setPhotos([]);
     setDraft(INITIAL_DRAFT);
+    setPartDraft(INITIAL_PART_DRAFT);
     setFieldErrors({});
     setFormError(null);
     setSuccessSlug(null);
@@ -239,13 +304,16 @@ export function ListingForm() {
         className="mx-auto max-w-3xl rounded-card border border-line bg-card px-6 py-10 text-center"
         role="status"
       >
-        <p className="text-lg font-extrabold">آگهی شما با موفقیت ثبت شد</p>
+        <p className="text-lg font-extrabold">آگهی شما منتشر شد</p>
         <p className="mt-1 text-sm text-muted">
-          آگهی در انتظار بررسی است و پس از تأیید، در فهرست نمایش داده می‌شود.
+          آگهی بلافاصله در فهرست نمایش داده می‌شود.
         </p>
         <div className="mt-5 flex flex-wrap justify-center gap-3">
-          <a href="/" className="btn-cta text-sm">
-            مشاهده فهرست آگهی‌ها
+          <a href={`/listing/${successSlug}`} className="btn-cta text-sm">
+            مشاهده آگهی
+          </a>
+          <a href="/profile/listings" className="btn-ghost text-sm">
+            آگهی‌های من
           </a>
           <button type="button" onClick={resetForm} className="btn-ghost text-sm">
             ثبت آگهی دیگر
@@ -258,10 +326,36 @@ export function ListingForm() {
   return (
     <form onSubmit={(e) => void handleSubmit(e)} noValidate className="mx-auto flex max-w-3xl flex-col gap-5">
       <div>
-        <h1 className="text-2xl font-extrabold">ثبت آگهی خودرو</h1>
+        <h1 className="text-2xl font-extrabold">
+          {mode === 'part' ? 'ثبت آگهی قطعه و لوازم جانبی' : 'ثبت آگهی خودرو'}
+        </h1>
         <p className="mt-1 text-sm text-muted">
-          اطلاعات را دقیق وارد کنید؛ آگهی پس از ثبت، در انتظار بررسی قرار می‌گیرد.
+          اطلاعات را دقیق وارد کنید؛ آگهی بلافاصله پس از ثبت منتشر می‌شود.
         </p>
+      </div>
+
+      {/* Step 1 (C3 / parts_listings): نوع آگهی */}
+      <div className="grid grid-cols-2 gap-2" role="group" aria-label="نوع آگهی">
+        {(
+          [
+            { key: 'vehicle', label: 'خودرو' },
+            { key: 'part', label: 'قطعه و لوازم جانبی' },
+          ] as const
+        ).map((option) => (
+          <button
+            key={option.key}
+            type="button"
+            aria-pressed={mode === option.key}
+            onClick={() => switchMode(option.key)}
+            className={`rounded-field border p-3 text-sm font-extrabold transition ${
+              mode === option.key
+                ? 'border-cta bg-cta-soft text-ink'
+                : 'border-line bg-card text-muted hover:border-line-strong'
+            }`}
+          >
+            {option.label}
+          </button>
+        ))}
       </div>
 
       {formError && (
@@ -273,6 +367,8 @@ export function ListingForm() {
         </div>
       )}
 
+      {mode === 'vehicle' && (
+        <>
       <Section title="مشخصات خودرو">
         <Field htmlFor="brand" label="برند" error={fieldErrors['vehicle.brand']}>
           <select
@@ -467,6 +563,110 @@ export function ListingForm() {
           </div>
         )}
       </Section>
+        </>
+      )}
+
+      {mode === 'part' && (
+        <Section title="مشخصات قطعه">
+          <Field htmlFor="partCategory" label="دسته‌بندی" error={fieldErrors.category}>
+            <select
+              id="partCategory"
+              className="field"
+              value={partDraft.category}
+              onChange={(e) => setPart('category', e.target.value)}
+            >
+              <option value="">انتخاب کنید…</option>
+              {partCategories.map((category) => (
+                <option key={category} value={category}>
+                  {PART_CATEGORY_LABELS[category]}
+                </option>
+              ))}
+            </select>
+          </Field>
+
+          <Field htmlFor="partTitle" label="عنوان" error={fieldErrors.title}>
+            <input
+              id="partTitle"
+              className="field"
+              value={partDraft.title}
+              onChange={(e) => setPart('title', e.target.value)}
+              placeholder="مثلاً دیسک ترمز جلو پژو 206"
+            />
+          </Field>
+
+          <Field
+            htmlFor="partNumber"
+            label="شماره فنی (اختیاری)"
+            error={fieldErrors.partNumber}
+          >
+            <input
+              id="partNumber"
+              className="field font-mono"
+              dir="ltr"
+              value={partDraft.partNumber}
+              onChange={(e) => setPart('partNumber', e.target.value)}
+              placeholder="AB-1234"
+            />
+          </Field>
+
+          <Field
+            htmlFor="partCompatibility"
+            label="سازگاری با خودرو (اختیاری)"
+            hint="اگر خالی بماند، «سازگاری عمومی» نمایش داده می‌شود."
+            error={fieldErrors.compatibility}
+          >
+            <input
+              id="partCompatibility"
+              className="field"
+              value={partDraft.compatibility}
+              onChange={(e) => setPart('compatibility', e.target.value)}
+              placeholder="پژو 206 و 207"
+            />
+          </Field>
+
+          <Field htmlFor="partOrigin" label="منشأ" error={fieldErrors.origin}>
+            <select
+              id="partOrigin"
+              className="field"
+              value={partDraft.origin}
+              onChange={(e) => setPart('origin', e.target.value)}
+            >
+              <option value="">انتخاب کنید…</option>
+              {partOrigins.map((origin) => (
+                <option key={origin} value={origin}>
+                  {PART_ORIGIN_LABELS[origin]}
+                </option>
+              ))}
+            </select>
+          </Field>
+
+          <Field htmlFor="partCondition" label="وضعیت" error={fieldErrors.condition}>
+            <select
+              id="partCondition"
+              className="field"
+              value={partDraft.condition}
+              onChange={(e) => setPart('condition', e.target.value)}
+            >
+              <option value="">انتخاب کنید…</option>
+              {partConditions.map((condition) => (
+                <option key={condition} value={condition}>
+                  {PART_CONDITION_LABELS[condition]}
+                </option>
+              ))}
+            </select>
+          </Field>
+
+          <Field htmlFor="partWarranty" label="گارانتی (اختیاری)" error={fieldErrors.warranty}>
+            <input
+              id="partWarranty"
+              className="field"
+              value={partDraft.warranty}
+              onChange={(e) => setPart('warranty', e.target.value)}
+              placeholder="مثلاً 6 ماه"
+            />
+          </Field>
+        </Section>
+      )}
 
       <Section title="قیمت، شهر و تماس">
         <Field
@@ -485,13 +685,14 @@ export function ListingForm() {
           />
         </Field>
 
-        <Field htmlFor="city" label="شهر" error={fieldErrors['city']}>
-          <select
-            id="city"
-            className="field"
-            value={draft.city}
-            onChange={(e) => set('city', e.target.value)}
-          >
+        {/* C8: city is a disabled select with کیش as the only option. */}
+        <Field
+          htmlFor="city"
+          label="شهر"
+          hint="در این مرحله فقط کیش فعال است."
+          error={fieldErrors['city']}
+        >
+          <select id="city" className="field" value={draft.city} disabled>
             {selectableCities().map((c) => (
               <option key={c.slug} value={c.slug}>
                 {c.label}
@@ -521,7 +722,7 @@ export function ListingForm() {
           className="col-span-full"
           htmlFor="description"
           label="توضیحات آگهی"
-          hint={`دست‌کم ${toPersianDigits(20)} نویسه — اکنون ${toPersianDigits(draft.description.trim().length)} نویسه`}
+          hint={`دست‌کم ${toPersianDigits(mode === 'part' ? 10 : 20)} نویسه — اکنون ${toPersianDigits(draft.description.trim().length)} نویسه`}
           error={fieldErrors['description']}
         >
           <textarea

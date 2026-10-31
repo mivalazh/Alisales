@@ -1,26 +1,43 @@
 import { NextResponse } from 'next/server';
-import { listingPublishSchema, type ListingPublish } from '@alisales/schemas';
+import {
+  freeLimitDecision,
+  listingPublishSchema,
+  partListingPublishSchema,
+  type ListingPublish,
+  type PartListingPublish,
+} from '@alisales/schemas';
+import { getSession } from '@/lib/auth/session';
 import { addDevListing } from '@/lib/data/dev-store';
+import { activeListingsCount } from '@/lib/data/s2-store';
 import type { ListingCardData } from '@/lib/data/listings';
 
 /**
- * POST /api/listings — validates against the shared @alisales/schemas
- * publish schema (all messages فارسی via the installed error map).
+ * POST /api/listings — publish a listing (S2).
  *
- * Storage/auth wiring:
- * - No Supabase credentials → local dev store (dev only; production 503).
- * - Credentials present → RLS requires an authenticated session; auth lands
- *   in Phase 4, so the honest answer today is 401.
+ * Two shapes share this endpoint, selected by `kind`:
+ *  - `vehicle` (default, also the S1 payload): cars.
+ *  - `part`: parts & accessories (`parts_listings` flag).
+ *
+ * - Guests get 401; the page itself is also behind the login guard.
+ * - Valid listings publish immediately with `state: 'active'` (C6); the DB
+ *   default stays untouched.
+ * - The two-active-listing free limit is enforced here: sold, archived
+ *   (paused) and expired listings do not count, and the third attempt returns
+ *   «برای آگهی سوم، پلن انتخاب کن.» (403).
+ *
+ * Storage: fixture mode writes to the local dev store so the flow is
+ * reviewable offline. A hosted database write is not wired in this stage and
+ * answers 503 instead of pretending success.
  */
-function toDevCard(data: ListingPublish): ListingCardData {
+function toDevCard(data: ListingPublish, sellerId: string): ListingCardData {
   const stamp = `local-${Date.now().toString(36)}`;
   return {
     id: stamp,
     slug: stamp,
-    sellerId: 'local-dev',
+    sellerId,
     priceIRR: data.priceIRR,
     city: data.city,
-    state: 'pending_review',
+    state: 'active',
     featured: false,
     publishedAt: new Date().toISOString(),
     hasReport: false,
@@ -38,52 +55,117 @@ function toDevCard(data: ListingPublish): ListingCardData {
     showroomName: null,
     showroomVerified: false,
     allowPhoneReveal: data.allowPhoneReveal,
+    kind: 'vehicle',
+    part: null,
+  };
+}
+
+function toDevPartCard(data: PartListingPublish, sellerId: string): ListingCardData {
+  const stamp = `part-${Date.now().toString(36)}`;
+  return {
+    id: stamp,
+    slug: stamp,
+    sellerId,
+    priceIRR: data.priceIRR,
+    city: data.city,
+    state: 'active',
+    featured: false,
+    publishedAt: new Date().toISOString(),
+    hasReport: false,
+    // Parts have no brand/model/year; the title is the browse title.
+    brand: '',
+    model: data.title,
+    trim: null,
+    year: 0,
+    mileageKm: 0,
+    gearbox: 'automatic',
+    fuel: 'petrol',
+    color: 'white',
+    condition: data.condition === 'new' ? 'new' : 'used',
+    plateType: 'unplated',
+    coverUrl: null,
+    showroomName: null,
+    showroomVerified: false,
+    allowPhoneReveal: data.allowPhoneReveal,
+    kind: 'part',
+    part: {
+      title: data.title,
+      category: data.category,
+      origin: data.origin,
+      condition: data.condition,
+      partNumber: data.partNumber,
+      compatibility: data.compatibility,
+      warranty: data.warranty,
+    },
   };
 }
 
 export async function POST(request: Request): Promise<NextResponse> {
+  const session = await getSession();
+  if (!session) {
+    return NextResponse.json(
+      { error: 'برای ثبت آگهی ابتدا وارد حساب خود شوید.' },
+      { status: 401 },
+    );
+  }
+
   let raw: unknown;
   try {
     raw = await request.json();
   } catch {
-    return NextResponse.json(
-      { ok: false, error: 'بدنه درخواست نامعتبر است.' },
-      { status: 400 },
-    );
+    return NextResponse.json({ error: 'بدنه درخواست نامعتبر است.' }, { status: 400 });
   }
 
-  const parsed = listingPublishSchema.safeParse(raw);
-  if (!parsed.success) {
-    return NextResponse.json(
-      {
-        ok: false,
-        issues: parsed.error.issues.map((issue) => ({
-          path: issue.path.join('.'),
-          message: issue.message,
-        })),
-      },
-      { status: 400 },
-    );
+  const isPart = (raw as { kind?: unknown })?.kind === 'part';
+
+  let card: ListingCardData;
+  if (isPart) {
+    const parsed = partListingPublishSchema.safeParse(raw);
+    if (!parsed.success) {
+      return NextResponse.json(
+        {
+          ok: false,
+          issues: parsed.error.issues.map((issue) => ({
+            path: issue.path.join('.'),
+            message: issue.message,
+          })),
+        },
+        { status: 400 },
+      );
+    }
+    card = toDevPartCard(parsed.data, session.sub);
+  } else {
+    const parsed = listingPublishSchema.safeParse(raw);
+    if (!parsed.success) {
+      return NextResponse.json(
+        {
+          ok: false,
+          issues: parsed.error.issues.map((issue) => ({
+            path: issue.path.join('.'),
+            message: issue.message,
+          })),
+        },
+        { status: 400 },
+      );
+    }
+    card = toDevCard(parsed.data, session.sub);
+  }
+
+  const decision = freeLimitDecision(await activeListingsCount(session.sub));
+  if (!decision.allowed) {
+    return NextResponse.json({ error: decision.message }, { status: 403 });
   }
 
   const configured = Boolean(
     process.env.NEXT_PUBLIC_SUPABASE_URL && process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY,
   );
-
-  if (!configured) {
-    if (process.env.NODE_ENV === 'production') {
-      return NextResponse.json(
-        { ok: false, error: 'ذخیره‌سازی سرور پیکربندی نشده است؛ لطفاً بعداً تلاش کنید.' },
-        { status: 503 },
-      );
-    }
-    const card = toDevCard(parsed.data);
-    addDevListing(card);
-    return NextResponse.json({ ok: true, slug: card.slug }, { status: 201 });
+  if (configured || process.env.NODE_ENV === 'production') {
+    return NextResponse.json(
+      { error: 'ثبت آگهی روی پایگاه‌داده میزبان در این مرحله فعال نشده است.' },
+      { status: 503 },
+    );
   }
 
-  return NextResponse.json(
-    { ok: false, error: 'برای ثبت آگهی ابتدا وارد حساب خود شوید.' },
-    { status: 401 },
-  );
+  addDevListing(card);
+  return NextResponse.json({ ok: true, slug: card.slug }, { status: 201 });
 }

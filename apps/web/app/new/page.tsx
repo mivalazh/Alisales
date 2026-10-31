@@ -1,26 +1,22 @@
 import type { Metadata } from 'next';
-import Link from 'next/link';
-import { Icon } from '@/components/Icon';
+import { requireUser } from '@/lib/auth/require-user';
+import { ListingForm } from '@/components/ListingForm';
 
-export const metadata: Metadata = { title: 'ثبت آگهی خودرو' };
+export const metadata: Metadata = { title: 'ثبت آگهی' };
 
-/**
- * Listing creation is NOT functional in S1 — it lands in S2 together with
- * login. The route exists so every «ثبت آگهی» entry leads somewhere honest
- * instead of a form that cannot actually publish.
- */
-export default function NewListingPage() {
+/** Listing creation (S2): signed-in only, publishes immediately (C6). */
+export default async function NewListingPage() {
+  await requireUser('/new');
+
   return (
-    <div className="rounded-card border border-dashed border-line-strong bg-card px-6 py-16 text-center">
-      <Icon name="plus" size={40} className="mx-auto text-faint" />
-      <h1 className="mt-4 text-lg font-extrabold">ثبت آگهی</h1>
-      <p className="mt-2 text-sm text-muted">
-        ثبت آگهی خودرو بزودی همراه با ورود به حساب کاربری ارائه می‌شود؛ در حال
-        حاضر این بخش در دسترس نیست.
-      </p>
-      <Link href="/" className="btn-cta mt-6 inline-flex text-sm">
-        بازگشت به آگهی‌ها
-      </Link>
+    <div className="space-y-4">
+      <div>
+        <h1 className="text-xl font-extrabold">ثبت آگهی</h1>
+        <p className="mt-1 text-xs text-muted">
+          آگهی شما پس از ثبت بلافاصله در فهرست منتشر می‌شود. شهر در این مرحله فقط کیش است.
+        </p>
+      </div>
+      <ListingForm />
     </div>
   );
 }

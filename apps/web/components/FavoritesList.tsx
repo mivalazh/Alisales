@@ -2,7 +2,7 @@
 
 import Link from 'next/link';
 import { useEffect, useState } from 'react';
-import { formatIRR, toPersianDigits } from '@alisales/schemas';
+import { formatPriceLatin } from '@alisales/schemas';
 import { FAVORITES_KEY, readFavorites, type FavoriteSnapshot } from './FavoriteButton';
 import { Icon } from './Icon';
 
@@ -41,10 +41,10 @@ export function FavoritesList() {
           <Link href={`/listing/${item.slug}`} className="min-w-0 flex-1">
             <p className="truncate text-sm font-extrabold">
               {item.model || item.slug}
-              {item.year ? ` — ${toPersianDigits(item.year)}` : ''}
+              {item.year ? ` — ${item.year}` : ''}
             </p>
             {item.priceIRR ? (
-              <p className="mt-0.5 text-sm font-bold text-muted">{formatIRR(item.priceIRR)}</p>
+              <p className="mt-0.5 text-sm font-bold text-muted">{formatPriceLatin(item.priceIRR)}</p>
             ) : null}
           </Link>
           <button

@@ -4,13 +4,19 @@ import { badgeFor, type BadgeKey } from '@studio/design';
 import {
   CITY_LABELS,
   GEARBOX_LABELS,
+  PART_CATEGORY_LABELS,
+  PART_ORIGIN_LABELS,
   PLATE_TYPE_LABELS,
-  formatIRR,
-  formatJalaliDate,
-  groupDigits,
-  toPersianDigits,
+  compatibilityLabel,
+  formatPriceLatin,
+  postingAgeLabel,
 } from '@alisales/schemas';
 import type { ListingCardData } from '@/lib/data/listings';
+
+/** C8 sold palette — fixed product colors, not theme tokens. */
+const SOLD_BG = '#F98513';
+const SOLD_INK = '#111144';
+const SOLD_TEXT = '#64748B';
 
 function Badge({ badgeKey }: { badgeKey: BadgeKey }) {
   const b = badgeFor(badgeKey);
@@ -30,31 +36,36 @@ function plateBadgeKey(plateType: ListingCardData['plateType']): BadgeKey | null
   return null;
 }
 
-/** Lifecycle states render their design badge (all map 1:1 to badge keys). */
-const STATE_BADGE: Record<ListingCardData['state'], BadgeKey> = {
+/** Lifecycle states other than sold keep their design badge. */
+const STATE_BADGE: Record<Exclude<ListingCardData['state'], 'sold'>, BadgeKey> = {
   draft: 'draft',
   pending_review: 'pending_review',
   active: 'active',
   paused: 'paused',
-  sold: 'sold',
   expired: 'expired',
   rejected: 'rejected',
 };
 
-/** Badge + core tags for a listing — shared by the grid card and the row. */
 function cardBadges(listing: ListingCardData): BadgeKey[] {
   const badges: BadgeKey[] = [];
-  if (listing.state !== 'active') badges.push(STATE_BADGE[listing.state]);
+  if (listing.state !== 'active' && listing.state !== 'sold') {
+    badges.push(STATE_BADGE[listing.state]);
+  }
   badges.push(listing.condition === 'new' ? 'new' : 'used');
-  const plate = plateBadgeKey(listing.plateType);
+  const plate = listing.part ? null : plateBadgeKey(listing.plateType);
   if (plate) badges.push(plate);
   if (listing.hasReport) badges.push('verified_report');
   return badges;
 }
 
+/**
+ * Catalog card. Posting age is relative text on Tehran calendar days (C8);
+ * year, mileage and price always render with Latin digits. There is no
+ * «ویژه» badge and no public favorite count (`public_favorite_count = false`).
+ */
 export function ListingCard({ listing }: { listing: ListingCardData }) {
-  const published = new Date(listing.publishedAt ?? Date.now());
   const sold = listing.state === 'sold';
+  const part = listing.part ?? null;
 
   return (
     <li className="overflow-hidden rounded-card border border-line bg-card transition hover:border-line-strong hover:shadow-lg">
@@ -63,7 +74,7 @@ export function ListingCard({ listing }: { listing: ListingCardData }) {
           {listing.coverUrl ? (
             <Image
               src={listing.coverUrl}
-              alt={`${listing.model} ${listing.year}`}
+              alt={part ? part.title : `${listing.model} ${listing.year}`}
               fill
               sizes="(min-width: 1280px) 25vw, (min-width: 1024px) 33vw, (min-width: 640px) 50vw, 100vw"
               className={`object-cover ${sold ? 'opacity-60 grayscale' : ''}`}
@@ -71,9 +82,12 @@ export function ListingCard({ listing }: { listing: ListingCardData }) {
           ) : (
             <CameraPlaceholder />
           )}
-          {listing.featured && (
-            <span className="absolute top-2 end-2 rounded-[var(--radius-pill)] bg-cta px-2.5 py-0.5 text-xs font-extrabold text-ink">
-              ویژه
+          {sold && (
+            <span
+              className="absolute top-2 end-2 px-2.5 py-0.5 text-xs font-extrabold"
+              style={{ background: SOLD_BG, color: SOLD_INK, borderRadius: 8 }}
+            >
+              Sold
             </span>
           )}
         </div>
@@ -85,19 +99,37 @@ export function ListingCard({ listing }: { listing: ListingCardData }) {
             ))}
           </div>
 
-          <h3 className="text-base font-extrabold leading-tight">
-            {listing.model}
-            {listing.trim ? ` ${listing.trim}` : ''}{' '}
-            <span className="font-bold text-muted">{toPersianDigits(listing.year)}</span>
+          <h3 className="text-base font-extrabold leading-tight" style={sold ? { color: SOLD_TEXT } : undefined}>
+            {part ? (
+              part.title
+            ) : (
+              <>
+                {listing.model}
+                {listing.trim ? ` ${listing.trim}` : ''}{' '}
+                <span className="font-bold">{listing.year}</span>
+              </>
+            )}
           </h3>
 
-          <p className="text-xs text-muted">
-            {toPersianDigits(groupDigits(listing.mileageKm))} کیلومتر ·{' '}
-            {GEARBOX_LABELS[listing.gearbox]} · {PLATE_TYPE_LABELS[listing.plateType]}
+          <p className="text-xs text-muted" style={sold ? { color: SOLD_TEXT } : undefined}>
+            {part ? (
+              <>
+                {PART_CATEGORY_LABELS[part.category]} · {PART_ORIGIN_LABELS[part.origin]} ·{' '}
+                {compatibilityLabel(part.compatibility)}
+              </>
+            ) : (
+              <>
+                {listing.mileageKm} کیلومتر · {GEARBOX_LABELS[listing.gearbox]} ·{' '}
+                {PLATE_TYPE_LABELS[listing.plateType]}
+              </>
+            )}
           </p>
 
-          <p className={`text-lg font-extrabold ${sold ? 'text-muted' : 'text-ink'}`}>
-            {formatIRR(listing.priceIRR)}
+          <p
+            className="text-lg font-extrabold"
+            style={sold ? { color: SOLD_TEXT } : undefined}
+          >
+            {formatPriceLatin(listing.priceIRR)}
           </p>
 
           {listing.showroomName && (
@@ -114,7 +146,9 @@ export function ListingCard({ listing }: { listing: ListingCardData }) {
 
           <div className="mt-auto flex items-center justify-between border-t border-line pt-2 text-xs text-faint">
             <span>{CITY_LABELS[listing.city] ?? listing.city}</span>
-            <time dateTime={published.toISOString()}>{formatJalaliDate(published)}</time>
+            <time dateTime={listing.publishedAt ?? undefined}>
+              {postingAgeLabel(listing.publishedAt ?? Date.now())}
+            </time>
           </div>
         </div>
       </Link>
