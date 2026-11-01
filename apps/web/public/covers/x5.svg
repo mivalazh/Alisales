@@ -48,8 +48,7 @@
   <g mask="url(#arch)">
     <path d="M140 660V552q0-18 22-22l106-10 64-138q10-18 36-18h392q26 0 40 18l50 138 132 12q22 4 22 24v104z" fill="url(#body)"/>
     <path d="M392 512l24-118h168v118z" fill="url(#glass)"/>
-  <path d="M600 394h132l44 118H600z" fill="url(#glass)"/>
-  <path d="M772 394h66l50 118h-116z" fill="url(#glass)"/>
+  <path d="M600 394h150l46 118H600z" fill="url(#glass)"/>
     <path d="M152 572h892" stroke="#77848f" stroke-width="4" opacity="0.4"/>
     <rect x="608" y="524" width="40" height="9" rx="4" fill="#93a2b0" opacity="0.85"/>
   <rect x="716" y="524" width="40" height="9" rx="4" fill="#93a2b0" opacity="0.85"/>
