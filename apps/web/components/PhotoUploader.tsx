@@ -16,9 +16,17 @@ interface Props {
   onBusyChange?: (busy: boolean) => void;
   /** Server/client (schema) error for the photo set — e.g. «حداقل یک عکس لازم است». */
   error?: string;
+  /** Section label («عکس‌های خودرو» on create, «عکس‌های آگهی» on edit). */
+  label?: string;
 }
 
-export function PhotoUploader({ photos, onChange, onBusyChange, error }: Props) {
+export function PhotoUploader({
+  photos,
+  onChange,
+  onBusyChange,
+  error,
+  label = 'عکس‌های خودرو',
+}: Props) {
   const inputRef = useRef<HTMLInputElement>(null);
   const [busy, setBusy] = useState(false);
   const [localError, setLocalError] = useState<string | null>(null);
@@ -66,7 +74,7 @@ export function PhotoUploader({ photos, onChange, onBusyChange, error }: Props) 
 
   function removeAt(index: number): void {
     const target = photos[index];
-    if (target) URL.revokeObjectURL(target.previewUrl);
+    if (target && target.blob) URL.revokeObjectURL(target.previewUrl);
     onChange(photos.filter((_, i) => i !== index));
   }
 
@@ -81,7 +89,7 @@ export function PhotoUploader({ photos, onChange, onBusyChange, error }: Props) 
   return (
     <div>
       <div className="flex items-baseline justify-between gap-2">
-        <span className="label mb-0">عکس‌های خودرو</span>
+        <span className="label mb-0">{label}</span>
         <span className="text-xs font-bold text-muted">
           {toPersianDigits(photos.length)} از {toPersianDigits(MAX_PHOTOS)}
         </span>

@@ -1,12 +1,18 @@
 import { NextResponse } from 'next/server';
 import { getSession } from '@/lib/auth/session';
-import { listingById, recordPhoneReveal } from '@/lib/data/s2-store';
+import { admin, accountPhone, listingById, recordPhoneReveal } from '@/lib/data/s2-store';
+import { FIXTURE_SELLER_PHONE, getSellerPhone } from '@/lib/data/listings';
 
 /**
  * POST /api/phone-reveal — { listingId }
  *
- * Called when a signed-in visitor taps the call button. «نمایش شماره» is a
- * separate counter from «گفتگوی جدید» (C2); a guest tap records nothing.
+ * Called when a signed-in visitor taps the call button or the «نمایش شماره»
+ * CTA. Every tap is an append-only `phone_reveal_events` row («نمایش شماره»),
+ * kept strictly separate from «گفتگوی جدید». A guest tap records nothing and
+ * gets 401; the owner's own tap and sold listings record nothing.
+ *
+ * The response carries the number so the CTA can become a real call link after
+ * the reveal — the phone is never exposed before this authenticated call.
  */
 export async function POST(request: Request): Promise<NextResponse> {
   const session = await getSession();
@@ -34,5 +40,11 @@ export async function POST(request: Request): Promise<NextResponse> {
   }
 
   await recordPhoneReveal(listingId, session.sub);
-  return NextResponse.json({ ok: true });
+
+  const hosted = admin() !== null;
+  const phone =
+    (await getSellerPhone(listingId)) ??
+    (hosted ? null : ((await accountPhone(listing.sellerId)) ?? FIXTURE_SELLER_PHONE));
+
+  return NextResponse.json({ ok: true, phone });
 }

@@ -9,6 +9,7 @@ import {
   formatPriceLatin,
   postingAgeLabel,
 } from '@alisales/schemas';
+import type { ReactNode } from 'react';
 import type { ListingCardData } from '@/lib/data/listings';
 
 const SOLD_BG = '#F98513';
@@ -25,7 +26,14 @@ const STATE_BADGE: Record<Exclude<ListingCardData['state'], 'sold'>, BadgeKey> =
 };
 
 /** Compact list-view row — same rules as the grid card (C8). */
-export function ListingRow({ listing }: { listing: ListingCardData }) {
+export function ListingRow({
+  listing,
+  actions,
+}: {
+  listing: ListingCardData;
+  /** Owner-only row actions («آگهی‌های من»); omitted in public lists. */
+  actions?: ReactNode;
+}) {
   const sold = listing.state === 'sold';
   const part = listing.part ?? null;
 
@@ -136,6 +144,7 @@ export function ListingRow({ listing }: { listing: ListingCardData }) {
           </div>
         </div>
       </Link>
+      {actions && <div className="border-t border-line px-3 py-2 sm:px-4">{actions}</div>}
     </li>
   );
 }

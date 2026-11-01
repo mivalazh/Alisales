@@ -66,6 +66,14 @@ interface ViewRow {
   createdAt: string;
 }
 
+interface AbuseRow {
+  listingId: string;
+  reporterId: string;
+  reason: string;
+  details: string | null;
+  createdAt: string;
+}
+
 interface S2Data {
   users: Account[];
   favorites: FavoriteRow[];
@@ -73,13 +81,22 @@ interface S2Data {
   reveals: ViewRow[];
   conversations: ConversationRow[];
   messages: ChatMessageRow[];
+  reports: AbuseRow[];
 }
 
 const DATA_DIR = join(process.cwd(), '.dev-data');
 const FILE = join(DATA_DIR, 's2.json');
 
 function emptyData(): S2Data {
-  return { users: [], favorites: [], views: [], reveals: [], conversations: [], messages: [] };
+  return {
+    users: [],
+    favorites: [],
+    views: [],
+    reveals: [],
+    conversations: [],
+    messages: [],
+    reports: [],
+  };
 }
 
 function readData(): S2Data {
@@ -251,6 +268,14 @@ async function favoritesByListing(listingIds: readonly string[]): Promise<Favori
   }));
 }
 
+/** Phone of an account (server-side; used by the fixture-mode reveal flow). */
+export async function accountPhone(userId: string): Promise<string | null> {
+  const sb = admin();
+  if (!sb) return readData().users.find((u) => u.id === userId)?.phone ?? null;
+  const { data } = await sb.from('users').select('phone').eq('id', userId).maybeSingle();
+  return data ? String((data as { phone: string }).phone) : null;
+}
+
 // ── Events (server-written counters) ────────────────────────────────────────
 
 export async function recordView(listingId: string, viewerId: string): Promise<void> {
@@ -279,8 +304,42 @@ export async function recordPhoneReveal(listingId: string, viewerId: string): Pr
   await sb.from('phone_reveal_events').insert({ listing_id: listingId, viewer_id: viewerId });
 }
 
-// ── Chat ────────────────────────────────────────────────────────────────────
+// ── Abuse reports («گزارش آگهی») ─────────────────────────────────────────────
 
+export interface ReportResult {
+  ok: boolean;
+  duplicate?: boolean;
+}
+
+/** One report per (listing, reporter); the DB unique key is the source of truths. */
+export async function recordAbuseReport(input: {
+  listingId: string;
+  reporterId: string;
+  reason: string;
+  details: string | null;
+}): Promise<ReportResult> {
+  const sb = admin();
+  if (!sb) {
+    const data = readData();
+    if (data.reports.some((r) => r.listingId === input.listingId && r.reporterId === input.reporterId)) {
+      return { ok: false, duplicate: true };
+    }
+    data.reports.push({ ...input, createdAt: new Date().toISOString() });
+    writeData(data);
+    return { ok: true };
+  }
+  const { error } = await sb.from('abuse_reports').insert({
+    listing_id: input.listingId,
+    reporter_id: input.reporterId,
+    reason: input.reason,
+    details: input.details,
+  });
+  if (!error) return { ok: true };
+  // 23505 = unique_violation on (listing_id, reporter_id)
+  return { ok: false, duplicate: error.code === '23505' };
+}
+
+// ── Chat ────────────────────────────────────────────────────────────────────
 export async function createOrFindConversation(input: {
   listingId: string;
   buyerId: string;

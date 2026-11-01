@@ -4,8 +4,9 @@ import Link from 'next/link';
 import { usePathname } from 'next/navigation';
 import { useEffect, useState } from 'react';
 import { LOGO, logoSvgDocument } from '@studio/design';
-import { BRANDS, CITY_LABELS, DEFAULT_CITY } from '@alisales/schemas';
+import { CITY_LABELS, DEFAULT_CITY } from '@alisales/schemas';
 import { NAV_ITEMS } from '@/lib/nav';
+import { CAR_BODY_TYPES, PART_CATEGORY_LINKS } from '@/lib/browse';
 import { Icon } from './Icon';
 import { ThemeToggle } from './ThemeToggle';
 
@@ -13,11 +14,22 @@ import { ThemeToggle } from './ThemeToggle';
  * App header (C8). From the start edge (right in RTL): hamburger, theme
  * toggle, centered «Ali Sales» logo, then the city word «کیش» and the account
  * action — «ورود» for guests, the display name for a signed-in account.
- * No notification bell anywhere.
  *
- * Tablet/desktop also get the five destinations as a top nav; phone width
- * uses the bottom bar.
+ * The hamburger drawer is identical on every device and carries exactly two
+ * groups: «دسته‌بندی‌ها» (vehicle body types + the eight parts categories,
+ * each linking to filtered browse results) and «حساب و امکانات».
  */
+const ACCOUNT_LINKS: ReadonlyArray<{ href: string; label: string }> = [
+  { href: '/new', label: 'ثبت آگهی' },
+  { href: '/profile/listings', label: 'آگهی‌های من' },
+  { href: '/favorites', label: 'علاقه‌مندی‌ها' },
+  { href: '/chats', label: 'پیام‌ها' },
+  { href: '/guide', label: 'راهنمای ثبت آگهی' },
+  { href: '/terms', label: 'قوانین و حریم خصوصی' },
+  { href: '/about', label: 'درباره‌ی ما' },
+  { href: '/support', label: 'تماس با پشتیبانی' },
+];
+
 export function Header({
   authed = false,
   displayName = null,
@@ -81,7 +93,7 @@ export function Header({
               return (
                 <li key={item.key} className="ms-auto">
                   <Link href={item.href} className="btn-cta text-sm">
-                    <Icon name={item.icon} size={18} />
+                    <Icon name="plus" size={18} />
                     {item.label}
                   </Link>
                 </li>
@@ -109,14 +121,28 @@ export function Header({
           <div className="mx-auto grid w-full max-w-[var(--content-max)] gap-6 px-4 py-5 sm:px-6 md:grid-cols-3">
             <section>
               <h2 className="text-xs font-extrabold text-faint">دسته‌بندی‌ها</h2>
-              <ul className="mt-2 space-y-1">
-                {BRANDS.map((b) => (
-                  <li key={b.slug}>
+              <h3 className="mt-2 text-xs font-extrabold text-muted">خودرو</h3>
+              <ul className="mt-1 space-y-1">
+                {CAR_BODY_TYPES.map((type) => (
+                  <li key={type.key}>
                     <Link
-                      href={`/?brand=${b.slug}`}
+                      href={`/?body=${type.key}`}
                       className="block rounded-field px-2 py-1.5 text-sm font-semibold text-muted transition hover:bg-cta-soft hover:text-ink"
                     >
-                      {b.label}
+                      {type.label}
+                    </Link>
+                  </li>
+                ))}
+              </ul>
+              <h3 className="mt-3 text-xs font-extrabold text-muted">قطعات و لوازم</h3>
+              <ul className="mt-1 space-y-1">
+                {PART_CATEGORY_LINKS.map((category) => (
+                  <li key={category.key}>
+                    <Link
+                      href={category.href}
+                      className="block rounded-field px-2 py-1.5 text-sm font-semibold text-muted transition hover:bg-cta-soft hover:text-ink"
+                    >
+                      {category.label}
                     </Link>
                   </li>
                 ))}
@@ -126,14 +152,13 @@ export function Header({
             <section>
               <h2 className="text-xs font-extrabold text-faint">حساب و امکانات</h2>
               <ul className="mt-2 space-y-1">
-                {NAV_ITEMS.filter((i) => !i.primary).map((item) => (
-                  <li key={item.key}>
+                {ACCOUNT_LINKS.map((item) => (
+                  <li key={item.href}>
                     <Link
                       href={item.href}
                       aria-current={pathname === item.href ? 'page' : undefined}
-                      className="flex items-center gap-2 rounded-field px-2 py-1.5 text-sm font-semibold text-muted transition hover:bg-cta-soft hover:text-ink"
+                      className="block rounded-field px-2 py-1.5 text-sm font-semibold text-muted transition hover:bg-cta-soft hover:text-ink"
                     >
-                      <Icon name={item.icon} size={18} />
                       {item.label}
                     </Link>
                   </li>
@@ -141,9 +166,8 @@ export function Header({
                 <li>
                   <Link
                     href={authed ? '/profile' : '/login'}
-                    className="flex items-center gap-2 rounded-field px-2 py-1.5 text-sm font-semibold text-muted transition hover:bg-cta-soft hover:text-ink"
+                    className="block rounded-field px-2 py-1.5 text-sm font-semibold text-muted transition hover:bg-cta-soft hover:text-ink"
                   >
-                    <Icon name="user" size={18} />
                     {authed ? 'پروفایل' : 'ورود'}
                   </Link>
                 </li>

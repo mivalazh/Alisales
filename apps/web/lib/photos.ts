@@ -17,7 +17,8 @@ const WEBP_QUALITY = 0.85;
 const WEBP_RETRY_QUALITY = 0.6;
 
 export interface ProcessedPhoto {
-  blob: Blob;
+  /** Null for photos that already live in storage (edit form initial set). */
+  blob: Blob | null;
   /** Object URL for the preview — callers must revoke when the photo is removed. */
   previewUrl: string;
   width: number;
@@ -101,6 +102,7 @@ export async function processListingPhoto(file: File): Promise<ProcessedPhoto> {
  * data.
  */
 export async function uploadProcessedPhoto(photo: ProcessedPhoto): Promise<ProcessedPhoto> {
+  if (!photo.blob) throw new PhotoPipelineError('فایل عکس در دسترس نیست؛ دوباره انتخاب کنید.');
   const form = new FormData();
   form.append('file', photo.blob, 'photo.webp');
   form.append('width', String(photo.width));

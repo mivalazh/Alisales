@@ -19,9 +19,11 @@ import {
 import { ContactButtons } from '@/components/ContactButtons';
 import { FavoriteButton } from '@/components/FavoriteButton';
 import { Icon } from '@/components/Icon';
+import { ReportListingButton } from '@/components/ReportListingButton';
 import { getListing, getSellerPhone } from '@/lib/data/listings';
 import { getSession } from '@/lib/auth/session';
 import { recordView } from '@/lib/data/s2-store';
+import { shouldRecordView } from '@/lib/data/stats-rules';
 
 const STATE_BADGE: Record<string, BadgeKey> = {
   draft: 'draft',
@@ -47,10 +49,11 @@ export default async function ListingDetailPage({
   const sold = listing.state === 'sold';
   const part = listing.part ?? null;
 
-  // Owner statistics (C2): a signed-in visitor counts one unique view.
+  // Owner statistics (C2): one unique view per visitor; the owner's own visit
+  // never counts, so posting age and «بازدید» stay honest.
   const session = await getSession();
-  if (session && session.sub !== listing.sellerId) {
-    await recordView(listing.id, session.sub);
+  if (shouldRecordView(session?.sub, listing.sellerId)) {
+    await recordView(listing.id, session!.sub);
   }
 
   const badges: BadgeKey[] = [];
@@ -238,8 +241,15 @@ export default async function ListingDetailPage({
                 slug={listing.slug}
                 phone={phone}
                 sold={sold}
+                revealable={listing.allowPhoneReveal && !sold}
               />
             </div>
+
+            {(!session || session.sub !== listing.sellerId) && (
+              <div className="mt-3 border-t border-line pt-3">
+                <ReportListingButton listingId={listing.id} />
+              </div>
+            )}
           </div>
 
           {listing.hasReport && (

@@ -201,6 +201,38 @@ export type {
 export { summarizeOwnerStats, totalOwnerStats } from './stats';
 export type { ListingOwnerStats, OwnerStatsInput } from './stats';
 
+// Owner statistics ordering (per-listing rows)
+export {
+  OWNER_STATS_SORTS,
+  OWNER_STATS_SORT_LABELS,
+  parseOwnerStatsSort,
+  sortOwnerStats,
+} from './owner-stats-sort';
+export type { OwnerStatsSort } from './owner-stats-sort';
+
+// Listing edit (owner PATCH) + AED/Toman entry helpers
+export {
+  LISTING_EDIT_LOCKED_FIELDS,
+  listingEditSchema,
+  ownerStateTargets,
+  listingStateChangeSchema,
+  AED_TO_IRR,
+  IRR_PER_TOMAN,
+  aedToIRR,
+  irrToAED,
+  tomanToIRR,
+  irrToToman,
+} from './listing-edit';
+export type { ListingEdit, OwnerStateTarget } from './listing-edit';
+
+// Read-only plan preview («بزودی») behind the third-listing gate
+export { PLAN_PREVIEW_SOON, PLAN_PREVIEWS } from './plan-preview';
+export type { PlanPreviewCard } from './plan-preview';
+
+// «گزارش آگهی» (abuse reports)
+export { ABUSE_REASON_LABELS, ABUSE_HIDE_THRESHOLD, abuseReportSchema } from './abuse';
+export type { AbuseReportInput } from './abuse';
+
 // Free-tier publish limit (S2 / C6)
 export {
   FREE_THIRD_LISTING_MESSAGE,

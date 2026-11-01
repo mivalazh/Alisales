@@ -5,6 +5,8 @@ import { FREE_LISTING_LIMIT, FREE_THIRD_LISTING_MESSAGE } from '@alisales/schema
 import { getSession } from '@/lib/auth/session';
 import { listingsBySeller } from '@/lib/data/s2-store';
 import { ListingRow } from '@/components/ListingRow';
+import { ListingOwnerActions } from '@/components/ListingOwnerActions';
+import { PlanPreview } from '@/components/PlanPreview';
 
 export const metadata: Metadata = { title: 'آگهی‌های من' };
 
@@ -18,7 +20,9 @@ const TABS: ReadonlyArray<{ key: Tab; label: string }> = [
 
 /**
  * Owner listings. «بایگانی‌شده» is a UI label for the existing `paused` state
- * (C5) — no enum change, no separate storage.
+ * (C5) — no enum change, no separate storage. Every row carries the owner
+ * actions: edit, sold, archive and reactivate (the last one obeys the
+ * two-active-listing free cap and shows the «بزودی» plan preview at the cap).
  */
 export default async function MyListingsPage({
   searchParams,
@@ -34,6 +38,7 @@ export default async function MyListingsPage({
   const listings = await listingsBySeller(session.sub);
   const shown = listings.filter((l) => l.state === activeTab);
   const activeCount = listings.filter((l) => l.state === 'active').length;
+  const atCap = activeCount >= FREE_LISTING_LIMIT;
 
   return (
     <div className="space-y-4">
@@ -46,7 +51,7 @@ export default async function MyListingsPage({
 
       <p className="text-xs text-muted">
         آگهی‌های فعال: {activeCount} از {FREE_LISTING_LIMIT}
-        {activeCount >= FREE_LISTING_LIMIT && (
+        {atCap && (
           <span className="mt-1 block font-bold text-warn">{FREE_THIRD_LISTING_MESSAGE}</span>
         )}
       </p>
@@ -78,10 +83,16 @@ export default async function MyListingsPage({
       ) : (
         <ul className="flex flex-col gap-3">
           {shown.map((listing) => (
-            <ListingRow key={listing.id} listing={listing} />
+            <ListingRow
+              key={listing.id}
+              listing={listing}
+              actions={<ListingOwnerActions id={listing.id} state={listing.state} />}
+            />
           ))}
         </ul>
       )}
+
+      {atCap && <PlanPreview />}
     </div>
   );
 }

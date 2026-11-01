@@ -1,11 +1,5 @@
 import { NextResponse } from 'next/server';
-import { z } from 'zod';
-import {
-  MAX_PHOTOS,
-  citySlugs,
-  listingPhotoSchema,
-  type ListingPhoto,
-} from '@alisales/schemas';
+import { listingEditSchema, type ListingPhoto } from '@alisales/schemas';
 import { getSession } from '@/lib/auth/session';
 import { admin } from '@/lib/data/s2-store';
 import { updateHostedListing, type ListingPatch } from '@/lib/data/publish-store';
@@ -15,27 +9,18 @@ import { updateDevListing } from '@/lib/data/dev-store';
 /**
  * PATCH /api/listings/{id} — edit a listing (owner only).
  *
- * Photos: the browser uploads new files to `/api/photos` and sends the ordered
- * set here. The hosted path replaces `listing_photos` rows in one transaction-
- * like sequence (old rows read first, new insert failure restores them);
- * fixture mode rewrites the dev-store card so offline editing behaves the same.
+ * Editable fields come from `listingEditSchema` (price, description, city,
+ * phone-reveal opt-in, ordered photo set). Identity, lifecycle and the posting
+ * clock are not in that schema, so `published_at` — and therefore the posting
+ * age — can never move through this endpoint.
  *
- * Editable fields are deliberately narrow — price, description, city and the
- * phone-reveal opt-in. Vehicle identity (brand/model/year/VIN), state
- * transitions and plan limits have their own rules and are not patched here.
+ * Photos: the browser uploads new files to `/api/photos` and sends the ordered
+ * set here. The hosted path replaces `listing_photos` rows (old rows read first
+ * and restored on failure); fixture mode rewrites the dev-store card.
+ *
  * Money is never involved: no payment, checkout or commission code exists for
  * listings (subscriptions/bump-up/stories only).
  */
-const patchSchema = z
-  .object({
-    priceIRR: z.number().int().min(0).max(10 ** 15).optional(),
-    description: z.string().trim().min(20).max(3000).optional(),
-    city: z.enum(citySlugs as [string, ...string[]]).optional(),
-    allowPhoneReveal: z.boolean().optional(),
-    photos: z.array(listingPhotoSchema).min(1).max(MAX_PHOTOS).optional(),
-  })
-  .refine((value) => Object.keys(value).length > 0, { message: 'هیچ تغییری ارسال نشده است.' });
-
 export async function PATCH(
   request: Request,
   context: { params: Promise<{ id: string }> },
@@ -54,7 +39,7 @@ export async function PATCH(
     return NextResponse.json({ error: 'بدنه درخواست نامعتبر است.' }, { status: 400 });
   }
 
-  const parsed = patchSchema.safeParse(raw);
+  const parsed = listingEditSchema.safeParse(raw);
   if (!parsed.success) {
     return NextResponse.json(
       {
@@ -69,7 +54,10 @@ export async function PATCH(
   }
 
   const patch = parsed.data as ListingPatch;
-  if (patch.photos && patch.photos.some((photo: ListingPhoto) => !isOwnedPhotoPath(photo.path, session.sub))) {
+  if (
+    patch.photos &&
+    patch.photos.some((photo: ListingPhoto) => !isOwnedPhotoPath(photo.path, session.sub))
+  ) {
     return NextResponse.json(
       { error: 'عکس‌ها معتبر نیستند؛ لطفاً دوباره بارگذاری کنید.' },
       { status: 400 },

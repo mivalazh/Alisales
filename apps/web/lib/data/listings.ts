@@ -17,6 +17,7 @@ import {
 } from '@alisales/schemas';
 import { fixtureListings } from './fixtures';
 import { devListings } from './dev-store';
+import { admin } from './s2-store';
 
 /** Structured part data for a non-vehicle listing (`parts_listings`). */
 export interface PartInfo {
@@ -63,6 +64,8 @@ export interface ListingCardData {
   kind?: 'vehicle' | 'part';
   /** Present only for parts listings. */
   part?: PartInfo | null;
+  /** Seller text — carried by fixture cards so the editor can prefill it. */
+  description?: string | null;
 }
 
 /** Detail projection: the card plus the long description and gallery. */
@@ -275,6 +278,89 @@ export async function getListing(slug: string): Promise<ListingDetailData | null
   return { ...mapRow(data as unknown as ListingCardRow), photos };
 }
 
+/** Owner-visible photo metadata (edit form prefill: paths, order, sizes). */
+export interface OwnerPhotoMeta {
+  path: string;
+  url: string;
+  mime: 'image/webp';
+  bytes: number;
+  width: number;
+  height: number;
+}
+
+/**
+ * A listing the owner is about to edit — includes paused/sold rows the public
+ * view hides, so the owner panel resolves it with the service client.
+ */
+export async function getOwnerListing(id: string): Promise<ListingDetailData | null> {
+  const sb = admin();
+  if (!sb) {
+    const found = [...devListings(), ...fixtureListings].find((l) => l.id === id);
+    if (!found) return null;
+    return {
+      ...found,
+      description: found.description ?? null,
+      photos: found.photos ?? [],
+    };
+  }
+  const { data, error } = await sb.from('listing_cards').select('*').eq('id', id).maybeSingle();
+  if (error) throw new Error(`owner listing query failed: ${error.message}`);
+  if (!data) return null;
+  const photos = await availablePhotoMetas(sb, id);
+  return { ...mapRow(data as unknown as ListingCardRow), photos: photos.map((p) => p.url) };
+}
+
+/** Ordered photo metadata for the edit gallery (position 0 = cover). */
+export async function getOwnerPhotos(id: string): Promise<OwnerPhotoMeta[]> {
+  const sb = admin();
+  if (!sb) {
+    const found = [...devListings(), ...fixtureListings].find((l) => l.id === id);
+    return (found?.photos ?? []).map((url, index) => ({
+      path: url.replace(/^\/api\/photos\//, ''),
+      url,
+      mime: 'image/webp' as const,
+      // Fixture cards only carry URLs; the schema needs positive sizes.
+      bytes: 1,
+      width: 1200,
+      height: 900,
+      position: index,
+    })).map(({ position: _position, ...photo }) => photo);
+  }
+  return availablePhotoMetas(sb, id);
+}
+
+async function availablePhotoMetas(
+  sb: NonNullable<ReturnType<typeof admin>>,
+  listingId: string,
+): Promise<OwnerPhotoMeta[]> {
+  const { data } = await sb
+    .from('listing_photos')
+    .select('storage_path, mime, bytes, width, height')
+    .eq('listing_id', listingId)
+    .order('position', { ascending: true });
+  return ((data ?? []) as Array<{
+    storage_path: string;
+    mime: string;
+    bytes: number;
+    width: number;
+    height: number;
+  }>)
+    .map((row) => {
+      const url = publicPhotoUrl(row.storage_path);
+      return url
+        ? {
+            path: row.storage_path,
+            url,
+            mime: 'image/webp' as const,
+            bytes: row.bytes,
+            width: row.width,
+            height: row.height,
+          }
+        : null;
+    })
+    .filter((photo): photo is OwnerPhotoMeta => Boolean(photo));
+}
+
 /**
  * Seller phone — the RPC returns null for sold listings and for listings
  * without allow_phone_reveal; the UI hides the call button when null.
@@ -288,3 +374,10 @@ export async function getSellerPhone(listingId: string): Promise<string | null> 
   if (error) throw new Error(`get_seller_phone RPC failed: ${error.message}`);
   return (data as string | null) ?? null;
 }
+
+/**
+ * Fixture-mode demo number. Credential-less mode never had seller phones and
+ * no real number may be invented for a seeded account, so the reveal flow uses
+ * a clearly fake number there — hosted mode always reads `get_seller_phone`.
+ */
+export const FIXTURE_SELLER_PHONE = '09120000000';
