@@ -8,7 +8,8 @@ import {
 } from '@alisales/schemas';
 import { getSession } from '@/lib/auth/session';
 import { activeListingsCount, admin } from '@/lib/data/s2-store';
-import { publishFixture, publishHosted } from '@/lib/data/publish-store';
+import { devPhotoUrls, publishFixture, publishHosted } from '@/lib/data/publish-store';
+import { isOwnedPhotoPath } from '@/lib/data/photo-rules';
 import type { ListingCardData } from '@/lib/data/listings';
 
 /**
@@ -26,6 +27,10 @@ import type { ListingCardData } from '@/lib/data/listings';
  *   sold, archived (paused) and expired listings do not count, and the third
  *   attempt returns «برای آگهی سوم، پلن انتخاب کن.» (403).
  *
+ * Photos: the browser uploads the compressed WebP bytes to `/api/photos` and
+ * submits storage paths. Paths must sit in the seller's own folder, and the
+ * hosted publish writes them as ordered `listing_photos` rows (0 = cover).
+ *
  * Storage: hosted mode writes to Supabase when the credentials are present;
  * otherwise the local dev store keeps the whole flow reviewable offline. A
  * production build without credentials answers 503 rather than pretending the
@@ -36,6 +41,7 @@ import type { ListingCardData } from '@/lib/data/listings';
  */
 function toDevCard(data: ListingPublish, sellerId: string): ListingCardData {
   const stamp = `local-${Date.now().toString(36)}`;
+  const media = devPhotoUrls(data.photos);
   return {
     id: stamp,
     slug: stamp,
@@ -56,7 +62,8 @@ function toDevCard(data: ListingPublish, sellerId: string): ListingCardData {
     color: data.vehicle.color,
     condition: data.vehicle.condition,
     plateType: data.vehicle.plateType,
-    coverUrl: null,
+    coverUrl: media.coverUrl,
+    photos: media.photos,
     showroomName: null,
     showroomVerified: false,
     allowPhoneReveal: data.allowPhoneReveal,
@@ -67,6 +74,7 @@ function toDevCard(data: ListingPublish, sellerId: string): ListingCardData {
 
 function toDevPartCard(data: PartListingPublish, sellerId: string): ListingCardData {
   const stamp = `part-${Date.now().toString(36)}`;
+  const media = devPhotoUrls(data.photos);
   return {
     id: stamp,
     slug: stamp,
@@ -88,7 +96,8 @@ function toDevPartCard(data: PartListingPublish, sellerId: string): ListingCardD
     color: 'white',
     condition: data.condition === 'new' ? 'new' : 'used',
     plateType: 'unplated',
-    coverUrl: null,
+    coverUrl: media.coverUrl,
+    photos: media.photos,
     showroomName: null,
     showroomVerified: false,
     allowPhoneReveal: data.allowPhoneReveal,
@@ -124,7 +133,6 @@ export async function POST(request: Request): Promise<NextResponse> {
   const isPart = (raw as { kind?: unknown })?.kind === 'part';
 
   let payload: ListingPublish | PartListingPublish;
-  let fixtureCard: ListingCardData;
   if (isPart) {
     const parsed = partListingPublishSchema.safeParse(raw);
     if (!parsed.success) {
@@ -140,7 +148,6 @@ export async function POST(request: Request): Promise<NextResponse> {
       );
     }
     payload = parsed.data;
-    fixtureCard = toDevPartCard(parsed.data, session.sub);
   } else {
     const parsed = listingPublishSchema.safeParse(raw);
     if (!parsed.success) {
@@ -156,8 +163,20 @@ export async function POST(request: Request): Promise<NextResponse> {
       );
     }
     payload = parsed.data;
-    fixtureCard = toDevCard(parsed.data, session.sub);
   }
+
+  // A submitted path must be one this seller uploaded; the browser cannot be
+  // trusted to name storage objects belonging to someone else.
+  if (payload.photos.some((photo) => !isOwnedPhotoPath(photo.path, session.sub))) {
+    return NextResponse.json(
+      { error: 'عکس‌ها معتبر نیستند؛ لطفاً دوباره بارگذاری کنید.' },
+      { status: 400 },
+    );
+  }
+
+  const fixtureCard = isPart
+    ? toDevPartCard(payload as PartListingPublish, session.sub)
+    : toDevCard(payload as ListingPublish, session.sub);
 
   // Two free active listings (C6), counted against the live rows — vehicles
   // and parts share the same quota.

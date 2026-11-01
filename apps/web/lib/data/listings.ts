@@ -53,6 +53,8 @@ export interface ListingCardData {
   plateType: PlateType;
   /** Public storage URL, or null (no photo / credential-less fixture mode). */
   coverUrl: string | null;
+  /** Ordered gallery URLs (cover first); fixture-mode cards carry them locally. */
+  photos?: string[];
   showroomName: string | null;
   showroomVerified: boolean;
   /** Seller opted into showing the phone (server still gates sold → never). */
@@ -63,9 +65,11 @@ export interface ListingCardData {
   part?: PartInfo | null;
 }
 
-/** Detail projection: the card plus the long description. */
+/** Detail projection: the card plus the long description and gallery. */
 export interface ListingDetailData extends ListingCardData {
   description: string | null;
+  /** Ordered photo URLs from `listing_photos` (position 0 = cover). */
+  photos: string[];
 }
 
 interface ListingCardRow {
@@ -137,6 +141,7 @@ function mapRow(r: ListingCardRow): ListingDetailData {
     showroomVerified: r.showroom_verified,
     allowPhoneReveal: r.allow_phone_reveal,
     description: r.description ?? null,
+    photos: [],
     kind: r.kind === 'part' ? 'part' : 'vehicle',
     part: r.part_title
       ? {
@@ -245,7 +250,7 @@ export async function getListing(slug: string): Promise<ListingDetailData | null
   if (!supabase) {
     const all = [...devListings(), ...fixtureListings];
     const found = all.find((l) => l.slug === slug);
-    return found ? { ...found, description: null } : null;
+    return found ? { ...found, description: null, photos: found.photos ?? [] } : null;
   }
 
   const { data, error } = await supabase
@@ -254,7 +259,20 @@ export async function getListing(slug: string): Promise<ListingDetailData | null
     .eq('slug', slug)
     .maybeSingle();
   if (error) throw new Error(`listing_cards query failed: ${error.message}`);
-  return data ? mapRow(data as unknown as ListingCardRow) : null;
+  if (!data) return null;
+
+  // Gallery rows live in listing_photos (RLS: readable whenever the listing is);
+  // ordered by position so position 0 stays the cover.
+  const { data: photoRows } = await supabase
+    .from('listing_photos')
+    .select('storage_path')
+    .eq('listing_id', (data as { id: string }).id)
+    .order('position', { ascending: true });
+  const photos = ((photoRows ?? []) as Array<{ storage_path: string }>)
+    .map((row) => publicPhotoUrl(row.storage_path))
+    .filter((url): url is string => Boolean(url));
+
+  return { ...mapRow(data as unknown as ListingCardRow), photos };
 }
 
 /**

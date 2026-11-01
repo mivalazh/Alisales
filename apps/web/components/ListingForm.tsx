@@ -165,7 +165,9 @@ export function ListingForm() {
 
   function photoPayload(): ListingPublish['photos'] {
     return photos.map((p, i) => ({
-      path: `pending/${Date.now().toString(36)}-${i}.webp`,
+      // Durable path from POST /api/photos; the guard below blocks submission
+      // while any photo is still uploading (empty path fails schema min length).
+      path: p.path ?? '',
       mime: 'image/webp' as const,
       bytes: p.bytes,
       width: p.width,
@@ -233,6 +235,11 @@ export function ListingForm() {
     if (submitting || photosBusy) return;
     setFormError(null);
     setFieldErrors({});
+
+    if (photos.some((p) => !p.path)) {
+      setFormError('عکس‌ها هنوز بارگذاری نشده‌اند؛ چند لحظه صبر کنید و دوباره تلاش کنید.');
+      return;
+    }
 
     const payload = buildPayload();
     const parsed =

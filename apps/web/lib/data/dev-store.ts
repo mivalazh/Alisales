@@ -36,3 +36,17 @@ export function addDevListing(card: ListingCardData): void {
   all.unshift(card);
   writeFileSync(FILE, `${JSON.stringify(all, null, 2)}\n`, 'utf8');
 }
+
+/**
+ * Edit an existing dev listing (PATCH in fixture mode).
+ * Returns false when the id is unknown so the route can answer 404.
+ */
+export function updateDevListing(id: string, patch: Partial<ListingCardData>): boolean {
+  const all = readAll();
+  const index = all.findIndex((l) => l.id === id);
+  if (index < 0) return false;
+  const current = all[index]!;
+  all[index] = { ...current, ...patch };
+  writeFileSync(FILE, `${JSON.stringify(all, null, 2)}\n`, 'utf8');
+  return true;
+}

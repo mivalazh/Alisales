@@ -2,7 +2,12 @@
 
 import { useRef, useState } from 'react';
 import { MAX_PHOTOS, toPersianDigits } from '@alisales/schemas';
-import { PhotoPipelineError, processListingPhoto, type ProcessedPhoto } from '@/lib/photos';
+import {
+  PhotoPipelineError,
+  processListingPhoto,
+  uploadProcessedPhoto,
+  type ProcessedPhoto,
+} from '@/lib/photos';
 
 interface Props {
   photos: ProcessedPhoto[];
@@ -36,11 +41,18 @@ export function PhotoUploader({ photos, onChange, onBusyChange, error }: Props) 
     try {
       const added: ProcessedPhoto[] = [];
       for (const file of accepted) {
+        let processed: ProcessedPhoto | null = null;
         try {
-          added.push(await processListingPhoto(file));
+          // Compress (EXIF dropped, WebP) then upload immediately, so the
+          // publish payload carries storage paths instead of image bytes.
+          processed = await processListingPhoto(file);
+          added.push(await uploadProcessedPhoto(processed));
         } catch (e) {
+          if (processed) URL.revokeObjectURL(processed.previewUrl);
           setLocalError(
-            e instanceof PhotoPipelineError ? e.message : 'پردازش عکس ناموفق بود؛ دوباره تلاش کنید.',
+            e instanceof PhotoPipelineError
+              ? e.message
+              : 'پردازش یا بارگذاری عکس ناموفق بود؛ دوباره تلاش کنید.',
           );
         }
       }
@@ -143,7 +155,7 @@ export function PhotoUploader({ photos, onChange, onBusyChange, error }: Props) 
 
       {busy && (
         <p className="hint" role="status">
-          در حال پردازش عکس‌ها…
+          در حال پردازش و بارگذاری عکس‌ها…
         </p>
       )}
       {localError && (

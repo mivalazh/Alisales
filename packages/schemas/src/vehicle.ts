@@ -1,7 +1,15 @@
 import { z } from 'zod';
 import { colorSlugs, conditions, fuelTypes, gearboxTypes } from './enums';
 
-/** Market brands (Iran launch). Model stays free text for imports. */
+/**
+ * Market brands (Iran + Kish free zone import market). Model stays free text
+ * for imports; `models` is the suggestion list the forms offer.
+ *
+ * The Kish catalog is import-heavy, so the luxury brands (Toyota, Nissan,
+ * Mercedes-Benz, BMW, Lexus, Porsche, Land Rover, Kia, Hyundai) are first-class
+ * slugs — the same slugs the filter URL and the `search_listings` RPC compare
+ * against, and the ones the existing Iranian brands keep unchanged.
+ */
 export const BRANDS = [
   { slug: 'saipa', label: 'سایپا', models: ['پراید', 'تیبا', 'کوییک', 'شاهین', 'ساینا'] },
   {
@@ -12,12 +20,89 @@ export const BRANDS = [
   { slug: 'parskhodro', label: 'پارس‌خودرو', models: ['تندر ۹۰', 'ساندرو'] },
   { slug: 'kermankhodro', label: 'کرمان‌خودرو', models: ['جک J4', 'جک S3', 'جک S5', 'آریزو ۵', 'تیگو ۷'] },
   { slug: 'bahman', label: 'بهمن‌موتور', models: ['مزدا ۳', 'بی‌ام‌و ۳۲۰i', 'فولکس‌واگن گل'] },
-  { slug: 'kia', label: 'کیا', models: ['سراتو', 'پیکانتو', 'اسپورتیج', 'سورنتو'] },
-  { slug: 'hyundai', label: 'هیوندای', models: ['اکسنت', 'النترا', 'سوناتا', 'توسان'] },
-  { slug: 'toyota', label: 'تویوتا', models: ['کرولا', 'کمری', 'هاچ', 'RAV4', 'لندکروزر'] },
+  {
+    slug: 'kia',
+    label: 'کیا',
+    models: [
+      'سراتو',
+      'پیکانتو',
+      'اسپورتیج',
+      'سورنتو',
+      'Cerato',
+      'Sportage',
+      'Optima',
+      'K5',
+      'Sorento',
+      'Telluride',
+    ],
+  },
+  {
+    slug: 'hyundai',
+    label: 'هیوندای',
+    models: [
+      'اکسنت',
+      'النترا',
+      'سوناتا',
+      'توسان',
+      'Accent',
+      'Elantra',
+      'Sonata',
+      'Tucson',
+      'Santa Fe',
+      'Palisade',
+    ],
+  },
+  {
+    slug: 'toyota',
+    label: 'تویوتا',
+    models: [
+      'کرولا',
+      'کمری',
+      'هاچ',
+      'RAV4',
+      'لندکروزر',
+      'Corolla',
+      'Camry',
+      'Land Cruiser',
+      'Land Cruiser Prado',
+      'Prado',
+      'Hilux',
+      'C-HR',
+    ],
+  },
+  {
+    slug: 'nissan',
+    label: 'نیسان',
+    models: ['Patrol', 'X-Trail', 'Juke', 'Sunny', 'Qashqai', 'Z370'],
+  },
   { slug: 'renault', label: 'رنو', models: ['مگان', 'فلوئنس', 'کولیوس'] },
-  { slug: 'bmw', label: 'بی‌ام‌و', models: ['سری ۳', 'سری ۵', 'X1', 'X3'] },
-  { slug: 'mercedes-benz', label: 'مرسدس‌بنز', models: ['کلاس C', 'کلاس E', 'GLC'] },
+  {
+    slug: 'bmw',
+    label: 'بی‌ام‌و',
+    models: ['سری ۳', 'سری ۵', 'X1', 'X3', '3 Series', '5 Series', '7 Series', 'X5', 'X6'],
+  },
+  {
+    slug: 'mercedes-benz',
+    label: 'مرسدس‌بنز',
+    models: [
+      'کلاس C',
+      'کلاس E',
+      'GLC',
+      'C-Class',
+      'E-Class',
+      'S-Class',
+      'GLE',
+      'G-Class',
+      'S 500',
+    ],
+  },
+  { slug: 'lexus', label: 'لکسوس', models: ['LX', 'RX', 'ES', 'NX', 'GX', 'LX 570'] },
+  { slug: 'porsche', label: 'پورشه', models: ['Cayenne', 'Macan', 'Panamera', '911'] },
+  {
+    slug: 'land-rover',
+    label: 'لندروور',
+    models: ['Range Rover', 'Range Rover Sport', 'Discovery', 'Defender', 'Evoque'],
+  },
   { slug: 'chery', label: 'چری', models: ['آریزو ۶', 'تیگو ۸'] },
   { slug: 'mazda', label: 'مزدا', models: ['مزدا ۲', 'مزدا ۳', 'CX-5'] },
   { slug: 'byd', label: 'بی‌ای‌دی', models: ['F0', 'F3', 'S6'] },

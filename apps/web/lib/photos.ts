@@ -6,7 +6,7 @@ import { MAX_PHOTO_BYTES, ALLOWED_PHOTO_MIME } from '@alisales/schemas';
  *   pick → decode (EXIF orientation applied) → downscale (max edge 1600)
  *        → re-encode WebP (canvas holds pixels only, so **all** EXIF metadata
  *          — GPS, serials, timestamps — is dropped by construction)
- *        → enforce ≤ 8 MB (one quality retry) → ready for preview/upload
+ *        → enforce ≤ 8 MB (one quality retry) → upload → storage path
  *
  * Validation of the *set* (≤ 20 photos, unique positions, ≥ 1 to publish) is
  * the shared @alisales/schemas rule set — enforced again on the server route.
@@ -23,6 +23,10 @@ export interface ProcessedPhoto {
   width: number;
   height: number;
   bytes: number;
+  /** Storage path from `POST /api/photos`; null until the upload succeeds. */
+  path: string | null;
+  /** Servable URL (Supabase public URL, or `/api/photos/...` in fixture mode). */
+  url: string | null;
 }
 
 export class PhotoPipelineError extends Error {}
@@ -84,5 +88,40 @@ export async function processListingPhoto(file: File): Promise<ProcessedPhoto> {
     width,
     height,
     bytes: blob.size,
+    path: null,
+    url: null,
   };
+}
+
+/**
+ * Upload the compressed bytes and attach the durable path.
+ *
+ * The bytes leave the browser exactly once; everything after this point refers
+ * to the returned storage path, so the publish payload never carries image
+ * data.
+ */
+export async function uploadProcessedPhoto(photo: ProcessedPhoto): Promise<ProcessedPhoto> {
+  const form = new FormData();
+  form.append('file', photo.blob, 'photo.webp');
+  form.append('width', String(photo.width));
+  form.append('height', String(photo.height));
+
+  let res: Response;
+  try {
+    res = await fetch('/api/photos', { method: 'POST', body: form });
+  } catch {
+    throw new PhotoPipelineError('ارتباط با سرور برای بارگذاری عکس برقرار نشد.');
+  }
+
+  const body = (await res.json().catch(() => null)) as {
+    ok?: boolean;
+    path?: string;
+    url?: string;
+    error?: string;
+  } | null;
+
+  if (!res.ok || !body?.path) {
+    throw new PhotoPipelineError(body?.error ?? 'بارگذاری عکس ناموفق بود؛ دوباره تلاش کنید.');
+  }
+  return { ...photo, path: body.path, url: body.url ?? null };
 }

@@ -126,6 +126,25 @@ export default async function ListingDetailPage({
             )}
           </div>
 
+          {listing.photos.length > 1 && (
+            <ul className="mt-2 grid grid-cols-4 gap-2">
+              {listing.photos.slice(1, 9).map((url, index) => (
+                <li
+                  key={url}
+                  className="relative aspect-[var(--photo-aspect)] overflow-hidden rounded-field border border-line bg-sunken"
+                >
+                  <Image
+                    src={url}
+                    alt={`عکس ${index + 2}`}
+                    fill
+                    sizes="(min-width: 1024px) 16vw, 25vw"
+                    className="object-cover"
+                  />
+                </li>
+              ))}
+            </ul>
+          )}
+
           <div className="mt-4 rounded-card border border-line bg-card p-4 sm:p-5">
             <h1
               className="text-xl font-extrabold leading-tight"
