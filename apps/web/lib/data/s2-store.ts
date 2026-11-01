@@ -375,7 +375,7 @@ export async function messagesForConversation(id: string): Promise<ChatMessageRo
   }
   const { data } = await sb
     .from('messages')
-    .select('id, conversation_id, sender_id, body, created_at')
+    .select('id, conversation_id, sender_id, body, created_at, kind, visit_date, visit_time')
     .eq('conversation_id', id)
     .order('created_at', { ascending: true });
   return ((data ?? []) as Array<{
@@ -384,14 +384,17 @@ export async function messagesForConversation(id: string): Promise<ChatMessageRo
     sender_id: string;
     body: string;
     created_at: string;
+    kind: MessageKind | null;
+    visit_date: string | null;
+    visit_time: string | null;
   }>).map((r) => ({
     id: r.id,
     conversationId: r.conversation_id,
     senderId: r.sender_id,
     body: r.body,
     createdAt: r.created_at,
-    kind: 'text',
-    visit: null,
+    kind: r.kind ?? 'text',
+    visit: r.visit_date ? { date: r.visit_date, time: r.visit_time } : null,
   }));
 }
 
@@ -420,12 +423,17 @@ export async function addMessage(input: {
     writeData(data);
     return message;
   }
+  const kind = input.kind ?? 'text';
+  const visit = input.visit ?? null;
   const { data, error } = await sb
     .from('messages')
     .insert({
       conversation_id: input.conversationId,
       sender_id: input.senderId,
       body: input.body,
+      kind,
+      visit_date: visit?.date ?? null,
+      visit_time: visit?.time ?? null,
     })
     .select('id, conversation_id, sender_id, body, created_at')
     .single();
@@ -434,16 +442,16 @@ export async function addMessage(input: {
     .from('conversations')
     .update({ last_message_at: data.created_at })
     .eq('id', input.conversationId);
-  // Hosted messages keep the human-readable body; the structured slot is a
-  // fixture-mode feature until the chat tables gain kind/visit columns.
+  // 0007 persists the structured slot, so hosted chat keeps kind + visit
+  // exactly like fixture mode instead of degrading to plain text.
   return {
     id: data.id,
     conversationId: data.conversation_id,
     senderId: data.sender_id,
     body: data.body,
     createdAt: data.created_at,
-    kind: input.kind ?? 'text',
-    visit: input.visit ?? null,
+    kind,
+    visit,
   };
 }
 
@@ -484,6 +492,18 @@ function mapCardRow(r: Record<string, unknown>): ListingCardData {
     showroomName: (r.showroom_name as string | null) ?? null,
     showroomVerified: Boolean(r.showroom_verified),
     allowPhoneReveal: Boolean(r.allow_phone_reveal),
+    kind: r.kind === 'part' ? 'part' : 'vehicle',
+    part: r.part_title
+      ? {
+          title: String(r.part_title),
+          category: String(r.part_category) as NonNullable<ListingCardData['part']>['category'],
+          origin: String(r.part_origin) as NonNullable<ListingCardData['part']>['origin'],
+          condition: String(r.part_condition) as NonNullable<ListingCardData['part']>['condition'],
+          partNumber: (r.part_number as string | null) ?? null,
+          compatibility: (r.part_compatibility as string | null) ?? null,
+          warranty: (r.part_warranty as string | null) ?? null,
+        }
+      : null,
   };
 }
 
@@ -545,8 +565,23 @@ export async function ownerStats(ownerId: string): Promise<ListingOwnerStats[]> 
   });
 }
 
-/** Active listings of one seller — used for the two-listing free limit. */
+/**
+ * Active listings of one seller — the two-listing free limit (C6).
+ *
+ * Hosted mode counts the real `listings` rows (vehicles and parts share the
+ * quota); the DB trigger only enforces plan slots for user-context writes, so
+ * the server-side count is what covers service-role publishes.
+ */
 export async function activeListingsCount(sellerId: string): Promise<number> {
+  const sb = admin();
+  if (sb) {
+    const { count } = await sb
+      .from('listings')
+      .select('id', { count: 'exact', head: true })
+      .eq('created_by', sellerId)
+      .eq('state', 'active');
+    return count ?? 0;
+  }
   const listings = await listingsBySeller(sellerId);
   return listings.filter((l) => l.state === 'active').length;
 }

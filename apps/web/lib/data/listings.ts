@@ -93,6 +93,15 @@ interface ListingCardRow {
   showroom_verified: boolean;
   allow_phone_reveal: boolean;
   description?: string | null;
+  /** 0007: `vehicle` | `part`. */
+  kind?: 'vehicle' | 'part' | null;
+  part_title?: string | null;
+  part_category?: PartCategory | null;
+  part_origin?: PartOrigin | null;
+  part_condition?: PartCondition | null;
+  part_number?: string | null;
+  part_compatibility?: string | null;
+  part_warranty?: string | null;
 }
 
 const STORAGE_BUCKET = 'listing-photos';
@@ -128,6 +137,18 @@ function mapRow(r: ListingCardRow): ListingDetailData {
     showroomVerified: r.showroom_verified,
     allowPhoneReveal: r.allow_phone_reveal,
     description: r.description ?? null,
+    kind: r.kind === 'part' ? 'part' : 'vehicle',
+    part: r.part_title
+      ? {
+          title: r.part_title,
+          category: r.part_category ?? 'other',
+          origin: r.part_origin ?? 'unknown',
+          condition: r.part_condition ?? 'used',
+          partNumber: r.part_number ?? null,
+          compatibility: r.part_compatibility ?? null,
+          warranty: r.part_warranty ?? null,
+        }
+      : null,
   };
 }
 

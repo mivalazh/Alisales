@@ -7,27 +7,32 @@ import {
   type PartListingPublish,
 } from '@alisales/schemas';
 import { getSession } from '@/lib/auth/session';
-import { addDevListing } from '@/lib/data/dev-store';
-import { activeListingsCount } from '@/lib/data/s2-store';
+import { activeListingsCount, admin } from '@/lib/data/s2-store';
+import { publishFixture, publishHosted } from '@/lib/data/publish-store';
 import type { ListingCardData } from '@/lib/data/listings';
 
 /**
  * POST /api/listings — publish a listing (S2).
  *
  * Two shapes share this endpoint, selected by `kind`:
- *  - `vehicle` (default, also the S1 payload): cars.
- *  - `part`: parts & accessories (`parts_listings` flag).
+ *  - `vehicle` (default, also the S1 payload): cars → vehicles + listings.
+ *  - `part`: parts & accessories (`parts_listings`) → listings(kind='part')
+ *    + part_details.
  *
  * - Guests get 401; the page itself is also behind the login guard.
  * - Valid listings publish immediately with `state: 'active'` (C6); the DB
  *   default stays untouched.
- * - The two-active-listing free limit is enforced here: sold, archived
- *   (paused) and expired listings do not count, and the third attempt returns
- *   «برای آگهی سوم، پلن انتخاب کن.» (403).
+ * - The two-active-listing free limit is enforced here against the real rows:
+ *   sold, archived (paused) and expired listings do not count, and the third
+ *   attempt returns «برای آگهی سوم، پلن انتخاب کن.» (403).
  *
- * Storage: fixture mode writes to the local dev store so the flow is
- * reviewable offline. A hosted database write is not wired in this stage and
- * answers 503 instead of pretending success.
+ * Storage: hosted mode writes to Supabase when the credentials are present;
+ * otherwise the local dev store keeps the whole flow reviewable offline. A
+ * production build without credentials answers 503 rather than pretending the
+ * listing was published.
+ *
+ * Payments: this endpoint never charges anything. Money exists only for
+ * subscriptions/bump-up/stories (see 0001 subscription_payments).
  */
 function toDevCard(data: ListingPublish, sellerId: string): ListingCardData {
   const stamp = `local-${Date.now().toString(36)}`;
@@ -118,7 +123,8 @@ export async function POST(request: Request): Promise<NextResponse> {
 
   const isPart = (raw as { kind?: unknown })?.kind === 'part';
 
-  let card: ListingCardData;
+  let payload: ListingPublish | PartListingPublish;
+  let fixtureCard: ListingCardData;
   if (isPart) {
     const parsed = partListingPublishSchema.safeParse(raw);
     if (!parsed.success) {
@@ -133,7 +139,8 @@ export async function POST(request: Request): Promise<NextResponse> {
         { status: 400 },
       );
     }
-    card = toDevPartCard(parsed.data, session.sub);
+    payload = parsed.data;
+    fixtureCard = toDevPartCard(parsed.data, session.sub);
   } else {
     const parsed = listingPublishSchema.safeParse(raw);
     if (!parsed.success) {
@@ -148,24 +155,45 @@ export async function POST(request: Request): Promise<NextResponse> {
         { status: 400 },
       );
     }
-    card = toDevCard(parsed.data, session.sub);
+    payload = parsed.data;
+    fixtureCard = toDevCard(parsed.data, session.sub);
   }
 
+  // Two free active listings (C6), counted against the live rows — vehicles
+  // and parts share the same quota.
   const decision = freeLimitDecision(await activeListingsCount(session.sub));
   if (!decision.allowed) {
     return NextResponse.json({ error: decision.message }, { status: 403 });
   }
 
-  const configured = Boolean(
+  if (admin()) {
+    try {
+      const slug = await publishHosted({
+        kind: isPart ? 'part' : 'vehicle',
+        data: payload,
+        sellerId: session.sub,
+      });
+      return NextResponse.json({ ok: true, slug }, { status: 201 });
+    } catch {
+      return NextResponse.json(
+        { error: 'ثبت آگهی در پایگاه‌داده انجام نشد؛ دوباره تلاش کنید.' },
+        { status: 500 },
+      );
+    }
+  }
+
+  // Hosted reads without write credentials would publish into a store nobody
+  // reads, so that combination refuses instead of silently vanishing.
+  const hostedReads = Boolean(
     process.env.NEXT_PUBLIC_SUPABASE_URL && process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY,
   );
-  if (configured || process.env.NODE_ENV === 'production') {
+  if (hostedReads || process.env.NODE_ENV === 'production') {
     return NextResponse.json(
-      { error: 'ثبت آگهی روی پایگاه‌داده میزبان در این مرحله فعال نشده است.' },
+      { error: 'ثبت آگهی روی پایگاه‌داده میزبان پیکربندی نشده است.' },
       { status: 503 },
     );
   }
 
-  addDevListing(card);
-  return NextResponse.json({ ok: true, slug: card.slug }, { status: 201 });
+  const slug = publishFixture(fixtureCard);
+  return NextResponse.json({ ok: true, slug }, { status: 201 });
 }
