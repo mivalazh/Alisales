@@ -95,14 +95,25 @@ npm run build            # next build (web) + workspace builds
 npm run dev -w @alisales/web        # web dev server (:3000)
 npm run start -w @alisales/mobile   # Expo dev server
 npm run generate:icons   # rebuild PNG app icons from the SVG mark
+node scripts/gen-covers.mjs   # rebuild the demo listing cover SVGs
 ```
 
 **Offline demo modes** (no Supabase credentials needed, see `.env.example`):
-the web app serves the 7 seeded fixtures plus locally submitted listings
-(dev-only file store `apps/web/.dev-data/`, wiped with `rm -rf`); the mobile app
-runs an in-memory demo store with a visible «حالت نمایشی محلی» banner. With
-`NEXT_PUBLIC_SUPABASE_*` set, the grid reads the shared `search_listings` RPC
-and mutations are RLS-gated (auth lands in Phase 4).
+the web app serves the seeded fixtures — the luxury Kish catalogue first, one
+sold listing last — plus locally submitted listings (file store
+`apps/web/.dev-data/`, moved to `/tmp/alisales-demo-data` when the filesystem is
+read-only, wiped with `rm -rf`); the mobile app runs an in-memory demo store
+with a visible «حالت نمایشی محلی» banner. With `NEXT_PUBLIC_SUPABASE_*` set, the
+grid reads the shared `search_listings` RPC and mutations are RLS-gated.
+
+**Demo / cloud-preview mode** (`apps/web/lib/config/mode.ts`): a production
+build without Supabase write credentials keeps the same fixture store instead
+of answering 503, and the login code is written to the server log. Set
+`REQUIRE_HOSTED_SERVICES=true` to refuse that fallback, and
+`NEXT_PUBLIC_DEMO_OTP_HINT=true` (preview builds only) to also show the code on
+the OTP step so the owner can sign in on a shared preview link. Fixture cards
+use the SVG illustrations in `apps/web/public/covers/`
+(`node scripts/gen-covers.mjs` regenerates them).
 
 ## Product rules enforced in the database
 

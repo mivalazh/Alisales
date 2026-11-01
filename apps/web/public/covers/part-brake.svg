@@ -1,0 +1,54 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1200 900" width="1200" height="900" role="img" aria-label="کیت ترمز پورشه کاین">
+  <defs>
+    <linearGradient id="bg" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0" stop-color="#1b1220"/>
+      <stop offset="1" stop-color="#3a1a24"/>
+    </linearGradient>
+    <linearGradient id="disc" x1="0" y1="0" x2="1" y2="1">
+      <stop offset="0" stop-color="#f2f6f9"/>
+      <stop offset="0.5" stop-color="#c3ced8"/>
+      <stop offset="1" stop-color="#7d8a97"/>
+    </linearGradient>
+    <radialGradient id="glow" cx="0.5" cy="0.5" r="0.5">
+      <stop offset="0" stop-color="#ff9a6b" stop-opacity="0.3"/>
+      <stop offset="1" stop-color="#ff9a6b" stop-opacity="0"/>
+    </radialGradient>
+    <linearGradient id="caliper" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0" stop-color="#e23b3b"/>
+      <stop offset="1" stop-color="#8c1414"/>
+    </linearGradient>
+  </defs>
+
+  <rect width="1200" height="900" fill="url(#bg)"/>
+  <circle cx="600" cy="450" r="340" fill="url(#glow)"/>
+  <ellipse cx="600" cy="740" rx="330" ry="30" fill="#12080c" opacity="0.7"/>
+
+  <!-- vented disc -->
+  <circle cx="580" cy="450" r="300" fill="url(#disc)"/>
+  <circle cx="580" cy="450" r="300" fill="none" stroke="#97a5b2" stroke-width="6"/>
+  <circle cx="580" cy="450" r="238" fill="none" stroke="#aab7c3" stroke-width="10" opacity="0.7"/>
+  <circle cx="580" cy="450" r="150" fill="#b9c5d0"/>
+  <circle cx="580" cy="450" r="150" fill="none" stroke="#8d9aa7" stroke-width="6"/>
+  <circle cx="580" cy="450" r="66" fill="#7e8b98"/>
+
+  <!-- drilled holes -->
+  <g fill="#6d7a87">
+    <circle cx="580" cy="248" r="15"/>
+    <circle cx="756" cy="330" r="15"/>
+    <circle cx="800" cy="500" r="15"/>
+    <circle cx="700" cy="630" r="15"/>
+    <circle cx="460" cy="630" r="15"/>
+    <circle cx="360" cy="500" r="15"/>
+    <circle cx="404" cy="330" r="15"/>
+    <circle cx="660" cy="270" r="15"/>
+    <circle cx="770" cy="430" r="15"/>
+    <circle cx="640" cy="620" r="15"/>
+    <circle cx="430" cy="560" r="15"/>
+    <circle cx="470" cy="300" r="15"/>
+  </g>
+
+  <!-- caliper -->
+  <path d="M742 250c52 38 84 96 84 162v112c0 66-32 124-84 162l-76-48c44-30 70-76 70-126V430c0-50-26-96-70-126z" fill="url(#caliper)"/>
+  <path d="M698 318c28 24 44 56 44 88v104c0 32-16 64-44 88l-30-20c24-20 38-46 38-76V412c0-30-14-56-38-76z" fill="#b62020"/>
+  <rect x="742" y="404" width="56" height="24" rx="10" fill="#ff6b6b" opacity="0.8"/>
+</svg>

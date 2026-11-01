@@ -1,0 +1,59 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1200 900" width="1200" height="900" role="img" aria-label="Mercedes-Benz S-Class S 500">
+  <defs>
+    <linearGradient id="sky" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0" stop-color="#101726"/>
+      <stop offset="1" stop-color="#33415f"/>
+    </linearGradient>
+    <radialGradient id="sun" cx="0.5" cy="0.5" r="0.5">
+      <stop offset="0" stop-color="#cfe3ff" stop-opacity="0.7"/>
+      <stop offset="1" stop-color="#cfe3ff" stop-opacity="0"/>
+    </radialGradient>
+    <linearGradient id="body" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0" stop-color="#f4f7fa"/>
+      <stop offset="0.55" stop-color="#c9d3dc"/>
+      <stop offset="1" stop-color="#8494a2"/>
+    </linearGradient>
+    <linearGradient id="glass" x1="0" y1="0" x2="1" y2="1">
+      <stop offset="0" stop-color="#31506a"/>
+      <stop offset="1" stop-color="#0a141d"/>
+    </linearGradient>
+    <linearGradient id="ground" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0" stop-color="#0b1c26"/>
+      <stop offset="1" stop-color="#050c12"/>
+    </linearGradient>
+    <mask id="arch">
+      <rect width="1200" height="900" fill="#fff"/>
+      <circle cx="326" cy="690" r="88" fill="#000"/><circle cx="896" cy="690" r="88" fill="#000"/>
+    </mask>
+  </defs>
+
+  <rect width="1200" height="900" fill="url(#sky)"/>
+  <circle cx="912" cy="248" r="240" fill="url(#sun)"/>
+  <rect y="748" width="1200" height="152" fill="url(#ground)"/>
+  <ellipse cx="600" cy="768" rx="452" ry="22" fill="#030a10" opacity="0.6"/>
+
+  <g>
+    <circle cx="326" cy="690" r="80" fill="#080c11"/>
+    <circle cx="326" cy="690" r="72" fill="#141b23"/>
+    <circle cx="326" cy="690" r="42" fill="#b9c6d2"/>
+    <circle cx="326" cy="690" r="17" fill="#7f8c99"/>
+  </g>
+  <g>
+    <circle cx="896" cy="690" r="80" fill="#080c11"/>
+    <circle cx="896" cy="690" r="72" fill="#141b23"/>
+    <circle cx="896" cy="690" r="42" fill="#b9c6d2"/>
+    <circle cx="896" cy="690" r="17" fill="#7f8c99"/>
+  </g>
+
+  <g mask="url(#arch)">
+    <path d="M126 662V614q0-20 24-24l150-18c58-56 112-90 200-90h150c94 0 150 34 204 90l170 18q26 4 26 26v46z" fill="url(#body)"/>
+    <path d="M382 560c48-40 92-60 158-60h92v60z" fill="url(#glass)"/>
+  <path d="M662 500h112c66 0 114 20 150 60H662z" fill="url(#glass)"/>
+    <path d="M152 572h892" stroke="#77848f" stroke-width="4" opacity="0.4"/>
+    <rect x="654" y="574" width="40" height="9" rx="4" fill="#93a2b0" opacity="0.85"/>
+  <rect x="758" y="574" width="40" height="9" rx="4" fill="#93a2b0" opacity="0.85"/>
+    <rect x="642" y="594" width="4" height="80" fill="#78858f" opacity="0.45"/>
+    <rect x="978" y="614" width="56" height="22" rx="10" fill="#ffe2a6"/>
+    <rect x="158" y="614" width="38" height="18" rx="8" fill="#b3372d"/>
+  </g>
+</svg>

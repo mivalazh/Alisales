@@ -1,0 +1,60 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1200 900" width="1200" height="900" role="img" aria-label="Toyota Land Cruiser VXR">
+  <defs>
+    <linearGradient id="sky" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0" stop-color="#0a2334"/>
+      <stop offset="1" stop-color="#1a5a6b"/>
+    </linearGradient>
+    <radialGradient id="sun" cx="0.5" cy="0.5" r="0.5">
+      <stop offset="0" stop-color="#ffcf7a" stop-opacity="0.7"/>
+      <stop offset="1" stop-color="#ffcf7a" stop-opacity="0"/>
+    </radialGradient>
+    <linearGradient id="body" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0" stop-color="#ffffff"/>
+      <stop offset="0.55" stop-color="#e8eff5"/>
+      <stop offset="1" stop-color="#a9b8c6"/>
+    </linearGradient>
+    <linearGradient id="glass" x1="0" y1="0" x2="1" y2="1">
+      <stop offset="0" stop-color="#315a72"/>
+      <stop offset="1" stop-color="#0a1a25"/>
+    </linearGradient>
+    <linearGradient id="ground" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0" stop-color="#0b1c26"/>
+      <stop offset="1" stop-color="#050c12"/>
+    </linearGradient>
+    <mask id="arch">
+      <rect width="1200" height="900" fill="#fff"/>
+      <circle cx="332" cy="690" r="94" fill="#000"/><circle cx="898" cy="690" r="94" fill="#000"/>
+    </mask>
+  </defs>
+
+  <rect width="1200" height="900" fill="url(#sky)"/>
+  <circle cx="912" cy="248" r="240" fill="url(#sun)"/>
+  <rect y="748" width="1200" height="152" fill="url(#ground)"/>
+  <ellipse cx="600" cy="768" rx="452" ry="22" fill="#030a10" opacity="0.6"/>
+
+  <g>
+    <circle cx="332" cy="690" r="86" fill="#080c11"/>
+    <circle cx="332" cy="690" r="78" fill="#141b23"/>
+    <circle cx="332" cy="690" r="45" fill="#b9c6d2"/>
+    <circle cx="332" cy="690" r="19" fill="#7f8c99"/>
+  </g>
+  <g>
+    <circle cx="898" cy="690" r="86" fill="#080c11"/>
+    <circle cx="898" cy="690" r="78" fill="#141b23"/>
+    <circle cx="898" cy="690" r="45" fill="#b9c6d2"/>
+    <circle cx="898" cy="690" r="19" fill="#7f8c99"/>
+  </g>
+
+  <g mask="url(#arch)">
+    <path d="M150 660V540q0-18 22-22l98-10 60-152q8-14 30-14h460q22 0 32 16l46 154 126 12q20 4 20 22v114z" fill="url(#body)"/>
+    <path d="M352 500l16-128h152v128z" fill="url(#glass)"/>
+  <path d="M540 372h120v128H540z" fill="url(#glass)"/>
+  <path d="M682 372h124l46 128H682z" fill="url(#glass)"/>
+    <path d="M152 572h892" stroke="#77848f" stroke-width="4" opacity="0.4"/>
+    <rect x="572" y="540" width="40" height="9" rx="4" fill="#93a2b0" opacity="0.85"/>
+  <rect x="700" y="540" width="40" height="9" rx="4" fill="#93a2b0" opacity="0.85"/>
+    <rect x="560" y="594" width="4" height="80" fill="#78858f" opacity="0.45"/>
+    <rect x="978" y="614" width="56" height="22" rx="10" fill="#ffe2a6"/>
+    <rect x="158" y="614" width="38" height="18" rx="8" fill="#b3372d"/>
+  </g>
+</svg>

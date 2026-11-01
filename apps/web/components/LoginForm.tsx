@@ -1,7 +1,7 @@
 'use client';
 
-import { useEffect, useState, type FormEvent } from 'react';
 import { useRouter, useSearchParams } from 'next/navigation';
+import { useEffect, useState, type FormEvent } from 'react';
 import {
   ACCOUNT_TYPE_LABELS,
   accountTypes,
@@ -18,8 +18,13 @@ import { Icon } from './Icon';
  * account type (فردی / نمایشگاه). There is no buyer/seller role.
  *
  * The code is never echoed back by the API: in development it is printed in
- * the server console only.
+ * the server console only. One explicit exception exists for the owner demo:
+ * when the deployment runs without SMS/Supabase and `NEXT_PUBLIC_DEMO_OTP_HINT`
+ * is on, the API also returns `demoCode` and the code step shows it in a subtle
+ * demo notice. Hosted deployments never receive it.
  */
+const DEMO_HINT = process.env.NEXT_PUBLIC_DEMO_OTP_HINT === 'true';
+
 export function LoginForm() {
   const router = useRouter();
   const params = useSearchParams();
@@ -29,6 +34,7 @@ export function LoginForm() {
   const [step, setStep] = useState<'phone' | 'code'>('phone');
   const [phone, setPhone] = useState('');
   const [code, setCode] = useState('');
+  const [demoCode, setDemoCode] = useState<string | null>(null);
   const [displayName, setDisplayName] = useState('');
   const [accountType, setAccountType] = useState<AccountType>('individual');
   const [needsProfile, setNeedsProfile] = useState(false);
@@ -64,7 +70,9 @@ export function LoginForm() {
       if (status === 202) {
         setStep('code');
         setNeedsProfile(Boolean(data.needsProfile));
-        setNotice('کد تأیید ارسال شد.');
+        const hint = typeof data.demoCode === 'string' ? data.demoCode : null;
+        setDemoCode(hint);
+        setNotice(hint ? 'کد ورود دمو ساخته شد.' : 'کد تأیید ارسال شد.');
         setWait(60);
         return;
       }
@@ -168,6 +176,18 @@ export function LoginForm() {
             />
           </div>
 
+          {demoCode && DEMO_HINT && (
+            <div
+              role="status"
+              className="rounded-field border border-dashed border-cta bg-cta-soft px-3 py-2 text-xs leading-6 font-bold text-ink"
+            >
+              حالت دمو — پیامک واقعی ارسال نمی‌شود. کد ورود:{' '}
+              <span dir="ltr" className="tracking-[0.3em]">
+                {demoCode}
+              </span>
+            </div>
+          )}
+
           {needsProfile && (
             <div className="space-y-4 rounded-field border border-line bg-page p-3">
               <p className="text-sm font-bold">تکمیل حساب</p>
@@ -236,6 +256,7 @@ export function LoginForm() {
             onClick={() => {
               setStep('phone');
               setCode('');
+              setDemoCode(null);
               setError(null);
               setNotice(null);
             }}

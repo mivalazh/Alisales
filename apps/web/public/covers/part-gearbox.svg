@@ -1,0 +1,58 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1200 900" width="1200" height="900" role="img" aria-label="گیربکس اتوماتیک لندکروزر">
+  <defs>
+    <linearGradient id="bg" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0" stop-color="#0b1f26"/>
+      <stop offset="1" stop-color="#123640"/>
+    </linearGradient>
+    <linearGradient id="metal" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0" stop-color="#e9eef3"/>
+      <stop offset="0.45" stop-color="#b9c6d2"/>
+      <stop offset="1" stop-color="#78889a"/>
+    </linearGradient>
+    <linearGradient id="metalDark" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0" stop-color="#9aa9b8"/>
+      <stop offset="1" stop-color="#5a6878"/>
+    </linearGradient>
+    <radialGradient id="glow" cx="0.5" cy="0.5" r="0.5">
+      <stop offset="0" stop-color="#7fe3ff" stop-opacity="0.35"/>
+      <stop offset="1" stop-color="#7fe3ff" stop-opacity="0"/>
+    </radialGradient>
+  </defs>
+
+  <rect width="1200" height="900" fill="url(#bg)"/>
+  <circle cx="600" cy="420" r="330" fill="url(#glow)"/>
+  <ellipse cx="600" cy="712" rx="330" ry="30" fill="#03101a" opacity="0.7"/>
+
+  <!-- bell housing -->
+  <path d="M300 470c0-104 66-176 176-176h96v352h-96c-110 0-176-72-176-176z" fill="url(#metal)"/>
+  <ellipse cx="572" cy="470" rx="60" ry="176" fill="#8fa0b1" opacity="0.5"/>
+
+  <!-- main body -->
+  <rect x="560" y="316" width="330" height="308" rx="34" fill="url(#metal)"/>
+  <rect x="560" y="392" width="330" height="18" fill="#6f7f90" opacity="0.55"/>
+  <rect x="560" y="530" width="330" height="18" fill="#6f7f90" opacity="0.55"/>
+
+  <!-- cooling fins -->
+  <g fill="url(#metalDark)">
+    <rect x="600" y="344" width="16" height="252" rx="8"/>
+    <rect x="640" y="344" width="16" height="252" rx="8"/>
+    <rect x="680" y="344" width="16" height="252" rx="8"/>
+    <rect x="720" y="344" width="16" height="252" rx="8"/>
+    <rect x="760" y="344" width="16" height="252" rx="8"/>
+    <rect x="800" y="344" width="16" height="252" rx="8"/>
+  </g>
+
+  <!-- output shaft -->
+  <rect x="888" y="418" width="150" height="104" rx="20" fill="url(#metalDark)"/>
+  <rect x="1010" y="444" width="120" height="52" rx="16" fill="#c7d3de"/>
+  <rect x="1096" y="452" width="58" height="36" rx="12" fill="#8c9aa8"/>
+
+  <!-- bolts -->
+  <g fill="#5c6b7b">
+    <circle cx="330" cy="360" r="12"/>
+    <circle cx="330" cy="580" r="12"/>
+    <circle cx="430" cy="470" r="12"/>
+    <circle cx="860" cy="356" r="14"/>
+    <circle cx="860" cy="586" r="14"/>
+  </g>
+</svg>

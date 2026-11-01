@@ -13,13 +13,13 @@ import {
   PART_ORIGIN_LABELS,
   PLATE_TYPE_LABELS,
   compatibilityLabel,
-  formatPriceLatin,
   postingAgeLabel,
 } from '@alisales/schemas';
 import { ContactButtons } from '@/components/ContactButtons';
 import { FavoriteButton } from '@/components/FavoriteButton';
 import { Icon } from '@/components/Icon';
 import { ReportListingButton } from '@/components/ReportListingButton';
+import { PriceText } from '@/components/PriceText';
 import { getListing, getSellerPhone } from '@/lib/data/listings';
 import { getSession } from '@/lib/auth/session';
 import { recordView } from '@/lib/data/s2-store';
@@ -119,6 +119,7 @@ export default async function ListingDetailPage({
                 alt={part ? part.title : `${listing.model} ${listing.year}`}
                 fill
                 sizes="(min-width: 1024px) 66vw, 100vw"
+                unoptimized={listing.coverUrl.endsWith('.svg')}
                 className={`object-cover ${sold ? 'opacity-60 grayscale' : ''}`}
               />
             ) : (
@@ -141,6 +142,7 @@ export default async function ListingDetailPage({
                     alt={`عکس ${index + 2}`}
                     fill
                     sizes="(min-width: 1024px) 16vw, 25vw"
+                    unoptimized={url.endsWith('.svg')}
                     className="object-cover"
                   />
                 </li>
@@ -185,12 +187,9 @@ export default async function ListingDetailPage({
               })}
             </div>
 
-            <p
-              className="mt-3 text-2xl font-extrabold"
-              style={sold ? { color: '#64748B' } : undefined}
-            >
-              {formatPriceLatin(listing.priceIRR)}
-            </p>
+            <div className="mt-3">
+              <PriceText irr={listing.priceIRR} sold={sold} size="lg" />
+            </div>
 
             <dl className="mt-4 grid grid-cols-2 gap-3 sm:grid-cols-3">
               {specs.map((spec) => (

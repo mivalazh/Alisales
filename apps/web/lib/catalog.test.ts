@@ -42,7 +42,10 @@ describe('catalog sorting (sold always last)', () => {
 
   it('default browse order mirrors the RPC: sold last, featured first, then recency', () => {
     const browsed = applyFiltersLocally(fixtures, DEFAULT_FILTERS);
-    expect(browsed[0]?.slug).toBe('peugeot-206-showroom');
+    // The featured Kish import leads the catalogue; the demo seed deliberately
+    // opens on the luxury inventory (see fixtures.ts).
+    expect(browsed[0]?.slug).toBe('land-cruiser-kish');
+    expect(browsed[0]?.featured).toBe(true);
   });
 
   it('parseSortKey falls back to newest on junk', () => {

@@ -10,6 +10,7 @@ import { getSession } from '@/lib/auth/session';
 import { activeListingsCount, admin } from '@/lib/data/s2-store';
 import { devPhotoUrls, publishFixture, publishHosted } from '@/lib/data/publish-store';
 import { isOwnedPhotoPath } from '@/lib/data/photo-rules';
+import { fixtureMode } from '@/lib/config/mode';
 import type { ListingCardData } from '@/lib/data/listings';
 
 /**
@@ -32,9 +33,11 @@ import type { ListingCardData } from '@/lib/data/listings';
  * hosted publish writes them as ordered `listing_photos` rows (0 = cover).
  *
  * Storage: hosted mode writes to Supabase when the credentials are present;
- * otherwise the local dev store keeps the whole flow reviewable offline. A
- * production build without credentials answers 503 rather than pretending the
- * listing was published.
+ * otherwise the local demo store keeps the whole flow reviewable offline — up
+ * to and including a production preview build, unless
+ * REQUIRE_HOSTED_SERVICES=true. 503 is reserved for the two dishonest
+ * combinations: hosted reads with no write credentials, or strict mode with
+ * nothing configured.
  *
  * Payments: this endpoint never charges anything. Money exists only for
  * subscriptions/bump-up/stories (see 0001 subscription_payments).
@@ -206,7 +209,7 @@ export async function POST(request: Request): Promise<NextResponse> {
   const hostedReads = Boolean(
     process.env.NEXT_PUBLIC_SUPABASE_URL && process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY,
   );
-  if (hostedReads || process.env.NODE_ENV === 'production') {
+  if (hostedReads || !fixtureMode()) {
     return NextResponse.json(
       { error: 'ثبت آگهی روی پایگاه‌داده میزبان پیکربندی نشده است.' },
       { status: 503 },

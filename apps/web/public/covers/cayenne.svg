@@ -1,0 +1,59 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1200 900" width="1200" height="900" role="img" aria-label="Porsche Cayenne">
+  <defs>
+    <linearGradient id="sky" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0" stop-color="#171130"/>
+      <stop offset="1" stop-color="#3d2350"/>
+    </linearGradient>
+    <radialGradient id="sun" cx="0.5" cy="0.5" r="0.5">
+      <stop offset="0" stop-color="#f0b7ff" stop-opacity="0.7"/>
+      <stop offset="1" stop-color="#f0b7ff" stop-opacity="0"/>
+    </radialGradient>
+    <linearGradient id="body" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0" stop-color="#3a3f4a"/>
+      <stop offset="0.55" stop-color="#20242c"/>
+      <stop offset="1" stop-color="#0b0d12"/>
+    </linearGradient>
+    <linearGradient id="glass" x1="0" y1="0" x2="1" y2="1">
+      <stop offset="0" stop-color="#6a86a8"/>
+      <stop offset="1" stop-color="#101a26"/>
+    </linearGradient>
+    <linearGradient id="ground" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0" stop-color="#0b1c26"/>
+      <stop offset="1" stop-color="#050c12"/>
+    </linearGradient>
+    <mask id="arch">
+      <rect width="1200" height="900" fill="#fff"/>
+      <circle cx="330" cy="690" r="90" fill="#000"/><circle cx="898" cy="690" r="90" fill="#000"/>
+    </mask>
+  </defs>
+
+  <rect width="1200" height="900" fill="url(#sky)"/>
+  <circle cx="912" cy="248" r="240" fill="url(#sun)"/>
+  <rect y="748" width="1200" height="152" fill="url(#ground)"/>
+  <ellipse cx="600" cy="768" rx="452" ry="22" fill="#030a10" opacity="0.6"/>
+
+  <g>
+    <circle cx="330" cy="690" r="82" fill="#080c11"/>
+    <circle cx="330" cy="690" r="74" fill="#141b23"/>
+    <circle cx="330" cy="690" r="43" fill="#b9c6d2"/>
+    <circle cx="330" cy="690" r="18" fill="#7f8c99"/>
+  </g>
+  <g>
+    <circle cx="898" cy="690" r="82" fill="#080c11"/>
+    <circle cx="898" cy="690" r="74" fill="#141b23"/>
+    <circle cx="898" cy="690" r="43" fill="#b9c6d2"/>
+    <circle cx="898" cy="690" r="18" fill="#7f8c99"/>
+  </g>
+
+  <g mask="url(#arch)">
+    <path d="M132 660V602q0-22 26-26l128-16c62-50 118-76 200-76h132c88 0 148 28 202 78l168 16q24 4 24 26v56z" fill="url(#body)"/>
+    <path d="M400 574c54-38 104-58 172-58h72v58z" fill="url(#glass)"/>
+  <path d="M672 516h140c70 0 120 22 154 58H672z" fill="url(#glass)"/>
+    <path d="M152 572h892" stroke="#77848f" stroke-width="4" opacity="0.4"/>
+    <rect x="672" y="584" width="40" height="9" rx="4" fill="#93a2b0" opacity="0.85"/>
+  <rect x="772" y="584" width="40" height="9" rx="4" fill="#93a2b0" opacity="0.85"/>
+    <rect x="660" y="594" width="4" height="80" fill="#78858f" opacity="0.45"/>
+    <rect x="978" y="614" width="56" height="22" rx="10" fill="#ffe2a6"/>
+    <rect x="158" y="614" width="38" height="18" rx="8" fill="#b3372d"/>
+  </g>
+</svg>

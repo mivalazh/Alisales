@@ -2,6 +2,7 @@ import { existsSync, mkdirSync, readFileSync, writeFileSync } from 'node:fs';
 import { dirname, join, normalize } from 'node:path';
 import { randomUUID } from 'node:crypto';
 import { admin } from './s2-store';
+import { demoDataDir } from '../config/mode';
 import { PHOTO_BUCKET, devPhotoUrl } from './photo-rules';
 
 /**
@@ -11,14 +12,17 @@ import { PHOTO_BUCKET, devPhotoUrl } from './photo-rules';
  * `/api/photos`; this module is the only place that touches storage:
  *  - hosted: `listing-photos` bucket via the service role, path
  *    `{sellerId}/{uuid}.webp`, public URL returned for rendering,
- *  - fixture mode: the same path shape under `.dev-data/photos`, served by the
+ *  - fixture mode: the same path shape under the demo data directory
+ *    (`.dev-data/photos`, or `/tmp/…` on a read-only preview), served by the
  *    GET route so the offline catalog shows real images instead of placeholders.
  *
  * Bytes never enter the listing payload — the publish route only stores paths,
  * which it checks against the seller's own folder.
  */
 
-const DEV_DIR = join(process.cwd(), '.dev-data', 'photos');
+function devDir(): string {
+  return join(demoDataDir(), 'photos');
+}
 
 export interface StoredPhoto {
   path: string;
@@ -56,8 +60,9 @@ export async function storePhoto(input: PhotoBytes): Promise<StoredPhoto> {
 
 /** Absolute path for a fixture-mode object — refuses anything outside .dev-data/photos. */
 export function devPhotoFile(path: string): string {
-  const resolved = normalize(join(DEV_DIR, path));
-  if (!resolved.startsWith(`${normalize(DEV_DIR)}${process.platform === 'win32' ? '\\' : '/'}`)) {
+  const dir = devDir();
+  const resolved = normalize(join(dir, path));
+  if (!resolved.startsWith(`${normalize(dir)}${process.platform === 'win32' ? '\\' : '/'}`)) {
     throw new Error('invalid photo path');
   }
   return resolved;

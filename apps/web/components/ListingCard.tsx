@@ -8,10 +8,10 @@ import {
   PART_ORIGIN_LABELS,
   PLATE_TYPE_LABELS,
   compatibilityLabel,
-  formatPriceLatin,
   postingAgeLabel,
 } from '@alisales/schemas';
 import type { ListingCardData } from '@/lib/data/listings';
+import { PriceText } from './PriceText';
 
 /** C8 sold palette — fixed product colors, not theme tokens. */
 const SOLD_BG = '#F98513';
@@ -77,6 +77,7 @@ export function ListingCard({ listing }: { listing: ListingCardData }) {
               alt={part ? part.title : `${listing.model} ${listing.year}`}
               fill
               sizes="(min-width: 1280px) 25vw, (min-width: 1024px) 33vw, (min-width: 640px) 50vw, 100vw"
+              unoptimized={listing.coverUrl.endsWith('.svg')}
               className={`object-cover ${sold ? 'opacity-60 grayscale' : ''}`}
             />
           ) : (
@@ -125,12 +126,7 @@ export function ListingCard({ listing }: { listing: ListingCardData }) {
             )}
           </p>
 
-          <p
-            className="text-lg font-extrabold"
-            style={sold ? { color: SOLD_TEXT } : undefined}
-          >
-            {formatPriceLatin(listing.priceIRR)}
-          </p>
+          <PriceText irr={listing.priceIRR} sold={sold} />
 
           {listing.showroomName && (
             <p className="flex items-center gap-1 text-xs font-bold text-note">

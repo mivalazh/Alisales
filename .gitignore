@@ -16,3 +16,6 @@ supabase/.temp/
 
 # local dev store (fixture mode)
 apps/web/.dev-data/
+
+# local verification artefacts (screenshots, rendered covers)
+/artifacts/

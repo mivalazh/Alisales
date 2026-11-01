@@ -8,6 +8,7 @@ import {
   otpResendWaitSeconds,
 } from '@alisales/schemas';
 import { authSecret, hmacSha256 } from './session';
+import { demoDataDir, fixtureMode } from '../config/mode';
 
 /**
  * OTP storage (S2 / C4).
@@ -15,8 +16,11 @@ import { authSecret, hmacSha256 } from './session';
  * Codes are stored ONLY as an HMAC-SHA256 hash, never in clear text. A record
  * carries its expiry, attempt count and last send time. Development persists
  * records to `.dev-data/otp.json` because Next keeps a separate module graph
- * per route (request and verify would otherwise not share memory). Production
- * keeps them in the isolate memory and requires a real SMS provider.
+ * per route (request and verify would otherwise not share memory). That holds
+ * for a fixture/demo deployment too — including a production preview build —
+ * which is exactly why the store is file-backed in fixture mode. A hosted
+ * production deployment keeps them in isolate memory and requires a real SMS
+ * provider.
  *
  * The generated code is returned to the caller for delivery only — it must
  * never be serialized into an HTTP response.
@@ -30,19 +34,23 @@ export interface OtpRecord {
   lastSentAt: number;
 }
 
-const DATA_DIR = join(process.cwd(), '.dev-data');
-const FILE = join(DATA_DIR, 'otp.json');
-
 const memory = new Map<string, OtpRecord>();
 
+function storeFile(): string {
+  return join(demoDataDir(), 'otp.json');
+}
+
 function fileBacked(): boolean {
-  return process.env.NODE_ENV !== 'production';
+  // Development and fixture/demo deployments persist to disk; a hosted
+  // production deployment uses isolate memory (a real provider sends the code).
+  return process.env.NODE_ENV !== 'production' || fixtureMode();
 }
 
 function readAll(): Record<string, OtpRecord> {
   try {
-    if (!existsSync(FILE)) return {};
-    const parsed: unknown = JSON.parse(readFileSync(FILE, 'utf8'));
+    const file = storeFile();
+    if (!existsSync(file)) return {};
+    const parsed: unknown = JSON.parse(readFileSync(file, 'utf8'));
     return parsed && typeof parsed === 'object' ? (parsed as Record<string, OtpRecord>) : {};
   } catch {
     return {};
@@ -50,8 +58,9 @@ function readAll(): Record<string, OtpRecord> {
 }
 
 function writeAll(all: Record<string, OtpRecord>): void {
-  mkdirSync(DATA_DIR, { recursive: true });
-  writeFileSync(FILE, `${JSON.stringify(all, null, 2)}\n`, 'utf8');
+  const dir = demoDataDir();
+  mkdirSync(dir, { recursive: true });
+  writeFileSync(join(dir, 'otp.json'), `${JSON.stringify(all, null, 2)}\n`, 'utf8');
 }
 
 /** Six digits from a cryptographic RNG (rejection sampling, no modulo bias). */

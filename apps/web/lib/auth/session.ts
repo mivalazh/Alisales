@@ -1,5 +1,6 @@
 import { cookies } from 'next/headers';
 import type { AccountType } from '@alisales/schemas';
+import { DEMO_AUTH_SECRET, fixtureMode } from '../config/mode';
 
 /**
  * Stateless session cookies (S2 / C4).
@@ -43,13 +44,16 @@ function fromBase64Url(value: string): Uint8Array {
 
 /**
  * The signing secret. In production a missing AUTH_SECRET disables sessions
- * (routes answer 503) rather than falling back to a known value. Development
- * uses a fixed local secret so a fresh checkout works without setup.
+ * (routes answer 503) rather than falling back to a known value — except in a
+ * fixture/demo deployment (no hosted data credentials), where a clearly
+ * labelled demo secret keeps the preview usable. Development uses the same
+ * fixed local secret so a fresh checkout works without setup.
  */
 export function authSecret(): string | null {
   const configured = process.env.AUTH_SECRET;
   if (configured && configured.length >= 16) return configured;
-  if (process.env.NODE_ENV !== 'production') return 'alisales-development-secret-not-for-production';
+  if (process.env.NODE_ENV !== 'production') return DEMO_AUTH_SECRET;
+  if (fixtureMode()) return DEMO_AUTH_SECRET;
   return null;
 }
 

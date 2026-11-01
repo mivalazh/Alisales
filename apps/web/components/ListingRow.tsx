@@ -6,11 +6,11 @@ import {
   GEARBOX_LABELS,
   PART_CATEGORY_LABELS,
   PART_ORIGIN_LABELS,
-  formatPriceLatin,
   postingAgeLabel,
 } from '@alisales/schemas';
 import type { ReactNode } from 'react';
 import type { ListingCardData } from '@/lib/data/listings';
+import { PriceText } from './PriceText';
 
 const SOLD_BG = '#F98513';
 const SOLD_INK = '#111144';
@@ -47,6 +47,7 @@ export function ListingRow({
               alt={part ? part.title : `${listing.model} ${listing.year}`}
               fill
               sizes="128px"
+              unoptimized={listing.coverUrl.endsWith('.svg')}
               className={`object-cover ${sold ? 'opacity-60 grayscale' : ''}`}
             />
           ) : (
@@ -135,9 +136,7 @@ export function ListingRow({
           </p>
 
           <div className="mt-auto flex items-center justify-between gap-2">
-            <p className="text-sm font-extrabold sm:text-base" style={sold ? { color: SOLD_TEXT } : undefined}>
-              {formatPriceLatin(listing.priceIRR)}
-            </p>
+            <PriceText irr={listing.priceIRR} sold={sold} />
             <time dateTime={listing.publishedAt ?? undefined} className="text-xs text-faint">
               {postingAgeLabel(listing.publishedAt ?? Date.now())}
             </time>
