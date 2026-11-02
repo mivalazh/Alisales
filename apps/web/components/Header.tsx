@@ -3,7 +3,7 @@
 import Link from 'next/link';
 import { usePathname } from 'next/navigation';
 import { useEffect, useState } from 'react';
-import { MONOGRAM, logoSvgDocument } from '@studio/design';
+import { LOCKUP, logoSvgDocument } from '@studio/design';
 import { CITY_LABELS, DEFAULT_CITY } from '@alisales/schemas';
 import { NAV_ITEMS, type NavItem } from '@/lib/nav';
 import { CAR_BODY_TYPES, PART_CATEGORY_LINKS } from '@/lib/browse';
@@ -12,9 +12,10 @@ import { ThemeToggle } from './ThemeToggle';
 import { useActivePath } from './useActivePath';
 
 /**
- * App header (C8). Start edge (right in RTL): hamburger + theme toggle.
- * Center: the monogram emblem only — no wordmark, so it can never collide with
- * the buttons. End edge: the city word «کیش» and the account action.
+ * App header (C8). Start edge (right in RTL): hamburger, theme toggle and the
+ * account action, grouped together. End edge: the full «A ALI SALES» lockup as
+ * the home link, pushed to the far edge so nothing sits in the middle between
+ * the buttons and the mark.
  *
  * On tablet/desktop the destinations (خانه، چت‌ها، علاقه‌مندی‌ها، پروفایل) sit
  * together on the start edge and «+ ثبت آگهی» is pushed to the end edge, never
@@ -107,7 +108,7 @@ export function Header({
 
   return (
     <header className="sticky top-0 z-40 border-b border-line bg-card/95 backdrop-blur">
-      <div className="mx-auto grid h-16 w-full max-w-[var(--content-max)] grid-cols-[auto_1fr_auto] items-center gap-2 px-4 sm:px-6">
+      <div className="mx-auto flex h-16 w-full max-w-[var(--content-max)] items-center gap-2 px-4 sm:px-6">
         <div className="flex items-center gap-2">
           <button
             type="button"
@@ -119,21 +120,6 @@ export function Header({
             <Icon name={menuOpen ? 'close' : 'menu'} size={22} />
           </button>
           <ThemeToggle />
-        </div>
-
-        <div className="flex min-w-0 justify-center">
-          <Link
-            href="/"
-            aria-label="Ali Sales — صفحه اصلی"
-            className="flex min-w-0 items-center justify-center [&>svg]:h-10 [&>svg]:w-10"
-            dangerouslySetInnerHTML={{ __html: logoSvgDocument(MONOGRAM, 'Ali Sales') }}
-          />
-        </div>
-
-        <div className="flex items-center gap-2">
-          <span className="hidden text-sm font-extrabold text-ink sm:inline">
-            {CITY_LABELS[DEFAULT_CITY]}
-          </span>
           {authed ? (
             <Link
               href="/profile"
@@ -146,6 +132,18 @@ export function Header({
               ورود
             </Link>
           )}
+        </div>
+
+        <div className="ms-auto flex min-w-0 items-center gap-2">
+          <span className="hidden text-sm font-extrabold text-ink sm:inline">
+            {CITY_LABELS[DEFAULT_CITY]}
+          </span>
+          <Link
+            href="/"
+            aria-label="Ali Sales — صفحه اصلی"
+            className="flex min-w-0 shrink-0 items-center [&>svg]:h-9 [&>svg]:w-auto"
+            dangerouslySetInnerHTML={{ __html: logoSvgDocument(LOCKUP, 'Ali Sales') }}
+          />
         </div>
       </div>
 

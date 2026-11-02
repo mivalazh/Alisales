@@ -65,6 +65,10 @@
   :root {
     --logo-bg: #f98513;
     --logo-fg: #111144;
+    /* «A ALI SALES» lockup inks: the navy pillar flips to platinum in dark
+       mode, the accent stays Habañero in both. */
+    --logo-navy: #16235a;
+    --logo-accent: #f98513;
   }
 
   html {
@@ -222,4 +226,5 @@ html.dark {
   --color-accent-soft: #3d2c15;
   --color-focus-ring: #f98513;
   --logo-fg: #f4f1ec;
+  --logo-navy: #f4f1ec;
 }

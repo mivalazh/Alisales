@@ -52,7 +52,42 @@ const monogram: LogoVariant = {
   markup: `<rect width="64" height="64" rx="18" fill="var(--logo-bg, #F98513)"/><g fill="none" stroke="var(--logo-fg, #111144)" stroke-width="6.2" stroke-linecap="round" stroke-linejoin="round"><path d="M18 46 L32 18 L46 46"/><path d="M24.5 36 H39.5"/></g>`,
 };
 
+/**
+ * Full «A ALI SALES» lockup — angular A with the two sweeping road arcs and the
+ * heavy geometric wordmark. Geometry is fixed; only the inks change with theme,
+ * through CSS variables so one markup serves both modes:
+ *   --logo-navy    #16235A light · #F4F1EC dark  (A pillar, «ALI»)
+ *   --logo-accent  #F98513 both modes            (upper arc, «SALES»)
+ */
+const lockup: LogoVariant = {
+  viewBox: '0 0 460 180',
+  width: 460,
+  height: 180,
+  markup:
+    `<g fill="none" stroke="var(--logo-navy, #16235A)" stroke-width="24" stroke-linecap="round" stroke-linejoin="round"><path d="M44 148 L98 36 L152 148"/></g>` +
+    `<path d="M70 112 H126" fill="none" stroke="var(--logo-navy, #16235A)" stroke-width="17" stroke-linecap="round"/>` +
+    `<path d="M24 118 C64 78 132 78 172 118" fill="none" stroke="var(--logo-accent, #F98513)" stroke-width="15" stroke-linecap="round"/>` +
+    `<path d="M32 158 C84 176 132 176 176 152" fill="none" stroke="var(--logo-navy, #16235A)" stroke-width="11" stroke-linecap="round"/>` +
+    `<g fill="none" stroke="var(--logo-navy, #16235A)" stroke-width="10" stroke-linecap="butt" stroke-linejoin="miter">` +
+    `<path d="M206 62 L226 22 L246 62"/>` +
+    `<path d="M213 48 H239"/>` +
+    `<path d="M262 22 V62 H294"/>` +
+    `<path d="M310 22 V62"/>` +
+    `</g>` +
+    `<g fill="none" stroke="var(--logo-accent, #F98513)" stroke-width="10" stroke-linecap="butt" stroke-linejoin="miter">` +
+    `<path d="M242 102 H212 V124 H242 V146 H212"/>` +
+    `<path d="M264 146 L284 102 L304 146"/>` +
+    `<path d="M270 132 H298"/>` +
+    `<path d="M320 102 V146 H352"/>` +
+    `<path d="M368 102 V146 M368 102 H398 M368 124 H390 M368 146 H398"/>` +
+    `<path d="M444 102 H414 V124 H444 V146 H414"/>` +
+    `</g>`,
+};
+
 export const LOGO = { primary, dark, symbol } as const;
+
+/** Full horizontal «A ALI SALES» lockup (CSS-variable inks). */
+export const LOCKUP = lockup as LogoVariant;
 
 /** Standalone monogram variant (CSS-variable colors, no wordmark). */
 export const MONOGRAM = monogram;
