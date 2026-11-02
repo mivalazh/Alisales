@@ -1,0 +1,136 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 320 180" width="320" height="180" role="img" aria-label="شاسی‌بلند لوکس سفید">
+  <defs>
+    <linearGradient id="paint" x1="0.1" y1="0" x2="0.3" y2="1">
+      <stop offset="0" stop-color="#ffffff" />
+      <stop offset="0.3" stop-color="#fbfcfe" />
+      <stop offset="0.64" stop-color="#e9eef6" />
+      <stop offset="0.88" stop-color="#ccd4e1" />
+      <stop offset="1" stop-color="#a7b2c2" />
+    </linearGradient>
+    <linearGradient id="shoulder" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0" stop-color="#ffffff" stop-opacity="0.95" />
+      <stop offset="0.5" stop-color="#ffffff" stop-opacity="0.3" />
+      <stop offset="1" stop-color="#8f9aab" stop-opacity="0.4" />
+    </linearGradient>
+    <linearGradient id="glass" x1="0.1" y1="0" x2="0.6" y2="1">
+      <stop offset="0" stop-color="#4c5872" />
+      <stop offset="0.45" stop-color="#1a2030" />
+      <stop offset="1" stop-color="#2c3648" />
+    </linearGradient>
+    <linearGradient id="grille" x1="0" y1="0" x2="1" y2="1">
+      <stop offset="0" stop-color="#1c2331" />
+      <stop offset="1" stop-color="#090c12" />
+    </linearGradient>
+    <linearGradient id="rimLight" x1="0" y1="0" x2="1" y2="0">
+      <stop offset="0" stop-color="#F98513" stop-opacity="0" />
+      <stop offset="0.22" stop-color="#F98513" />
+      <stop offset="0.6" stop-color="#ffc078" />
+      <stop offset="1" stop-color="#F98513" stop-opacity="0.15" />
+    </linearGradient>
+    <linearGradient id="lamp" x1="0" y1="0" x2="1" y2="1">
+      <stop offset="0" stop-color="#ffffff" />
+      <stop offset="0.5" stop-color="#d8e9ff" />
+      <stop offset="1" stop-color="#8fb6e2" />
+    </linearGradient>
+    <radialGradient id="hub" cx="0.35" cy="0.3" r="0.9">
+      <stop offset="0" stop-color="#ffffff" />
+      <stop offset="0.55" stop-color="#c7cfdb" />
+      <stop offset="1" stop-color="#7c8697" />
+    </radialGradient>
+    <radialGradient id="floor" cx="0.5" cy="0.5" r="0.5">
+      <stop offset="0" stop-color="#111144" stop-opacity="0.34" />
+      <stop offset="0.65" stop-color="#111144" stop-opacity="0.12" />
+      <stop offset="1" stop-color="#111144" stop-opacity="0" />
+    </radialGradient>
+  </defs>
+
+  <!-- shadow -->
+  <ellipse cx="164" cy="152" rx="124" ry="15" fill="url(#floor)" />
+  <ellipse cx="164" cy="147" rx="98" ry="7" fill="#111144" opacity="0.13" />
+
+  <!-- body -->
+  <path d="M44 126 V104 C44 95 50 88 60 86 L96 80 L112 52 C116 46 122 43 130 43 H206 C214 43 220 47 224 53 L238 80 L266 86 C276 88 282 95 282 104 V126 Z" fill="url(#paint)" />
+  <path d="M44 126 V104 C44 95 50 88 60 86 L96 80 L112 52 C116 46 122 43 130 43 H206 C214 43 220 47 224 53 L238 80 L266 86 C276 88 282 95 282 104 V126 Z" fill="url(#shoulder)" opacity="0.6" />
+
+  <!-- glasshouse -->
+  <path d="M118 82 L130 52 C132 49 135 48 138 48 H202 C206 48 209 50 211 53 L226 82 Z" fill="url(#glass)" />
+  <path d="M126 76 L136 50 H198 L212 76 Z" fill="#0d1220" opacity="0.32" />
+  <path d="M150 76 L158 50" stroke="#9db2cd" stroke-width="1.6" opacity="0.38" />
+  <path d="M188 76 L194 50" stroke="#9db2cd" stroke-width="1.6" opacity="0.38" />
+  <path d="M122 78 L131 50" stroke="#eef3fa" stroke-opacity="0.75" stroke-width="2.4" fill="none" />
+  <path d="M146 50 L190 50" stroke="#ffffff" stroke-opacity="0.5" stroke-width="3" stroke-linecap="round" />
+  <!-- A-pillar base and mirror -->
+  <path d="M104 84 L118 78 H140 L128 84 Z" fill="#d3dbe6" />
+  <path d="M108 80 c-6 0-10 3-10 6.5 c0 3 3 4 7 4 h7 z" fill="#e7ecf4" stroke="#b3bcca" stroke-width="1" />
+
+  <!-- roof rails + orange rim light -->
+  <rect x="132" y="40" width="74" height="3.4" rx="1.7" fill="#b1bac9" />
+  <path d="M116 54 C122 46 129 45 138 45 H205" stroke="url(#rimLight)" stroke-width="3" stroke-linecap="round" fill="none" />
+  <path d="M96 80 H110" stroke="url(#rimLight)" stroke-width="2.6" stroke-linecap="round" />
+
+  <!-- nose: slim grille and one swept LED lamp -->
+  <path d="M46 96 C46 88 51 84 60 83 L72 81 C76 80 79 83 79 87 V120 C79 124 76 127 72 126.5 L60 125 C51 124 46 119 46 111 Z" fill="url(#grille)" />
+  <path d="M52 90 L52 117" stroke="#9aa6b8" stroke-opacity="0.3" stroke-width="2" stroke-linecap="round" />
+  <path d="M76 82 C84 80 94 81 101 84 C104 85 105 88 104 91 L102 95 C101 98 98 99 95 98 L78 92 C75 91 74 83 76 82 Z" fill="url(#lamp)" stroke="#a9b6c9" stroke-width="1" />
+  <path d="M79 87 L98 93" stroke="#ffffff" stroke-width="2.6" stroke-linecap="round" />
+
+  <!-- wheels -->
+  <g>
+    <circle cx="122" cy="128" r="31" fill="#13171f" />
+    <circle cx="122" cy="128" r="31" fill="none" stroke="#2a3140" stroke-width="3" />
+    <circle cx="122" cy="128" r="21" fill="url(#hub)" />
+    <circle cx="122" cy="128" r="21" fill="none" stroke="#8b95a6" stroke-width="1.4" />
+    <g stroke="#6f7987" stroke-width="2.6" stroke-linecap="round">
+      <path d="M122 111 v11" />
+      <path d="M122 145 v-11" />
+      <path d="M105 128 h11" />
+      <path d="M139 128 h-11" />
+      <path d="M110 116 l8 8" />
+      <path d="M134 140 l-8-8" />
+      <path d="M134 116 l-8 8" />
+      <path d="M110 140 l8-8" />
+    </g>
+    <circle cx="110" cy="128" r="6.4" fill="#e9eef6" />
+  </g>
+  <g>
+    <circle cx="244" cy="128" r="31" fill="#13171f" />
+    <circle cx="244" cy="128" r="31" fill="none" stroke="#2a3140" stroke-width="3" />
+    <circle cx="244" cy="128" r="21" fill="url(#hub)" />
+    <circle cx="244" cy="128" r="21" fill="none" stroke="#8b95a6" stroke-width="1.4" />
+    <g stroke="#6f7987" stroke-width="2.6" stroke-linecap="round">
+      <path d="M244 111 v11" />
+      <path d="M244 145 v-11" />
+      <path d="M227 128 h11" />
+      <path d="M261 128 h-11" />
+      <path d="M232 116 l8 8" />
+      <path d="M256 140 l-8-8" />
+      <path d="M256 116 l-8 8" />
+      <path d="M232 140 l8-8" />
+    </g>
+    <circle cx="244" cy="128" r="6.4" fill="#e9eef6" />
+  </g>
+
+  <!-- SUV arch trims -->
+  <path d="M91 128 a31 31 0 0 1 62 0" fill="none" stroke="#7b8595" stroke-opacity="0.5" stroke-width="3" />
+  <path d="M213 128 a31 31 0 0 1 62 0" fill="none" stroke="#7b8595" stroke-opacity="0.5" stroke-width="3" />
+
+  <!-- doors, handles, sill -->
+  <g stroke="#9aa5b5" stroke-opacity="0.55" stroke-width="1.4" fill="none">
+    <path d="M130 84 V124" />
+    <path d="M206 84 V124" />
+    <path d="M130 124 H206" />
+  </g>
+  <g fill="#8f9aab" opacity="0.85">
+    <rect x="140" y="92" width="17" height="4" rx="2" />
+    <rect x="181" y="92" width="17" height="4" rx="2" />
+  </g>
+  <path d="M116 124 H214" stroke="#c3cbd8" stroke-width="3" stroke-linecap="round" />
+
+  <!-- rear lamp -->
+  <path d="M276 94 c4 1.4 6 4.4 6 8 v7 c0 4-3 6-7 5.6 l-6-1.2 c-3-0.6-4-3-4-6 v-6 c0-4 3-7 7-7.4 z" fill="#e0413a" opacity="0.92" />
+  <path d="M272 98 l8 2.4" stroke="#ffb3a8" stroke-opacity="0.9" stroke-width="2" stroke-linecap="round" />
+
+  <!-- highlights -->
+  <path d="M116 84 C162 78 220 78 268 86" stroke="#ffffff" stroke-opacity="0.8" stroke-width="2.6" stroke-linecap="round" fill="none" />
+  <path d="M52 108 C70 138 196 142 280 114" stroke="#ffffff" stroke-opacity="0.22" stroke-width="2" stroke-linecap="round" fill="none" />
+</svg>

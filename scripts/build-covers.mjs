@@ -60,12 +60,6 @@ const COVERS = [
   { slug: 'kioqi-transit', source: 'boxster', crop: [0.12, 0.24, 0.68, 0.6] },
 ];
 
-/** Hero art for the two headline category cards. */
-const CATEGORY_ART = [
-  { file: 'category-vehicles', source: 'amg-gt', crop: [0.05, 0.12, 0.9, 0.72] },
-  { file: 'category-parts', source: 'engine-bay', crop: [0.08, 0.1, 0.84, 0.78] },
-];
-
 const force = process.argv.includes('--force');
 
 async function download(key, url) {
@@ -112,11 +106,6 @@ async function main() {
     await make(cover.source, cover.slug, cover.crop);
     console.log(`${cover.slug} ← ${cover.source}${cover.crop ? ' (crop)' : ''}`);
   }
-  for (const art of CATEGORY_ART) {
-    await make(art.source, art.file, art.crop);
-    console.log(`${art.file} ← ${art.source}`);
-  }
-
   console.log(`\n${PUBLIC_PREFIX}/<slug>.webp and /<slug>-thumb.webp written to apps/web/public/covers/photos/`);
 }
 
