@@ -22,7 +22,27 @@ const days = (n: number) => new Date(Date.now() - n * 24 * HOUR_MS).toISOString(
 /** AED × AED_TO_IRR — kept as a literal so the seed reads like the market. */
 const aed = (amount: number) => amount * 272_000;
 
-export const fixtureListings: ListingCardData[] = [
+/** Seeded view counts so «پربازدیدترین» has a real ranking in fixture mode. */
+const VIEW_COUNTS: Record<string, number> = {
+  'land-cruiser-kish': 4_218,
+  'patrol-platinum-kish': 3_102,
+  's-class-kish': 2_876,
+  'bmw-x5-kish': 2_401,
+  'cayenne-kish': 1_987,
+  'lexus-rx-kish': 1_864,
+  'dena-plus-sold': 1_530,
+  'land-cruiser-gearbox-part': 1_412,
+  'cayenne-brake-kit-part': 1_208,
+  'peugeot-206-showroom': 964,
+  'kioqi-transit': 702,
+  'kiaqi-kish-showroom': 655,
+  'peugeot-206-blue-kish': 588,
+  'peugeot-206-black-tehran': 512,
+  'peugeot-206-alice': 431,
+  'shahin-new-tehran': 388,
+};
+
+const catalogListings: ListingCardData[] = [
   {
     // Headline import: newest + featured, so the first screen opens luxury.
     id: '00000000-0000-0000-0000-000000000061',
@@ -163,6 +183,34 @@ export const fixtureListings: ListingCardData[] = [
     allowPhoneReveal: true,
     description:
       'پورشه کاین ۲۰۲۱، گذر موقت، کارکرد ۳۸ هزار کیلومتر. سرویس کامل پورشه کیش، بدون خط و خش، لاستیک ۹۰ درصد.',
+  },
+  {
+    id: '00000000-0000-0000-0000-000000000066',
+    slug: 'lexus-rx-kish',
+    sellerId: '00000000-0000-0000-0000-00000000000d',
+    priceIRR: aed(720_000),
+    city: 'kish',
+    state: 'active',
+    featured: false,
+    publishedAt: days(2),
+    hasReport: false,
+    brand: 'lexus',
+    model: 'RX',
+    trim: '350 F Sport',
+    year: 2022,
+    mileageKm: 41_000,
+    gearbox: 'automatic',
+    fuel: 'hybrid',
+    color: 'white',
+    condition: 'used',
+    plateType: 'kish',
+    coverUrl: '/covers/lexus-rx.svg',
+    photos: ['/covers/lexus-rx.svg'],
+    showroomName: 'اتومبیل کیش',
+    showroomVerified: true,
+    allowPhoneReveal: true,
+    description:
+      'لکسوس RX 350 F Sport هیبرید، پلاک کیش، فول آپشن. صندلی برقی چرم، سانروف پانوراما، سیستم صوتی Mark Levinson و رینگ ۲۰ اینچ کارخانه. بدون رنگ.',
   },
   {
     // Parts keep the same card shell; the category line replaces brand/model.
@@ -439,3 +487,9 @@ export const fixtureListings: ListingCardData[] = [
     allowPhoneReveal: false,
   },
 ];
+
+/** The seeded catalogue with its view counts attached for the browse sorts. */
+export const fixtureListings: ListingCardData[] = catalogListings.map((listing) => ({
+  ...listing,
+  views: VIEW_COUNTS[listing.slug] ?? 0,
+}));

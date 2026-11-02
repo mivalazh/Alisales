@@ -11,11 +11,12 @@ import {
   postingAgeLabel,
 } from '@alisales/schemas';
 import type { ListingCardData } from '@/lib/data/listings';
+import { FavoriteButton } from './FavoriteButton';
 import { PriceText } from './PriceText';
+import { SoldBadge } from './SoldBadge';
+import { VerifiedPill, sellerDisplayName } from './SellerVerified';
 
-/** C8 sold palette — fixed product colors, not theme tokens. */
-const SOLD_BG = '#F98513';
-const SOLD_INK = '#111144';
+/** Sold text tone — muted so the carmine badge carries the emphasis. */
 const SOLD_TEXT = '#64748B';
 
 function Badge({ badgeKey }: { badgeKey: BadgeKey }) {
@@ -60,15 +61,18 @@ function cardBadges(listing: ListingCardData): BadgeKey[] {
 
 /**
  * Catalog card. Posting age is relative text on Tehran calendar days (C8);
- * year, mileage and price always render with Latin digits. There is no
- * «ویژه» badge and no public favorite count (`public_favorite_count = false`).
+ * year, mileage and price always render with Latin digits. The heart sits over
+ * the photo's top-start corner so a buyer can save the car without opening it;
+ * it is a sibling of the link, never nested inside it.
  */
 export function ListingCard({ listing }: { listing: ListingCardData }) {
   const sold = listing.state === 'sold';
   const part = listing.part ?? null;
+  const title = part ? part.title : `${listing.model}${listing.trim ? ` ${listing.trim}` : ''}`;
+  const sellerName = sellerDisplayName(listing.showroomName);
 
   return (
-    <li className="overflow-hidden rounded-card border border-line bg-card transition hover:border-line-strong hover:shadow-lg">
+    <li className="relative overflow-hidden rounded-card border border-line bg-card transition hover:border-line-strong hover:shadow-lg">
       <Link href={`/listing/${listing.slug}`} className="block">
         <div className="relative aspect-[var(--photo-aspect)] bg-sunken">
           {listing.coverUrl ? (
@@ -76,7 +80,7 @@ export function ListingCard({ listing }: { listing: ListingCardData }) {
               src={listing.coverUrl}
               alt={part ? part.title : `${listing.model} ${listing.year}`}
               fill
-              sizes="(min-width: 1280px) 25vw, (min-width: 1024px) 33vw, (min-width: 640px) 50vw, 100vw"
+              sizes="(min-width: 1280px) 25vw, (min-width: 1024px) 33vw, (min-width: 640px) 50vw, 50vw"
               unoptimized={listing.coverUrl.endsWith('.svg')}
               className={`object-cover ${sold ? 'opacity-60 grayscale' : ''}`}
             />
@@ -84,11 +88,8 @@ export function ListingCard({ listing }: { listing: ListingCardData }) {
             <CameraPlaceholder />
           )}
           {sold && (
-            <span
-              className="absolute top-2 end-2 px-2.5 py-0.5 text-xs font-extrabold"
-              style={{ background: SOLD_BG, color: SOLD_INK, borderRadius: 8 }}
-            >
-              Sold
+            <span className="absolute top-2 end-2">
+              <SoldBadge />
             </span>
           )}
         </div>
@@ -128,17 +129,15 @@ export function ListingCard({ listing }: { listing: ListingCardData }) {
 
           <PriceText irr={listing.priceIRR} sold={sold} />
 
-          {listing.showroomName && (
-            <p className="flex items-center gap-1 text-xs font-bold text-note">
-              {listing.showroomName}
-              {listing.showroomVerified && (
-                <>
-                  <VerifiedMark />
-                  <span>نمایشگاه معتبر</span>
-                </>
-              )}
-            </p>
-          )}
+          {/* Verified sellers show the standardized pill only; the old
+              «اتومبیل کیش •» label never prints again. */}
+          {listing.showroomVerified ? (
+            <div className="flex flex-wrap gap-1.5">
+              <VerifiedPill label={part ? 'تعمیرگاه معتبر' : 'نمایشگاه معتبر'} />
+            </div>
+          ) : sellerName ? (
+            <p className="truncate text-xs font-bold text-muted">{sellerName}</p>
+          ) : null}
 
           <div className="mt-auto flex items-center justify-between border-t border-line pt-2 text-xs text-faint">
             <span>{CITY_LABELS[listing.city] ?? listing.city}</span>
@@ -148,6 +147,19 @@ export function ListingCard({ listing }: { listing: ListingCardData }) {
           </div>
         </div>
       </Link>
+
+      <FavoriteButton
+        slug={listing.slug}
+        listingId={listing.id}
+        compact
+        className="absolute top-2 start-2 z-10"
+        snapshot={{
+          model: title,
+          year: listing.year,
+          priceIRR: listing.priceIRR,
+          ...(listing.coverUrl ? { coverUrl: listing.coverUrl } : {}),
+        }}
+      />
     </li>
   );
 }
@@ -171,28 +183,5 @@ function CameraPlaceholder() {
       </svg>
       <span className="text-xs">بدون عکس</span>
     </div>
-  );
-}
-
-function VerifiedMark() {
-  return (
-    <svg
-      aria-hidden="true"
-      width="14"
-      height="14"
-      viewBox="0 0 24 24"
-      fill="currentColor"
-      className="text-note"
-    >
-      <path d="M12 2l2.4 1.8 3-.3 1 2.8 2.6 1.5-.9 2.9.9 2.9-2.6 1.5-1 2.8-3-.3L12 22l-2.4-1.8-3 .3-1-2.8L3 16.2l.9-2.9L3 10.4l2.6-1.5 1-2.8 3 .3z" />
-      <path
-        d="M8.5 12.2l2.3 2.3 4.7-4.8"
-        fill="none"
-        stroke="#ffffff"
-        strokeWidth="1.8"
-        strokeLinecap="round"
-        strokeLinejoin="round"
-      />
-    </svg>
   );
 }

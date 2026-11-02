@@ -9,7 +9,12 @@ const SECONDARY_INK = '#64748B';
  *
  * The stored price is always IRR. The Kish catalog is an import market, so the
  * Toman amount buyers negotiate in is the headline (large, bold, Latin digits)
- * and the dirham reference sits right below it in the muted secondary color.
+ * and the dirham reference sits directly underneath it in the muted secondary
+ * color. The block is a right-aligned stack: in RTL `items-start` is the start
+ * (right) edge, so the `≈ … AED` line stays under the Toman amount instead of
+ * floating to the far left. The Toman line never wraps — a 1.2-billion Toman
+ * price must stay on one line at card width.
+ *
  * Display only — no payment or checkout path reads the reference rate, and the
  * rial figure is never shown.
  */
@@ -27,19 +32,19 @@ export function PriceText({
   const aed = formatAmountLatin(irrToAED(irr));
 
   return (
-    <span className="flex flex-col gap-0.5">
+    <span className="flex flex-col items-start gap-1 text-right">
       <span
         className={
           size === 'lg'
-            ? 'text-2xl font-extrabold leading-tight'
-            : 'text-lg font-extrabold leading-tight'
+            ? 'whitespace-nowrap text-2xl font-extrabold leading-tight'
+            : 'whitespace-nowrap text-lg font-extrabold leading-tight'
         }
         style={{ color: sold ? SECONDARY_INK : PRICE_INK }}
       >
         {toman} تومان
       </span>
       <span
-        className="text-xs font-bold"
+        className="inline-block self-start text-right text-xs font-bold"
         dir="ltr"
         style={{ color: SECONDARY_INK }}
       >

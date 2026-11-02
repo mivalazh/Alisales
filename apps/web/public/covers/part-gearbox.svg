@@ -1,58 +1,87 @@
-<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1200 900" width="1200" height="900" role="img" aria-label="گیربکس اتوماتیک لندکروزر">
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1200 900" width="1200" height="900" role="img" aria-label="گیربکس اتوماتیک لندکروزر VXR">
+  <title>OEM automatic transmission</title>
   <defs>
-    <linearGradient id="bg" x1="0" y1="0" x2="0" y2="1">
-      <stop offset="0" stop-color="#0b1f26"/>
-      <stop offset="1" stop-color="#123640"/>
+    <linearGradient id="wall-gearbox" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0" stop-color="#1a2130"/>
+      <stop offset="1" stop-color="#0b1017"/>
     </linearGradient>
-    <linearGradient id="metal" x1="0" y1="0" x2="0" y2="1">
-      <stop offset="0" stop-color="#e9eef3"/>
-      <stop offset="0.45" stop-color="#b9c6d2"/>
-      <stop offset="1" stop-color="#78889a"/>
+    <linearGradient id="floor-gearbox" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0" stop-color="#101620"/>
+      <stop offset="1" stop-color="#04060a"/>
     </linearGradient>
-    <linearGradient id="metalDark" x1="0" y1="0" x2="0" y2="1">
-      <stop offset="0" stop-color="#9aa9b8"/>
-      <stop offset="1" stop-color="#5a6878"/>
+    <radialGradient id="halo-gearbox" cx="0.5" cy="0.38" r="0.66">
+      <stop offset="0" stop-color="#9ec0f0" stop-opacity="0.9"/>
+      <stop offset="0.5" stop-color="#9ec0f0" stop-opacity="0.18"/>
+      <stop offset="1" stop-color="#9ec0f0" stop-opacity="0"/>
+    </radialGradient>
+    <linearGradient id="beam-gearbox" x1="0" y1="0" x2="1" y2="0.6">
+      <stop offset="0" stop-color="#ffffff" stop-opacity="0.1"/>
+      <stop offset="0.42" stop-color="#ffffff" stop-opacity="0.02"/>
+      <stop offset="1" stop-color="#ffffff" stop-opacity="0"/>
     </linearGradient>
-    <radialGradient id="glow" cx="0.5" cy="0.5" r="0.5">
-      <stop offset="0" stop-color="#7fe3ff" stop-opacity="0.35"/>
-      <stop offset="1" stop-color="#7fe3ff" stop-opacity="0"/>
+    <radialGradient id="contact-gearbox" cx="0.5" cy="0.5" r="0.5">
+      <stop offset="0" stop-color="#000000" stop-opacity="0.6"/>
+      <stop offset="0.62" stop-color="#000000" stop-opacity="0.22"/>
+      <stop offset="1" stop-color="#000000" stop-opacity="0"/>
+    </radialGradient>
+    <linearGradient id="refl-fade-gearbox" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0" stop-color="#ffffff" stop-opacity="0.62"/>
+      <stop offset="1" stop-color="#ffffff" stop-opacity="0"/>
+    </linearGradient>
+    <mask id="refl-mask-gearbox">
+      <rect x="0" y="700" width="1200" height="200" fill="url(#refl-fade-gearbox)"/>
+    </mask>
+  </defs>
+  <rect width="1200" height="900" fill="url(#wall-gearbox)"/>
+  <ellipse cx="600" cy="330" rx="640" ry="420" fill="url(#halo-gearbox)"/>
+  <rect y="700" width="1200" height="200" fill="url(#floor-gearbox)"/>
+  <path d="M0,700 H1200" stroke="#ffffff" stroke-opacity="0.2" stroke-width="2"/>
+  <rect width="1200" height="900" fill="url(#beam-gearbox)"/>
+  <defs>
+    <linearGradient id="alu-gearbox" x1="0" y1="0" x2="0.22" y2="1">
+      <stop offset="0" stop-color="#f7fafd"/>
+      <stop offset="0.24" stop-color="#ccd3dc"/>
+      <stop offset="0.5" stop-color="#828b97"/>
+      <stop offset="0.74" stop-color="#aab2bd"/>
+      <stop offset="1" stop-color="#545b66"/>
+    </linearGradient>
+    <linearGradient id="alu2-gearbox" x1="0" y1="0" x2="0.55" y2="1">
+      <stop offset="0" stop-color="#dde3ea"/>
+      <stop offset="0.5" stop-color="#98a1ac"/>
+      <stop offset="1" stop-color="#4f565f"/>
+    </linearGradient>
+    <radialGradient id="bell-gearbox" cx="0.32" cy="0.28" r="0.82">
+      <stop offset="0" stop-color="#f1f5fa"/>
+      <stop offset="0.58" stop-color="#a7b0bb"/>
+      <stop offset="1" stop-color="#535a65"/>
     </radialGradient>
   </defs>
-
-  <rect width="1200" height="900" fill="url(#bg)"/>
-  <circle cx="600" cy="420" r="330" fill="url(#glow)"/>
-  <ellipse cx="600" cy="712" rx="330" ry="30" fill="#03101a" opacity="0.7"/>
-
-  <!-- bell housing -->
-  <path d="M300 470c0-104 66-176 176-176h96v352h-96c-110 0-176-72-176-176z" fill="url(#metal)"/>
-  <ellipse cx="572" cy="470" rx="60" ry="176" fill="#8fa0b1" opacity="0.5"/>
-
-  <!-- main body -->
-  <rect x="560" y="316" width="330" height="308" rx="34" fill="url(#metal)"/>
-  <rect x="560" y="392" width="330" height="18" fill="#6f7f90" opacity="0.55"/>
-  <rect x="560" y="530" width="330" height="18" fill="#6f7f90" opacity="0.55"/>
-
-  <!-- cooling fins -->
-  <g fill="url(#metalDark)">
-    <rect x="600" y="344" width="16" height="252" rx="8"/>
-    <rect x="640" y="344" width="16" height="252" rx="8"/>
-    <rect x="680" y="344" width="16" height="252" rx="8"/>
-    <rect x="720" y="344" width="16" height="252" rx="8"/>
-    <rect x="760" y="344" width="16" height="252" rx="8"/>
-    <rect x="800" y="344" width="16" height="252" rx="8"/>
+  <ellipse cx="600" cy="726" rx="430" ry="28" fill="url(#contact-gearbox)"/>
+  <g>
+    <path d="M 250,432 C 250,352 322,316 404,316 L 756,316 C 852,316 930,358 930,432 L 930,548 C 930,622 852,664 756,664 L 404,664 C 322,664 250,628 250,548 Z"
+          fill="url(#alu-gearbox)" stroke="#2a3039" stroke-width="4"/>
+    <path d="M 250,432 C 250,352 322,316 404,316 L 756,316 C 852,316 930,358 930,432"
+          fill="none" stroke="#ffffff" stroke-opacity="0.42" stroke-width="6"/>
+    <path d="M 332,400 v 176" stroke="#0e1218" stroke-opacity="0.45" stroke-width="8"/><path d="M 337,402 v 172" stroke="#ffffff" stroke-opacity="0.14" stroke-width="3"/><path d="M 358,400 v 176" stroke="#0e1218" stroke-opacity="0.45" stroke-width="8"/><path d="M 363,402 v 172" stroke="#ffffff" stroke-opacity="0.14" stroke-width="3"/><path d="M 384,400 v 176" stroke="#0e1218" stroke-opacity="0.45" stroke-width="8"/><path d="M 389,402 v 172" stroke="#ffffff" stroke-opacity="0.14" stroke-width="3"/><path d="M 410,400 v 176" stroke="#0e1218" stroke-opacity="0.45" stroke-width="8"/><path d="M 415,402 v 172" stroke="#ffffff" stroke-opacity="0.14" stroke-width="3"/><path d="M 436,400 v 176" stroke="#0e1218" stroke-opacity="0.45" stroke-width="8"/><path d="M 441,402 v 172" stroke="#ffffff" stroke-opacity="0.14" stroke-width="3"/><path d="M 462,400 v 176" stroke="#0e1218" stroke-opacity="0.45" stroke-width="8"/><path d="M 467,402 v 172" stroke="#ffffff" stroke-opacity="0.14" stroke-width="3"/><path d="M 488,400 v 176" stroke="#0e1218" stroke-opacity="0.45" stroke-width="8"/><path d="M 493,402 v 172" stroke="#ffffff" stroke-opacity="0.14" stroke-width="3"/><path d="M 514,400 v 176" stroke="#0e1218" stroke-opacity="0.45" stroke-width="8"/><path d="M 519,402 v 172" stroke="#ffffff" stroke-opacity="0.14" stroke-width="3"/><path d="M 540,400 v 176" stroke="#0e1218" stroke-opacity="0.45" stroke-width="8"/><path d="M 545,402 v 172" stroke="#ffffff" stroke-opacity="0.14" stroke-width="3"/><path d="M 566,400 v 176" stroke="#0e1218" stroke-opacity="0.45" stroke-width="8"/><path d="M 571,402 v 172" stroke="#ffffff" stroke-opacity="0.14" stroke-width="3"/><path d="M 592,400 v 176" stroke="#0e1218" stroke-opacity="0.45" stroke-width="8"/><path d="M 597,402 v 172" stroke="#ffffff" stroke-opacity="0.14" stroke-width="3"/>
+    <circle cx="372" cy="372" r="9" fill="#2b3139" stroke="#b3bac5" stroke-width="2"/><circle cx="464" cy="372" r="9" fill="#2b3139" stroke="#b3bac5" stroke-width="2"/><circle cx="556" cy="372" r="9" fill="#2b3139" stroke="#b3bac5" stroke-width="2"/><circle cx="648" cy="372" r="9" fill="#2b3139" stroke="#b3bac5" stroke-width="2"/><circle cx="740" cy="372" r="9" fill="#2b3139" stroke="#b3bac5" stroke-width="2"/><circle cx="372" cy="584" r="9" fill="#2b3139" stroke="#b3bac5" stroke-width="2"/><circle cx="464" cy="584" r="9" fill="#2b3139" stroke="#b3bac5" stroke-width="2"/><circle cx="556" cy="584" r="9" fill="#2b3139" stroke="#b3bac5" stroke-width="2"/><circle cx="648" cy="584" r="9" fill="#2b3139" stroke="#b3bac5" stroke-width="2"/><circle cx="740" cy="584" r="9" fill="#2b3139" stroke="#b3bac5" stroke-width="2"/>
+    <rect x="300" y="352" width="610" height="16" rx="8" fill="#eef2f8" fill-opacity="0.5"/>
+    <path d="M 606,316 C 606,258 674,228 744,228 C 826,228 886,266 886,324 L 886,326 L 606,326 Z"
+          fill="url(#bell-gearbox)" stroke="#2a3039" stroke-width="4"/>
+    <circle cx="748" cy="274" r="56" fill="url(#alu2-gearbox)" stroke="#383f49" stroke-width="4"/>
+    <circle cx="748" cy="274" r="27" fill="#191d24"/>
+    <circle cx="748" cy="274" r="11" fill="#bcc4cf"/>
+    <circle cx="792.0" cy="274.0" r="6" fill="#2a3039" stroke="#ccd4de" stroke-width="1.5"/><circle cx="779.1" cy="305.1" r="6" fill="#2a3039" stroke="#ccd4de" stroke-width="1.5"/><circle cx="748.0" cy="318.0" r="6" fill="#2a3039" stroke="#ccd4de" stroke-width="1.5"/><circle cx="716.9" cy="305.1" r="6" fill="#2a3039" stroke="#ccd4de" stroke-width="1.5"/><circle cx="704.0" cy="274.0" r="6" fill="#2a3039" stroke="#ccd4de" stroke-width="1.5"/><circle cx="716.9" cy="242.9" r="6" fill="#2a3039" stroke="#ccd4de" stroke-width="1.5"/><circle cx="748.0" cy="230.0" r="6" fill="#2a3039" stroke="#ccd4de" stroke-width="1.5"/><circle cx="779.1" cy="242.9" r="6" fill="#2a3039" stroke="#ccd4de" stroke-width="1.5"/>
+    <rect x="892" y="474" width="148" height="88" rx="16" fill="url(#alu2-gearbox)" stroke="#383f49" stroke-width="4"/>
+    <rect x="1006" y="500" width="34" height="36" rx="7" fill="#8c95a1" stroke="#383f49" stroke-width="3"/>
+    <circle cx="1000" cy="498" r="7" fill="#20252c"/><circle cx="1000" cy="538" r="7" fill="#20252c"/>
+    <path d="M 328,566 h 476" stroke="#ffffff" stroke-opacity="0.16" stroke-width="11" stroke-linecap="round"/>
+    <path d="M 328,592 h 476" stroke="#000000" stroke-opacity="0.26" stroke-width="13" stroke-linecap="round"/>
+    <rect x="404" y="606" width="300" height="14" rx="7" fill="#3d444e" fill-opacity="0.7"/>
+    <rect x="430" y="420" width="330" height="8" rx="4" fill="#ffffff" fill-opacity="0.22"/>
+    <rect x="430" y="436" width="250" height="6" rx="3" fill="#000000" fill-opacity="0.18"/>
   </g>
-
-  <!-- output shaft -->
-  <rect x="888" y="418" width="150" height="104" rx="20" fill="url(#metalDark)"/>
-  <rect x="1010" y="444" width="120" height="52" rx="16" fill="#c7d3de"/>
-  <rect x="1096" y="452" width="58" height="36" rx="12" fill="#8c9aa8"/>
-
-  <!-- bolts -->
-  <g fill="#5c6b7b">
-    <circle cx="330" cy="360" r="12"/>
-    <circle cx="330" cy="580" r="12"/>
-    <circle cx="430" cy="470" r="12"/>
-    <circle cx="860" cy="356" r="14"/>
-    <circle cx="860" cy="586" r="14"/>
+  <g transform="translate(752,668)">
+    <rect x="0" y="0" width="212" height="19" rx="9" fill="#b7bfca" transform="rotate(-6)"/>
+    <rect x="8" y="26" width="212" height="19" rx="9" fill="#7f8894" transform="rotate(-3)"/>
   </g>
 </svg>

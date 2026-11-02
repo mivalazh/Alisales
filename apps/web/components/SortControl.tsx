@@ -1,14 +1,13 @@
 'use client';
 
-import { SORT_LABELS, type SortKey } from '@/lib/sort';
+import { SORT_LABELS, SORT_OPTION_KEYS, type SortKey } from '@/lib/sort';
 import { Icon } from './Icon';
 
 /**
- * Sort control — a segmented two-way switch (cheapest / priciest).
- *
- * The default browse ranking (featured, then newest) has no label and is not a
- * selectable option: tapping the active segment again returns to it, which is
- * how the segmented control stays honest without a third button.
+ * Sort control — the four standard marketplace orders: newest, cheapest,
+ * priciest and most viewed. Sold listings stay anchored at the end in every
+ * one of them (enforced by `sortListings`), so the control never has to offer
+ * a separate "sold last" state.
  */
 export function SortControl({
   value,
@@ -17,30 +16,25 @@ export function SortControl({
   value: SortKey;
   onChange: (key: SortKey) => void;
 }) {
-  const options = [
-    { key: 'priceAsc' as const, label: SORT_LABELS.priceAsc },
-    { key: 'priceDesc' as const, label: SORT_LABELS.priceDesc },
-  ];
-
   return (
     <div
       role="group"
       aria-label="مرتب‌سازی آگهی‌ها"
-      className="flex items-center rounded-[var(--radius-pill)] border border-line bg-card p-1"
+      className="flex max-w-full items-center gap-1 overflow-x-auto rounded-[var(--radius-pill)] border border-line bg-card p-1"
     >
-      {options.map((option) => {
-        const active = value === option.key;
+      {SORT_OPTION_KEYS.map((key) => {
+        const active = value === key;
         return (
           <button
-            key={option.key}
+            key={key}
             type="button"
             aria-pressed={active}
-            onClick={() => onChange(active ? 'newest' : option.key)}
-            className={`rounded-[var(--radius-pill)] px-3 py-1.5 text-xs font-extrabold transition ${
+            onClick={() => onChange(key)}
+            className={`shrink-0 whitespace-nowrap rounded-[var(--radius-pill)] px-3 py-1.5 text-xs font-extrabold transition ${
               active ? 'bg-cta text-[color:var(--color-text-on-accent)]' : 'text-muted hover:text-ink'
             }`}
           >
-            {option.label}
+            {SORT_LABELS[key]}
           </button>
         );
       })}

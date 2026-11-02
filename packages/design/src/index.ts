@@ -36,5 +36,5 @@ export { ICONS, ICON_VIEWBOX, ICON_STROKE_WIDTH, iconFor } from './icons';
 export type { IconDef, IconName } from './icons';
 
 // Brand marks
-export { LOGO, logoSvgDocument } from './logo';
+export { LOGO, MONOGRAM, logoSvgDocument } from './logo';
 export type { LogoVariant } from './logo';

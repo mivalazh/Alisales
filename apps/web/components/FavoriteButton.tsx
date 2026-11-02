@@ -1,6 +1,6 @@
 'use client';
 
-import { useEffect, useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import { Icon } from './Icon';
 
 export const FAVORITES_KEY = 'alisales-favorites';
@@ -11,6 +11,8 @@ export interface FavoriteSnapshot {
   model: string;
   year: number;
   priceIRR: number;
+  /** Cover image (optional) so the favorites grid can show artwork offline. */
+  coverUrl?: string;
 }
 
 /** Device-local favorites — the guest list and an offline mirror for accounts. */
@@ -28,7 +30,15 @@ export function readFavorites(): FavoriteSnapshot[] {
         typeof (entry as FavoriteSnapshot).slug === 'string'
       ) {
         const s = entry as FavoriteSnapshot;
-        return [{ ...s, model: String(s.model ?? ''), year: Number(s.year ?? 0), priceIRR: Number(s.priceIRR ?? 0) }];
+        return [
+          {
+            ...s,
+            model: String(s.model ?? ''),
+            year: Number(s.year ?? 0),
+            priceIRR: Number(s.priceIRR ?? 0),
+            ...(typeof s.coverUrl === 'string' ? { coverUrl: s.coverUrl } : {}),
+          },
+        ];
       }
       return [];
     });
@@ -37,21 +47,63 @@ export function readFavorites(): FavoriteSnapshot[] {
   }
 }
 
+/** Single writer for the device list — mirrors live in one place. */
+export function writeFavorites(items: FavoriteSnapshot[]): void {
+  try {
+    localStorage.setItem(FAVORITES_KEY, JSON.stringify(items));
+  } catch {
+    // private mode — the in-memory state still reflects the tap
+  }
+}
+
+/** Merge one snapshot into the device list, keeping the newest fields. */
+function upsert(snapshot: FavoriteSnapshot, fields?: Omit<FavoriteSnapshot, 'slug'>) {
+  const current = readFavorites();
+  const existing = current.find((f) => f.slug === snapshot.slug);
+  const merged: FavoriteSnapshot = {
+    ...existing,
+    ...snapshot,
+    ...(fields ?? {}),
+  };
+  const next = existing
+    ? current.map((f) => (f.slug === snapshot.slug ? merged : f))
+    : [...current, merged];
+  writeFavorites(next);
+  return next;
+}
+
 /**
- * Favorite toggle. The device list always updates immediately (works for
- * guests); when a listing id is provided the account list is synced too, and
- * a 401 simply means the user is browsing as a guest.
+ * Favorite toggle — one tap from a card or the detail page.
+ *
+ * The device list always updates immediately (guests included) and is the
+ * rendered state, so the heart survives navigation and reload. When a listing
+ * id is present the account list is synced too; a 401 simply means the visitor
+ * is browsing as a guest.
  */
 export function FavoriteButton({
   slug,
   listingId,
   snapshot,
+  compact = false,
+  className = '',
 }: {
   slug: string;
   listingId?: string;
-  snapshot?: Omit<FavoriteSnapshot, 'slug'>;
+  snapshot?: {
+    model: string;
+    year: number;
+    priceIRR: number;
+    coverUrl?: string;
+  };
+  /** Small overlay button for the card photo (contrast backdrop). */
+  compact?: boolean;
+  className?: string;
 }) {
   const [active, setActive] = useState(false);
+  // Cards pass a fresh snapshot object each render; a ref keeps the effect from
+  // re-fetching while still mirroring the latest fields.
+  const snapshotRef = useRef(snapshot);
+  snapshotRef.current = snapshot;
 
   useEffect(() => {
     let cancelled = false;
@@ -62,7 +114,13 @@ export function FavoriteButton({
         const res = await fetch('/api/favorites');
         if (!res.ok) return;
         const data = (await res.json()) as { ids?: string[] };
-        if (!cancelled && Array.isArray(data.ids)) setActive(data.ids.includes(listingId));
+        if (cancelled || !Array.isArray(data.ids)) return;
+        setActive(data.ids.includes(listingId));
+        // Keep the device mirror in step with the account so a reload off the
+        // detail page still shows the heart.
+        if (data.ids.includes(listingId)) {
+          upsert({ slug, model: '', year: 0, priceIRR: 0, ...snapshotRef.current });
+        }
       } catch {
         // guest / offline — the local state stands
       }
@@ -74,23 +132,16 @@ export function FavoriteButton({
 
   const toggle = () => {
     const favorites = readFavorites();
-    const next = favorites.some((f) => f.slug === slug)
-      ? favorites.filter((f) => f.slug !== slug)
-      : [
-          ...favorites,
-          {
-            slug,
-            model: snapshot?.model ?? '',
-            year: snapshot?.year ?? 0,
-            priceIRR: snapshot?.priceIRR ?? 0,
-          },
-        ];
-    try {
-      localStorage.setItem(FAVORITES_KEY, JSON.stringify(next));
-    } catch {
-      // private mode — the visual state still reflects the tap
+    const isSaved = favorites.some((f) => f.slug === slug);
+    if (isSaved) {
+      writeFavorites(favorites.filter((f) => f.slug !== slug));
+    } else {
+      upsert(
+        { slug, model: '', year: 0, priceIRR: 0 },
+        snapshot,
+      );
     }
-    const nowActive = next.some((f) => f.slug === slug);
+    const nowActive = !isSaved;
     setActive(nowActive);
 
     if (listingId) {
@@ -107,13 +158,32 @@ export function FavoriteButton({
     }
   };
 
+  if (compact) {
+    return (
+      <button
+        type="button"
+        onClick={toggle}
+        aria-pressed={active}
+        aria-label={active ? 'حذف از علاقه‌مندی‌ها' : 'افزودن به علاقه‌مندی‌ها'}
+        className={`flex h-9 w-9 items-center justify-center rounded-full shadow-md backdrop-blur transition active:scale-95 ${className}`}
+        style={{
+          backgroundColor: 'rgba(255, 255, 255, 0.88)',
+          color: active ? '#F98513' : '#111144',
+        }}
+      >
+        <Icon name={active ? 'heartFilled' : 'heart'} size={18} />
+      </button>
+    );
+  }
+
   return (
     <button
       type="button"
       onClick={toggle}
       aria-pressed={active}
       aria-label={active ? 'حذف از علاقه‌مندی‌ها' : 'افزودن به علاقه‌مندی‌ها'}
-      className="flex h-11 w-11 items-center justify-center rounded-full border border-line bg-card text-muted transition hover:border-line-strong hover:text-ink"
+      className={`flex h-11 w-11 items-center justify-center rounded-full border border-line bg-card transition hover:border-line-strong ${className}`}
+      style={{ color: active ? '#F98513' : 'var(--color-text-secondary)' }}
     >
       <Icon name={active ? 'heartFilled' : 'heart'} size={20} />
     </button>

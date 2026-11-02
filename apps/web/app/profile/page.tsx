@@ -41,12 +41,6 @@ export default async function ProfilePage() {
             <span dir="ltr">{maskPhone(session.phone)}</span>
           </p>
         </div>
-        <div className="flex flex-wrap gap-2">
-          <Link href="/new" className="btn-cta text-sm">
-            <Icon name="plus" size={18} />
-            ثبت آگهی
-          </Link>
-        </div>
       </section>
 
       <section className="rounded-card border border-line bg-card p-4 sm:p-6">

@@ -2,7 +2,12 @@
 
 import { useRouter } from 'next/navigation';
 import { useEffect, useState } from 'react';
-import { activeFilterCount, filtersToSearchParams, type SearchFilters } from '@alisales/schemas';
+import {
+  DEFAULT_FILTERS,
+  activeFilterCount,
+  filtersToSearchParams,
+  type SearchFilters,
+} from '@alisales/schemas';
 import type { ListingCardData } from '@/lib/data/listings';
 import { sortListings, type SortKey } from '@/lib/sort';
 import { CategoryCards, type CatalogKind } from './CategoryCards';
@@ -79,7 +84,12 @@ export function Catalog({
 
   return (
     <div className="space-y-4">
-      <SearchBar q={filters.q ?? ''} onSearch={(q) => commit({ ...filters, q })} />
+      {/* A pick from the suggestion panel is a fresh search: it replaces the
+          filters instead of stacking another brand on top of them. */}
+      <SearchBar
+        q={filters.q ?? ''}
+        onApply={(patch) => commit({ ...DEFAULT_FILTERS, ...patch })}
+      />
 
       <Stories stories={stories} />
 

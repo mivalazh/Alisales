@@ -3,31 +3,47 @@
 import Link from 'next/link';
 import { usePathname } from 'next/navigation';
 import { useEffect, useState } from 'react';
-import { LOGO, logoSvgDocument } from '@studio/design';
+import { MONOGRAM, logoSvgDocument } from '@studio/design';
 import { CITY_LABELS, DEFAULT_CITY } from '@alisales/schemas';
-import { NAV_ITEMS } from '@/lib/nav';
+import { NAV_ITEMS, type NavItem } from '@/lib/nav';
 import { CAR_BODY_TYPES, PART_CATEGORY_LINKS } from '@/lib/browse';
 import { Icon } from './Icon';
 import { ThemeToggle } from './ThemeToggle';
+import { useActivePath } from './useActivePath';
 
 /**
- * App header (C8). From the start edge (right in RTL): hamburger, theme
- * toggle, centered «Ali Sales» logo, then the city word «کیش» and the account
- * action — «ورود» for guests, the display name for a signed-in account.
+ * App header (C8). Start edge (right in RTL): hamburger + theme toggle.
+ * Center: the monogram emblem only — no wordmark, so it can never collide with
+ * the buttons. End edge: the city word «کیش» and the account action.
  *
- * The row is a three-column grid, so the logo keeps its own track and can
- * never sit under the buttons. The drawer carries two collapsed accordions —
- * «خودرو» and «قطعات و لوازم» — and then the account & support links.
+ * On tablet/desktop the destinations (خانه، چت‌ها، علاقه‌مندی‌ها، پروفایل) sit
+ * together on the start edge and «+ ثبت آگهی» is pushed to the end edge, never
+ * mixed into the middle of that list. The drawer carries the two category
+ * accordions, the account links and the two support actions.
  */
+const DESTINATIONS: readonly NavItem[] = NAV_ITEMS.filter((item) => !item.primary);
+const POST_ITEM = NAV_ITEMS.find((item) => item.primary);
+
 const ACCOUNT_LINKS: ReadonlyArray<{ href: string; label: string }> = [
-  { href: '/new', label: 'ثبت آگهی' },
   { href: '/profile/listings', label: 'آگهی‌های من' },
   { href: '/favorites', label: 'علاقه‌مندی‌ها' },
   { href: '/chats', label: 'پیام‌ها' },
   { href: '/guide', label: 'راهنمای ثبت آگهی' },
   { href: '/terms', label: 'قوانین و حریم خصوصی' },
   { href: '/about', label: 'درباره‌ی ما' },
-  { href: '/support', label: 'تماس با پشتیبانی' },
+];
+
+const SUPPORT_LINKS = [
+  {
+    href: '/support/brand-request',
+    label: 'درخواست افزودن خودرو یا برند جدید',
+    icon: 'plus' as const,
+  },
+  {
+    href: '/support/ticket',
+    label: 'پشتیبانی و ثبت تیکت',
+    icon: 'message' as const,
+  },
 ];
 
 type GroupKey = 'cars' | 'parts';
@@ -79,6 +95,7 @@ export function Header({
   const [menuOpen, setMenuOpen] = useState(false);
   const [openGroup, setOpenGroup] = useState<GroupKey | null>(null);
   const pathname = usePathname();
+  const isActive = useActivePath();
 
   useEffect(() => {
     setMenuOpen(false);
@@ -108,8 +125,8 @@ export function Header({
           <Link
             href="/"
             aria-label="Ali Sales — صفحه اصلی"
-            className="flex min-w-0 items-center justify-center [&>svg]:h-8 [&>svg]:w-auto [&>svg]:max-w-full"
-            dangerouslySetInnerHTML={{ __html: logoSvgDocument(LOGO.primary, 'Ali Sales') }}
+            className="flex min-w-0 items-center justify-center [&>svg]:h-10 [&>svg]:w-10"
+            dangerouslySetInnerHTML={{ __html: logoSvgDocument(MONOGRAM, 'Ali Sales') }}
           />
         </div>
 
@@ -132,30 +149,18 @@ export function Header({
         </div>
       </div>
 
-      {/* Tablet/desktop destinations — phone width uses the bottom bar. */}
+      {/* Tablet/desktop: destinations on the start edge, CTA on the end edge. */}
       <nav aria-label="ناوبری اصلی" className="hidden border-t border-line md:block">
         <ul className="mx-auto flex w-full max-w-[var(--content-max)] items-center gap-1 px-6 py-1.5">
-          {NAV_ITEMS.map((item) => {
-            const active = pathname === item.href;
-            if (item.primary) {
-              // The profile header already carries the post action.
-              if (pathname === '/profile') return null;
-              return (
-                <li key={item.key} className="ms-auto">
-                  <Link href={item.href} className="btn-cta text-sm">
-                    <Icon name="plus" size={18} />
-                    {item.label}
-                  </Link>
-                </li>
-              );
-            }
+          {DESTINATIONS.map((item) => {
+            const active = isActive(item.href);
             return (
               <li key={item.key}>
                 <Link
                   href={item.href}
                   aria-current={active ? 'page' : undefined}
                   className={`rounded-[var(--radius-pill)] px-3 py-2 text-sm font-semibold transition ${
-                    active ? 'bg-cta-soft text-ink' : 'text-muted hover:text-ink'
+                    active ? 'bg-cta-soft text-ink font-extrabold' : 'text-muted hover:text-ink'
                   }`}
                 >
                   {item.label}
@@ -163,6 +168,14 @@ export function Header({
               </li>
             );
           })}
+          {POST_ITEM && (
+            <li className="ms-auto">
+              <Link href={POST_ITEM.href} className="btn-cta text-sm">
+                <Icon name="plus" size={18} />
+                {POST_ITEM.label}
+              </Link>
+            </li>
+          )}
         </ul>
       </nav>
 
@@ -210,7 +223,7 @@ export function Header({
 
             <div className="my-4 border-t border-line" />
 
-            <h2 className="mb-2 text-xs font-extrabold text-faint">حساب و پشتیبانی</h2>
+            <h2 className="mb-2 text-xs font-extrabold text-faint">حساب</h2>
             <ul className="grid gap-1 sm:grid-cols-2">
               <li>
                 <Link
@@ -220,6 +233,16 @@ export function Header({
                   {authed ? 'پروفایل' : 'ورود'}
                 </Link>
               </li>
+              {authed && (
+                <li>
+                  <Link
+                    href="/new"
+                    className="block rounded-field px-2 py-1.5 text-sm font-semibold text-muted transition hover:bg-cta-soft hover:text-ink"
+                  >
+                    ثبت آگهی
+                  </Link>
+                </li>
+              )}
               {ACCOUNT_LINKS.map((item) => (
                 <li key={item.href}>
                   <Link
@@ -227,6 +250,23 @@ export function Header({
                     aria-current={pathname === item.href ? 'page' : undefined}
                     className="block rounded-field px-2 py-1.5 text-sm font-semibold text-muted transition hover:bg-cta-soft hover:text-ink"
                   >
+                    {item.label}
+                  </Link>
+                </li>
+              ))}
+            </ul>
+
+            <div className="my-4 border-t border-line" />
+
+            <h2 className="mb-2 text-xs font-extrabold text-faint">درخواست و پشتیبانی</h2>
+            <ul className="grid gap-2 sm:grid-cols-2">
+              {SUPPORT_LINKS.map((item) => (
+                <li key={item.href}>
+                  <Link
+                    href={item.href}
+                    className="flex items-center gap-2 rounded-field border border-line bg-page px-3 py-2.5 text-sm font-extrabold text-ink transition hover:border-line-strong hover:bg-cta-soft"
+                  >
+                    <Icon name={item.icon} size={18} className="text-cta" />
                     {item.label}
                   </Link>
                 </li>

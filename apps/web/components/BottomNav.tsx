@@ -4,6 +4,7 @@ import Link from 'next/link';
 import { usePathname } from 'next/navigation';
 import { NAV_ITEMS } from '@/lib/nav';
 import { Icon } from './Icon';
+import { useActivePath } from './useActivePath';
 
 /**
  * Fixed bottom bar — phone width only (sm:hidden); tablet/desktop carry the
@@ -12,6 +13,7 @@ import { Icon } from './Icon';
  */
 export function BottomNav() {
   const pathname = usePathname();
+  const isActive = useActivePath();
 
   // C8: the bar is hidden on the creation flow and on the inspection report.
   if (pathname === '/new' || pathname.startsWith('/new/') || pathname.includes('/inspection')) {
@@ -26,7 +28,7 @@ export function BottomNav() {
     >
       <ul dir="ltr" className="mx-auto flex h-16 w-full max-w-lg items-stretch">
         {NAV_ITEMS.map((item) => {
-          const active = pathname === item.href;
+          const active = isActive(item.href);
           if (item.primary) {
             return (
               <li key={item.key} className="flex flex-1 items-start justify-center">
@@ -46,9 +48,10 @@ export function BottomNav() {
               <Link
                 href={item.href}
                 aria-current={active ? 'page' : undefined}
-                className={`flex w-full flex-col items-center justify-center gap-1 text-[11px] font-bold transition ${
-                  active ? 'text-ink' : 'text-faint'
+                className={`flex w-full flex-col items-center justify-center gap-1 text-[11px] transition ${
+                  active ? 'font-extrabold' : 'font-bold'
                 }`}
+                style={{ color: active ? '#F98513' : '#64748B' }}
               >
                 <Icon name={item.icon} size={22} />
                 {item.label}

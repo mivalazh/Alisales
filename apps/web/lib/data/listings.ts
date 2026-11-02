@@ -41,6 +41,12 @@ export interface ListingCardData {
   featured: boolean;
   /** ISO timestamp — rendered as a Jalali date. */
   publishedAt: string | null;
+  /**
+   * Public view count for the «پربازدیدترین» sort. Fixture cards seed it and
+   * the owner-stat paths compute it; hosted cards rank as zero until the
+   * browse RPC returns a count.
+   */
+  views?: number;
   hasReport: boolean;
   brand: string;
   model: string;

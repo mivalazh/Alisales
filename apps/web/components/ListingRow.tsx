@@ -10,10 +10,11 @@ import {
 } from '@alisales/schemas';
 import type { ReactNode } from 'react';
 import type { ListingCardData } from '@/lib/data/listings';
+import { FavoriteButton } from './FavoriteButton';
 import { PriceText } from './PriceText';
+import { VerifiedPill } from './SellerVerified';
+import { SoldBadge } from './SoldBadge';
 
-const SOLD_BG = '#F98513';
-const SOLD_INK = '#111144';
 const SOLD_TEXT = '#64748B';
 
 const STATE_BADGE: Record<Exclude<ListingCardData['state'], 'sold'>, BadgeKey> = {
@@ -38,7 +39,7 @@ export function ListingRow({
   const part = listing.part ?? null;
 
   return (
-    <li className="overflow-hidden rounded-card border border-line bg-card transition hover:border-line-strong hover:shadow-lg">
+    <li className="relative overflow-hidden rounded-card border border-line bg-card transition hover:border-line-strong hover:shadow-lg">
       <Link href={`/listing/${listing.slug}`} className="flex items-stretch gap-3 p-3 sm:gap-4 sm:p-4">
         <div className="relative aspect-square w-24 shrink-0 overflow-hidden rounded-field bg-sunken sm:w-32">
           {listing.coverUrl ? (
@@ -72,14 +73,7 @@ export function ListingRow({
 
         <div className="flex min-w-0 flex-1 flex-col gap-1.5">
           <div className="flex flex-wrap items-center gap-1.5">
-            {sold && (
-              <span
-                className="px-2 py-0.5 text-xs font-extrabold"
-                style={{ background: SOLD_BG, color: SOLD_INK, borderRadius: 8 }}
-              >
-                Sold
-              </span>
-            )}
+            {sold && <SoldBadge />}
             {listing.state !== 'active' && listing.state !== 'sold' && (
               <span
                 className="rounded-[var(--radius-pill)] border px-2 py-0.5 text-xs font-bold"
@@ -103,6 +97,9 @@ export function ListingRow({
               >
                 {badgeFor('verified_report').label}
               </span>
+            )}
+            {listing.showroomVerified && (
+              <VerifiedPill label={part ? 'تعمیرگاه معتبر' : 'نمایشگاه معتبر'} />
             )}
           </div>
 
@@ -143,6 +140,18 @@ export function ListingRow({
           </div>
         </div>
       </Link>
+      <FavoriteButton
+        slug={listing.slug}
+        listingId={listing.id}
+        compact
+        className="absolute top-3 start-3 z-10"
+        snapshot={{
+          model: part ? part.title : `${listing.model}${listing.trim ? ` ${listing.trim}` : ''}`,
+          year: listing.year,
+          priceIRR: listing.priceIRR,
+          ...(listing.coverUrl ? { coverUrl: listing.coverUrl } : {}),
+        }}
+      />
       {actions && <div className="border-t border-line px-3 py-2 sm:px-4">{actions}</div>}
     </li>
   );

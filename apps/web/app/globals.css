@@ -1,6 +1,10 @@
 @import 'tailwindcss';
 @import '@studio/design/tokens.css';
 
+/* The theme toggle writes both `data-theme` and `.dark` on <html>, so the
+   `dark:` variant must follow that switch instead of the OS preference. */
+@custom-variant dark (&:where([data-theme='dark'], [data-theme='dark'] *, .dark, .dark *));
+
 /**
  * Theme mapping: design tokens (single source of truth, parity-tested) exposed
  * as Tailwind utility names. Names deliberately differ from the raw token
@@ -56,6 +60,13 @@
 }
 
 @layer base {
+  /* Monogram colors — the header mark reads these, so the emblem flips
+     with the theme without duplicating SVG markup. */
+  :root {
+    --logo-bg: #f98513;
+    --logo-fg: #111144;
+  }
+
   html {
     font-family: var(--font-sans);
   }
@@ -210,4 +221,5 @@ html.dark {
   --color-border-strong: #3b435a;
   --color-accent-soft: #3d2c15;
   --color-focus-ring: #f98513;
+  --logo-fg: #f4f1ec;
 }

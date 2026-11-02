@@ -37,7 +37,25 @@ const symbol: LogoVariant = {
   markup: `<rect width="512" height="512" rx="112" fill="#161224"/><g fill="none" stroke="#FFFFFF" stroke-width="46" stroke-linecap="round" stroke-linejoin="round"><path d="M136 372 L256 128 L376 372"/></g><path d="M188 284 H324" fill="none" stroke="#FF4000" stroke-width="46" stroke-linecap="round"/>`,
 };
 
+/**
+ * App monogram — the single tile mark used in the web header center.
+ *
+ * Colors come from CSS variables so one markup serves both themes:
+ *   --logo-bg  #F98513 (same in light and dark)
+ *   --logo-fg  #111144 light · #F4F1EC dark
+ * The fallbacks keep the markup usable outside the web theme (mobile, docs).
+ */
+const monogram: LogoVariant = {
+  viewBox: '0 0 64 64',
+  width: 64,
+  height: 64,
+  markup: `<rect width="64" height="64" rx="18" fill="var(--logo-bg, #F98513)"/><g fill="none" stroke="var(--logo-fg, #111144)" stroke-width="6.2" stroke-linecap="round" stroke-linejoin="round"><path d="M18 46 L32 18 L46 46"/><path d="M24.5 36 H39.5"/></g>`,
+};
+
 export const LOGO = { primary, dark, symbol } as const;
+
+/** Standalone monogram variant (CSS-variable colors, no wordmark). */
+export const MONOGRAM = monogram;
 
 /** Full standalone SVG document for a variant (e.g. writing a static asset). */
 export function logoSvgDocument(variant: LogoVariant, title = 'Alisales'): string {

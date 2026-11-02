@@ -4,8 +4,6 @@ import { notFound } from 'next/navigation';
 import { badgeFor, type BadgeKey } from '@studio/design';
 import {
   CITY_LABELS,
-  COLOR_LABELS,
-  CONDITION_LABELS,
   FUEL_LABELS,
   GEARBOX_LABELS,
   PART_CATEGORY_LABELS,
@@ -13,13 +11,14 @@ import {
   PART_ORIGIN_LABELS,
   PLATE_TYPE_LABELS,
   compatibilityLabel,
-  postingAgeLabel,
 } from '@alisales/schemas';
 import { ContactButtons } from '@/components/ContactButtons';
 import { FavoriteButton } from '@/components/FavoriteButton';
 import { Icon } from '@/components/Icon';
 import { ReportListingButton } from '@/components/ReportListingButton';
 import { PriceText } from '@/components/PriceText';
+import { VerifiedPill, sellerDisplayName } from '@/components/SellerVerified';
+import { SoldBadge } from '@/components/SoldBadge';
 import { getListing, getSellerPhone } from '@/lib/data/listings';
 import { getSession } from '@/lib/auth/session';
 import { recordView } from '@/lib/data/s2-store';
@@ -70,12 +69,13 @@ export default async function ListingDetailPage({
   if (listing.hasReport) badges.push('verified_report');
 
   type DetailSpec = {
-    icon: 'mileage' | 'gear' | 'fuel' | 'plate' | 'car' | 'clock' | 'shieldCheck';
+    icon: 'mileage' | 'gear' | 'fuel' | 'plate' | 'car' | 'shieldCheck';
     label: string;
     value: string;
   };
 
-  const ageLabel = postingAgeLabel(listing.publishedAt ?? Date.now());
+  // Detail specifications carry the car's facts only — the relative posting
+  // age belongs to the browse cards and rows, never to this block.
   const specs: DetailSpec[] = part
     ? [
         { icon: 'car', label: 'دسته‌بندی', value: PART_CATEGORY_LABELS[part.category] },
@@ -88,16 +88,16 @@ export default async function ListingDetailPage({
           ? [{ icon: 'shieldCheck' as const, label: 'گارانتی', value: part.warranty }]
           : []),
         { icon: 'car', label: 'وضعیت', value: PART_CONDITION_LABELS[part.condition] },
-        { icon: 'clock', label: 'انتشار', value: ageLabel },
       ]
     : [
-        { icon: 'mileage', label: 'کارکرد', value: `${listing.mileageKm} کیلومتر` },
+        { icon: 'car', label: 'سال ساخت', value: String(listing.year) },
+        { icon: 'mileage', label: 'کیلومتراژ', value: `${listing.mileageKm} کیلومتر` },
         { icon: 'gear', label: 'گیربکس', value: GEARBOX_LABELS[listing.gearbox] },
-        { icon: 'fuel', label: 'سوخت', value: FUEL_LABELS[listing.fuel] },
-        { icon: 'plate', label: 'وضعیت پلاک', value: PLATE_TYPE_LABELS[listing.plateType] },
-        { icon: 'car', label: 'نوع', value: CONDITION_LABELS[listing.condition] },
-        { icon: 'car', label: 'رنگ', value: COLOR_LABELS[listing.color] },
-        { icon: 'clock', label: 'انتشار', value: ageLabel },
+        {
+          icon: 'plate',
+          label: 'وضعیت سوخت و پلاک',
+          value: `${FUEL_LABELS[listing.fuel]} · ${PLATE_TYPE_LABELS[listing.plateType]}`,
+        },
       ];
 
   return (
@@ -161,14 +161,7 @@ export default async function ListingDetailPage({
             </h1>
 
             <div className="mt-2 flex flex-wrap items-center gap-1.5">
-              {sold && (
-                <span
-                  className="px-2 py-0.5 text-xs font-extrabold"
-                  style={{ background: '#F98513', color: '#111144', borderRadius: 8 }}
-                >
-                  Sold
-                </span>
-              )}
+              {sold && <SoldBadge size="lg" />}
               {badges.map((b) => {
                 const token = badgeFor(b);
                 return (
@@ -191,7 +184,9 @@ export default async function ListingDetailPage({
               <PriceText irr={listing.priceIRR} sold={sold} size="lg" />
             </div>
 
-            <dl className="mt-4 grid grid-cols-2 gap-3 sm:grid-cols-3">
+            <dl
+              className={`mt-4 grid grid-cols-2 gap-3 ${part ? 'sm:grid-cols-3' : 'sm:grid-cols-4'}`}
+            >
               {specs.map((spec) => (
                 <div key={spec.label} className="rounded-field border border-line bg-page p-3">
                   <dt className="flex items-center gap-1.5 text-xs font-bold text-muted">
@@ -202,15 +197,13 @@ export default async function ListingDetailPage({
                 </div>
               ))}
             </dl>
+          </div>
 
-            {listing.description && (
-              <div className="mt-5 border-t border-line pt-4">
-                <h2 className="text-sm font-extrabold text-ink">توضیحات فروشنده</h2>
-                <p className="mt-2 whitespace-pre-line text-sm leading-7 text-muted">
-                  {listing.description}
-                </p>
-              </div>
-            )}
+          <div className="mt-4 rounded-card border border-line bg-card p-4 sm:p-5">
+            <h2 className="text-base font-extrabold text-ink">توضیحات آگهی</h2>
+            <p className="mt-3 whitespace-pre-line text-justify text-sm leading-8 text-ink/85">
+              {listing.description?.trim() || 'فروشنده برای این آگهی توضیحی ثبت نکرده است.'}
+            </p>
           </div>
         </div>
 
@@ -218,17 +211,15 @@ export default async function ListingDetailPage({
           <div className="rounded-card border border-line bg-card p-4 sm:p-5">
             <div className="flex items-center justify-between gap-3">
               <div className="min-w-0">
-                <p className="truncate text-sm font-extrabold">
-                  {listing.showroomName ?? 'فروشنده حقیقی'}
-                </p>
-                <p className="mt-0.5 flex items-center gap-1 text-xs font-bold text-muted">
+                {listing.showroomVerified ? (
+                  <VerifiedPill label={part ? 'تعمیرگاه معتبر' : 'نمایشگاه معتبر'} />
+                ) : (
+                  <p className="truncate text-sm font-extrabold">
+                    {sellerDisplayName(listing.showroomName) ?? 'فروشنده حقیقی'}
+                  </p>
+                )}
+                <p className="mt-1 text-xs font-bold text-muted">
                   {CITY_LABELS[listing.city] ?? listing.city}
-                  {listing.showroomVerified && (
-                    <span className="flex items-center gap-1 text-note">
-                      · نمایشگاه معتبر
-                      <Icon name="badgeCheck" size={14} />
-                    </span>
-                  )}
                 </p>
               </div>
               <FavoriteButton slug={listing.slug} listingId={listing.id} />

@@ -15,13 +15,19 @@ const fixtures = fixtureListings;
 
 describe('catalog sorting (sold always last)', () => {
   it('keeps sold after every active listing in all sort keys', () => {
-    for (const key of ['newest', 'priceAsc', 'priceDesc'] as const) {
+    for (const key of ['newest', 'priceAsc', 'priceDesc', 'mostViewed'] as const) {
       const sorted = sortListings(fixtures, key);
       const lastSoldIndex = sorted.findLastIndex((l) => l.state === 'sold');
       const firstNonSoldIndex = sorted.findIndex((l) => l.state !== 'sold');
       expect(lastSoldIndex, key).toBe(sorted.length - 1);
       expect(firstNonSoldIndex, key).toBe(0);
     }
+  });
+
+  it('most viewed ranks by view count, sold still anchored last', () => {
+    const active = sortListings(fixtures, 'mostViewed').filter((l) => l.state !== 'sold');
+    const counts = active.map((l) => l.views ?? 0);
+    expect(counts).toEqual([...counts].sort((a, b) => b - a));
   });
 
   it('sorts by price within the active group', () => {
@@ -55,15 +61,21 @@ describe('catalog sorting (sold always last)', () => {
   });
 });
 
-describe('sort options (the default order is not an option)', () => {
-  it('offers only the two price sorts — no جدیدترین entry', () => {
-    expect(SORT_OPTION_KEYS).toEqual(['priceAsc', 'priceDesc']);
-    expect(Object.values(SORT_LABELS)).not.toContain('جدیدترین');
+describe('sort options (the standard marketplace orders)', () => {
+  it('offers newest, cheapest, priciest and most viewed', () => {
+    expect(SORT_OPTION_KEYS).toEqual(['newest', 'priceAsc', 'priceDesc', 'mostViewed']);
+    expect(Object.values(SORT_LABELS)).toEqual([
+      'جدیدترین',
+      'ارزان‌ترین',
+      'گران‌ترین',
+      'پربازدیدترین',
+    ]);
   });
 
-  it('the unlabeled default stays parseable so ?sort= URLs keep working', () => {
+  it('every option stays parseable so ?sort= URLs keep working', () => {
     expect(SORT_KEYS).toContain('newest');
     expect(parseSortKey('newest')).toBe('newest');
+    expect(parseSortKey('mostViewed')).toBe('mostViewed');
   });
 });
 
