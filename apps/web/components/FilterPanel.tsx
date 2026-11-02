@@ -1,8 +1,8 @@
 'use client';
 
 import {
-  BRANDS,
   CONDITION_LABELS,
+  kishUiBrands,
   conditions,
   gearboxTypes,
   GEARBOX_LABELS,
@@ -83,7 +83,7 @@ export function FilterPanel({
       <div className="grid gap-5 sm:grid-cols-2 lg:grid-cols-3">
         <section>
           <h3 className="mb-1 text-sm font-extrabold text-ink">برند</h3>
-          {BRANDS.map((b) => (
+          {kishUiBrands.map((b) => (
             <CheckRow
               key={b.slug}
               checked={filters.brand.includes(b.slug)}
@@ -100,7 +100,7 @@ export function FilterPanel({
               className="field"
               value={filters.model}
               onChange={(e) => onChange({ ...filters, model: e.target.value })}
-              placeholder="مثلاً کوییک"
+              placeholder="مثلاً لندکروزر"
               aria-label="مدل"
             />
           </div>
@@ -128,7 +128,7 @@ export function FilterPanel({
           </div>
 
           <div>
-            <h3 className="mb-1 text-sm font-extrabold text-ink">قیمت (ریال)</h3>
+            <h3 className="mb-1 text-sm font-extrabold text-ink">قیمت (تومان / درهم)</h3>
             <div className="grid grid-cols-2 gap-2">
               <input
                 className="field"

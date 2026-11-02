@@ -1,14 +1,17 @@
 import { formatAmountLatin, irrToAED, irrToToman } from '@alisales/schemas';
 
-const SOLD_TEXT = '#64748B';
+/** Product colors, not theme tokens: the price stays on-brand in both themes. */
+const PRICE_INK = '#F98513';
+const SECONDARY_INK = '#64748B';
 
 /**
- * Price line for cards, rows and the detail page.
+ * Price block for cards, rows and the detail page.
  *
  * The stored price is always IRR. The Kish catalog is an import market, so the
- * card leads with the Toman equivalent buyers negotiate in and shows the
- * dirham amount as the reference (irrToAED / irrToToman, Latin digits). This
- * is display only — no payment or checkout path reads the reference rate.
+ * Toman amount buyers negotiate in is the headline (large, bold, Latin digits)
+ * and the dirham reference sits right below it in the muted secondary color.
+ * Display only — no payment or checkout path reads the reference rate, and the
+ * rial figure is never shown.
  */
 export function PriceText({
   irr,
@@ -24,14 +27,22 @@ export function PriceText({
   const aed = formatAmountLatin(irrToAED(irr));
 
   return (
-    <span className="flex flex-wrap items-baseline gap-x-2 gap-y-0.5">
+    <span className="flex flex-col gap-0.5">
       <span
-        className={size === 'lg' ? 'text-2xl font-extrabold' : 'text-lg font-extrabold'}
-        style={sold ? { color: SOLD_TEXT } : undefined}
+        className={
+          size === 'lg'
+            ? 'text-2xl font-extrabold leading-tight'
+            : 'text-lg font-extrabold leading-tight'
+        }
+        style={{ color: sold ? SECONDARY_INK : PRICE_INK }}
       >
         {toman} تومان
       </span>
-      <span className="text-xs font-bold text-muted" dir="ltr" style={sold ? { color: SOLD_TEXT } : undefined}>
+      <span
+        className="text-xs font-bold"
+        dir="ltr"
+        style={{ color: SECONDARY_INK }}
+      >
         ≈ {aed} AED
       </span>
     </span>

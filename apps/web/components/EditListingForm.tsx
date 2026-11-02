@@ -225,8 +225,8 @@ export function EditListingForm({
         />
         <p className="hint">
           {irrPreview !== null
-            ? `معادل ${groupDigits(irrPreview)} ریال`
-            : 'قیمت ذخیره‌شده همیشه به ریال است.'}
+            ? `معادل ${groupDigits(irrToToman(irrPreview))} تومان در فهرست`
+            : 'قیمت در فهرست به تومان نمایش داده می‌شود.'}
         </p>
 
         <label className="mt-4 flex cursor-pointer items-start gap-2 text-sm font-semibold">

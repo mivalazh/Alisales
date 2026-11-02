@@ -33,7 +33,8 @@ export function BottomNav() {
                 <Link
                   href={item.href}
                   aria-label={item.label}
-                  className="-mt-5 flex h-14 w-14 items-center justify-center rounded-full bg-cta text-ink shadow-lg transition active:translate-y-0.5"
+                  className="-mt-5 flex h-14 w-14 items-center justify-center rounded-full text-white shadow-lg ring-4 ring-card transition active:translate-y-0.5"
+                  style={{ background: '#F98513' }}
                 >
                   <Icon name={item.icon} size={26} />
                 </Link>

@@ -189,3 +189,25 @@
     border-color: var(--color-text-tertiary);
   }
 }
+
+/**
+ * Dark theme — the header toggle writes `data-theme` on <html> (and `.dark`,
+ * for the class-based convention). Overriding the semantic tokens here is all
+ * it takes: every component already reads those through the `@theme` mapping,
+ * so the whole surface, text and border scale flips at once.
+ */
+html[data-theme='dark'],
+html.dark {
+  color-scheme: dark;
+  --color-surface: #171b2c;
+  --color-surface-subtle: #0c0f1c;
+  --color-surface-sunken: #232940;
+  --color-surface-inverse: #f4f1ec;
+  --color-text-primary: #f6f3ee;
+  --color-text-secondary: #b8c0d0;
+  --color-text-tertiary: #8d95a6;
+  --color-border-subtle: #262c40;
+  --color-border-strong: #3b435a;
+  --color-accent-soft: #3d2c15;
+  --color-focus-ring: #f98513;
+}

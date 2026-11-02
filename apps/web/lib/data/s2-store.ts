@@ -1,7 +1,5 @@
-import { existsSync, mkdirSync, readFileSync, writeFileSync } from 'node:fs';
-import { join } from 'node:path';
-import { demoDataDir } from '../config/mode';
 import { createClient, type SupabaseClient } from '@supabase/supabase-js';
+import { readJson, writeJson } from '../storage/demo-store';
 import type {
   AccountType,
   ListingOwnerStats,
@@ -15,9 +13,9 @@ import type { ListingCardData } from './listings';
  * statistics.
  *
  * Two implementations behind one API:
- *  - Fixture mode (no Supabase credentials): a JSON file under the demo data
- *    directory (`.dev-data`, or `/tmp` on a read-only preview), exactly like
- *    the listing dev store, so the whole flow is reviewable offline.
+ *  - Fixture mode (no Supabase credentials): the demo store (a JSON file under
+ *    `.dev-data`/`/tmp`, or isolate memory on Workers), exactly like the
+ *    listing dev store, so the whole flow is reviewable offline.
  *  - Hosted mode (SUPABASE_URL + SUPABASE_SERVICE_ROLE_KEY set): the same
  *    operations against Supabase. These functions run on the server only;
  *    RLS keeps direct client access read-only for the statistics tables and
@@ -85,9 +83,7 @@ interface S2Data {
   reports: AbuseRow[];
 }
 
-function storeFile(): string {
-  return join(demoDataDir(), 's2.json');
-}
+const FILE = 's2.json';
 
 function emptyData(): S2Data {
   return {
@@ -102,21 +98,11 @@ function emptyData(): S2Data {
 }
 
 function readData(): S2Data {
-  try {
-    const file = storeFile();
-    if (!existsSync(file)) return emptyData();
-    const parsed: unknown = JSON.parse(readFileSync(file, 'utf8'));
-    if (!parsed || typeof parsed !== 'object') return emptyData();
-    return { ...emptyData(), ...(parsed as Partial<S2Data>) };
-  } catch {
-    return emptyData();
-  }
+  return { ...emptyData(), ...readJson<Partial<S2Data>>(FILE, () => ({})) };
 }
 
 function writeData(data: S2Data): void {
-  const dir = demoDataDir();
-  mkdirSync(dir, { recursive: true });
-  writeFileSync(join(dir, 's2.json'), `${JSON.stringify(data, null, 2)}\n`, 'utf8');
+  writeJson(FILE, data);
 }
 
 /** Service-role client for hosted mode, or null in fixture mode. */

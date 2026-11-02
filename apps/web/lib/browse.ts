@@ -54,14 +54,12 @@ export const CAR_BODY_TYPES: readonly CarBodyType[] = [
       'accord',
       'teana',
       'cerato',
-      'پژو پارس',
-      'سمند',
     ],
   },
   {
     key: 'hatchback',
     label: 'هاچ‌بک',
-    keywords: ['hatchback', 'هاچبک', 'کوییک', 'تیبا', 'ساینا', '۲۰۶', '206', 'i20', 'picanto'],
+    keywords: ['hatchback', 'هاچبک', 'i20', 'picanto', 'cerato'],
   },
   {
     key: 'coupe',

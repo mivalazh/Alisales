@@ -21,9 +21,9 @@ import { Icon } from './Icon';
  * the server console only. One explicit exception exists for the owner demo:
  * when the deployment runs without SMS/Supabase and `NEXT_PUBLIC_DEMO_OTP_HINT`
  * is on, the API also returns `demoCode` and the code step shows it in a subtle
- * demo notice. Hosted deployments never receive it.
+ * demo notice. That decision is the server's alone, so this form simply renders
+ * the notice whenever a code came back — a hosted deployment never sends one.
  */
-const DEMO_HINT = process.env.NEXT_PUBLIC_DEMO_OTP_HINT === 'true';
 
 export function LoginForm() {
   const router = useRouter();
@@ -176,7 +176,7 @@ export function LoginForm() {
             />
           </div>
 
-          {demoCode && DEMO_HINT && (
+          {demoCode && (
             <div
               role="status"
               className="rounded-field border border-dashed border-cta bg-cta-soft px-3 py-2 text-xs leading-6 font-bold text-ink"

@@ -1,7 +1,5 @@
-import { existsSync, mkdirSync, readFileSync, writeFileSync } from 'node:fs';
-import { join } from 'node:path';
 import type { ListingCardData } from './listings';
-import { demoDataDir } from '../config/mode';
+import { readJson, writeJson } from '../storage/demo-store';
 
 /**
  * Local dev store — used whenever Supabase write credentials are absent
@@ -9,25 +7,18 @@ import { demoDataDir } from '../config/mode';
  * in the grid for end-to-end UX review, in development and on a production
  * preview build alike.
  *
- * File-backed on purpose: Next (Turbopack) keeps a separate module graph per
- * route, so module-level memory would not be shared between /api/listings and
- * the page. Wipe with `rm -rf apps/web/.dev-data` (or the `/tmp` fallback
- * directory on a read-only preview) to reset the demo. Disabled when Supabase
- * is configured or `REQUIRE_HOSTED_SERVICES=true`.
+ * Backed by the demo store (a JSON file on Node, isolate memory on Workers),
+ * not by module-level variables: Next keeps a separate module graph per route,
+ * so a plain array would not be shared between /api/listings and the page.
+ * Wipe with `rm -rf apps/web/.dev-data` (or the `/tmp` fallback directory) to
+ * reset the demo. Disabled when Supabase is configured or
+ * `REQUIRE_HOSTED_SERVICES=true`.
  */
-function storeFile(): string {
-  return join(demoDataDir(), 'listings.json');
-}
+
+const FILE = 'listings.json';
 
 function readAll(): ListingCardData[] {
-  try {
-    const file = storeFile();
-    if (!existsSync(file)) return [];
-    const parsed: unknown = JSON.parse(readFileSync(file, 'utf8'));
-    return Array.isArray(parsed) ? (parsed as ListingCardData[]) : [];
-  } catch {
-    return [];
-  }
+  return readJson<ListingCardData[]>(FILE, () => []);
 }
 
 export function devListings(): ListingCardData[] {
@@ -35,11 +26,9 @@ export function devListings(): ListingCardData[] {
 }
 
 export function addDevListing(card: ListingCardData): void {
-  const dir = demoDataDir();
-  mkdirSync(dir, { recursive: true });
   const all = readAll();
   all.unshift(card);
-  writeFileSync(join(dir, 'listings.json'), `${JSON.stringify(all, null, 2)}\n`, 'utf8');
+  writeJson(FILE, all);
 }
 
 /**
@@ -52,6 +41,6 @@ export function updateDevListing(id: string, patch: Partial<ListingCardData>): b
   if (index < 0) return false;
   const current = all[index]!;
   all[index] = { ...current, ...patch };
-  writeFileSync(storeFile(), `${JSON.stringify(all, null, 2)}\n`, 'utf8');
+  writeJson(FILE, all);
   return true;
 }

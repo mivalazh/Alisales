@@ -56,7 +56,7 @@ export function FilterChips({
       clear: (f) => ({ ...f, yearFrom: undefined, yearTo: undefined }),
     });
   }
-  const price = rangeLabel('قیمت (ریال)', filters.priceFrom, filters.priceTo);
+  const price = rangeLabel('قیمت (تومان / درهم)', filters.priceFrom, filters.priceTo);
   if (price) {
     chips.push({
       id: 'price',

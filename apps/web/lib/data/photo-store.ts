@@ -1,8 +1,6 @@
-import { existsSync, mkdirSync, readFileSync, writeFileSync } from 'node:fs';
-import { dirname, join, normalize } from 'node:path';
 import { randomUUID } from 'node:crypto';
 import { admin } from './s2-store';
-import { demoDataDir } from '../config/mode';
+import { readBytes, writeBytes } from '../storage/demo-store';
 import { PHOTO_BUCKET, devPhotoUrl } from './photo-rules';
 
 /**
@@ -12,17 +10,15 @@ import { PHOTO_BUCKET, devPhotoUrl } from './photo-rules';
  * `/api/photos`; this module is the only place that touches storage:
  *  - hosted: `listing-photos` bucket via the service role, path
  *    `{sellerId}/{uuid}.webp`, public URL returned for rendering,
- *  - fixture mode: the same path shape under the demo data directory
- *    (`.dev-data/photos`, or `/tmp/…` on a read-only preview), served by the
- *    GET route so the offline catalog shows real images instead of placeholders.
+ *  - fixture mode: the same path shape in the demo store (`.dev-data/photos`,
+ *    `/tmp/…`, or isolate memory on Workers), served by the GET route so the
+ *    offline catalog shows real images instead of placeholders.
  *
  * Bytes never enter the listing payload — the publish route only stores paths,
  * which it checks against the seller's own folder.
  */
 
-function devDir(): string {
-  return join(demoDataDir(), 'photos');
-}
+const PREFIX = 'photos';
 
 export interface StoredPhoto {
   path: string;
@@ -52,34 +48,39 @@ export async function storePhoto(input: PhotoBytes): Promise<StoredPhoto> {
     return { path, url };
   }
 
-  const file = devPhotoFile(path);
-  mkdirSync(dirname(file), { recursive: true });
-  writeFileSync(file, input.bytes);
+  writeBytes(`${PREFIX}/${safePhotoPath(path)}`, input.bytes);
   return { path, url: devPhotoUrl(path) };
 }
 
-/** Absolute path for a fixture-mode object — refuses anything outside .dev-data/photos. */
-export function devPhotoFile(path: string): string {
-  const dir = devDir();
-  const resolved = normalize(join(dir, path));
-  if (!resolved.startsWith(`${normalize(dir)}${process.platform === 'win32' ? '\\' : '/'}`)) {
+/**
+ * Normalizes a fixture-mode object key and refuses anything outside
+ * `photos/` — the same guard the disk implementation had, now path-separator
+ * agnostic.
+ */
+function safePhotoPath(path: string): string {
+  const normalized = path.replace(/\\/g, '/');
+  if (
+    normalized.startsWith('/') ||
+    normalized.split('/').some((part) => part === '' || part === '.' || part === '..')
+  ) {
     throw new Error('invalid photo path');
   }
-  return resolved;
+  return normalized;
 }
 
 export function readDevPhoto(path: string): { bytes: ArrayBuffer; mime: string } | null {
-  let file: string;
+  let key: string;
   try {
-    file = devPhotoFile(path);
+    key = `${PREFIX}/${safePhotoPath(path)}`;
   } catch {
     return null;
   }
-  if (!existsSync(file)) return null;
-  const ext = file.slice(file.lastIndexOf('.') + 1).toLowerCase();
+  const bytes = readBytes(key);
+  if (!bytes) return null;
+  const ext = key.slice(key.lastIndexOf('.') + 1).toLowerCase();
   const mime =
     ext === 'png' ? 'image/png' : ext === 'jpg' || ext === 'jpeg' ? 'image/jpeg' : 'image/webp';
-  // Slice to a plain ArrayBuffer: a Node Buffer view is not a valid Response body.
-  const buffer = readFileSync(file);
-  return { bytes: buffer.buffer.slice(buffer.byteOffset, buffer.byteOffset + buffer.byteLength) as ArrayBuffer, mime };
+  const copy = new Uint8Array(bytes.byteLength);
+  copy.set(bytes);
+  return { bytes: copy.buffer, mime };
 }

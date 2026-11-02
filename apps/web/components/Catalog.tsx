@@ -2,36 +2,43 @@
 
 import { useRouter } from 'next/navigation';
 import { useEffect, useState } from 'react';
-import {
-  activeFilterCount,
-  filtersToSearchParams,
-  toPersianDigits,
-  type SearchFilters,
-} from '@alisales/schemas';
+import { activeFilterCount, filtersToSearchParams, type SearchFilters } from '@alisales/schemas';
 import type { ListingCardData } from '@/lib/data/listings';
-import { parseSortKey, sortListings, type SortKey } from '@/lib/sort';
+import { sortListings, type SortKey } from '@/lib/sort';
+import { CategoryCards, type CatalogKind } from './CategoryCards';
 import { FilterChips } from './FilterChips';
 import { FilterPanel } from './FilterPanel';
 import { ListingGrid } from './ListingGrid';
+import { QuickChips } from './QuickChips';
 import { SearchBar } from './SearchBar';
 import { SortControl, ViewModeToggle, type ViewMode } from './SortControl';
+import { Stories, type StoryItem } from './Stories';
 import { Icon } from './Icon';
 
 const VIEW_KEY = 'alisales-view';
 
 /**
  * Catalog container — server renders the listings from the one search
- * implementation; this client shell owns filter/sort/view UX and commits
- * filter+sort changes to the URL so the server re-runs that same search.
+ * implementation; this client shell owns the story rail, the two category
+ * cards, quick chips, filter/sort/view UX and commits changes to the URL so
+ * the server re-runs that same search.
  */
 export function Catalog({
   listings,
   filters,
   sort,
+  stories = [],
+  kind = null,
+  vehicleCount = 0,
+  partCount = 0,
 }: {
   listings: ListingCardData[];
   filters: SearchFilters;
   sort: SortKey;
+  stories?: StoryItem[];
+  kind?: CatalogKind;
+  vehicleCount?: number;
+  partCount?: number;
 }) {
   const router = useRouter();
   const [panelOpen, setPanelOpen] = useState(false);
@@ -55,20 +62,35 @@ export function Catalog({
     }
   };
 
-  /** Commit filters/sort to the URL (empty values omitted). */
-  const commit = (next: SearchFilters, nextSort: SortKey = sort) => {
+  /** Commit filters/sort/kind to the URL (empty values omitted). */
+  const commit = (
+    next: SearchFilters,
+    nextSort: SortKey = sort,
+    nextKind: CatalogKind = kind,
+  ) => {
     const params = filtersToSearchParams(next);
     if (nextSort !== 'newest') params.sort = nextSort;
+    if (nextKind) params.kind = nextKind;
     const qs = new URLSearchParams(params).toString();
     router.push(qs ? `/?${qs}` : '/');
   };
 
-  const count = toPersianDigits(listings.length);
   const filterCount = activeFilterCount(filters);
 
   return (
     <div className="space-y-4">
       <SearchBar q={filters.q ?? ''} onSearch={(q) => commit({ ...filters, q })} />
+
+      <Stories stories={stories} />
+
+      <CategoryCards
+        kind={kind}
+        vehicleCount={vehicleCount}
+        partCount={partCount}
+        onSelect={(next) => commit(filters, sort, next)}
+      />
+
+      <QuickChips filters={filters} onChange={(f) => commit(f)} />
 
       <div className="flex flex-wrap items-center gap-3">
         <button
@@ -80,8 +102,8 @@ export function Catalog({
           <Icon name="sliders" size={18} />
           فیلترها
           {filterCount > 0 && (
-            <span className="flex h-5 min-w-5 items-center justify-center rounded-full bg-cta px-1 text-xs font-extrabold text-ink">
-              {toPersianDigits(filterCount)}
+            <span className="flex h-5 min-w-5 items-center justify-center rounded-full bg-cta px-1 text-xs font-extrabold text-[color:var(--color-text-on-accent)]">
+              {filterCount}
             </span>
           )}
         </button>
@@ -103,7 +125,7 @@ export function Catalog({
       <FilterChips filters={filters} onChange={(f) => commit(f)} />
 
       <p className="text-sm font-bold text-muted" aria-live="polite">
-        {count} آگهی
+        {listings.length} آگهی
       </p>
 
       <ListingGrid listings={sortListings(listings, sort)} view={view} />

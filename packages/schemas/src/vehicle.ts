@@ -114,6 +114,29 @@ export type BrandSlug = (typeof BRANDS)[number]['slug'];
 export const brandSlugs = BRANDS.map((b) => b.slug) as [BrandSlug, ...BrandSlug[]];
 
 /**
+ * Brands the Kish UI offers — the free zone is an import market.
+ *
+ * Iranian domestic brands stay in the schema (legacy rows, seed helpers and
+ * the search RPC still accept them) but never appear in a filter list, a form
+ * select or a brand tag row.
+ */
+export const KISH_UI_BRAND_SLUGS = [
+  'toyota',
+  'nissan',
+  'mercedes-benz',
+  'bmw',
+  'porsche',
+  'lexus',
+  'land-rover',
+  'kia',
+  'hyundai',
+] as const;
+
+export const kishUiBrands = BRANDS.filter((b) =>
+  (KISH_UI_BRAND_SLUGS as readonly string[]).includes(b.slug),
+);
+
+/**
  * Launch cities — Kish first (launch region).
  *
  * `countyId` is the reference.gov.ir county code (same source as

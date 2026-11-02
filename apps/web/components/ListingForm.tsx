@@ -2,8 +2,8 @@
 
 import { useEffect, useRef, useState, type FormEvent, type ReactNode } from 'react';
 import {
-  BRANDS,
   selectableCities,
+  kishUiBrands,
   COLOR_LABELS,
   FUEL_LABELS,
   GEARBOX_LABELS,
@@ -20,7 +20,8 @@ import {
   conditions,
   fuelTypes,
   gearboxTypes,
-  formatIRR,
+  formatAmountLatin,
+  irrToToman,
   listingPublishSchema,
   partCategories,
   partConditions,
@@ -40,7 +41,7 @@ import type { ProcessedPhoto } from '@/lib/photos';
 const FIELD_LABELS: Record<string, string> = { ...LISTING_FIELD_LABELS, ...PART_FIELD_LABELS };
 
 const INITIAL_DRAFT = {
-  brand: 'saipa',
+  brand: 'toyota',
   model: '',
   trim: '',
   year: '',
@@ -113,6 +114,29 @@ function Section({ title, children }: { title: string; children: ReactNode }) {
   );
 }
 
+/** One of the three boxed steps, with its «مرحله n از 3» progress header. */
+function StepCard({
+  step,
+  title,
+  children,
+}: {
+  step: 1 | 2 | 3;
+  title: string;
+  children: ReactNode;
+}) {
+  return (
+    <section className="rounded-card border border-line bg-card p-4 sm:p-5">
+      <div className="mb-4 flex items-center justify-between gap-3 border-b border-line pb-3">
+        <h2 className="text-md font-extrabold text-ink">{title}</h2>
+        <span className="rounded-[var(--radius-pill)] bg-cta-soft px-3 py-1 text-xs font-extrabold text-ink">
+          مرحله {step} از 3
+        </span>
+      </div>
+      <div className="space-y-4">{children}</div>
+    </section>
+  );
+}
+
 function parseIntLoose(raw: string): number {
   const cleaned = toAsciiDigits(raw).replace(/[٬,\s]/g, '');
   return cleaned === '' ? Number.NaN : Number(cleaned);
@@ -154,13 +178,17 @@ export function ListingForm() {
     setFormError(null);
   }
 
-  const activeBrand = BRANDS.find((b) => b.slug === draft.brand) ?? BRANDS[0]!;
+  const activeBrand = kishUiBrands.find((b) => b.slug === draft.brand) ?? kishUiBrands[0]!;
   const plateStatementText = draft.plateType
     ? plateStatement(draft.plateType as PlateType)
     : null;
+  // The field is filled in Toman (the unit Kish buyers negotiate in); the
+  // schema stores IRR, so every payload below multiplies by ten.
   const pricePreview = (() => {
     const n = parseIntLoose(draft.priceIRR);
-    return Number.isFinite(n) && n > 0 ? formatIRR(n) : null;
+    return Number.isFinite(n) && n > 0
+      ? `${formatAmountLatin(n)} تومان · ≈ ${formatAmountLatin(irrToToman(n * 10) / 2_720_000)} AED`
+      : null;
   })();
 
   function photoPayload(): ListingPublish['photos'] {
@@ -187,7 +215,7 @@ export function ListingForm() {
         origin: partDraft.origin,
         condition: partDraft.condition,
         warranty: partDraft.warranty.trim() || null,
-        priceIRR: parseIntLoose(draft.priceIRR),
+        priceIRR: Math.round(parseIntLoose(draft.priceIRR) * 10),
         city: draft.city,
         description: draft.description.trim(),
         photos: photoPayload(),
@@ -210,7 +238,7 @@ export function ListingForm() {
         plateType: draft.plateType as PlateType,
         vin: draft.vin.trim() ? draft.vin.trim().toUpperCase() : null,
       },
-      priceIRR: parseIntLoose(draft.priceIRR),
+      priceIRR: Math.round(parseIntLoose(draft.priceIRR) * 10),
       city: draft.city,
       description: draft.description.trim(),
       photos: photoPayload(),
@@ -342,6 +370,7 @@ export function ListingForm() {
       </div>
 
       {/* Step 1 (C3 / parts_listings): نوع آگهی */}
+      <StepCard step={1} title="نوع آگهی">
       <div className="grid grid-cols-2 gap-2" role="group" aria-label="نوع آگهی">
         {(
           [
@@ -364,6 +393,7 @@ export function ListingForm() {
           </button>
         ))}
       </div>
+      </StepCard>
 
       {formError && (
         <div
@@ -374,6 +404,7 @@ export function ListingForm() {
         </div>
       )}
 
+      <StepCard step={2} title="مشخصات">
       {mode === 'vehicle' && (
         <>
       <Section title="مشخصات خودرو">
@@ -384,7 +415,7 @@ export function ListingForm() {
             value={draft.brand}
             onChange={(e) => set('brand', e.target.value)}
           >
-            {BRANDS.map((b) => (
+            {kishUiBrands.map((b) => (
               <option key={b.slug} value={b.slug}>
                 {b.label}
               </option>
@@ -404,7 +435,7 @@ export function ListingForm() {
             className="field"
             value={draft.model}
             onChange={(e) => set('model', e.target.value)}
-            placeholder="مثلاً پژو ۲۰۶"
+            placeholder="مثلاً لندکروزر"
           />
           <datalist id="model-options">
             {activeBrand.models.map((m) => (
@@ -597,7 +628,7 @@ export function ListingForm() {
               className="field"
               value={partDraft.title}
               onChange={(e) => setPart('title', e.target.value)}
-              placeholder="مثلاً دیسک ترمز جلو پژو 206"
+              placeholder="مثلاً دیسک ترمز جلو لندکروزر"
             />
           </Field>
 
@@ -627,7 +658,7 @@ export function ListingForm() {
               className="field"
               value={partDraft.compatibility}
               onChange={(e) => setPart('compatibility', e.target.value)}
-              placeholder="پژو 206 و 207"
+              placeholder="لندکروزر و پاترول"
             />
           </Field>
 
@@ -674,12 +705,14 @@ export function ListingForm() {
           </Field>
         </Section>
       )}
+      </StepCard>
 
+      <StepCard step={3} title="قیمت، عکس و تماس">
       <Section title="قیمت، شهر و تماس">
         <Field
           htmlFor="priceIRR"
-          label="قیمت (ریال)"
-          hint={pricePreview ? `معادل: ${pricePreview}` : 'ارقام فارسی یا انگلیسی مجاز است'}
+          label="قیمت (تومان)"
+          hint={pricePreview ? `معادل: ${pricePreview}` : 'قیمت را به تومان بنویسید؛ ارقام فارسی یا انگلیسی مجاز است'}
           error={fieldErrors['priceIRR']}
         >
           <input
@@ -688,7 +721,7 @@ export function ListingForm() {
             className="field"
             value={draft.priceIRR}
             onChange={(e) => set('priceIRR', e.target.value)}
-            placeholder="مثلاً ۱٬۱۰۰٬۰۰۰٬۰۰۰٬۰۰۰"
+            placeholder="مثلاً ۳۴٬۰۰۰٬۰۰۰٬۰۰۰"
           />
         </Field>
 
@@ -753,6 +786,7 @@ export function ListingForm() {
           />
         </div>
       </Section>
+      </StepCard>
 
       <div className="flex flex-wrap items-center justify-between gap-3">
         <p className="text-xs text-faint">

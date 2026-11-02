@@ -42,6 +42,8 @@ export type {
 export {
   BRANDS,
   brandSlugs,
+  kishUiBrands,
+  KISH_UI_BRAND_SLUGS,
   CITIES,
   citySlugs,
   MIN_VEHICLE_YEAR,

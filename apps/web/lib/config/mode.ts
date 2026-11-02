@@ -1,7 +1,6 @@
-import { mkdirSync, rmSync, writeFileSync } from 'node:fs';
-import { tmpdir } from 'node:os';
 import { join } from 'node:path';
 import { smsConfigured } from '../auth/sms';
+import { nodeFs } from '../storage/node-fs';
 
 /**
  * Runtime mode for the web app (S3 demo/preview hardening).
@@ -12,7 +11,9 @@ import { smsConfigured } from '../auth/sms';
  *  1. Where data lives. With Supabase service credentials the app is hosted;
  *     without them it is a fixture/demo deployment that keeps its JSON store
  *     on disk — even in a production build, so a cloud preview link never
- *     answers 503 just because the owner has not connected Supabase yet.
+ *     answers 503 just because the owner has not connected Supabase yet. On a
+ *     runtime with no filesystem (Workers) that store is isolate memory; see
+ *     `lib/storage/demo-store.ts`.
  *  2. Whether the demo affordances are allowed (OTP printed to the server log
  *     and, behind an explicit public flag, echoed to the OTP step so the owner
  *     can sign in on a preview link).
@@ -45,8 +46,8 @@ export function requireHostedServices(): boolean {
 /**
  * Fixture/demo data mode: no Supabase write credentials and no strict switch.
  *
- * In this mode listings, accounts, views, chat and reports live in the local
- * JSON store (see `demoDataDir`), in development and in production alike.
+ * In this mode listings, accounts, views, chat and reports live in the demo
+ * store (see `demoDataDir`), in development and in production alike.
  */
 export function fixtureMode(): boolean {
   if (requireHostedServices()) return false;
@@ -65,27 +66,42 @@ export function demoAuthMode(): boolean {
   return fixtureMode() && !smsConfigured();
 }
 
+/** Workers runtime (Cloudflare / wrangler dev / a Sites preview). */
+function onWorkersRuntime(): boolean {
+  const g = globalThis as { WebSocketPair?: unknown; navigator?: { userAgent?: string } };
+  return typeof g.WebSocketPair === 'function' || g.navigator?.userAgent === 'Cloudflare-Workers';
+}
+
 /**
  * Public, documented demo switch. When on, the OTP step also shows the code
  * that was written to the server log, so the owner can sign in on the preview
  * link without console access. Never turn this on for a real deployment.
+ *
+ * The hosted preview is exactly that case, so a Workers deployment in demo
+ * mode (no Supabase, no SMS) turns the hint on by itself: the owner can test
+ * login, publishing, chat and stats on the preview URL with no extra env vars.
+ * A real deployment never reaches this branch — Supabase credentials switch
+ * demo mode off (and `REQUIRE_HOSTED_SERVICES=true` forces it off).
  */
 export function demoOtpHintEnabled(): boolean {
-  return demoAuthMode() && flagOn(process.env.NEXT_PUBLIC_DEMO_OTP_HINT);
+  if (!demoAuthMode()) return false;
+  return flagOn(process.env.NEXT_PUBLIC_DEMO_OTP_HINT) || onWorkersRuntime();
 }
 
 const PRIMARY_DIR = join(process.cwd(), '.dev-data');
-const FALLBACK_DIR = join(tmpdir(), 'alisales-demo-data');
+const FALLBACK_DIR = '/tmp/alisales-demo-data';
 
 let resolvedDir: string | null = null;
 
 /** Can we actually write into this directory? (cloud previews may be read-only) */
 function writable(dir: string): boolean {
+  const fs = nodeFs();
+  if (!fs) return false;
   try {
-    mkdirSync(dir, { recursive: true });
+    fs.mkdirSync(dir, { recursive: true });
     const probe = join(dir, '.write-probe');
-    writeFileSync(probe, '1');
-    rmSync(probe, { force: true });
+    fs.writeFileSync(probe, '1');
+    fs.rmSync(probe, { force: true });
     return true;
   } catch {
     return false;
@@ -98,7 +114,8 @@ function writable(dir: string): boolean {
  * `.dev-data` next to the app is the normal location; when the root filesystem
  * is read-only (some cloud preview sandboxes) the store moves to
  * `/tmp/alisales-demo-data` so listings, accounts and OTP records still persist
- * across requests. Resolved once per process and shared by every store.
+ * across requests. On Workers there is no filesystem at all and the demo store
+ * keeps everything in isolate memory, so this path is only a stable key.
  */
 export function demoDataDir(): string {
   if (resolvedDir) return resolvedDir;

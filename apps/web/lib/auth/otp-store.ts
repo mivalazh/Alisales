@@ -1,5 +1,3 @@
-import { existsSync, mkdirSync, readFileSync, writeFileSync } from 'node:fs';
-import { join } from 'node:path';
 import {
   OTP_LENGTH,
   OTP_MAX_ATTEMPTS,
@@ -8,19 +6,18 @@ import {
   otpResendWaitSeconds,
 } from '@alisales/schemas';
 import { authSecret, hmacSha256 } from './session';
-import { demoDataDir, fixtureMode } from '../config/mode';
+import { readJson, writeJson } from '../storage/demo-store';
 
 /**
  * OTP storage (S2 / C4).
  *
  * Codes are stored ONLY as an HMAC-SHA256 hash, never in clear text. A record
- * carries its expiry, attempt count and last send time. Development persists
- * records to `.dev-data/otp.json` because Next keeps a separate module graph
- * per route (request and verify would otherwise not share memory). That holds
- * for a fixture/demo deployment too — including a production preview build —
- * which is exactly why the store is file-backed in fixture mode. A hosted
- * production deployment keeps them in isolate memory and requires a real SMS
- * provider.
+ * carries its expiry, attempt count and last send time. Records go through the
+ * demo store, which is a JSON file on Node — Next keeps a separate module graph
+ * per route, so in-process memory would not be shared between the request and
+ * verify handlers — and isolate memory on a runtime without a filesystem
+ * (Workers preview). A hosted production deployment with a real SMS provider
+ * still keeps them that way, since the code leaves the server immediately.
  *
  * The generated code is returned to the caller for delivery only — it must
  * never be serialized into an HTTP response.
@@ -34,33 +31,14 @@ export interface OtpRecord {
   lastSentAt: number;
 }
 
-const memory = new Map<string, OtpRecord>();
-
-function storeFile(): string {
-  return join(demoDataDir(), 'otp.json');
-}
-
-function fileBacked(): boolean {
-  // Development and fixture/demo deployments persist to disk; a hosted
-  // production deployment uses isolate memory (a real provider sends the code).
-  return process.env.NODE_ENV !== 'production' || fixtureMode();
-}
+const FILE = 'otp.json';
 
 function readAll(): Record<string, OtpRecord> {
-  try {
-    const file = storeFile();
-    if (!existsSync(file)) return {};
-    const parsed: unknown = JSON.parse(readFileSync(file, 'utf8'));
-    return parsed && typeof parsed === 'object' ? (parsed as Record<string, OtpRecord>) : {};
-  } catch {
-    return {};
-  }
+  return readJson<Record<string, OtpRecord>>(FILE, () => ({}));
 }
 
 function writeAll(all: Record<string, OtpRecord>): void {
-  const dir = demoDataDir();
-  mkdirSync(dir, { recursive: true });
-  writeFileSync(join(dir, 'otp.json'), `${JSON.stringify(all, null, 2)}\n`, 'utf8');
+  writeJson(FILE, all);
 }
 
 /** Six digits from a cryptographic RNG (rejection sampling, no modulo bias). */
@@ -92,19 +70,14 @@ export async function saveOtp(
     attempts: 0,
     lastSentAt: now,
   };
-  if (fileBacked()) {
-    const all = readAll();
-    all[phone] = record;
-    writeAll(all);
-  } else {
-    memory.set(phone, record);
-  }
+  const all = readAll();
+  all[phone] = record;
+  writeAll(all);
   return record;
 }
 
 export function getOtp(phone: string): OtpRecord | null {
-  if (fileBacked()) return readAll()[phone] ?? null;
-  return memory.get(phone) ?? null;
+  return readAll()[phone] ?? null;
 }
 
 export function bumpOtpAttempts(phone: string): OtpRecord | null {
@@ -114,24 +87,16 @@ export function bumpOtpAttempts(phone: string): OtpRecord | null {
     ...record,
     attempts: Math.min(OTP_MAX_ATTEMPTS, record.attempts + 1),
   };
-  if (fileBacked()) {
-    const all = readAll();
-    all[phone] = next;
-    writeAll(all);
-  } else {
-    memory.set(phone, next);
-  }
+  const all = readAll();
+  all[phone] = next;
+  writeAll(all);
   return next;
 }
 
 export function deleteOtp(phone: string): void {
-  if (fileBacked()) {
-    const all = readAll();
-    delete all[phone];
-    writeAll(all);
-  } else {
-    memory.delete(phone);
-  }
+  const all = readAll();
+  delete all[phone];
+  writeAll(all);
 }
 
 /** Seconds until a new code may be requested (0 = allowed now). */

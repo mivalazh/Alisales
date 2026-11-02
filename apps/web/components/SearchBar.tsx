@@ -33,7 +33,7 @@ export function SearchBar({
         type="search"
         value={value}
         onChange={(e) => setValue(e.target.value)}
-        placeholder="جستجو در آگهی‌ها… (مثلاً پژو ۲۰۶)"
+        placeholder="جستجوی خودرو، برند یا قطعه"
         aria-label="جستجوی آگهی"
         className="field pe-10"
       />
