@@ -7,6 +7,7 @@ import { FAVORITES_KEY, readFavorites, writeFavorites, type FavoriteSnapshot } f
 import { Icon } from './Icon';
 import { PriceText } from './PriceText';
 import { ViewModeToggle, type ViewMode } from './SortControl';
+import { isPreSizedSource } from '@/lib/images';
 
 const VIEW_KEY = 'alisales-favorites-view';
 
@@ -109,7 +110,7 @@ export function FavoritesList() {
                     alt={item.model || item.slug}
                     fill
                     sizes="(min-width: 1024px) 25vw, 50vw"
-                    unoptimized={item.coverUrl.endsWith('.svg')}
+                    unoptimized={isPreSizedSource(item.coverUrl)}
                     className="object-cover"
                   />
                 ) : (

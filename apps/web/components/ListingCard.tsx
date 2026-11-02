@@ -15,6 +15,7 @@ import { FavoriteButton } from './FavoriteButton';
 import { PriceText } from './PriceText';
 import { SoldBadge } from './SoldBadge';
 import { VerifiedPill, sellerDisplayName } from './SellerVerified';
+import { isPreSizedSource } from '@/lib/images';
 
 /** Sold text tone — muted so the carmine badge carries the emphasis. */
 const SOLD_TEXT = '#64748B';
@@ -81,7 +82,7 @@ export function ListingCard({ listing }: { listing: ListingCardData }) {
               alt={part ? part.title : `${listing.model} ${listing.year}`}
               fill
               sizes="(min-width: 1280px) 25vw, (min-width: 1024px) 33vw, (min-width: 640px) 50vw, 50vw"
-              unoptimized={listing.coverUrl.endsWith('.svg')}
+              unoptimized={isPreSizedSource(listing.coverUrl)}
               className={`object-cover ${sold ? 'opacity-60 grayscale' : ''}`}
             />
           ) : (

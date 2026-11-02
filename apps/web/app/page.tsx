@@ -27,7 +27,7 @@ const STORY_SLUGS = [
   'land-cruiser-kish',
   'patrol-platinum-kish',
   's-class-kish',
-  'cayenne-brake-kit-part',
+  'cayenne-kish',
 ] as const;
 
 function storyTitle(listing: ListingCardData): string {

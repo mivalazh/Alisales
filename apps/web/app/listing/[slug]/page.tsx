@@ -23,6 +23,7 @@ import { getListing, getSellerPhone } from '@/lib/data/listings';
 import { getSession } from '@/lib/auth/session';
 import { recordView } from '@/lib/data/s2-store';
 import { shouldRecordView } from '@/lib/data/stats-rules';
+import { isPreSizedSource } from '@/lib/images';
 
 const STATE_BADGE: Record<string, BadgeKey> = {
   draft: 'draft',
@@ -119,7 +120,7 @@ export default async function ListingDetailPage({
                 alt={part ? part.title : `${listing.model} ${listing.year}`}
                 fill
                 sizes="(min-width: 1024px) 66vw, 100vw"
-                unoptimized={listing.coverUrl.endsWith('.svg')}
+                unoptimized={isPreSizedSource(listing.coverUrl)}
                 className={`object-cover ${sold ? 'opacity-60 grayscale' : ''}`}
               />
             ) : (
@@ -142,7 +143,7 @@ export default async function ListingDetailPage({
                     alt={`عکس ${index + 2}`}
                     fill
                     sizes="(min-width: 1024px) 16vw, 25vw"
-                    unoptimized={url.endsWith('.svg')}
+                    unoptimized={isPreSizedSource(url)}
                     className="object-cover"
                   />
                 </li>

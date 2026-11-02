@@ -14,6 +14,7 @@ import { FavoriteButton } from './FavoriteButton';
 import { PriceText } from './PriceText';
 import { VerifiedPill } from './SellerVerified';
 import { SoldBadge } from './SoldBadge';
+import { isPreSizedSource } from '@/lib/images';
 
 const SOLD_TEXT = '#64748B';
 
@@ -48,7 +49,7 @@ export function ListingRow({
               alt={part ? part.title : `${listing.model} ${listing.year}`}
               fill
               sizes="128px"
-              unoptimized={listing.coverUrl.endsWith('.svg')}
+              unoptimized={isPreSizedSource(listing.coverUrl)}
               className={`object-cover ${sold ? 'opacity-60 grayscale' : ''}`}
             />
           ) : (

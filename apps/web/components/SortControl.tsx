@@ -1,13 +1,15 @@
 'use client';
 
+import { useEffect, useRef, useState } from 'react';
 import { SORT_LABELS, SORT_OPTION_KEYS, type SortKey } from '@/lib/sort';
 import { Icon } from './Icon';
 
 /**
- * Sort control — the four standard marketplace orders: newest, cheapest,
- * priciest and most viewed. Sold listings stay anchored at the end in every
- * one of them (enforced by `sortListings`), so the control never has to offer
- * a separate "sold last" state.
+ * Sort control — one compact trigger that opens a menu with the four standard
+ * marketplace orders: newest, cheapest, priciest and most viewed. The active
+ * order carries a check mark. Sold listings stay anchored at the end in every
+ * one of them (enforced by `sortListings`), so the menu never offers a
+ * separate "sold last" state.
  */
 export function SortControl({
   value,
@@ -16,28 +18,71 @@ export function SortControl({
   value: SortKey;
   onChange: (key: SortKey) => void;
 }) {
+  const [open, setOpen] = useState(false);
+  const root = useRef<HTMLDivElement>(null);
+
+  useEffect(() => {
+    if (!open) return;
+    const onPointerDown = (event: MouseEvent) => {
+      if (!root.current?.contains(event.target as Node)) setOpen(false);
+    };
+    const onKeyDown = (event: KeyboardEvent) => {
+      if (event.key === 'Escape') setOpen(false);
+    };
+    document.addEventListener('mousedown', onPointerDown);
+    document.addEventListener('keydown', onKeyDown);
+    return () => {
+      document.removeEventListener('mousedown', onPointerDown);
+      document.removeEventListener('keydown', onKeyDown);
+    };
+  }, [open]);
+
   return (
-    <div
-      role="group"
-      aria-label="مرتب‌سازی آگهی‌ها"
-      className="flex max-w-full items-center gap-1 overflow-x-auto rounded-[var(--radius-pill)] border border-line bg-card p-1"
-    >
-      {SORT_OPTION_KEYS.map((key) => {
-        const active = value === key;
-        return (
-          <button
-            key={key}
-            type="button"
-            aria-pressed={active}
-            onClick={() => onChange(key)}
-            className={`shrink-0 whitespace-nowrap rounded-[var(--radius-pill)] px-3 py-1.5 text-xs font-extrabold transition ${
-              active ? 'bg-cta text-[color:var(--color-text-on-accent)]' : 'text-muted hover:text-ink'
-            }`}
-          >
-            {SORT_LABELS[key]}
-          </button>
-        );
-      })}
+    <div ref={root} className="relative">
+      <button
+        type="button"
+        aria-haspopup="listbox"
+        aria-expanded={open}
+        onClick={() => setOpen((v) => !v)}
+        className="flex items-center gap-1.5 whitespace-nowrap rounded-[var(--radius-pill)] border border-line bg-card px-3 py-2 text-xs font-extrabold text-ink transition hover:border-line-strong"
+      >
+        <span className="text-muted">مرتب‌سازی:</span>
+        <span>{SORT_LABELS[value]}</span>
+        <Icon
+          name="chevronDown"
+          size={16}
+          className={`text-faint transition-transform ${open ? 'rotate-180' : ''}`}
+        />
+      </button>
+
+      {open && (
+        <ul
+          role="listbox"
+          aria-label="مرتب‌سازی آگهی‌ها"
+          className="absolute end-0 top-full z-40 mt-2 w-48 overflow-hidden rounded-2xl border border-line bg-card p-1 shadow-xl"
+        >
+          {SORT_OPTION_KEYS.map((key) => {
+            const active = value === key;
+            return (
+              <li key={key} role="option" aria-selected={active}>
+                <button
+                  type="button"
+                  onClick={() => {
+                    onChange(key);
+                    setOpen(false);
+                  }}
+                  className={`flex w-full items-center justify-between gap-2 rounded-xl px-3 py-2 text-xs font-extrabold transition ${
+                    active ? 'bg-cta-soft text-ink' : 'text-muted hover:bg-sunken hover:text-ink'
+                  }`}
+                >
+                  <span>{SORT_LABELS[key]}</span>
+                  {active && <Icon name="check" size={16} />}
+                </button>
+              </li>
+            );
+          })}
+        </ul>
+      )}
     </div>
   );
 }

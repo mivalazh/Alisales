@@ -3,6 +3,7 @@
 import Image from 'next/image';
 import { useState } from 'react';
 import { Icon } from './Icon';
+import { isPreSizedSource } from '@/lib/images';
 
 export interface StoryItem {
   slug: string;
@@ -42,7 +43,7 @@ export function Stories({ stories }: { stories: StoryItem[] }) {
                     alt={story.title}
                     fill
                     sizes="64px"
-                    unoptimized={story.coverUrl.endsWith('.svg')}
+                    unoptimized={isPreSizedSource(story.coverUrl)}
                     className="object-cover"
                   />
                 </span>
@@ -73,7 +74,7 @@ export function Stories({ stories }: { stories: StoryItem[] }) {
                 alt={active.title}
                 fill
                 sizes="(min-width: 640px) 384px, 100vw"
-                unoptimized={active.coverUrl.endsWith('.svg')}
+                unoptimized={isPreSizedSource(active.coverUrl)}
                 className="object-cover"
               />
               <button
