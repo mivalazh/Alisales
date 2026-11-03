@@ -3,6 +3,7 @@ import Link from 'next/link';
 import { redirect } from 'next/navigation';
 import { ACCOUNT_TYPE_LABELS, maskPhone } from '@alisales/schemas';
 import { getSession } from '@/lib/auth/session';
+import { showAdminLink } from '@/lib/admin/guard';
 import { conversationsForUser, listFavoriteIds, listingsBySeller } from '@/lib/data/s2-store';
 import { Icon, type IconName } from '@/components/Icon';
 import { LogoutButton } from '@/components/LogoutButton';
@@ -18,10 +19,11 @@ export default async function ProfilePage() {
   const session = await getSession();
   if (!session) redirect('/login?next=/profile');
 
-  const [listings, favoriteIds, conversations] = await Promise.all([
+  const [listings, favoriteIds, conversations, admin] = await Promise.all([
     listingsBySeller(session.sub),
     listFavoriteIds(session.sub),
     conversationsForUser(session.sub),
+    showAdminLink(),
   ]);
   const active = listings.filter((listing) => listing.state === 'active').length;
   const initial = (session.displayName ?? '?').trim().charAt(0) || '?';
@@ -56,6 +58,16 @@ export default async function ProfilePage() {
       hint: 'نام نمایشی و شماره تماس',
       icon: 'gear',
     },
+    ...(admin
+      ? [
+          {
+            href: '/admin',
+            label: 'پنل مدیریت',
+            hint: 'گزارش‌ها، احراز و داستان‌ها',
+            icon: 'gear' as IconName,
+          },
+        ]
+      : []),
   ];
 
   return (

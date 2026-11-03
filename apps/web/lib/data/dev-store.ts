@@ -16,13 +16,36 @@ import { readJson, writeJson } from '../storage/demo-store';
  */
 
 const FILE = 'listings.json';
+/** Owner/admin edits to seeded fixture listings (they are read-only constants). */
+const OVERRIDES = 'listing-overrides.json';
 
 function readAll(): ListingCardData[] {
   return readJson<ListingCardData[]>(FILE, () => []);
 }
 
+type ListingPatch = Partial<ListingCardData>;
+
+function readOverrides(): Record<string, ListingPatch> {
+  return readJson<Record<string, ListingPatch>>(OVERRIDES, () => ({}));
+}
+
 export function devListings(): ListingCardData[] {
   return readAll();
+}
+
+/** Overrides saved for fixture listings (mark sold, pause, admin removal). */
+export function listingOverrides(): Record<string, ListingPatch> {
+  return readOverrides();
+}
+
+/** Merges persisted overrides into a mixed fixture/dev feed. */
+export function applyListingOverrides<T extends ListingCardData>(listings: readonly T[]): T[] {
+  const overrides = readOverrides();
+  if (Object.keys(overrides).length === 0) return [...listings];
+  return listings.map((listing) => {
+    const patch = overrides[listing.id];
+    return patch ? { ...listing, ...patch } : listing;
+  });
 }
 
 export function addDevListing(card: ListingCardData): void {
@@ -32,15 +55,23 @@ export function addDevListing(card: ListingCardData): void {
 }
 
 /**
- * Edit an existing dev listing (PATCH in fixture mode).
- * Returns false when the id is unknown so the route can answer 404.
+ * Edit a listing in fixture mode.
+ *
+ * Listings created here live in `listings.json`; the seeded fixtures are
+ * constants, so their changes are stored as an override and merged on read
+ * (otherwise «فروخته شد» and «بایگانی» silently did nothing).
  */
 export function updateDevListing(id: string, patch: Partial<ListingCardData>): boolean {
   const all = readAll();
   const index = all.findIndex((l) => l.id === id);
-  if (index < 0) return false;
-  const current = all[index]!;
-  all[index] = { ...current, ...patch };
-  writeJson(FILE, all);
+  if (index >= 0) {
+    const current = all[index]!;
+    all[index] = { ...current, ...patch };
+    writeJson(FILE, all);
+    return true;
+  }
+  const overrides = readOverrides();
+  overrides[id] = { ...(overrides[id] ?? {}), ...patch };
+  writeJson(OVERRIDES, overrides);
   return true;
 }

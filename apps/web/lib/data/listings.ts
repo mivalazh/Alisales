@@ -16,7 +16,9 @@ import {
   type SearchFilters,
 } from '@alisales/schemas';
 import { fixtureListings } from './fixtures';
-import { devListings } from './dev-store';
+import { applyListingOverrides, devListings } from './dev-store';
+import { moderationOverlay } from './moderation-store';
+import { applyModeration } from './moderation-rules';
 import { admin } from './s2-store';
 
 /** Structured part data for a non-vehicle listing (`parts_listings`). */
@@ -238,7 +240,12 @@ export async function searchListings(
   const effective = launchFilters(filters);
   const supabase = supabaseClient();
   if (!supabase) {
-    return applyFiltersLocally([...devListings(), ...fixtureListings], filters);
+    const overlay = moderationOverlay();
+    const local = applyModeration(applyListingOverrides([...devListings(), ...fixtureListings]), {
+      hidden: overlay.hidden,
+      verifiedSellers: overlay.verifiedSellers,
+    });
+    return applyFiltersLocally(local, filters);
   }
 
   const { data, error } = await supabase.rpc('search_listings', {
@@ -258,8 +265,10 @@ export async function getListing(slug: string): Promise<ListingDetailData | null
   const supabase = supabaseClient();
   if (!supabase) {
     const all = [...devListings(), ...fixtureListings];
-    const found = all.find((l) => l.slug === slug);
-    return found ? { ...found, description: null, photos: found.photos ?? [] } : null;
+    const found = applyListingOverrides(all).find((l) => l.slug === slug);
+    // Owner-removed listings are gone from the public site, not just the grid.
+    if (!found || found.state === 'rejected') return null;
+    return { ...found, description: null, photos: found.photos ?? [] };
   }
 
   const { data, error } = await supabase
@@ -301,7 +310,7 @@ export interface OwnerPhotoMeta {
 export async function getOwnerListing(id: string): Promise<ListingDetailData | null> {
   const sb = admin();
   if (!sb) {
-    const found = [...devListings(), ...fixtureListings].find((l) => l.id === id);
+    const found = applyListingOverrides([...devListings(), ...fixtureListings]).find((l) => l.id === id);
     if (!found) return null;
     return {
       ...found,

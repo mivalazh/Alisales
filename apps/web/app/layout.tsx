@@ -7,6 +7,7 @@ import { SiteFooter } from '@/components/Footer';
 import { BottomNav } from '@/components/BottomNav';
 import { themeBootstrapScript } from '@/components/ThemeToggle';
 import { getSession } from '@/lib/auth/session';
+import { showAdminLink } from '@/lib/admin/guard';
 
 const siteUrl = process.env.NEXT_PUBLIC_SITE_URL;
 
@@ -24,7 +25,13 @@ export const metadata: Metadata = {
 export const viewport: Viewport = {
   width: 'device-width',
   initialScale: 1,
-  themeColor: '#F4F1EC',
+  // Native controls and the mobile browser chrome follow the same dark switch
+  // as the tokens instead of staying cream on a dark page.
+  colorScheme: 'light dark',
+  themeColor: [
+    { media: '(prefers-color-scheme: light)', color: '#F4F1EC' },
+    { media: '(prefers-color-scheme: dark)', color: '#101018' },
+  ],
 };
 
 /**
@@ -35,7 +42,7 @@ export const viewport: Viewport = {
  * footer to the bottom of the viewport instead of leaving a gap under it.
  */
 export default async function RootLayout({ children }: { children: ReactNode }) {
-  const session = await getSession();
+  const [session, admin] = await Promise.all([getSession(), showAdminLink()]);
 
   return (
     <html lang="fa" dir="rtl" suppressHydrationWarning>
@@ -44,7 +51,7 @@ export default async function RootLayout({ children }: { children: ReactNode }) 
         <script dangerouslySetInnerHTML={{ __html: themeBootstrapScript }} />
       </head>
       <body className="flex min-h-screen flex-col bg-page font-sans text-ink antialiased">
-        <Header authed={Boolean(session)} displayName={session?.displayName ?? null} />
+        <Header authed={Boolean(session)} displayName={session?.displayName ?? null} admin={admin} />
         <main className="mx-auto w-full max-w-[var(--content-max)] flex-1 px-4 py-6 pb-24 sm:px-6 sm:pb-6 lg:py-8">
           {children}
         </main>

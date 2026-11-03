@@ -10,6 +10,7 @@ import {
   parsePartCategory,
 } from '@/lib/browse';
 import { searchListings, type ListingCardData } from '@/lib/data/listings';
+import { approvedStories } from '@/lib/data/moderation';
 import { parseSortKey } from '@/lib/sort';
 
 type SearchParams = Record<string, string | string[] | undefined>;
@@ -35,12 +36,22 @@ function storyTitle(listing: ListingCardData): string {
   return `${listing.model}${listing.trim ? ` ${listing.trim}` : ''}`;
 }
 
-function storiesFrom(listings: readonly ListingCardData[]): StoryItem[] {
-  const picked = STORY_SLUGS.map((slug) => listings.find((l) => l.slug === slug)).filter(
-    (l): l is ListingCardData => Boolean(l?.coverUrl),
-  );
+/**
+ * Story rail: listings the owner approved in /admin come first, then the
+ * editorial picks, then any photographed listing as a fallback. Approval is a
+ * real moderation decision, so it must be visible on the home page.
+ */
+function storiesFrom(listings: readonly ListingCardData[], approved: readonly string[]): StoryItem[] {
+  const bySlug = (slug: string) => listings.find((l) => l.slug === slug);
+  const pinned = approved.map(bySlug).filter((l): l is ListingCardData => Boolean(l?.coverUrl));
+  const picked = STORY_SLUGS.map(bySlug).filter((l): l is ListingCardData => Boolean(l?.coverUrl));
   const fallback = listings.filter((l) => l.coverUrl).slice(0, 4);
-  const source = picked.length >= 4 ? picked : fallback;
+  const seen = new Set<string>();
+  const source = [...pinned, ...picked, ...fallback].filter((listing) => {
+    if (seen.has(listing.slug)) return false;
+    seen.add(listing.slug);
+    return true;
+  });
   return source.slice(0, 4).map((listing) => ({
     slug: listing.slug,
     title: storyTitle(listing),
@@ -73,7 +84,7 @@ export default async function HomePage({
   const body = parseBodyType(first(params.body));
   const category = parsePartCategory(first(params.category));
 
-  const base = await searchListings(filters);
+  const [base, approved] = await Promise.all([searchListings(filters), approvedStories()]);
   let listings = base;
   if (kind) {
     listings = listings.filter((l) => (l.kind === 'part' ? 'part' : 'vehicle') === kind);
@@ -103,7 +114,7 @@ export default async function HomePage({
         listings={listings}
         filters={filters}
         sort={sort}
-        stories={storiesFrom(base)}
+        stories={storiesFrom(base, approved)}
         kind={kind}
         vehicleCount={vehicleCount}
         partCount={partCount}

@@ -74,9 +74,12 @@ function MenuGroup({
 export function Header({
   authed = false,
   displayName = null,
+  admin = false,
 }: {
   authed?: boolean;
   displayName?: string | null;
+  /** Owner moderation link — resolved on the server from ADMIN_PHONES. */
+  admin?: boolean;
 }) {
   const [menuOpen, setMenuOpen] = useState(false);
   const [openGroup, setOpenGroup] = useState<GroupKey | null>(null);
@@ -143,7 +146,7 @@ export function Header({
             <Link
               href="/"
               aria-label="Ali Sales — صفحه اصلی"
-              className="flex h-9 max-w-[52vw] shrink-0 items-center overflow-hidden sm:max-w-none [&>svg]:h-9 [&>svg]:w-auto"
+              className="flex h-9 min-w-0 max-w-[46vw] shrink items-center overflow-hidden sm:max-w-none [&>svg]:h-9 [&>svg]:w-auto"
               dangerouslySetInnerHTML={{ __html: logoSvgDocument(LOCKUP, 'Ali Sales') }}
             />
           </div>
@@ -267,6 +270,18 @@ export function Header({
                     ثبت آگهی
                   </Link>
                 </li>
+                {admin && (
+                  <li>
+                    <Link
+                      href="/admin"
+                      aria-current={pathname === '/admin' ? 'page' : undefined}
+                      className="flex items-center gap-1.5 rounded-field px-2 py-1.5 text-sm font-bold text-cta transition hover:bg-cta-soft"
+                    >
+                      <Icon name="gear" size={14} />
+                      پنل مدیریت
+                    </Link>
+                  </li>
+                )}
                 {ACCOUNT_LINKS.map((item) => (
                   <li key={item.href}>
                     <Link

@@ -195,6 +195,25 @@ export async function getUser(id: string): Promise<Account | null> {
   };
 }
 
+/** Every account — the moderation hub's verification queue reads this. */
+export async function allUsers(): Promise<Account[]> {
+  const sb = admin();
+  if (!sb) return readData().users;
+  const { data } = await sb
+    .from('users')
+    .select('id, phone, display_name, created_at')
+    .limit(500);
+  return ((data ?? []) as Array<{ id: string; phone: string; display_name: string | null; created_at: string }>).map(
+    (row) => ({
+      id: String(row.id),
+      phone: String(row.phone),
+      displayName: String(row.display_name ?? 'بدون نام'),
+      accountType: 'individual' as AccountType,
+      createdAt: String(row.created_at),
+    }),
+  );
+}
+
 // ── Favorites ───────────────────────────────────────────────────────────────
 
 export async function addFavorite(userId: string, listingId: string): Promise<void> {
@@ -299,6 +318,66 @@ export async function recordPhoneReveal(listingId: string, viewerId: string): Pr
 export interface ReportResult {
   ok: boolean;
   duplicate?: boolean;
+}
+
+/** A stored report, normalized for the moderation queue. */
+export interface StoredReport {
+  /** Stable queue id: the DB row id, or `listing::reporter` in fixture mode. */
+  id: string;
+  listingId: string;
+  reporterId: string;
+  reason: string;
+  details: string | null;
+  createdAt: string;
+  /** Hosted rows carry the enum; fixture rows are always open. */
+  status: string;
+}
+
+/** Reports still awaiting a decision (open/reviewing). */
+export async function openAbuseReports(): Promise<StoredReport[]> {
+  const sb = admin();
+  if (!sb) {
+    const data = readData();
+    return data.reports.map((row) => ({
+      ...row,
+      id: `${row.listingId}::${row.reporterId}`,
+      status: 'open',
+    }));
+  }
+  const { data } = await sb
+    .from('abuse_reports')
+    .select('id, listing_id, reporter_id, reason, details, created_at, status')
+    .in('status', ['open', 'reviewing'])
+    .order('created_at', { ascending: false })
+    .limit(100);
+  return ((data ?? []) as Array<{
+    id: string;
+    listing_id: string;
+    reporter_id: string;
+    reason: string;
+    details: string | null;
+    created_at: string;
+    status: string;
+  }>).map((row) => ({
+    id: String(row.id),
+    listingId: String(row.listing_id),
+    reporterId: String(row.reporter_id),
+    reason: String(row.reason),
+    details: row.details,
+    createdAt: String(row.created_at),
+    status: String(row.status),
+  }));
+}
+
+/** Writes the decision back to Supabase when hosted; fixture state is in the
+ * moderation store, so there is nothing to do there. */
+export async function setReportStatus(
+  reportId: string,
+  status: 'dismissed' | 'actioned',
+): Promise<void> {
+  const sb = admin();
+  if (!sb) return;
+  await sb.from('abuse_reports').update({ status }).eq('id', reportId);
 }
 
 /** One report per (listing, reporter); the DB unique key is the source of truths. */
@@ -560,11 +639,11 @@ function mapCardRow(r: Record<string, unknown>): ListingCardData {
 export async function listingById(id: string): Promise<ListingCardData | null> {
   const sb = admin();
   if (!sb) {
-    const [{ devListings }, { fixtureListings }] = await Promise.all([
+    const [{ devListings, applyListingOverrides }, { fixtureListings }] = await Promise.all([
       import('./dev-store'),
       import('./fixtures'),
     ]);
-    return [...devListings(), ...fixtureListings].find((l) => l.id === id) ?? null;
+    return applyListingOverrides([...devListings(), ...fixtureListings]).find((l) => l.id === id) ?? null;
   }
   const { data } = await sb.from('listing_cards').select('*').eq('id', id).maybeSingle();
   return data ? mapCardRow(data as Record<string, unknown>) : null;

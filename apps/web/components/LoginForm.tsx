@@ -97,7 +97,9 @@ export function LoginForm() {
         accountType: needsProfile ? accountType : undefined,
       });
       if (status === 200) {
-        router.push(next);
+        // Never bounce back into the login screen (a `?next=/login` hand-off
+        // would otherwise loop the user through the form again).
+        router.push(next.startsWith('/login') ? '/' : next);
         router.refresh();
         return;
       }

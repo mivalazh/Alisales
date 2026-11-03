@@ -115,6 +115,18 @@ the OTP step so the owner can sign in on a shared preview link. Fixture cards
 use the SVG illustrations in `apps/web/public/covers/`
 (`node scripts/gen-covers.mjs` regenerates them).
 
+**Owner moderation hub** (`/admin`, `apps/web/app/admin`): reported listings,
+showroom/workshop verification requests and the home story queue, with a small
+platform overview (active vehicles, active parts, users, Kish launch status).
+Access is server-checked against `ADMIN_PHONES` — a comma-separated list of
+mobile numbers, e.g. `09123456789,09351234567` (Persian digits, `+98` and `0098`
+are accepted). In fixture/demo mode with `ADMIN_PHONES` unset any signed-in
+account may moderate, so the hub stays reviewable on the preview link; a hosted
+deployment (or `REQUIRE_HOSTED_SERVICES=true`) never falls back and answers 404
+without the allow-list. Decisions in demo mode live in the same
+`apps/web/.dev-data/` store as listings; with Supabase they write
+`abuse_reports.status`, `listings.state` and `showrooms.license_status`.
+
 ## Product rules enforced in the database
 
 - **Plans (PRICING GATE)** — individuals: **2 concurrent listings** free
