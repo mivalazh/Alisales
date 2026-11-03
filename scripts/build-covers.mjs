@@ -50,14 +50,14 @@ const COVERS = [
   { slug: 'lexus-rx-kish', source: 'amg-gt', focus: 'centre' },
   { slug: 'land-cruiser-gearbox-part', source: 'mechanic', focus: 'centre' },
   { slug: 'cayenne-brake-kit-part', source: 'engine-bay', focus: 'centre' },
-  { slug: 'peugeot-206-blue-kish', source: 'camaro', focus: 'centre' },
-  { slug: 'peugeot-206-showroom', source: 'huracan', focus: 'centre' },
-  { slug: 'peugeot-206-black-tehran', source: 'panamera', crop: [0.14, 0.2, 0.66, 0.62] },
-  { slug: 'peugeot-206-alice', source: 'camaro', crop: [0.2, 0.18, 0.62, 0.6] },
-  { slug: 'shahin-new-tehran', source: 'bmw-m5', crop: [0.18, 0.22, 0.64, 0.58] },
-  { slug: 'dena-plus-sold', source: 'amg-gt', crop: [0.16, 0.16, 0.66, 0.64] },
-  { slug: 'kiaqi-kish-showroom', source: 'mclaren', focus: 'centre' },
-  { slug: 'kioqi-transit', source: 'boxster', crop: [0.12, 0.24, 0.68, 0.6] },
+  { slug: 'camaro-kish', source: 'camaro', focus: 'centre' },
+  { slug: 'huracan-showroom', source: 'huracan', focus: 'centre' },
+  { slug: 'panamera-tehran', source: 'panamera', crop: [0.14, 0.2, 0.66, 0.62] },
+  { slug: 'camaro-alice', source: 'camaro', crop: [0.2, 0.18, 0.62, 0.6] },
+  { slug: 'm5-tehran', source: 'bmw-m5', crop: [0.18, 0.22, 0.64, 0.58] },
+  { slug: 'amg-gt-sold', source: 'amg-gt', crop: [0.16, 0.16, 0.66, 0.64] },
+  { slug: 'mclaren-kish-showroom', source: 'mclaren', focus: 'centre' },
+  { slug: 'boxster-transit', source: 'boxster', crop: [0.12, 0.24, 0.68, 0.6] },
 ];
 
 const force = process.argv.includes('--force');

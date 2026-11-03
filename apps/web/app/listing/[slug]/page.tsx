@@ -35,6 +35,17 @@ const STATE_BADGE: Record<string, BadgeKey> = {
   rejected: 'rejected',
 };
 
+/**
+ * Listing detail (desktop re-architecture).
+ *
+ * Two columns on `lg`, read right-to-left: the 7-span column on the right holds
+ * the evidence — a compact 16:10 gallery (capped at 420px so a landscape photo
+ * never owns the screen), its thumbnails, the description and the inspection
+ * note. The 5-span column on the left is the decision column: status tags,
+ * title, the Toman headline with its AED reference, the four spec tiles, and
+ * directly underneath the seller/contact actions. It sticks while the right
+ * column scrolls, so price and «چت با آگهی‌دهنده» are always one glance away.
+ */
 export default async function ListingDetailPage({
   params,
 }: {
@@ -102,7 +113,7 @@ export default async function ListingDetailPage({
       ];
 
   return (
-    <article className="space-y-5">
+    <article className="mx-auto max-w-6xl space-y-5">
       <Link
         href="/"
         className="inline-flex items-center gap-1.5 text-sm font-bold text-muted transition hover:text-ink"
@@ -111,16 +122,18 @@ export default async function ListingDetailPage({
         بازگشت به آگهی‌ها
       </Link>
 
-      <div className="grid gap-5 lg:grid-cols-3">
-        <div className="lg:col-span-2">
-          <div className="relative aspect-[var(--photo-aspect)] overflow-hidden rounded-card border border-line bg-sunken">
+      <div className="grid items-start gap-6 lg:grid-cols-12 lg:gap-8">
+        {/* Right column in RTL: the photographic evidence and the story. */}
+        <div className="min-w-0 space-y-4 lg:col-span-7">
+          <div className="relative aspect-[16/10] max-h-[420px] w-full overflow-hidden rounded-2xl border border-line bg-sunken">
             {listing.coverUrl ? (
               <Image
                 src={listing.coverUrl}
                 alt={part ? part.title : `${listing.model} ${listing.year}`}
                 fill
-                sizes="(min-width: 1024px) 66vw, 100vw"
+                sizes="(min-width: 1024px) 58vw, 100vw"
                 unoptimized={isPreSizedSource(listing.coverUrl)}
+                priority
                 className={`object-cover ${sold ? 'opacity-60 grayscale' : ''}`}
               />
             ) : (
@@ -132,17 +145,17 @@ export default async function ListingDetailPage({
           </div>
 
           {listing.photos.length > 1 && (
-            <ul className="mt-2 grid grid-cols-4 gap-2">
+            <ul className="grid grid-cols-4 gap-2">
               {listing.photos.slice(1, 9).map((url, index) => (
                 <li
                   key={url}
-                  className="relative aspect-[var(--photo-aspect)] overflow-hidden rounded-field border border-line bg-sunken"
+                  className="relative aspect-[4/3] overflow-hidden rounded-xl border border-line bg-sunken"
                 >
                   <Image
                     src={url}
                     alt={`عکس ${index + 2}`}
                     fill
-                    sizes="(min-width: 1024px) 16vw, 25vw"
+                    sizes="(min-width: 1024px) 14vw, 25vw"
                     unoptimized={isPreSizedSource(url)}
                     className="object-cover"
                   />
@@ -151,17 +164,27 @@ export default async function ListingDetailPage({
             </ul>
           )}
 
-          <div className="mt-4 rounded-card border border-line bg-card p-4 sm:p-5">
-            <h1
-              className="text-xl font-extrabold leading-tight"
-              style={sold ? { color: '#64748B' } : undefined}
-            >
-              {part
-                ? part.title
-                : `${listing.model}${listing.trim ? ` ${listing.trim}` : ''} — ${listing.year}`}
-            </h1>
+          <section className="rounded-card border border-line bg-card p-4 sm:p-5">
+            <h2 className="text-base font-extrabold text-ink">توضیحات آگهی</h2>
+            <p className="mt-3 whitespace-pre-line text-justify text-sm leading-8 text-ink/85">
+              {listing.description?.trim() || 'فروشنده برای این آگهی توضیحی ثبت نکرده است.'}
+            </p>
+          </section>
 
-            <div className="mt-2 flex flex-wrap items-center gap-1.5">
+          {listing.hasReport && (
+            <div className="rounded-card border border-line bg-card p-4">
+              <p className="flex items-center gap-2 text-sm font-extrabold text-note">
+                <Icon name="shieldCheck" size={18} />
+                دارای گزارش بازرسی معتبر کارگاه
+              </p>
+            </div>
+          )}
+        </div>
+
+        {/* Left column in RTL: the decision block, sticky on desktop. */}
+        <aside className="flex flex-col gap-4 lg:col-span-5 lg:sticky lg:top-24">
+          <div className="rounded-card border border-line bg-card p-4 sm:p-5">
+            <div className="flex flex-wrap items-center gap-1.5">
               {sold && <SoldBadge size="lg" />}
               {badges.map((b) => {
                 const token = badgeFor(b);
@@ -181,34 +204,32 @@ export default async function ListingDetailPage({
               })}
             </div>
 
+            <h1
+              className="mt-3 text-lg font-extrabold leading-tight sm:text-xl"
+              style={sold ? { color: '#64748B' } : undefined}
+            >
+              {part
+                ? part.title
+                : `${listing.model}${listing.trim ? ` ${listing.trim}` : ''} — ${listing.year}`}
+            </h1>
+
             <div className="mt-3">
               <PriceText irr={listing.priceIRR} sold={sold} size="lg" />
             </div>
 
-            <dl
-              className={`mt-4 grid grid-cols-2 gap-3 ${part ? 'sm:grid-cols-3' : 'sm:grid-cols-4'}`}
-            >
+            <dl className="mt-4 grid grid-cols-2 gap-2">
               {specs.map((spec) => (
-                <div key={spec.label} className="rounded-field border border-line bg-page p-3">
-                  <dt className="flex items-center gap-1.5 text-xs font-bold text-muted">
-                    <Icon name={spec.icon} size={16} />
+                <div key={spec.label} className="rounded-field border border-line bg-page p-2.5">
+                  <dt className="flex items-center gap-1.5 text-[11px] font-bold text-muted">
+                    <Icon name={spec.icon} size={14} />
                     {spec.label}
                   </dt>
-                  <dd className="mt-1 text-sm font-extrabold">{spec.value}</dd>
+                  <dd className="mt-1 text-xs font-extrabold leading-5 text-ink">{spec.value}</dd>
                 </div>
               ))}
             </dl>
           </div>
 
-          <div className="mt-4 rounded-card border border-line bg-card p-4 sm:p-5">
-            <h2 className="text-base font-extrabold text-ink">توضیحات آگهی</h2>
-            <p className="mt-3 whitespace-pre-line text-justify text-sm leading-8 text-ink/85">
-              {listing.description?.trim() || 'فروشنده برای این آگهی توضیحی ثبت نکرده است.'}
-            </p>
-          </div>
-        </div>
-
-        <aside className="space-y-4">
           <div className="rounded-card border border-line bg-card p-4 sm:p-5">
             <div className="flex items-center justify-between gap-3">
               <div className="min-w-0">
@@ -242,21 +263,8 @@ export default async function ListingDetailPage({
               </div>
             )}
           </div>
-
-          {listing.hasReport && (
-            <div className="rounded-card border border-line bg-card p-4">
-              <p className="flex items-center gap-2 text-sm font-extrabold text-note">
-                <Icon name="shieldCheck" size={18} />
-                دارای گزارش بازرسی معتبر کارگاه
-              </p>
-            </div>
-          )}
         </aside>
       </div>
-
-      <p className="rounded-card border border-line bg-card p-4 text-xs leading-6 text-muted">
-        Ali Sales فقط محل نمایش آگهی است. خرید و فروش و پرداخت بین خود کاربران انجام می‌شود.
-      </p>
     </article>
   );
 }

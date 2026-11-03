@@ -3,6 +3,7 @@ import type { ReactNode } from 'react';
 import '@fontsource-variable/vazirmatn';
 import './globals.css';
 import { Header } from '@/components/Header';
+import { SiteFooter } from '@/components/Footer';
 import { BottomNav } from '@/components/BottomNav';
 import { themeBootstrapScript } from '@/components/ThemeToggle';
 import { getSession } from '@/lib/auth/session';
@@ -40,15 +41,7 @@ export default async function RootLayout({ children }: { children: ReactNode }) 
         <main className="mx-auto w-full max-w-[var(--content-max)] px-4 py-6 pb-24 sm:px-6 sm:pb-6 lg:py-8">
           {children}
         </main>
-        <footer className="mt-10 border-t border-line bg-card pb-20 sm:pb-0">
-          <div className="mx-auto w-full max-w-[var(--content-max)] px-4 py-6 sm:px-6">
-            <p className="text-sm text-muted">
-              © Ali Sales — تمامی حقوق محفوظ است. مسئولیت اعلام وضعیت پلاک و صحت
-              اطلاعات آگهی بر عهده فروشنده است.
-            </p>
-            <p className="mt-1 text-xs text-faint">جزیره کیش</p>
-          </div>
-        </footer>
+        <SiteFooter />
         <BottomNav />
       </body>
     </html>

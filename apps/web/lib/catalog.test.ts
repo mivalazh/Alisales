@@ -83,39 +83,39 @@ describe('launch city rule (city_selection off → Kish-only browse)', () => {
   it('excludes other cities by default, includes them once the flag is on', () => {
     const result = applyFiltersLocally(fixtures, DEFAULT_FILTERS);
     expect(result.every((l) => l.city === 'kish')).toBe(true);
-    expect(result.some((l) => l.slug === 'shahin-new-tehran')).toBe(false);
+    expect(result.some((l) => l.slug === 'm5-tehran')).toBe(false);
   });
 });
 
 describe('local filter path (parity with the RPC semantics)', () => {
   it('sold stays visible in browse', () => {
     const result = applyFiltersLocally(fixtures, DEFAULT_FILTERS);
-    expect(result.some((l) => l.slug === 'dena-plus-sold')).toBe(true);
-    expect(result.at(-1)?.slug).toBe('dena-plus-sold');
+    expect(result.some((l) => l.slug === 'amg-gt-sold')).toBe(true);
+    expect(result.at(-1)?.slug).toBe('amg-gt-sold');
   });
 
   it('filters by brand and price range', () => {
     const result = applyFiltersLocally(fixtures, {
       ...DEFAULT_FILTERS,
-      brand: ['ikco'],
+      brand: ['other'],
       priceTo: 1_100_000_000_000,
     });
-    expect(result.every((l) => l.brand === 'ikco')).toBe(true);
+    expect(result.every((l) => l.brand === 'other')).toBe(true);
     expect(result.every((l) => l.priceIRR <= 1_100_000_000_000)).toBe(true);
     expect(result.length).toBeGreaterThan(0);
   });
 
   it('filters by hasReport and kishOnly', () => {
     const reported = applyFiltersLocally(fixtures, { ...DEFAULT_FILTERS, hasReport: true });
-    expect(reported.map((l) => l.slug)).toEqual(['peugeot-206-showroom']);
+    expect(reported.map((l) => l.slug)).toEqual(['huracan-showroom']);
 
     const kish = applyFiltersLocally(fixtures, { ...DEFAULT_FILTERS, kishOnly: true });
     expect(kish.every((l) => l.city === 'kish')).toBe(true);
   });
 
   it('quick search matches model text', () => {
-    const result = applyFiltersLocally(fixtures, { ...DEFAULT_FILTERS, q: 'کوییک' });
-    expect(result.map((l) => l.slug).sort()).toEqual(['kiaqi-kish-showroom', 'kioqi-transit']);
+    const result = applyFiltersLocally(fixtures, { ...DEFAULT_FILTERS, q: 'Camaro' });
+    expect(result.map((l) => l.slug).sort()).toEqual(['camaro-alice', 'camaro-kish']);
   });
 });
 

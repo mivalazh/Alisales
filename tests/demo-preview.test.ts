@@ -117,7 +117,7 @@ describe('luxury first-impression catalogue', () => {
 
   it('ends the grid with exactly one sold listing', () => {
     expect(browsed.filter((l) => l.state === 'sold')).toHaveLength(1);
-    expect(browsed.at(-1)?.slug).toBe('dena-plus-sold');
+    expect(browsed.at(-1)?.slug).toBe('amg-gt-sold');
   });
 
   it('shows today, yesterday and 3-day-old labels', () => {

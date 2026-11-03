@@ -4,23 +4,26 @@ import Link from 'next/link';
 import { usePathname } from 'next/navigation';
 import { useEffect, useState } from 'react';
 import { LOCKUP, logoSvgDocument } from '@studio/design';
-import { CITY_LABELS, DEFAULT_CITY } from '@alisales/schemas';
 import { NAV_ITEMS, type NavItem } from '@/lib/nav';
 import { CAR_BODY_TYPES, PART_CATEGORY_LINKS } from '@/lib/browse';
+import { CitySelect } from './CitySelect';
 import { Icon } from './Icon';
 import { ThemeToggle } from './ThemeToggle';
 import { useActivePath } from './useActivePath';
 
 /**
- * App header (C8). Start edge (right in RTL): hamburger, theme toggle and the
- * account action, grouped together. End edge: the full «A ALI SALES» lockup as
- * the home link, pushed to the far edge so nothing sits in the middle between
- * the buttons and the mark.
+ * App header (C8).
+ *
+ * Start edge (right in RTL): hamburger, theme toggle and the account action,
+ * grouped together. End edge: the full «A ALI SALES» lockup as the home link,
+ * pushed to the far edge so nothing sits in the middle between the buttons and
+ * the mark. The city lives in the sub-bar's `CitySelect`, not in this row.
  *
  * On tablet/desktop the destinations (خانه، چت‌ها، علاقه‌مندی‌ها، پروفایل) sit
- * together on the start edge and «+ ثبت آگهی» is pushed to the end edge, never
- * mixed into the middle of that list. The drawer carries the two category
- * accordions, the account links and the two support actions.
+ * together on the start edge and the city selector + «+ ثبت آگهی» are pushed to
+ * the end edge. The hamburger opens a narrow slide-over drawer with only the
+ * two category accordions and the account actions — guides, legal and support
+ * links belong to the footer.
  */
 const DESTINATIONS: readonly NavItem[] = NAV_ITEMS.filter((item) => !item.primary);
 const POST_ITEM = NAV_ITEMS.find((item) => item.primary);
@@ -29,22 +32,6 @@ const ACCOUNT_LINKS: ReadonlyArray<{ href: string; label: string }> = [
   { href: '/profile/listings', label: 'آگهی‌های من' },
   { href: '/favorites', label: 'علاقه‌مندی‌ها' },
   { href: '/chats', label: 'پیام‌ها' },
-  { href: '/guide', label: 'راهنمای ثبت آگهی' },
-  { href: '/terms', label: 'قوانین و حریم خصوصی' },
-  { href: '/about', label: 'درباره‌ی ما' },
-];
-
-const SUPPORT_LINKS = [
-  {
-    href: '/support/brand-request',
-    label: 'درخواست افزودن خودرو یا برند جدید',
-    icon: 'plus' as const,
-  },
-  {
-    href: '/support/ticket',
-    label: 'پشتیبانی و ثبت تیکت',
-    icon: 'message' as const,
-  },
 ];
 
 type GroupKey = 'cars' | 'parts';
@@ -69,7 +56,7 @@ function MenuGroup({
         type="button"
         onClick={onToggle}
         aria-expanded={open}
-        aria-controls={`drawer-${id}`}
+        aria-controls={`drawer-group-${id}`}
         className="flex w-full items-center justify-between gap-2 px-3 py-2.5 text-sm font-extrabold text-ink"
       >
         <span>{label}</span>
@@ -78,7 +65,7 @@ function MenuGroup({
         </span>
       </button>
       {open && (
-        <ul id={`drawer-${id}`} className="grid gap-1 border-t border-line p-2 sm:grid-cols-2">
+        <ul id={`drawer-group-${id}`} className="grid gap-1 border-t border-line p-2">
           {children}
         </ul>
       )}
@@ -102,6 +89,21 @@ export function Header({
     setMenuOpen(false);
     setOpenGroup(null);
   }, [pathname]);
+
+  // Escape closes the drawer, and the page behind it must not scroll.
+  useEffect(() => {
+    if (!menuOpen) return;
+    const onKey = (event: KeyboardEvent) => {
+      if (event.key === 'Escape') setMenuOpen(false);
+    };
+    const previous = document.body.style.overflow;
+    document.body.style.overflow = 'hidden';
+    document.addEventListener('keydown', onKey);
+    return () => {
+      document.body.style.overflow = previous;
+      document.removeEventListener('keydown', onKey);
+    };
+  }, [menuOpen]);
 
   const toggleGroup = (group: GroupKey) =>
     setOpenGroup((current) => (current === group ? null : group));
@@ -135,9 +137,6 @@ export function Header({
         </div>
 
         <div className="ms-auto flex min-w-0 items-center gap-2">
-          <span className="hidden text-sm font-extrabold text-ink sm:inline">
-            {CITY_LABELS[DEFAULT_CITY]}
-          </span>
           <Link
             href="/"
             aria-label="Ali Sales — صفحه اصلی"
@@ -147,7 +146,7 @@ export function Header({
         </div>
       </div>
 
-      {/* Tablet/desktop: destinations on the start edge, CTA on the end edge. */}
+      {/* Tablet/desktop: destinations on the start edge, city + CTA on the end edge. */}
       <nav aria-label="ناوبری اصلی" className="hidden border-t border-line md:block">
         <ul className="mx-auto flex w-full max-w-[var(--content-max)] items-center gap-1 px-6 py-1.5">
           {DESTINATIONS.map((item) => {
@@ -166,72 +165,96 @@ export function Header({
               </li>
             );
           })}
-          {POST_ITEM && (
-            <li className="ms-auto">
+          <li className="ms-auto flex items-center gap-2">
+            <CitySelect />
+            {POST_ITEM && (
               <Link href={POST_ITEM.href} className="btn-cta text-sm">
                 <Icon name="plus" size={18} />
                 {POST_ITEM.label}
               </Link>
-            </li>
-          )}
+            )}
+          </li>
         </ul>
       </nav>
 
       {menuOpen && (
-        <div className="border-t border-line bg-card">
-          <div className="mx-auto w-full max-w-[var(--content-max)] px-4 py-4 sm:px-6">
-            <h2 className="mb-2 text-xs font-extrabold text-faint">دسته‌بندی‌ها</h2>
-            <div className="space-y-2">
-              <MenuGroup
-                id="cars"
-                label="خودرو"
-                open={openGroup === 'cars'}
-                onToggle={() => toggleGroup('cars')}
+        <div className="fixed inset-0 z-50">
+          <button
+            type="button"
+            aria-label="بستن منو"
+            onClick={() => setMenuOpen(false)}
+            className="absolute inset-0 h-full w-full cursor-default bg-[#111144]/45 backdrop-blur-sm"
+          />
+          <div
+            role="dialog"
+            aria-modal="true"
+            aria-label="منوی اصلی"
+            className="absolute inset-y-0 start-0 flex w-80 max-w-xs flex-col border-e border-line bg-card shadow-2xl"
+          >
+            <div className="flex items-center justify-between border-b border-line px-4 py-3">
+              <span className="text-sm font-extrabold text-ink">منو</span>
+              <button
+                type="button"
+                onClick={() => setMenuOpen(false)}
+                aria-label="بستن منو"
+                className="flex h-9 w-9 items-center justify-center rounded-full border border-line text-ink transition hover:border-line-strong"
               >
-                {CAR_BODY_TYPES.map((type) => (
-                  <li key={type.key}>
-                    <Link
-                      href={`/?body=${type.key}`}
-                      className="block rounded-field px-2 py-1.5 text-sm font-semibold text-muted transition hover:bg-cta-soft hover:text-ink"
-                    >
-                      {type.label}
-                    </Link>
-                  </li>
-                ))}
-              </MenuGroup>
-
-              <MenuGroup
-                id="parts"
-                label="قطعات و لوازم"
-                open={openGroup === 'parts'}
-                onToggle={() => toggleGroup('parts')}
-              >
-                {PART_CATEGORY_LINKS.map((category) => (
-                  <li key={category.key}>
-                    <Link
-                      href={category.href}
-                      className="block rounded-field px-2 py-1.5 text-sm font-semibold text-muted transition hover:bg-cta-soft hover:text-ink"
-                    >
-                      {category.label}
-                    </Link>
-                  </li>
-                ))}
-              </MenuGroup>
+                <Icon name="close" size={18} />
+              </button>
             </div>
 
-            <div className="my-4 border-t border-line" />
-
-            <h2 className="mb-2 text-xs font-extrabold text-faint">حساب</h2>
-            <ul className="grid gap-1 sm:grid-cols-2">
-              <li>
-                <Link
-                  href={authed ? '/profile' : '/login'}
-                  className="block rounded-field px-2 py-1.5 text-sm font-semibold text-muted transition hover:bg-cta-soft hover:text-ink"
+            <div className="flex-1 overflow-y-auto p-4">
+              <h2 className="mb-2 text-xs font-extrabold text-faint">دسته‌بندی‌ها</h2>
+              <div className="space-y-2">
+                <MenuGroup
+                  id="cars"
+                  label="خودرو"
+                  open={openGroup === 'cars'}
+                  onToggle={() => toggleGroup('cars')}
                 >
-                  {authed ? 'پروفایل' : 'ورود'}
-                </Link>
-              </li>
-              {authed && (
+                  {CAR_BODY_TYPES.map((type) => (
+                    <li key={type.key}>
+                      <Link
+                        href={`/?body=${type.key}`}
+                        className="block rounded-field px-2 py-1.5 text-sm font-semibold text-muted transition hover:bg-cta-soft hover:text-ink"
+                      >
+                        {type.label}
+                      </Link>
+                    </li>
+                  ))}
+                </MenuGroup>
+
+                <MenuGroup
+                  id="parts"
+                  label="قطعات و لوازم"
+                  open={openGroup === 'parts'}
+                  onToggle={() => toggleGroup('parts')}
+                >
+                  {PART_CATEGORY_LINKS.map((category) => (
+                    <li key={category.key}>
+                      <Link
+                        href={category.href}
+                        className="block rounded-field px-2 py-1.5 text-sm font-semibold text-muted transition hover:bg-cta-soft hover:text-ink"
+                      >
+                        {category.label}
+                      </Link>
+                    </li>
+                  ))}
+                </MenuGroup>
+              </div>
+
+              <div className="my-4 border-t border-line" />
+
+              <h2 className="mb-2 text-xs font-extrabold text-faint">حساب کاربری</h2>
+              <ul className="grid gap-1">
+                <li>
+                  <Link
+                    href={authed ? '/profile' : '/login'}
+                    className="block rounded-field px-2 py-1.5 text-sm font-semibold text-muted transition hover:bg-cta-soft hover:text-ink"
+                  >
+                    {authed ? 'پروفایل' : 'ورود'}
+                  </Link>
+                </li>
                 <li>
                   <Link
                     href="/new"
@@ -240,36 +263,23 @@ export function Header({
                     ثبت آگهی
                   </Link>
                 </li>
-              )}
-              {ACCOUNT_LINKS.map((item) => (
-                <li key={item.href}>
-                  <Link
-                    href={item.href}
-                    aria-current={pathname === item.href ? 'page' : undefined}
-                    className="block rounded-field px-2 py-1.5 text-sm font-semibold text-muted transition hover:bg-cta-soft hover:text-ink"
-                  >
-                    {item.label}
-                  </Link>
-                </li>
-              ))}
-            </ul>
+                {ACCOUNT_LINKS.map((item) => (
+                  <li key={item.href}>
+                    <Link
+                      href={item.href}
+                      aria-current={pathname === item.href ? 'page' : undefined}
+                      className="block rounded-field px-2 py-1.5 text-sm font-semibold text-muted transition hover:bg-cta-soft hover:text-ink"
+                    >
+                      {item.label}
+                    </Link>
+                  </li>
+                ))}
+              </ul>
+            </div>
 
-            <div className="my-4 border-t border-line" />
-
-            <h2 className="mb-2 text-xs font-extrabold text-faint">درخواست و پشتیبانی</h2>
-            <ul className="grid gap-2 sm:grid-cols-2">
-              {SUPPORT_LINKS.map((item) => (
-                <li key={item.href}>
-                  <Link
-                    href={item.href}
-                    className="flex items-center gap-2 rounded-field border border-line bg-page px-3 py-2.5 text-sm font-extrabold text-ink transition hover:border-line-strong hover:bg-cta-soft"
-                  >
-                    <Icon name={item.icon} size={18} className="text-cta" />
-                    {item.label}
-                  </Link>
-                </li>
-              ))}
-            </ul>
+            <div className="border-t border-line p-4">
+              <CitySelect className="w-full [&>button]:w-full [&>button]:justify-between" />
+            </div>
           </div>
         </div>
       )}
