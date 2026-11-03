@@ -10,7 +10,7 @@ import {
 } from '@alisales/schemas';
 import type { ListingCardData } from '@/lib/data/listings';
 import { sortListings, type SortKey } from '@/lib/sort';
-import { CategoryCards, type CatalogKind } from './CategoryCards';
+import { CategoryCards } from './CategoryCards';
 import { FilterChips } from './FilterChips';
 import { FilterPanel } from './FilterPanel';
 import { ListingGrid } from './ListingGrid';
@@ -27,6 +27,9 @@ const VIEW_KEY = 'alisales-view';
  * implementation; this client shell owns the story rail, the two category
  * cards, quick chips, filter/sort/view UX and commits changes to the URL so
  * the server re-runs that same search.
+ *
+ * `basePath` keeps the same controls on the dedicated category pages
+ * (`/cars`, `/parts`): every commit pushes to that path instead of `/`.
  */
 export function Catalog({
   listings,
@@ -36,14 +39,22 @@ export function Catalog({
   kind = null,
   vehicleCount = 0,
   partCount = 0,
+  basePath = '/',
+  showCategories = true,
+  showStories = true,
+  searchPlaceholder,
 }: {
   listings: ListingCardData[];
   filters: SearchFilters;
   sort: SortKey;
   stories?: StoryItem[];
-  kind?: CatalogKind;
+  kind?: 'vehicle' | 'part' | null;
   vehicleCount?: number;
   partCount?: number;
+  basePath?: string;
+  showCategories?: boolean;
+  showStories?: boolean;
+  searchPlaceholder?: string;
 }) {
   const router = useRouter();
   const [panelOpen, setPanelOpen] = useState(false);
@@ -71,13 +82,13 @@ export function Catalog({
   const commit = (
     next: SearchFilters,
     nextSort: SortKey = sort,
-    nextKind: CatalogKind = kind,
+    nextKind: 'vehicle' | 'part' | null = kind,
   ) => {
     const params = filtersToSearchParams(next);
     if (nextSort !== 'newest') params.sort = nextSort;
     if (nextKind) params.kind = nextKind;
     const qs = new URLSearchParams(params).toString();
-    router.push(qs ? `/?${qs}` : '/');
+    router.push(qs ? `${basePath}?${qs}` : basePath);
   };
 
   const filterCount = activeFilterCount(filters);
@@ -88,17 +99,13 @@ export function Catalog({
           filters instead of stacking another brand on top of them. */}
       <SearchBar
         q={filters.q ?? ''}
+        placeholder={searchPlaceholder}
         onApply={(patch) => commit({ ...DEFAULT_FILTERS, ...patch })}
       />
 
-      <Stories stories={stories} />
+      {showStories && <Stories stories={stories} />}
 
-      <CategoryCards
-        kind={kind}
-        vehicleCount={vehicleCount}
-        partCount={partCount}
-        onSelect={(next) => commit(filters, sort, next)}
-      />
+      {showCategories && <CategoryCards vehicleCount={vehicleCount} partCount={partCount} />}
 
       <QuickChips filters={filters} onChange={(f) => commit(f)} />
 

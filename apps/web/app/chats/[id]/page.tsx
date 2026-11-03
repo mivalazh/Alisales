@@ -48,7 +48,6 @@ export default async function ChatPage({ params }: { params: Promise<{ id: strin
       <ChatThread
         conversationId={conversation.id}
         currentUserId={session.sub}
-        isSeller={session.sub === conversation.sellerId}
         initialMessages={messages.map((m) => ({
           id: m.id,
           senderId: m.senderId,

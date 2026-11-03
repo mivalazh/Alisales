@@ -11,8 +11,8 @@ import { CitySelect } from './CitySelect';
  * the studio name never gets bidi-shuffled.
  */
 const QUICK_LINKS = [
-  { href: '/?kind=vehicle', label: 'خودروها' },
-  { href: '/?kind=part', label: 'قطعات و لوازم یدکی' },
+  { href: '/cars', label: 'خودروها' },
+  { href: '/parts', label: 'قطعات و لوازم یدکی' },
   { href: '/new', label: 'ثبت آگهی' },
 ] as const;
 

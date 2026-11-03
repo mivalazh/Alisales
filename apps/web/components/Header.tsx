@@ -15,15 +15,13 @@ import { useActivePath } from './useActivePath';
  * App header (C8).
  *
  * Start edge (right in RTL): hamburger, theme toggle and the account action,
- * grouped together. End edge: the full «A ALI SALES» lockup as the home link,
- * pushed to the far edge so nothing sits in the middle between the buttons and
- * the mark. The city lives in the sub-bar's `CitySelect`, not in this row.
+ * grouped together. End edge: the full «A ALI SALES» lockup as the home link.
+ * The city lives in the sub-bar's `CitySelect`, not in this row.
  *
- * On tablet/desktop the destinations (خانه، چت‌ها، علاقه‌مندی‌ها، پروفایل) sit
- * together on the start edge and the city selector + «+ ثبت آگهی» are pushed to
- * the end edge. The hamburger opens a narrow slide-over drawer with only the
- * two category accordions and the account actions — guides, legal and support
- * links belong to the footer.
+ * The header itself is opaque (no `backdrop-filter`): a filtered ancestor would
+ * become the containing block for the pinned drawer and clip it to the header's
+ * own box. The drawer therefore renders as a sibling of `<header>`, so its
+ * `fixed inset-0` always resolves against the viewport.
  */
 const DESTINATIONS: readonly NavItem[] = NAV_ITEMS.filter((item) => !item.primary);
 const POST_ITEM = NAV_ITEMS.find((item) => item.primary);
@@ -109,87 +107,93 @@ export function Header({
     setOpenGroup((current) => (current === group ? null : group));
 
   return (
-    <header className="sticky top-0 z-40 border-b border-line bg-card/95 backdrop-blur">
-      <div className="mx-auto flex h-16 w-full max-w-[var(--content-max)] items-center gap-2 px-4 sm:px-6">
-        <div className="flex items-center gap-2">
-          <button
-            type="button"
-            onClick={() => setMenuOpen((v) => !v)}
-            aria-expanded={menuOpen}
-            aria-label={menuOpen ? 'بستن منو' : 'باز کردن منو'}
-            className="flex h-11 w-11 shrink-0 items-center justify-center rounded-full border border-line bg-card text-ink transition hover:border-line-strong"
-          >
-            <Icon name={menuOpen ? 'close' : 'menu'} size={22} />
-          </button>
-          <ThemeToggle />
-          {authed ? (
-            <Link
-              href="/profile"
-              className="max-w-24 truncate rounded-[var(--radius-pill)] border border-line bg-card px-3 py-1.5 text-xs font-bold text-ink sm:max-w-none"
+    <>
+      <header className="sticky top-0 z-40 border-b border-line bg-card">
+        <div className="mx-auto flex h-16 w-full max-w-[var(--content-max)] items-center gap-2 px-4 sm:px-6">
+          <div className="flex items-center gap-2">
+            <button
+              type="button"
+              onClick={() => setMenuOpen((v) => !v)}
+              aria-expanded={menuOpen}
+              aria-controls="site-menu"
+              aria-label={menuOpen ? 'بستن منو' : 'باز کردن منو'}
+              className="flex h-11 w-11 shrink-0 items-center justify-center rounded-full border border-line bg-card text-ink transition hover:border-line-strong"
             >
-              {displayName ?? 'پروفایل'}
-            </Link>
-          ) : (
-            <Link href="/login" className="btn-ghost px-3 py-1.5 text-sm">
-              ورود
-            </Link>
-          )}
-        </div>
-
-        <div className="ms-auto flex min-w-0 items-center gap-2">
-          <Link
-            href="/"
-            aria-label="Ali Sales — صفحه اصلی"
-            className="flex min-w-0 shrink-0 items-center [&>svg]:h-9 [&>svg]:w-auto"
-            dangerouslySetInnerHTML={{ __html: logoSvgDocument(LOCKUP, 'Ali Sales') }}
-          />
-        </div>
-      </div>
-
-      {/* Tablet/desktop: destinations on the start edge, city + CTA on the end edge. */}
-      <nav aria-label="ناوبری اصلی" className="hidden border-t border-line md:block">
-        <ul className="mx-auto flex w-full max-w-[var(--content-max)] items-center gap-1 px-6 py-1.5">
-          {DESTINATIONS.map((item) => {
-            const active = isActive(item.href);
-            return (
-              <li key={item.key}>
-                <Link
-                  href={item.href}
-                  aria-current={active ? 'page' : undefined}
-                  className={`rounded-[var(--radius-pill)] px-3 py-2 text-sm font-semibold transition ${
-                    active ? 'bg-cta-soft text-ink font-extrabold' : 'text-muted hover:text-ink'
-                  }`}
-                >
-                  {item.label}
-                </Link>
-              </li>
-            );
-          })}
-          <li className="ms-auto flex items-center gap-2">
-            <CitySelect />
-            {POST_ITEM && (
-              <Link href={POST_ITEM.href} className="btn-cta text-sm">
-                <Icon name="plus" size={18} />
-                {POST_ITEM.label}
+              <Icon name={menuOpen ? 'close' : 'menu'} size={22} />
+            </button>
+            <ThemeToggle />
+            {authed ? (
+              <Link
+                href="/profile"
+                className="max-w-24 truncate rounded-[var(--radius-pill)] border border-line bg-card px-3 py-1.5 text-xs font-bold text-ink sm:max-w-none"
+              >
+                {displayName ?? 'پروفایل'}
+              </Link>
+            ) : (
+              <Link href="/login" className="btn-ghost whitespace-nowrap px-3 py-1.5 text-sm">
+                ورود
               </Link>
             )}
-          </li>
-        </ul>
-      </nav>
+          </div>
+
+          <div className="ms-auto flex min-w-0 items-center gap-2">
+            {/* The lockup ships fixed 460×180 attributes; this box clips it to
+                the 36px header mark so a stylesheet hiccup can never let the
+                mark spill over the buttons on a narrow phone. */}
+            <Link
+              href="/"
+              aria-label="Ali Sales — صفحه اصلی"
+              className="flex h-9 max-w-[52vw] shrink-0 items-center overflow-hidden sm:max-w-none [&>svg]:h-9 [&>svg]:w-auto"
+              dangerouslySetInnerHTML={{ __html: logoSvgDocument(LOCKUP, 'Ali Sales') }}
+            />
+          </div>
+        </div>
+
+        {/* Tablet/desktop: destinations on the start edge, city + CTA on the end edge. */}
+        <nav aria-label="ناوبری اصلی" className="hidden border-t border-line md:block">
+          <ul className="mx-auto flex w-full max-w-[var(--content-max)] items-center gap-1 px-6 py-1.5">
+            {DESTINATIONS.map((item) => {
+              const active = isActive(item.href);
+              return (
+                <li key={item.key}>
+                  <Link
+                    href={item.href}
+                    aria-current={active ? 'page' : undefined}
+                    className={`rounded-[var(--radius-pill)] px-3 py-2 text-sm font-semibold transition ${
+                      active ? 'bg-cta-soft text-ink font-extrabold' : 'text-muted hover:text-ink'
+                    }`}
+                  >
+                    {item.label}
+                  </Link>
+                </li>
+              );
+            })}
+            <li className="ms-auto flex items-center gap-2">
+              <CitySelect />
+              {POST_ITEM && (
+                <Link href={POST_ITEM.href} className="btn-cta text-sm">
+                  <Icon name="plus" size={18} />
+                  {POST_ITEM.label}
+                </Link>
+              )}
+            </li>
+          </ul>
+        </nav>
+      </header>
 
       {menuOpen && (
-        <div className="fixed inset-0 z-50">
+        <div id="site-menu" className="fixed inset-0 z-50">
           <button
             type="button"
             aria-label="بستن منو"
             onClick={() => setMenuOpen(false)}
-            className="absolute inset-0 h-full w-full cursor-default bg-[#111144]/45 backdrop-blur-sm"
+            className="absolute inset-0 h-full w-full cursor-default bg-[#111144]/45"
           />
           <div
             role="dialog"
             aria-modal="true"
             aria-label="منوی اصلی"
-            className="absolute inset-y-0 start-0 flex w-80 max-w-xs flex-col border-e border-line bg-card shadow-2xl"
+            className="absolute inset-y-0 start-0 flex w-80 max-w-[85vw] flex-col border-e border-line bg-card shadow-2xl"
           >
             <div className="flex items-center justify-between border-b border-line px-4 py-3">
               <span className="text-sm font-extrabold text-ink">منو</span>
@@ -215,7 +219,7 @@ export function Header({
                   {CAR_BODY_TYPES.map((type) => (
                     <li key={type.key}>
                       <Link
-                        href={`/?body=${type.key}`}
+                        href={`/cars?body=${type.key}`}
                         className="block rounded-field px-2 py-1.5 text-sm font-semibold text-muted transition hover:bg-cta-soft hover:text-ink"
                       >
                         {type.label}
@@ -233,7 +237,7 @@ export function Header({
                   {PART_CATEGORY_LINKS.map((category) => (
                     <li key={category.key}>
                       <Link
-                        href={category.href}
+                        href={`/parts?category=${category.key}`}
                         className="block rounded-field px-2 py-1.5 text-sm font-semibold text-muted transition hover:bg-cta-soft hover:text-ink"
                       >
                         {category.label}
@@ -283,6 +287,6 @@ export function Header({
           </div>
         </div>
       )}
-    </header>
+    </>
   );
 }

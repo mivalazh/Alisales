@@ -1,4 +1,3 @@
-import Image from 'next/image';
 import Link from 'next/link';
 import { notFound } from 'next/navigation';
 import { badgeFor, type BadgeKey } from '@studio/design';
@@ -9,10 +8,10 @@ import {
   PART_CATEGORY_LABELS,
   PART_CONDITION_LABELS,
   PART_ORIGIN_LABELS,
-  PLATE_TYPE_LABELS,
   compatibilityLabel,
 } from '@alisales/schemas';
 import { ContactButtons } from '@/components/ContactButtons';
+import { ListingGallery } from '@/components/ListingGallery';
 import { FavoriteButton } from '@/components/FavoriteButton';
 import { Icon } from '@/components/Icon';
 import { ReportListingButton } from '@/components/ReportListingButton';
@@ -23,7 +22,6 @@ import { getListing, getSellerPhone } from '@/lib/data/listings';
 import { getSession } from '@/lib/auth/session';
 import { recordView } from '@/lib/data/s2-store';
 import { shouldRecordView } from '@/lib/data/stats-rules';
-import { isPreSizedSource } from '@/lib/images';
 
 const STATE_BADGE: Record<string, BadgeKey> = {
   draft: 'draft',
@@ -105,10 +103,12 @@ export default async function ListingDetailPage({
         { icon: 'car', label: 'سال ساخت', value: String(listing.year) },
         { icon: 'mileage', label: 'کیلومتراژ', value: `${listing.mileageKm} کیلومتر` },
         { icon: 'gear', label: 'گیربکس', value: GEARBOX_LABELS[listing.gearbox] },
+        // The plate already has its own badge above the title, so the tile
+        // carries the fuel only — no duplicated «پلاک کیش» in two places.
         {
-          icon: 'plate',
-          label: 'وضعیت سوخت و پلاک',
-          value: `${FUEL_LABELS[listing.fuel]} · ${PLATE_TYPE_LABELS[listing.plateType]}`,
+          icon: 'fuel',
+          label: 'سوخت',
+          value: FUEL_LABELS[listing.fuel],
         },
       ];
 
@@ -125,44 +125,11 @@ export default async function ListingDetailPage({
       <div className="grid items-start gap-6 lg:grid-cols-12 lg:gap-8">
         {/* Right column in RTL: the photographic evidence and the story. */}
         <div className="min-w-0 space-y-4 lg:col-span-7">
-          <div className="relative aspect-[16/10] max-h-[420px] w-full overflow-hidden rounded-2xl border border-line bg-sunken">
-            {listing.coverUrl ? (
-              <Image
-                src={listing.coverUrl}
-                alt={part ? part.title : `${listing.model} ${listing.year}`}
-                fill
-                sizes="(min-width: 1024px) 58vw, 100vw"
-                unoptimized={isPreSizedSource(listing.coverUrl)}
-                priority
-                className={`object-cover ${sold ? 'opacity-60 grayscale' : ''}`}
-              />
-            ) : (
-              <div className="flex h-full flex-col items-center justify-center gap-2 text-faint">
-                <Icon name="camera" size={40} />
-                <span className="text-sm">بدون عکس</span>
-              </div>
-            )}
-          </div>
-
-          {listing.photos.length > 1 && (
-            <ul className="grid grid-cols-4 gap-2">
-              {listing.photos.slice(1, 9).map((url, index) => (
-                <li
-                  key={url}
-                  className="relative aspect-[4/3] overflow-hidden rounded-xl border border-line bg-sunken"
-                >
-                  <Image
-                    src={url}
-                    alt={`عکس ${index + 2}`}
-                    fill
-                    sizes="(min-width: 1024px) 14vw, 25vw"
-                    unoptimized={isPreSizedSource(url)}
-                    className="object-cover"
-                  />
-                </li>
-              ))}
-            </ul>
-          )}
+          <ListingGallery
+            photos={listing.photos.length > 0 ? listing.photos : listing.coverUrl ? [listing.coverUrl] : []}
+            alt={part ? part.title : `${listing.model} ${listing.year}`}
+            sold={sold}
+          />
 
           <section className="rounded-card border border-line bg-card p-4 sm:p-5">
             <h2 className="text-base font-extrabold text-ink">توضیحات آگهی</h2>

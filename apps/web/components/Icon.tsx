@@ -6,6 +6,8 @@ import {
   type IconName,
 } from '@studio/design';
 
+export type { IconName };
+
 /** Web renderer for the shared icon registry (currentColor, 24×24, 1.5 stroke). */
 export function Icon({
   name,

@@ -73,6 +73,7 @@
 
   html {
     font-family: var(--font-sans);
+    background-color: var(--color-page);
   }
 
   body {
@@ -211,6 +212,12 @@
  * it takes: every component already reads those through the `@theme` mapping,
  * so the whole surface, text and border scale flips at once.
  */
+/* `:root[...]` outranks the `:root` aliases in tokens.css, so the dark
+   overrides win regardless of stylesheet order. The canonical palette
+   variables are re-declared too, so anything reading `--surface`/`--text`
+   directly flips with the same switch. */
+:root[data-theme='dark'],
+:root.dark,
 html[data-theme='dark'],
 html.dark {
   color-scheme: dark;
@@ -227,4 +234,15 @@ html.dark {
   --color-focus-ring: #f98513;
   --logo-fg: #f4f1ec;
   --logo-navy: #f4f1ec;
+  /* Canonical palette (tokens.css) — kept in step with the aliases above. */
+  --bg: #0c0f1c;
+  --surface: #171b2c;
+  --surface-muted: #0c0f1c;
+  --border: #262c40;
+  --border-control: #3b435a;
+  --text: #f6f3ee;
+  --text-muted: #b8c0d0;
+  --price: #f98513;
+  --nav-active: #f98513;
+  --nav-inactive: #b8c0d0;
 }

@@ -7,10 +7,10 @@ import { Icon } from './Icon';
 /**
  * Quick-search box with an OpenSooq-style suggestion panel.
  *
- * Focusing the field opens a floating panel with the buyer's recent searches
- * (device-local, capped and clearable), the trending searches of the Kish
- * market, and the popular import brands. Every entry applies immediately: it
- * closes the panel and commits a fresh search, so the panel never leaves a
+ * Focusing or clicking the field opens a floating panel with the buyer's recent
+ * searches (device-local, capped and clearable), the trending searches of the
+ * Kish market, and the popular import brands. Every entry applies immediately:
+ * it closes the panel and commits a fresh search, so the panel never leaves a
  * half-applied filter behind.
  */
 export const RECENT_SEARCHES_KEY = 'alisales-recent-searches';
@@ -60,10 +60,12 @@ function writeRecent(list: string[]): void {
 export function SearchBar({
   q,
   onApply,
+  placeholder = 'جستجوی خودرو، برند یا قطعه',
 }: {
   q: string;
   /** Commit a fresh search (the panel replaces filters rather than stacking). */
   onApply: (patch: Partial<SearchFilters>) => void;
+  placeholder?: string;
 }) {
   const [value, setValue] = useState(q);
   const [open, setOpen] = useState(false);
@@ -114,6 +116,11 @@ export function SearchBar({
     setRecent([]);
   };
 
+  const show = () => {
+    setRecent(readRecent());
+    setOpen(true);
+  };
+
   return (
     <div ref={wrapRef} className="relative">
       <form onSubmit={submit} role="search">
@@ -126,19 +133,22 @@ export function SearchBar({
           type="search"
           value={value}
           onChange={(e) => setValue(e.target.value)}
-          onFocus={() => setOpen(true)}
-          placeholder="جستجوی خودرو، برند یا قطعه"
+          onFocus={show}
+          onClick={show}
+          placeholder={placeholder}
           aria-label="جستجوی آگهی"
           aria-expanded={open}
+          aria-controls="search-suggestions"
           className="field pe-10"
         />
       </form>
 
       {open && (
         <div
-          className="absolute inset-x-0 top-full z-40 mt-2 rounded-2xl border border-line bg-white p-4 shadow-xl dark:border-white/10 dark:bg-[#161A38]"
+          id="search-suggestions"
           role="dialog"
           aria-label="پیشنهادهای جستجو"
+          className="absolute inset-x-0 top-full z-40 mt-2 rounded-2xl border border-line bg-card p-4 shadow-xl"
         >
           {recent.length > 0 && (
             <section className="mb-4">

@@ -1,79 +1,67 @@
 'use client';
 
-import { useState, type FormEvent } from 'react';
-import {
-  MESSAGE_KIND_LABELS,
-  VISIT_REQUEST_DEFAULT_MESSAGE,
-  visitSlotLabel,
-  type MessageKind,
-  type VisitSlot,
-} from '@alisales/schemas';
+import { useEffect, useRef, useState, type FormEvent, type KeyboardEvent } from 'react';
+import { Icon } from './Icon';
 
 export interface ThreadMessage {
   id: string;
   senderId: string;
   body: string;
   createdAt: string;
-  kind?: MessageKind;
-  visit?: VisitSlot | null;
+  kind?: string;
+  visit?: unknown;
+}
+
+/** Local-time clock for a message — rendered after mount so SSR and client agree. */
+function clock(iso: string): string {
+  const date = new Date(iso);
+  if (Number.isNaN(date.getTime())) return '';
+  return date.toLocaleTimeString('fa-IR', { hour: '2-digit', minute: '2-digit' });
 }
 
 /**
- * Conversation view: message bubbles, the composer, and the structured visit
- * request flow (`visit_request_chat`).
+ * Conversation view: a standard buyer ↔ seller message thread.
  *
- * The buyer asks for a visit with an optional date/time; the seller accepts the
- * proposed slot or proposes a counter-time. Role rules and message bodies are
- * enforced server-side (`/api/messages`); this component only drives the UI.
+ * Everything is a plain text bubble with its time underneath — no structured
+ * visit-request widgets, no slots, no counters. Role rules and message bodies
+ * are still enforced server-side (`/api/messages`); this component only drives
+ * the composer and the thread.
  */
 export function ChatThread({
   conversationId,
   currentUserId,
-  isSeller,
   initialMessages,
 }: {
   conversationId: string;
   currentUserId: string;
-  isSeller: boolean;
   initialMessages: ThreadMessage[];
 }) {
   const [messages, setMessages] = useState<ThreadMessage[]>(initialMessages);
   const [text, setText] = useState('');
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState<string | null>(null);
-  const [panel, setPanel] = useState<'none' | 'request' | 'counter'>('none');
-  const [visitDate, setVisitDate] = useState('');
-  const [visitTime, setVisitTime] = useState('');
+  const [mounted, setMounted] = useState(false);
+  const listRef = useRef<HTMLUListElement>(null);
 
-  // Latest proposal that came from the other side (seller can answer it).
-  const lastProposal =
-    [...messages]
-      .reverse()
-      .find(
-        (m) =>
-          (m.kind === 'visit_request' || m.kind === 'visit_counter') &&
-          m.senderId !== currentUserId,
-      ) ?? null;
+  useEffect(() => setMounted(true), []);
 
-  function currentSlot(): VisitSlot {
-    return { date: visitDate || null, time: visitTime || null };
-  }
+  // Keep the newest message in view, like every messaging app.
+  useEffect(() => {
+    const node = listRef.current;
+    if (node) node.scrollTop = node.scrollHeight;
+  }, [messages.length]);
 
-  function resetPanel(): void {
-    setPanel('none');
-    setVisitDate('');
-    setVisitTime('');
-  }
-
-  async function post(payload: Record<string, unknown>): Promise<void> {
-    if (busy) return;
+  async function send(event?: FormEvent<HTMLFormElement>): Promise<void> {
+    event?.preventDefault();
+    const body = text.trim();
+    if (!body || busy) return;
     setBusy(true);
     setError(null);
     try {
       const res = await fetch('/api/messages', {
         method: 'POST',
         headers: { 'content-type': 'application/json' },
-        body: JSON.stringify({ conversationId, ...payload }),
+        body: JSON.stringify({ conversationId, body }),
       });
       const data = (await res.json().catch(() => ({}))) as {
         message?: ThreadMessage;
@@ -81,7 +69,6 @@ export function ChatThread({
       };
       if (res.ok && data.message) {
         setMessages((current) => [...current, data.message as ThreadMessage]);
-        resetPanel();
         setText('');
         return;
       }
@@ -93,162 +80,47 @@ export function ChatThread({
     }
   }
 
-  async function send(event: FormEvent<HTMLFormElement>): Promise<void> {
-    event.preventDefault();
-    const body = text.trim();
-    if (!body) return;
-    await post({ body });
+  /** Enter sends, Shift+Enter starts a new line. */
+  function onKeyDown(event: KeyboardEvent<HTMLTextAreaElement>): void {
+    if (event.key === 'Enter' && !event.shiftKey) {
+      event.preventDefault();
+      void send();
+    }
   }
 
   return (
     <div className="flex flex-col gap-3">
-      <ul className="flex flex-col gap-2">
+      <ul
+        ref={listRef}
+        aria-label="پیام‌ها"
+        className="flex max-h-[62vh] min-h-[240px] flex-col gap-2 overflow-y-auto rounded-card border border-line bg-page p-3"
+      >
         {messages.length === 0 && (
-          <li className="rounded-card border border-dashed border-line-strong bg-card px-4 py-8 text-center text-sm text-muted">
+          <li className="m-auto max-w-xs text-center text-sm text-muted">
             هنوز پیامی رد و بدل نشده است؛ اولین پیام را بفرستید.
           </li>
         )}
         {messages.map((message) => {
           const mine = message.senderId === currentUserId;
-          const structured = message.kind && message.kind !== 'text';
           return (
-            <li key={message.id} className={mine ? 'self-start' : 'self-end'}>
+            <li key={message.id} className={`flex flex-col ${mine ? 'items-start' : 'items-end'}`}>
               <div
-                className={`max-w-[80vw] rounded-card px-3 py-2 text-sm ${
+                className={`max-w-[85%] whitespace-pre-wrap break-words rounded-2xl px-3.5 py-2 text-sm leading-6 ${
                   mine ? 'bg-cta-soft text-ink' : 'border border-line bg-card text-ink'
                 }`}
               >
-                {structured && (
-                  <p className="mb-1 flex flex-wrap items-center gap-1 text-xs font-extrabold">
-                    <span className="rounded-[var(--radius-pill)] border border-line bg-page px-2 py-0.5">
-                      {MESSAGE_KIND_LABELS[message.kind as MessageKind]}
-                    </span>
-                    {message.visit && (
-                      <span dir="ltr" className="font-bold text-muted">
-                        {visitSlotLabel(message.visit)}
-                      </span>
-                    )}
-                  </p>
-                )}
-                <p className="whitespace-pre-wrap">{message.body}</p>
+                {message.body}
               </div>
+              <time
+                dateTime={message.createdAt}
+                className="mt-1 text-[10px] font-semibold text-faint"
+              >
+                {mounted ? clock(message.createdAt) : ''}
+              </time>
             </li>
           );
         })}
       </ul>
-
-      {!isSeller && panel === 'none' && (
-        <button
-          type="button"
-          onClick={() => setPanel('request')}
-          className="btn-ghost self-start text-xs"
-        >
-          درخواست بازدید
-        </button>
-      )}
-
-      {!isSeller && panel === 'request' && (
-        <div className="rounded-card border border-line bg-card p-3">
-          <p className="text-sm font-extrabold">درخواست بازدید</p>
-          <p className="mt-1 text-xs text-muted">{VISIT_REQUEST_DEFAULT_MESSAGE}</p>
-          <div className="mt-3 grid gap-2 sm:grid-cols-2">
-            <label className="text-xs font-bold">
-              تاریخ (اختیاری)
-              <input
-                type="date"
-                dir="ltr"
-                className="field mt-1"
-                value={visitDate}
-                onChange={(e) => setVisitDate(e.target.value)}
-              />
-            </label>
-            <label className="text-xs font-bold">
-              ساعت (اختیاری)
-              <input
-                type="time"
-                dir="ltr"
-                className="field mt-1"
-                value={visitTime}
-                onChange={(e) => setVisitTime(e.target.value)}
-              />
-            </label>
-          </div>
-          <div className="mt-3 flex flex-wrap gap-2">
-            <button
-              type="button"
-              disabled={busy}
-              onClick={() => void post({ kind: 'visit_request', visit: currentSlot() })}
-              className="btn-cta text-xs disabled:opacity-60"
-            >
-              {busy ? 'در حال ارسال…' : 'ارسال درخواست'}
-            </button>
-            <button type="button" onClick={resetPanel} className="btn-ghost text-xs">
-              انصراف
-            </button>
-          </div>
-        </div>
-      )}
-
-      {isSeller && lastProposal && panel === 'none' && (
-        <div className="flex flex-wrap items-center gap-2 rounded-card border border-line bg-card p-3">
-          <p className="text-xs font-bold">
-            زمان پیشنهادی:{' '}
-            <span dir="ltr">{visitSlotLabel(lastProposal.visit ?? null)}</span>
-          </p>
-          <button
-            type="button"
-            disabled={busy}
-            onClick={() => void post({ kind: 'visit_accept', visit: lastProposal.visit ?? null })}
-            className="btn-cta text-xs disabled:opacity-60"
-          >
-            تأیید زمان
-          </button>
-          <button type="button" onClick={() => setPanel('counter')} className="btn-ghost text-xs">
-            پیشنهاد زمان دیگر
-          </button>
-        </div>
-      )}
-
-      {isSeller && panel === 'counter' && (
-        <div className="rounded-card border border-line bg-card p-3">
-          <p className="text-sm font-extrabold">پیشنهاد زمان دیگر</p>
-          <div className="mt-3 grid gap-2 sm:grid-cols-2">
-            <label className="text-xs font-bold">
-              تاریخ
-              <input
-                type="date"
-                dir="ltr"
-                className="field mt-1"
-                value={visitDate}
-                onChange={(e) => setVisitDate(e.target.value)}
-              />
-            </label>
-            <label className="text-xs font-bold">
-              ساعت
-              <input
-                type="time"
-                dir="ltr"
-                className="field mt-1"
-                value={visitTime}
-                onChange={(e) => setVisitTime(e.target.value)}
-              />
-            </label>
-          </div>
-          <div className="mt-3 flex flex-wrap gap-2">
-            <button
-              type="button"
-              disabled={busy || (!visitDate && !visitTime)}
-              onClick={() => void post({ kind: 'visit_counter', visit: currentSlot() })}
-              className="btn-cta text-xs disabled:opacity-60"
-            >
-              {busy ? 'در حال ارسال…' : 'ارسال پیشنهاد'}
-            </button>
-            <button type="button" onClick={resetPanel} className="btn-ghost text-xs">
-              انصراف
-            </button>
-          </div>
-        </div>
-      )}
 
       <form onSubmit={(e) => void send(e)} className="flex items-end gap-2">
         <label htmlFor="message" className="sr-only">
@@ -256,15 +128,21 @@ export function ChatThread({
         </label>
         <textarea
           id="message"
-          className="field min-h-11 flex-1 resize-y"
-          rows={2}
+          className="field min-h-11 flex-1 resize-none"
+          rows={1}
           maxLength={2000}
           value={text}
           onChange={(e) => setText(e.target.value)}
+          onKeyDown={onKeyDown}
           placeholder="پیام خود را بنویسید…"
         />
-        <button type="submit" disabled={busy || text.trim().length === 0} className="btn-cta text-sm disabled:opacity-60">
-          {busy ? 'در حال ارسال…' : 'ارسال'}
+        <button
+          type="submit"
+          disabled={busy || text.trim().length === 0}
+          aria-label="ارسال پیام"
+          className="btn-cta h-11 w-11 shrink-0 p-0 disabled:opacity-50"
+        >
+          <Icon name="send" size={18} />
         </button>
       </form>
 
