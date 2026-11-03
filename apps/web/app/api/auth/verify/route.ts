@@ -9,6 +9,8 @@ import {
 } from '@alisales/schemas';
 import { authSecret, createSessionToken, setSessionCookie } from '@/lib/auth/session';
 import { bumpOtpAttempts, deleteOtp, getOtp, verifyOtpHash } from '@/lib/auth/otp-store';
+import { clearDemoOtpCookie, demoOtpCookieMatches } from '@/lib/auth/otp-cookie';
+import { demoAuthMode } from '@/lib/config/mode';
 import { createUser, findUserByPhone } from '@/lib/data/s2-store';
 
 /**
@@ -55,24 +57,23 @@ export async function POST(request: Request): Promise<NextResponse> {
   }
 
   const record = getOtp(phone);
-  if (!record) {
+  if (record) {
+    const status = otpStatus(record);
+    if (status !== 'ok') {
+      return NextResponse.json({ error: otpStatusMessage(status) }, { status: 401 });
+    }
+    const matched = await verifyOtpHash(phone, code, record);
+    if (!matched) {
+      bumpOtpAttempts(phone);
+      return NextResponse.json({ error: otpStatusMessage('ok') }, { status: 401 });
+    }
+  } else if (!(demoAuthMode() && (await demoOtpCookieMatches(phone, code)))) {
+    // No in-memory record: either the code expired/was used, or (demo mode on
+    // Workers) a different isolate issued it — the signed cookie covers the
+    // latter so a preview login never dead-ends.
     return NextResponse.json(
       { error: 'کد تأیید یافت نشد؛ دوباره درخواست کنید.' },
       { status: 400 },
-    );
-  }
-
-  const status = otpStatus(record);
-  if (status !== 'ok') {
-    return NextResponse.json({ error: otpStatusMessage(status) }, { status: 401 });
-  }
-
-  const matched = await verifyOtpHash(phone, code, record);
-  if (!matched) {
-    bumpOtpAttempts(phone);
-    return NextResponse.json(
-      { error: otpStatusMessage('ok') },
-      { status: 401 },
     );
   }
 
@@ -98,6 +99,7 @@ export async function POST(request: Request): Promise<NextResponse> {
   }
 
   deleteOtp(phone);
+  await clearDemoOtpCookie();
 
   const token = await createSessionToken({
     sub: account.id,

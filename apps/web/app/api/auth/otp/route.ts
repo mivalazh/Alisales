@@ -2,6 +2,7 @@ import { NextResponse } from 'next/server';
 import { isValidMobile, normalizePhone } from '@alisales/schemas';
 import { authSecret } from '@/lib/auth/session';
 import { deleteOtp, generateOtp, resendWaitSeconds, saveOtp } from '@/lib/auth/otp-store';
+import { setDemoOtpCookie } from '@/lib/auth/otp-cookie';
 import { sendOtpSms } from '@/lib/auth/sms';
 import { demoAuthMode, demoOtpHintEnabled } from '@/lib/config/mode';
 import { findUserByPhone } from '@/lib/data/s2-store';
@@ -85,6 +86,10 @@ export async function POST(request: Request): Promise<NextResponse> {
     needsProfile: !existing,
   };
   if (!delivery.delivered && demoOtpHintEnabled()) body.demoCode = code;
+
+  // Demo auth: hand the code to this browser too, so the verify request still
+  // works when a different isolate (no shared memory) serves it.
+  if (demo) await setDemoOtpCookie(phone, code);
 
   return NextResponse.json(body, { status: 202 });
 }
