@@ -6,6 +6,7 @@ import {
   parseFiltersFromSearchParams,
 } from '@alisales/schemas';
 import { PartsCatalog } from '@/components/PartsCatalog';
+import { CategorySwitch } from '@/components/CategorySwitch';
 import { Icon } from '@/components/Icon';
 import {
   filterByPartCategory,
@@ -41,8 +42,8 @@ const PART_STORIES = [
  * Dedicated «قطعات و لوازم یدکی» page. Deliberately *not* the car layout: no
  * brand box, because parts buyers shop by category, condition and origin.
  *
- *   search → circular parts stories → category pills + condition/origin/
- *   warranty/compatibility strip → sort/view → parts grid.
+ *   category switch → search → circular parts stories → category pills +
+ *   condition/origin/warranty/compatibility strip → sort/view → parts grid.
  */
 export default async function PartsPage({
   searchParams,
@@ -100,6 +101,8 @@ export default async function PartsPage({
           خودروها
         </Link>
       </div>
+
+      <CategorySwitch />
 
       <PartsCatalog
         listings={listings}

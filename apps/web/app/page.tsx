@@ -1,6 +1,7 @@
 import Link from 'next/link';
 import { PART_CATEGORY_LABELS, parseFiltersFromSearchParams } from '@alisales/schemas';
 import { Catalog } from '@/components/Catalog';
+import { CategorySwitch } from '@/components/CategorySwitch';
 import type { CatalogKind } from '@/components/CategoryCards';
 import {
   filterByBodyType,
@@ -71,6 +72,9 @@ export default async function HomePage({
   return (
     <>
       <h1 className="sr-only">آگهی‌های خودرو در کیش و سراسر ایران</h1>
+      <div className="mb-3">
+        <CategorySwitch />
+      </div>
       {(groupLabel || kindLabel) && (
         <div className="mb-3 flex flex-wrap items-center gap-2">
           <span className="rounded-[var(--radius-pill)] border border-cta bg-cta-soft px-3 py-1.5 text-xs font-extrabold text-ink">

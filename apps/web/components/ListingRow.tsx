@@ -1,15 +1,10 @@
 import Image from 'next/image';
 import Link from 'next/link';
 import { badgeFor, type BadgeKey } from '@studio/design';
-import {
-  CITY_LABELS,
-  GEARBOX_LABELS,
-  PART_CATEGORY_LABELS,
-  PART_ORIGIN_LABELS,
-  postingAgeLabel,
-} from '@alisales/schemas';
+import { CITY_LABELS, PART_CATEGORY_LABELS, PART_ORIGIN_LABELS, postingAgeLabel } from '@alisales/schemas';
 import type { ReactNode } from 'react';
 import type { ListingCardData } from '@/lib/data/listings';
+import { brandLatinFor, specParts, vehicleTitle } from '@/lib/listing-text';
 import { FavoriteButton } from './FavoriteButton';
 import { PriceText } from './PriceText';
 import { VerifiedPill } from './SellerVerified';
@@ -38,6 +33,8 @@ export function ListingRow({
 }) {
   const sold = listing.state === 'sold';
   const part = listing.part ?? null;
+  const latin = part ? null : brandLatinFor(listing.brand);
+  const specs = part ? [] : specParts(listing);
 
   return (
     <li className="relative overflow-hidden rounded-card border border-line bg-card transition hover:border-line-strong hover:shadow-lg">
@@ -104,6 +101,15 @@ export function ListingRow({
             )}
           </div>
 
+          {!part && latin && (
+            <p
+              dir="ltr"
+              className="truncate text-start text-[10px] font-extrabold uppercase tracking-[0.08em] text-muted"
+            >
+              {latin}
+            </p>
+          )}
+
           <h3
             className="truncate text-sm font-extrabold leading-tight sm:text-base"
             style={sold ? { color: SOLD_TEXT } : undefined}
@@ -112,9 +118,8 @@ export function ListingRow({
               part.title
             ) : (
               <>
-                {listing.model}
-                {listing.trim ? ` ${listing.trim}` : ''}{' '}
-                <span className="font-bold">{listing.year}</span>
+                <bdi>{vehicleTitle(listing)}</bdi>{' '}
+                {listing.year > 0 && <span className="font-bold">{listing.year}</span>}
               </>
             )}
           </h3>
@@ -127,7 +132,13 @@ export function ListingRow({
               </>
             ) : (
               <>
-                {listing.mileageKm} کیلومتر · {GEARBOX_LABELS[listing.gearbox]} ·{' '}
+                {specs.map((item, i) => (
+                  <span key={`${item}-${i}`}>
+                    {i > 0 && <span className="mx-1 text-faint">·</span>}
+                    <bdi>{item}</bdi>
+                  </span>
+                ))}
+                <span className="mx-1 text-faint">·</span>
                 {CITY_LABELS[listing.city] ?? listing.city}
               </>
             )}

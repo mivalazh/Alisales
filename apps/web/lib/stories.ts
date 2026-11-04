@@ -35,5 +35,7 @@ export function storiesFrom(
     title: storyTitle(listing),
     coverUrl: listing.coverUrl!,
     href: `/listing/${listing.slug}`,
+    // The rail's ring takes the marque colour.
+    brand: listing.brand,
   }));
 }

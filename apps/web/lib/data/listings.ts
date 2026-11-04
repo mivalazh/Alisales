@@ -14,6 +14,7 @@ import {
   type PartOrigin,
   type PlateType,
   type SearchFilters,
+  type VehicleCategory,
 } from '@alisales/schemas';
 import { fixtureListings } from './fixtures';
 import { applyListingOverrides, devListings } from './dev-store';
@@ -74,6 +75,16 @@ export interface ListingCardData {
   hideAed?: boolean;
   /** «vehicle» for cars; «part» for parts & accessories listings. */
   kind?: 'vehicle' | 'part';
+  /** Vehicle category: car (default), motorcycle or heavy machinery. */
+  category?: 'car' | 'motorcycle' | 'heavy';
+  /** Motorcycle displacement in cc. */
+  engineCc?: number | null;
+  /** Motorcycle class («classic» / «sport» / «scooter» / «cross» …). */
+  bikeType?: string | null;
+  /** Heavy machinery class («truck» / «tractor» / «excavator» …). */
+  heavyType?: string | null;
+  /** Heavy machinery working hours. */
+  workingHours?: number | null;
   /** Present only for parts listings. */
   part?: PartInfo | null;
   /** Seller text — carried by fixture cards so the editor can prefill it. */
@@ -114,6 +125,12 @@ interface ListingCardRow {
   description?: string | null;
   /** 0007: `vehicle` | `part`. */
   kind?: 'vehicle' | 'part' | null;
+  /** Present when the hosted view exposes the vehicle category. */
+  category?: 'car' | 'motorcycle' | 'heavy' | null;
+  engine_cc?: number | null;
+  bike_type?: string | null;
+  heavy_type?: string | null;
+  working_hours?: number | null;
   part_title?: string | null;
   part_category?: PartCategory | null;
   part_origin?: PartOrigin | null;
@@ -158,6 +175,13 @@ function mapRow(r: ListingCardRow): ListingDetailData {
     description: r.description ?? null,
     photos: [],
     kind: r.kind === 'part' ? 'part' : 'vehicle',
+    // Hosted rows without the category column read as cars, which is the
+    // launch default; the fixture catalogue carries the richer value.
+    category: r.kind === 'part' ? undefined : (r.category ?? 'car'),
+    engineCc: r.engine_cc ?? null,
+    bikeType: r.bike_type ?? null,
+    heavyType: r.heavy_type ?? null,
+    workingHours: r.working_hours ?? null,
     part: r.part_title
       ? {
           title: r.part_title,
@@ -189,15 +213,33 @@ function launchFilters(filters: SearchFilters): SearchFilters {
 }
 
 /**
+ * Browse is the car + parts catalogue unless a category is asked for.
+ *
+ * Motorcycles and heavy machinery have their own top-level pages; without this
+ * narrowing they would also leak into the home grid and into every car filter
+ * count. Parts always pass (they are not a vehicle category).
+ */
+function inBrowseCategory(
+  listing: ListingCardData,
+  category: VehicleCategory | undefined,
+): boolean {
+  if (listing.kind === 'part') return true;
+  return (listing.category ?? 'car') === (category ?? 'car');
+}
+
+/**
  * Credential-less mode: same filter semantics as the RPC, applied locally so
  * the offline catalog behaves exactly like the hosted one (chips included).
  */
 export function applyFiltersLocally(
   list: readonly ListingCardData[],
   filters: SearchFilters,
+  category?: VehicleCategory,
 ): ListingCardData[] {
   const effective = launchFilters(filters);
-  return list.filter((l) => matchesFilters(l, effective)).sort(soldLastThenRecency);
+  return list
+    .filter((l) => matchesFilters(l, effective) && inBrowseCategory(l, category))
+    .sort(soldLastThenRecency);
 }
 
 /** Same ranking shape as the RPC: sold last, then most recent first. */
@@ -220,6 +262,7 @@ function soldLastThenRecency(a: ListingCardData, b: ListingCardData): number {
  */
 export async function searchListings(
   filters: SearchFilters = DEFAULT_FILTERS,
+  category?: VehicleCategory,
 ): Promise<ListingCardData[]> {
   const effective = launchFilters(filters);
   const supabase = supabaseClient();
@@ -235,7 +278,7 @@ export async function searchListings(
         verifiedSellers: overlay.verifiedSellers,
       },
     );
-    return applyFiltersLocally(local, filters);
+    return applyFiltersLocally(local, filters, category);
   }
 
   const { data, error } = await supabase.rpc('search_listings', {
@@ -244,7 +287,12 @@ export async function searchListings(
     p_offset: 0,
   });
   if (error) throw new Error(`search_listings RPC failed: ${error.message}`);
-  return (data as unknown as ListingCardRow[]).map(mapRow);
+  // The hosted view has no category column yet, so every vehicle row reads as a
+  // car; keeping the narrowing here means the three category pages share one
+  // code path online and offline.
+  return (data as unknown as ListingCardRow[])
+    .map(mapRow)
+    .filter((l) => inBrowseCategory(l, category));
 }
 
 /**

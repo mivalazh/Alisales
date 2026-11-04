@@ -58,26 +58,23 @@ export const listingStateChangeSchema = z.object({
 });
 
 /**
- * Reference rate for the AED/Toman price switch in the editor.
+ * AED/Toman entry helpers.
+ *
+ * The conversion itself lives in `./rate` (one source for the rate). These
+ * re-exports stay for the existing import sites; every function takes the
+ * caller's live rate, defaulting to the launch reference so a call with no
+ * argument behaves exactly as before.
  *
  * Display/entry helper only: the stored value is always IRR and no payment or
  * checkout path reads this. Pricing changes stay behind finance sign-off.
  */
-export const AED_TO_IRR = 272_000;
-export const IRR_PER_TOMAN = 10;
-
-export function aedToIRR(aed: number): number {
-  return Math.round(aed * AED_TO_IRR);
-}
-
-export function irrToAED(irr: number): number {
-  return Math.round(irr / AED_TO_IRR);
-}
-
-export function tomanToIRR(toman: number): number {
-  return Math.round(toman * IRR_PER_TOMAN);
-}
-
-export function irrToToman(irr: number): number {
-  return Math.round(irr / IRR_PER_TOMAN);
-}
+export {
+  DEFAULT_AED_TO_IRR,
+  AED_TO_IRR,
+  IRR_PER_TOMAN,
+  aedToIRR,
+  irrToAED,
+  tomanToIRR,
+  irrToToman,
+} from './rate';
+export type { AedRate, RateSource } from './rate';

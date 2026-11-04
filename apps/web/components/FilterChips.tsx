@@ -1,10 +1,13 @@
 'use client';
 
 import {
+  BIKE_TYPE_LABELS,
   BRAND_LABELS,
   CITY_LABELS,
   CONDITION_LABELS,
+  FUEL_LABELS,
   GEARBOX_LABELS,
+  HEAVY_TYPE_LABELS,
   PLATE_TYPE_LABELS,
   activeFilterCount,
   groupDigits,
@@ -96,6 +99,42 @@ export function FilterChips({
       clear: (f) => ({ ...f, condition: f.condition.filter((c) => c !== condition) }),
     });
   }
+  for (const fuel of filters.fuel) {
+    chips.push({
+      id: `fuel-${fuel}`,
+      label: FUEL_LABELS[fuel],
+      clear: (f) => ({ ...f, fuel: f.fuel.filter((v) => v !== fuel) }),
+    });
+  }
+  for (const bike of filters.bikeType) {
+    chips.push({
+      id: `bike-${bike}`,
+      label: BIKE_TYPE_LABELS[bike] ?? bike,
+      clear: (f) => ({ ...f, bikeType: f.bikeType.filter((v) => v !== bike) }),
+    });
+  }
+  for (const heavy of filters.heavyType) {
+    chips.push({
+      id: `heavy-${heavy}`,
+      label: HEAVY_TYPE_LABELS[heavy] ?? heavy,
+      clear: (f) => ({ ...f, heavyType: f.heavyType.filter((v) => v !== heavy) }),
+    });
+  }
+  const cc = rangeLabel('حجم موتور', filters.engineCcMin, filters.engineCcMax);
+  if (cc) {
+    chips.push({
+      id: 'engineCc',
+      label: `${cc} cc`,
+      clear: (f) => ({ ...f, engineCcMin: undefined, engineCcMax: undefined }),
+    });
+  }
+  if (filters.workingHoursMax !== undefined) {
+    chips.push({
+      id: 'workingHours',
+      label: `ساعت کارکرد تا ${toPersianDigits(groupDigits(filters.workingHoursMax))}`,
+      clear: (f) => ({ ...f, workingHoursMax: undefined }),
+    });
+  }
   for (const city of filters.city) {
     chips.push({
       id: `city-${city}`,
@@ -141,9 +180,15 @@ export function FilterChips({
             priceTo: undefined,
             mileageMax: undefined,
             gearbox: [],
+            fuel: [],
             plateType: [],
             condition: [],
             city: [],
+            engineCcMin: undefined,
+            engineCcMax: undefined,
+            bikeType: [],
+            heavyType: [],
+            workingHoursMax: undefined,
             hasReport: false,
             kishOnly: false,
             q: '',

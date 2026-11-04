@@ -1,14 +1,35 @@
 import type { Metadata } from 'next';
-import Link from 'next/link';
 import { redirect } from 'next/navigation';
-import { formatPriceLatin, postingAgeLabel } from '@alisales/schemas';
 import { getSession } from '@/lib/auth/session';
-import { conversationById, listingById, messagesForConversation } from '@/lib/data/s2-store';
-import { ChatThread } from '@/components/ChatThread';
+import {
+  conversationById,
+  getUser,
+  listingById,
+  messagesForConversation,
+} from '@/lib/data/s2-store';
+import { markRead, readAt } from '@/lib/data/chat-presence';
+import { ChatThread, type ChatListingContext } from '@/components/ChatThread';
+import { vehicleTitle } from '@/lib/listing-text';
 
 export const metadata: Metadata = { title: 'گفتگو' };
 
-/** A conversation is readable only by its two participants. */
+/** Activity we know about for the peer: their last message or read receipt. */
+function latest(iso: (string | null | undefined)[]): string | null {
+  return (
+    iso
+      .filter((value): value is string => Boolean(value))
+      .sort()
+      .at(-1) ?? null
+  );
+}
+
+/**
+ * A conversation is readable only by its two participants.
+ *
+ * The page resolves the *other* participant (name, initials, last activity) and
+ * the pinned listing, so the thread can render the messenger header without the
+ * client knowing any ids it should not have.
+ */
 export default async function ChatPage({ params }: { params: Promise<{ id: string }> }) {
   const session = await getSession();
   if (!session) redirect('/login?next=/chats');
@@ -27,36 +48,47 @@ export default async function ChatPage({ params }: { params: Promise<{ id: strin
     listingById(conversation.listingId),
   ]);
 
-  return (
-    <div className="mx-auto flex max-w-2xl flex-col gap-4">
-      <div className="flex items-center justify-between gap-2">
-        <div className="min-w-0">
-          <h1 className="truncate text-lg font-extrabold">
-            {listing ? `${listing.model} ${listing.year}` : 'گفتگو'}
-          </h1>
-          {listing && (
-            <Link href={`/listing/${listing.slug}`} className="text-xs font-bold text-muted underline">
-              {formatPriceLatin(listing.priceIRR)} · {postingAgeLabel(listing.publishedAt ?? Date.now())}
-            </Link>
-          )}
-        </div>
-        <Link href="/chats" className="text-xs font-bold text-muted underline">
-          همه‌ی چت‌ها
-        </Link>
-      </div>
+  const otherId =
+    session.sub === conversation.buyerId ? conversation.sellerId : conversation.buyerId;
+  const peerAccount = await getUser(otherId);
+  const peerMessages = messages.filter((m) => m.senderId === otherId);
 
-      <ChatThread
-        conversationId={conversation.id}
-        currentUserId={session.sub}
-        initialMessages={messages.map((m) => ({
-          id: m.id,
-          senderId: m.senderId,
-          body: m.body,
-          createdAt: m.createdAt,
-          kind: m.kind,
-          visit: m.visit,
-        }))}
-      />
-    </div>
+  // Opening the thread is the read receipt for this viewer.
+  markRead(conversation.id, session.sub);
+  const otherReadAt = readAt(conversation.id, otherId);
+
+  const peerName = peerAccount?.displayName?.trim() || (listing?.showroomName ?? 'کاربر آلی‌سیلز');
+  const initials = peerName.trim().charAt(0) || '؟';
+
+  const context: ChatListingContext | null = listing
+    ? {
+        slug: listing.slug,
+        title: listing.part ? listing.part.title : vehicleTitle(listing),
+        priceIRR: listing.priceIRR,
+        coverUrl: listing.coverUrl,
+        sold: listing.state === 'sold',
+      }
+    : null;
+
+  return (
+    <ChatThread
+      conversationId={conversation.id}
+      currentUserId={session.sub}
+      peer={{
+        name: peerName,
+        initials,
+        lastActiveAt: latest([peerMessages.at(-1)?.createdAt, otherReadAt]),
+      }}
+      listing={context}
+      initialOtherReadAt={otherReadAt}
+      initialMessages={messages.map((m) => ({
+        id: m.id,
+        senderId: m.senderId,
+        body: m.body,
+        createdAt: m.createdAt,
+        kind: m.kind,
+        visit: m.visit,
+      }))}
+    />
   );
 }

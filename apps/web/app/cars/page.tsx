@@ -1,13 +1,10 @@
 import type { Metadata } from 'next';
 import Link from 'next/link';
-import { DEFAULT_FILTERS, parseFiltersFromSearchParams } from '@alisales/schemas';
-import { CarsCatalog } from '@/components/CarsCatalog';
+import { CategoryCatalog } from '@/components/CategoryCatalog';
+import { CategorySwitch } from '@/components/CategorySwitch';
 import { Icon } from '@/components/Icon';
 import { filterByBodyType, parseBodyType } from '@/lib/browse';
-import { searchListings } from '@/lib/data/listings';
-import { approvedStories } from '@/lib/data/moderation';
-import { storiesFrom } from '@/lib/stories';
-import { parseSortKey } from '@/lib/sort';
+import { loadCategoryPage } from '@/lib/category-page';
 
 export const metadata: Metadata = {
   title: 'خودروها',
@@ -20,23 +17,13 @@ function first(value: string | string[] | undefined): string | undefined {
   return Array.isArray(value) ? value[0] : value;
 }
 
-/** Editorial vehicle highs for the car story rail (approved ones come first). */
-const CAR_STORIES = [
-  'land-cruiser-kish',
-  'patrol-platinum-kish',
-  's-class-kish',
-  'cayenne-kish',
-  'huracan-showroom',
-] as const;
-
 /**
- * Dedicated «خودرو» browse page, in the OpenSooq order:
+ * «خودرو» — the vehicle category page.
  *
- *   search → filter pills (+ full filter modal) → brand emblem box with
- *   models → circular vehicle stories → sort/view → vehicle grid.
- *
- * The brand box is the filter control itself: a brand tap commits `?brand=` and
- * opens that marque's model row, a model tap narrows the grid immediately.
+ * Top to bottom: category switch → search → brand box with its model row →
+ * filters (sidebar on desktop, bottom sheet on phones) → car stories → chips →
+ * sort/view → grid. The brand box is the filter control itself: a brand tap
+ * commits `?brand=` and opens that marque's models.
  */
 export default async function CarsPage({
   searchParams,
@@ -44,28 +31,9 @@ export default async function CarsPage({
   searchParams: Promise<SearchParams>;
 }) {
   const params = await searchParams;
-  const raw: Record<string, string> = {};
-  for (const [key, value] of Object.entries(params)) {
-    const v = first(value);
-    if (v !== undefined) raw[key] = v;
-  }
-
-  const filters = parseFiltersFromSearchParams(raw);
-  const sort = parseSortKey(first(params.sort));
+  const { listings, ...data } = await loadCategoryPage(params, 'car');
   const body = parseBodyType(first(params.body));
-
-  // Two reads: the filtered result the grid renders, and the unfiltered vehicle
-  // pool behind the live filter count.
-  const [base, pool, approved] = await Promise.all([
-    searchListings(filters),
-    searchListings(DEFAULT_FILTERS),
-    approvedStories(),
-  ]);
-  const vehicles = base.filter((listing) => listing.kind !== 'part');
-  const listings = body ? filterByBodyType(vehicles, body) : vehicles;
-
-  const vehiclePool = pool.filter((listing) => listing.kind !== 'part');
-  const stories = storiesFrom(vehiclePool, approved, CAR_STORIES, 6);
+  const visible = body ? filterByBodyType(listings, body) : listings;
 
   return (
     <div className="space-y-4">
@@ -73,8 +41,8 @@ export default async function CarsPage({
         <div>
           <h1 className="text-xl font-extrabold sm:text-2xl">خودروها</h1>
           <p className="mt-1 text-sm text-muted">
-            {body ? body.label : 'همه‌ی خودروهای کیش، وارداتی و پلاک‌دار'} ·{' '}
-            {listings.length.toLocaleString('en-US')} آگهی
+            {body ? body.label : 'خودروهای کیش و سراسر ایران، وارداتی و پلاک‌دار'} ·{' '}
+            {visible.length.toLocaleString('en-US')} آگهی
           </p>
         </div>
         <Link
@@ -86,12 +54,18 @@ export default async function CarsPage({
         </Link>
       </div>
 
-      <CarsCatalog
-        listings={listings}
-        pool={vehiclePool}
-        filters={filters}
-        sort={sort}
-        stories={stories}
+      <CategorySwitch />
+
+      <CategoryCatalog
+        category="car"
+        listings={visible}
+        pool={data.pool}
+        filters={data.filters}
+        sort={data.sort}
+        stories={data.stories}
+        storiesLabel="داستان‌های خودرو"
+        searchPlaceholder="جستجو در خودروها..."
+        heading="خودرو"
       />
     </div>
   );

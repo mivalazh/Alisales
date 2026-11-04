@@ -7,9 +7,55 @@ import {
   type VisitSlot,
 } from '@alisales/schemas';
 import { getSession } from '@/lib/auth/session';
-import { addMessage, conversationById } from '@/lib/data/s2-store';
+import { addMessage, conversationById, messagesForConversation } from '@/lib/data/s2-store';
+import { markRead, readAt, typingUsers } from '@/lib/data/chat-presence';
 
 const MAX_BODY = 2000;
+
+/**
+ * GET /api/messages?conversationId=…&after=<ISO>
+ *
+ * Polling endpoint for the open thread: new messages since `after`, whether the
+ * other participant is typing, and when they last read the thread (the read
+ * ticks). Participants only — the id is checked against the session.
+ */
+export async function GET(request: Request): Promise<NextResponse> {
+  const session = await getSession();
+  if (!session) {
+    return NextResponse.json({ error: 'برای دیدن گفتگو وارد حساب خود شوید.' }, { status: 401 });
+  }
+
+  const url = new URL(request.url);
+  const conversationId = url.searchParams.get('conversationId') ?? '';
+  const after = url.searchParams.get('after') ?? '';
+  if (!conversationId) {
+    return NextResponse.json({ error: 'شناسه گفتگو لازم است.' }, { status: 400 });
+  }
+
+  const conversation = await conversationById(conversationId);
+  if (!conversation) {
+    return NextResponse.json({ error: 'گفتگو یافت نشد.' }, { status: 404 });
+  }
+  if (session.sub !== conversation.buyerId && session.sub !== conversation.sellerId) {
+    return NextResponse.json({ error: 'به این گفتگو دسترسی ندارید.' }, { status: 403 });
+  }
+
+  const otherId =
+    session.sub === conversation.buyerId ? conversation.sellerId : conversation.buyerId;
+  const all = await messagesForConversation(conversationId);
+  const messages = after ? all.filter((m) => m.createdAt > after) : all;
+
+  // Opening or polling the thread is also the read receipt for this viewer.
+  markRead(conversationId, session.sub);
+
+  return NextResponse.json({
+    ok: true,
+    messages,
+    typing: typingUsers(conversationId, session.sub).length > 0,
+    otherReadAt: readAt(conversationId, otherId),
+    serverTime: new Date().toISOString(),
+  });
+}
 
 /**
  * POST /api/messages

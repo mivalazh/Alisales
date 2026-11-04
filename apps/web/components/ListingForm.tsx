@@ -1,30 +1,31 @@
 'use client';
 
-import { useEffect, useRef, useState, type FormEvent, type ReactNode } from 'react';
+import { useEffect, useMemo, useRef, useState, type FormEvent, type ReactNode } from 'react';
 import {
-  selectableCities,
-  kishUiBrands,
+  BIKE_TYPES,
+  DEFAULT_AED_TO_IRR,
+  HEAVY_TYPES,
+  QAMARI_YEARS,
+  VEHICLE_CATEGORY_LABELS,
+  brandsForCategory,
   COLOR_LABELS,
   FUEL_LABELS,
   GEARBOX_LABELS,
   LISTING_FIELD_LABELS,
-  MAX_VEHICLE_YEAR,
-  MIN_VEHICLE_YEAR,
   PART_CATEGORY_LABELS,
   PART_CONDITION_LABELS,
   PART_FIELD_LABELS,
   PART_ORIGIN_LABELS,
   PLATE_DECLARATION_FOOTER,
   PLATE_TYPE_LABELS,
+  aedToIRR,
   colorSlugs,
   conditions,
   fuelTypes,
   gearboxTypes,
-  aedToIRR,
   formatAmountLatin,
   irrToAED,
   irrToToman,
-  tomanToIRR,
   listingPublishSchema,
   partCategories,
   partConditions,
@@ -32,12 +33,18 @@ import {
   partOrigins,
   plateStatement,
   plateTypes,
+  selectableCities,
   toAsciiDigits,
   toPersianDigits,
+  tomanToIRR,
   type ListingPublish,
   type PlateType,
+  type VehicleCategory,
+  type VehicleInput,
 } from '@alisales/schemas';
 import { PhotoUploader } from './PhotoUploader';
+import { RateLine } from './RateLine';
+import { useAedRate } from './RateProvider';
 import type { ProcessedPhoto } from '@/lib/photos';
 
 /** Human labels for schema paths — shared with the mobile form. */
@@ -45,13 +52,13 @@ const FIELD_LABELS: Record<string, string> = { ...LISTING_FIELD_LABELS, ...PART_
 
 const INITIAL_DRAFT = {
   brand: 'toyota',
-  /** Free-typed brand when «سایر» is chosen; folded into the model title. */
+  /** Free-typed brand when no catalogue marque matches. */
   customBrand: '',
   model: '',
   trim: '',
   year: '',
   mileageKm: '',
-  gearbox: '',
+  gearbox: 'automatic',
   fuel: 'petrol',
   color: 'white',
   condition: '',
@@ -63,6 +70,11 @@ const INITIAL_DRAFT = {
   allowPhoneReveal: false,
   /** «عدم نمایش قیمت درهم در آگهی» — Toman-only price. */
   hideAed: false,
+  /** Motorcycle / heavy only. */
+  engineCc: '',
+  bikeType: '',
+  heavyType: '',
+  workingHours: '',
 };
 
 type PriceUnit = 'toman' | 'aed';
@@ -81,6 +93,12 @@ const INITIAL_PART_DRAFT = {
 
 type PartDraft = typeof INITIAL_PART_DRAFT;
 type ListingMode = 'vehicle' | 'part';
+
+const CATEGORY_OPTIONS: ReadonlyArray<{ key: VehicleCategory; label: string; hint: string }> = [
+  { key: 'car', label: 'خودرو', hint: 'سواری، شاسی‌بلند و وارداتی' },
+  { key: 'motorcycle', label: 'موتورسیکلت', hint: 'اسپرت، کلاسیک، اسکوتر و کراس' },
+  { key: 'heavy', label: 'ماشین‌آلات سنگین', hint: 'کامیون، کشنده و راه‌سازی' },
+];
 
 function Field({
   htmlFor,
@@ -159,9 +177,207 @@ function parseIntLoose(raw: string): number {
   return cleaned === '' ? Number.NaN : Number(cleaned);
 }
 
+/**
+ * Searchable brand combobox.
+ *
+ * Shows the category's full suggestion list, filters as the seller types, and
+ * offers the typed text as a custom brand («سایر») — the exact same behaviour
+ * the model field has, for every category.
+ */
+function BrandPicker({
+  category,
+  value,
+  custom,
+  onPick,
+}: {
+  category: VehicleCategory;
+  value: string;
+  custom: string;
+  onPick: (slug: string, customName: string) => void;
+}) {
+  const brands = useMemo(() => brandsForCategory(category), [category]);
+  const selected = brands.find((brand) => brand.slug === value) ?? null;
+  const [query, setQuery] = useState('');
+  const [open, setOpen] = useState(false);
+  const root = useRef<HTMLDivElement>(null);
+
+  useEffect(() => {
+    if (!open) return;
+    const onPointer = (event: MouseEvent) => {
+      if (!root.current?.contains(event.target as Node)) setOpen(false);
+    };
+    document.addEventListener('mousedown', onPointer);
+    return () => document.removeEventListener('mousedown', onPointer);
+  }, [open]);
+
+  const q = query.trim().toLowerCase();
+  const options = q
+    ? brands.filter(
+        (brand) =>
+          brand.label.toLowerCase().includes(q) ||
+          brand.latin.toLowerCase().includes(q) ||
+          brand.models.some((m) => m.toLowerCase().includes(q)),
+      )
+    : brands;
+
+  return (
+    <div ref={root} className="relative">
+      <input
+        role="combobox"
+        aria-expanded={open}
+        aria-controls="brand-options"
+        autoComplete="off"
+        className="field"
+        value={open ? query : (selected?.label ?? (custom ? `${custom} (دلخواه)` : ''))}
+        onFocus={() => {
+          setOpen(true);
+          setQuery('');
+        }}
+        onChange={(e) => {
+          setQuery(e.target.value);
+          setOpen(true);
+        }}
+        placeholder="جستجوی برند…"
+      />
+
+      {open && (
+        <ul
+          id="brand-options"
+          role="listbox"
+          className="absolute z-40 mt-1 max-h-64 w-full overflow-y-auto rounded-field border border-line bg-card p-1 shadow-xl"
+        >
+          {options.slice(0, 60).map((brand) => (
+            <li key={brand.slug} role="option" aria-selected={brand.slug === value}>
+              <button
+                type="button"
+                onClick={() => {
+                  onPick(brand.slug, '');
+                  setOpen(false);
+                  setQuery('');
+                }}
+                className={`flex w-full items-center justify-between gap-2 rounded-field px-2 py-1.5 text-sm font-semibold transition hover:bg-cta-soft ${
+                  brand.slug === value ? 'bg-cta-soft text-ink' : 'text-muted'
+                }`}
+              >
+                <span>{brand.label}</span>
+                <span dir="ltr" className="text-[11px] font-bold text-faint">
+                  {brand.latin}
+                </span>
+              </button>
+            </li>
+          ))}
+          {query.trim() && options.length === 0 && (
+            <li>
+              <button
+                type="button"
+                onClick={() => {
+                  onPick('other', query.trim());
+                  setOpen(false);
+                  setQuery('');
+                }}
+                className="w-full rounded-field px-2 py-2 text-start text-sm font-bold text-cta hover:bg-cta-soft"
+              >
+                «{query.trim()}» را به‌عنوان برند دلخواه ثبت کن
+              </button>
+            </li>
+          )}
+          {query.trim() && options.length > 0 && (
+            <li className="border-t border-line pt-1">
+              <button
+                type="button"
+                onClick={() => {
+                  onPick('other', query.trim());
+                  setOpen(false);
+                  setQuery('');
+                }}
+                className="w-full rounded-field px-2 py-2 text-start text-xs font-bold text-cta hover:bg-cta-soft"
+              >
+                «{query.trim()}» در فهرست نیست — به‌عنوان برند دلخواه ثبت کن
+              </button>
+            </li>
+          )}
+        </ul>
+      )}
+    </div>
+  );
+}
+
+/** Model combobox: suggestions from the picked brand, free text always allowed. */
+function ModelPicker({
+  suggestions,
+  value,
+  onChange,
+}: {
+  suggestions: readonly string[];
+  value: string;
+  onChange: (next: string) => void;
+}) {
+  const [open, setOpen] = useState(false);
+  const root = useRef<HTMLDivElement>(null);
+  const q = value.trim().toLowerCase();
+  const options = q
+    ? suggestions.filter((model) => model.toLowerCase().includes(q))
+    : suggestions.slice(0, 40);
+
+  useEffect(() => {
+    if (!open) return;
+    const onPointer = (event: MouseEvent) => {
+      if (!root.current?.contains(event.target as Node)) setOpen(false);
+    };
+    document.addEventListener('mousedown', onPointer);
+    return () => document.removeEventListener('mousedown', onPointer);
+  }, [open]);
+
+  return (
+    <div ref={root} className="relative">
+      <input
+        id="model"
+        role="combobox"
+        aria-expanded={open}
+        aria-controls="model-options"
+        autoComplete="off"
+        className="field"
+        value={value}
+        onFocus={() => setOpen(true)}
+        onChange={(e) => {
+          onChange(e.target.value);
+          setOpen(true);
+        }}
+        placeholder="مثلاً Land Cruiser VXR"
+      />
+      {open && options.length > 0 && (
+        <ul
+          id="model-options"
+          role="listbox"
+          className="absolute z-40 mt-1 max-h-56 w-full overflow-y-auto rounded-field border border-line bg-card p-1 shadow-xl"
+        >
+          {options.map((model) => (
+            <li key={model}>
+              <button
+                type="button"
+                onClick={() => {
+                  onChange(model);
+                  setOpen(false);
+                }}
+                className="w-full rounded-field px-2 py-1.5 text-start text-sm font-semibold text-muted transition hover:bg-cta-soft hover:text-ink"
+              >
+                <bdi>{model}</bdi>
+              </button>
+            </li>
+          ))}
+        </ul>
+      )}
+    </div>
+  );
+}
+
 export function ListingForm() {
-  // Step 1 (parts_listings): «خودرو» or «قطعه و لوازم جانبی».
+  const rate = useAedRate();
+  const perAed = rate?.aedToIrr ?? DEFAULT_AED_TO_IRR;
+
+  // The category is asked first; parts carry their own payload.
   const [mode, setMode] = useState<ListingMode>('vehicle');
+  const [category, setCategory] = useState<VehicleCategory>('car');
   const [partDraft, setPartDraft] = useState<PartDraft>(INITIAL_PART_DRAFT);
   const [draft, setDraft] = useState<Draft>(INITIAL_DRAFT);
   const [photos, setPhotos] = useState<ProcessedPhoto[]>([]);
@@ -192,29 +408,48 @@ export function ListingForm() {
   const setPart = <K extends keyof PartDraft>(key: K, value: PartDraft[K]) =>
     setPartDraft((d) => ({ ...d, [key]: value }));
 
+  const brands = useMemo(() => brandsForCategory(category), [category]);
+  const activeBrand = brands.find((b) => b.slug === draft.brand) ?? null;
+  const plateStatementText = draft.plateType
+    ? plateStatement(draft.plateType as PlateType)
+    : null;
+
+  /** Switching the category resets the marque to that category's first brand. */
+  function switchCategory(next: VehicleCategory): void {
+    setCategory(next);
+    const first = brandsForCategory(next)[0];
+    setDraft((d) => ({
+      ...d,
+      brand: first?.slug ?? 'other',
+      customBrand: '',
+      model: '',
+      bikeType: next === 'motorcycle' ? d.bikeType : '',
+      heavyType: next === 'heavy' ? d.heavyType : '',
+      engineCc: next === 'motorcycle' ? d.engineCc : '',
+      workingHours: next === 'heavy' ? d.workingHours : '',
+    }));
+    setFieldErrors({});
+    setFormError(null);
+  }
+
   function switchMode(next: ListingMode): void {
     setMode(next);
     setFieldErrors({});
     setFormError(null);
   }
 
-  const activeBrand = kishUiBrands.find((b) => b.slug === draft.brand) ?? kishUiBrands[0]!;
-  const plateStatementText = draft.plateType
-    ? plateStatement(draft.plateType as PlateType)
-    : null;
-
   /** Whatever the seller typed, converted to the IRR the schema stores. */
   function priceIRR(): number {
     const n = parseIntLoose(draft.priceIRR);
     if (!Number.isFinite(n) || n < 0) return Number.NaN;
-    return unit === 'toman' ? tomanToIRR(n) : aedToIRR(n);
+    return unit === 'toman' ? tomanToIRR(n) : aedToIRR(n, perAed);
   }
 
   const pricePreview = (() => {
     const irr = priceIRR();
     if (!Number.isFinite(irr) || irr <= 0) return null;
     return `${formatAmountLatin(irrToToman(irr))} تومان · ≈ ${formatAmountLatin(
-      irrToAED(irr),
+      irrToAED(irr, perAed),
     )} AED`;
   })();
 
@@ -223,8 +458,8 @@ export function ListingForm() {
     if (next === unit) return;
     const n = parseIntLoose(draft.priceIRR);
     if (Number.isFinite(n)) {
-      const irr = unit === 'toman' ? tomanToIRR(n) : aedToIRR(n);
-      set('priceIRR', String(next === 'toman' ? irrToToman(irr) : irrToAED(irr)));
+      const irr = unit === 'toman' ? tomanToIRR(n) : aedToIRR(n, perAed);
+      set('priceIRR', String(next === 'toman' ? irrToToman(irr) : irrToAED(irr, perAed)));
     }
     setUnit(next);
   }
@@ -262,22 +497,30 @@ export function ListingForm() {
         hideAed: draft.hideAed,
       };
     }
-    // A marque nobody preset? The free-typed name becomes «سایر» plus the
+
+    // A marque nobody preset: the free-typed name becomes «سایر» plus the
     // model line, so the card, the search and the filters all still work.
     const customBrand = draft.customBrand.trim();
     const model = draft.model.trim();
     return {
       kind: 'vehicle',
+      category,
+      engineCc: category === 'motorcycle' ? parseIntLoose(draft.engineCc) : null,
+      bikeType: category === 'motorcycle' ? (draft.bikeType || null) : null,
+      heavyType: category === 'heavy' ? (draft.heavyType || null) : null,
+      workingHours: category === 'heavy' ? parseIntLoose(draft.workingHours) : null,
       vehicle: {
-        brand: (customBrand ? 'other' : draft.brand) as ListingPublish['vehicle']['brand'],
+        brand: (customBrand ? 'other' : draft.brand) as VehicleInput['brand'],
         model: customBrand ? `${customBrand} ${model}`.trim() : model,
         trim: draft.trim.trim() || null,
+        // Qamari (lunar) year, stored as the one integer the cards and filters
+        // read back.
         year: parseIntLoose(draft.year),
         mileageKm: parseIntLoose(draft.mileageKm),
-        gearbox: draft.gearbox as ListingPublish['vehicle']['gearbox'],
-        fuel: draft.fuel as ListingPublish['vehicle']['fuel'],
-        color: draft.color as ListingPublish['vehicle']['color'],
-        condition: draft.condition as ListingPublish['vehicle']['condition'],
+        gearbox: draft.gearbox as VehicleInput['gearbox'],
+        fuel: draft.fuel as VehicleInput['fuel'],
+        color: draft.color as VehicleInput['color'],
+        condition: draft.condition as VehicleInput['condition'],
         plateType: draft.plateType as PlateType,
         vin: draft.vin.trim() ? draft.vin.trim().toUpperCase() : null,
       },
@@ -366,9 +609,7 @@ export function ListingForm() {
         window.location.href = '/login?next=/new';
         return;
       }
-      setFormError(
-        body?.error ?? 'ارسال آگهی ناموفق بود؛ لطفاً دوباره تلاش کنید.',
-      );
+      setFormError(body?.error ?? 'ارسال آگهی ناموفق بود؛ لطفاً دوباره تلاش کنید.');
     } catch {
       setFormError('ارتباط با سرور برقرار نشد؛ اتصال اینترنت خود را بررسی کنید.');
     } finally {
@@ -393,9 +634,7 @@ export function ListingForm() {
         role="status"
       >
         <p className="text-lg font-extrabold">آگهی شما منتشر شد</p>
-        <p className="mt-1 text-sm text-muted">
-          آگهی بلافاصله در فهرست نمایش داده می‌شود.
-        </p>
+        <p className="mt-1 text-sm text-muted">آگهی بلافاصله در فهرست نمایش داده می‌شود.</p>
         <div className="mt-5 flex flex-wrap justify-center gap-3">
           <a href={`/listing/${successSlug}`} className="btn-cta text-sm">
             مشاهده آگهی
@@ -415,37 +654,56 @@ export function ListingForm() {
     <form onSubmit={(e) => void handleSubmit(e)} noValidate className="mx-auto flex max-w-3xl flex-col gap-5">
       <div>
         <h1 className="text-2xl font-extrabold">
-          {mode === 'part' ? 'ثبت آگهی قطعه و لوازم جانبی' : 'ثبت آگهی خودرو'}
+          {mode === 'part'
+            ? 'ثبت آگهی قطعه و لوازم جانبی'
+            : `ثبت آگهی ${VEHICLE_CATEGORY_LABELS[category]}`}
         </h1>
         <p className="mt-1 text-sm text-muted">
-          اطلاعات را دقیق وارد کنید؛ آگهی بلافاصله پس از ثبت منتشر می‌شود.
+          ابتدا دسته‌بندی را انتخاب کنید؛ فرم و فیلترها بر همان اساس تنظیم می‌شوند.
         </p>
       </div>
 
-      {/* Step 1 (C3 / parts_listings): نوع آگهی */}
-      <StepCard step={1} title="نوع آگهی">
-      <div className="grid grid-cols-2 gap-2" role="group" aria-label="نوع آگهی">
-        {(
-          [
-            { key: 'vehicle', label: 'خودرو' },
-            { key: 'part', label: 'قطعه و لوازم جانبی' },
-          ] as const
-        ).map((option) => (
+      {/* Step 1 — the category comes first. */}
+      <StepCard step={1} title="دسته‌بندی آگهی">
+        <div className="grid gap-2 sm:grid-cols-2" role="group" aria-label="دسته‌بندی آگهی">
+          {CATEGORY_OPTIONS.map((option) => {
+            const active = mode === 'vehicle' && category === option.key;
+            return (
+              <button
+                key={option.key}
+                type="button"
+                aria-pressed={active}
+                onClick={() => {
+                  switchMode('vehicle');
+                  switchCategory(option.key);
+                }}
+                className={`rounded-field border p-3 text-start text-sm transition ${
+                  active
+                    ? 'border-cta bg-cta-soft font-extrabold text-ink'
+                    : 'border-line bg-card text-muted hover:border-line-strong'
+                }`}
+              >
+                <span className="block">{option.label}</span>
+                <span className="mt-0.5 block text-[11px] font-bold text-faint">{option.hint}</span>
+              </button>
+            );
+          })}
           <button
-            key={option.key}
             type="button"
-            aria-pressed={mode === option.key}
-            onClick={() => switchMode(option.key)}
-            className={`rounded-field border p-3 text-sm font-extrabold transition ${
-              mode === option.key
-                ? 'border-cta bg-cta-soft text-ink'
+            aria-pressed={mode === 'part'}
+            onClick={() => switchMode('part')}
+            className={`rounded-field border p-3 text-start text-sm transition ${
+              mode === 'part'
+                ? 'border-cta bg-cta-soft font-extrabold text-ink'
                 : 'border-line bg-card text-muted hover:border-line-strong'
             }`}
           >
-            {option.label}
+            <span className="block">قطعه و لوازم جانبی</span>
+            <span className="mt-0.5 block text-[11px] font-bold text-faint">
+              قطعات یدکی، بدنه و لوازم
+            </span>
           </button>
-        ))}
-      </div>
+        </div>
       </StepCard>
 
       {formError && (
@@ -458,467 +716,543 @@ export function ListingForm() {
       )}
 
       <StepCard step={2} title="مشخصات">
-      {mode === 'vehicle' && (
-        <>
-      <Section title="مشخصات خودرو">
-        <Field
-          htmlFor="brand"
-          label="برند"
-          required
-          error={fieldErrors['vehicle.brand']}
-        >
-          <select
-            id="brand"
-            className="field"
-            value={draft.brand}
-            onChange={(e) => set('brand', e.target.value)}
-          >
-            {kishUiBrands.map((b) => (
-              <option key={b.slug} value={b.slug}>
-                {b.label}
-              </option>
-            ))}
-            <option value="other">سایر / تایپ نام برند یا مدل دلخواه</option>
-          </select>
-        </Field>
+        {mode === 'vehicle' && (
+          <>
+            <Section title="مشخصات خودرو">
+              <Field
+                htmlFor="brand"
+                label="برند"
+                required
+                hint="می‌توانید از فهرست پیشنهادی انتخاب کنید یا مدل/برند دیگری بنویسید."
+                error={fieldErrors['vehicle.brand']}
+              >
+                <BrandPicker
+                  category={category}
+                  value={draft.brand}
+                  custom={draft.customBrand}
+                  onPick={(slug, custom) =>
+                    setDraft((d) => ({ ...d, brand: slug, customBrand: custom, model: d.model }))
+                  }
+                />
+              </Field>
 
-        {draft.brand === 'other' && (
-          <Field
-            htmlFor="customBrand"
-            label="نام برند دلخواه"
-            hint="اگر برند خودرو در فهرست نیست، نام آن را اینجا بنویسید."
-          >
-            <input
-              id="customBrand"
-              className="field"
-              value={draft.customBrand}
-              onChange={(e) => set('customBrand', e.target.value)}
-              placeholder="مثلاً بوگاتی یا کوئنیگزگ"
-            />
-          </Field>
+              {draft.brand === 'other' && (
+                <Field
+                  htmlFor="customBrand"
+                  label="نام برند دلخواه"
+                  hint="نامی که در فهرست نبود را اینجا کامل بنویسید."
+                >
+                  <input
+                    id="customBrand"
+                    className="field"
+                    value={draft.customBrand}
+                    onChange={(e) => set('customBrand', e.target.value)}
+                    placeholder="مثلاً بوگاتی"
+                  />
+                </Field>
+              )}
+
+              <Field
+                htmlFor="model"
+                label="مدل"
+                required
+                hint="می‌توانید از فهرست پیشنهادی انتخاب کنید یا مدل/برند دیگری بنویسید."
+                error={fieldErrors['vehicle.model']}
+              >
+                <ModelPicker
+                  suggestions={activeBrand?.models ?? []}
+                  value={draft.model}
+                  onChange={(next) => set('model', next)}
+                />
+              </Field>
+
+              <Field htmlFor="trim" label="تیپ (اختیاری)" error={fieldErrors['vehicle.trim']}>
+                <input
+                  id="trim"
+                  className="field"
+                  value={draft.trim}
+                  onChange={(e) => set('trim', e.target.value)}
+                  placeholder="مثلاً VXR یا S 500"
+                />
+              </Field>
+
+              <Field
+                htmlFor="year"
+                label="سال ساخت (هجری قمری)"
+                required
+                hint="سال قمری را از فهرست انتخاب کنید؛ همان عدد روی کارت و فیلترها نمایش داده می‌شود."
+                error={fieldErrors['vehicle.year']}
+              >
+                <select
+                  id="year"
+                  className="field"
+                  value={draft.year}
+                  onChange={(e) => set('year', e.target.value)}
+                >
+                  <option value="">انتخاب کنید…</option>
+                  {QAMARI_YEARS.map((year) => (
+                    <option key={year} value={year}>
+                      {toPersianDigits(year)} هـ.ق
+                    </option>
+                  ))}
+                </select>
+              </Field>
+
+              <Field
+                htmlFor="mileageKm"
+                label={category === 'heavy' ? 'کارکرد (کیلومتر)' : 'کارکرد (کیلومتر)'}
+                required
+                hint="عدد صحیح؛ صفر کیلومتر: ۰"
+                error={fieldErrors['vehicle.mileageKm']}
+              >
+                <input
+                  id="mileageKm"
+                  inputMode="numeric"
+                  className="field"
+                  value={draft.mileageKm}
+                  onChange={(e) => set('mileageKm', e.target.value)}
+                  placeholder="مثلاً ۵۸۰۰۰"
+                />
+              </Field>
+
+              {category === 'motorcycle' && (
+                <>
+                  <Field
+                    htmlFor="engineCc"
+                    label="حجم موتور (cc)"
+                    required
+                    hint="مثلاً ۳۹۹ یا ۸۹۰"
+                    error={fieldErrors.engineCc}
+                  >
+                    <input
+                      id="engineCc"
+                      inputMode="numeric"
+                      className="field"
+                      dir="ltr"
+                      value={draft.engineCc}
+                      onChange={(e) => set('engineCc', e.target.value)}
+                      placeholder="890"
+                    />
+                  </Field>
+
+                  <Field
+                    htmlFor="bikeType"
+                    label="نوع موتورسیکلت"
+                    required
+                    error={fieldErrors.bikeType}
+                  >
+                    <select
+                      id="bikeType"
+                      className="field"
+                      value={draft.bikeType}
+                      onChange={(e) => set('bikeType', e.target.value)}
+                    >
+                      <option value="">انتخاب کنید…</option>
+                      {BIKE_TYPES.map((type) => (
+                        <option key={type.key} value={type.key}>
+                          {type.label}
+                        </option>
+                      ))}
+                    </select>
+                  </Field>
+                </>
+              )}
+
+              {category === 'heavy' && (
+                <>
+                  <Field
+                    htmlFor="heavyType"
+                    label="نوع ماشین‌آلات"
+                    required
+                    error={fieldErrors.heavyType}
+                  >
+                    <select
+                      id="heavyType"
+                      className="field"
+                      value={draft.heavyType}
+                      onChange={(e) => set('heavyType', e.target.value)}
+                    >
+                      <option value="">انتخاب کنید…</option>
+                      {HEAVY_TYPES.map((type) => (
+                        <option key={type.key} value={type.key}>
+                          {type.label}
+                        </option>
+                      ))}
+                    </select>
+                  </Field>
+
+                  <Field
+                    htmlFor="workingHours"
+                    label="ساعت کارکرد"
+                    required
+                    hint="مثلاً ۹٬۸۰۰ ساعت"
+                    error={fieldErrors.workingHours}
+                  >
+                    <input
+                      id="workingHours"
+                      inputMode="numeric"
+                      className="field"
+                      dir="ltr"
+                      value={draft.workingHours}
+                      onChange={(e) => set('workingHours', e.target.value)}
+                      placeholder="9800"
+                    />
+                  </Field>
+                </>
+              )}
+
+              <Field htmlFor="gearbox" label="گیربکس" required error={fieldErrors['vehicle.gearbox']}>
+                <select
+                  id="gearbox"
+                  className="field"
+                  value={draft.gearbox}
+                  onChange={(e) => set('gearbox', e.target.value)}
+                >
+                  <option value="">انتخاب کنید…</option>
+                  {gearboxTypes.map((g) => (
+                    <option key={g} value={g}>
+                      {GEARBOX_LABELS[g]}
+                    </option>
+                  ))}
+                </select>
+              </Field>
+
+              <Field htmlFor="fuel" label="سوخت" required error={fieldErrors['vehicle.fuel']}>
+                <select
+                  id="fuel"
+                  className="field"
+                  value={draft.fuel}
+                  onChange={(e) => set('fuel', e.target.value)}
+                >
+                  {fuelTypes.map((f) => (
+                    <option key={f} value={f}>
+                      {FUEL_LABELS[f]}
+                    </option>
+                  ))}
+                </select>
+              </Field>
+
+              <Field htmlFor="color" label="رنگ" required error={fieldErrors['vehicle.color']}>
+                <select
+                  id="color"
+                  className="field"
+                  value={draft.color}
+                  onChange={(e) => set('color', e.target.value)}
+                >
+                  {colorSlugs.map((c) => (
+                    <option key={c} value={c}>
+                      {COLOR_LABELS[c]}
+                    </option>
+                  ))}
+                </select>
+              </Field>
+
+              <Field
+                htmlFor="condition"
+                label="وضعیت خودرو"
+                required
+                error={fieldErrors['vehicle.condition']}
+              >
+                <select
+                  id="condition"
+                  className="field"
+                  value={draft.condition}
+                  onChange={(e) => set('condition', e.target.value)}
+                >
+                  <option value="">انتخاب کنید…</option>
+                  {conditions.map((c) => (
+                    <option key={c} value={c}>
+                      {c === 'new' ? 'نو' : 'کارکرده'}
+                    </option>
+                  ))}
+                </select>
+              </Field>
+
+              <Field
+                htmlFor="vin"
+                label="شماره شاسی (VIN) — اختیاری"
+                hint="۱۷ کاراکتر؛ فقط حروف و ارقام انگلیسی"
+                error={fieldErrors['vehicle.vin']}
+              >
+                <input
+                  id="vin"
+                  className="field font-mono"
+                  dir="ltr"
+                  value={draft.vin}
+                  onChange={(e) => set('vin', e.target.value)}
+                  placeholder="VF3XXXXXXXXXXXXXX"
+                />
+              </Field>
+            </Section>
+
+            {/* Dedicated seller-declared plate section — no forced police notice. */}
+            <Section title="وضعیت پلاک *">
+              <div className="col-span-full grid gap-2 sm:grid-cols-4">
+                {plateTypes.map((pt) => (
+                  <label
+                    key={pt}
+                    className={`flex cursor-pointer items-center gap-2 rounded-field border p-3 text-sm font-bold transition ${
+                      draft.plateType === pt
+                        ? 'border-cta bg-cta-soft text-ink'
+                        : 'border-line bg-card text-muted hover:border-line-strong'
+                    }`}
+                  >
+                    <input
+                      type="radio"
+                      name="plateType"
+                      value={pt}
+                      checked={draft.plateType === pt}
+                      onChange={(e) => set('plateType', e.target.value)}
+                      className="accent-[var(--color-accent)]"
+                    />
+                    {PLATE_TYPE_LABELS[pt]}
+                  </label>
+                ))}
+              </div>
+              {fieldErrors['vehicle.plateType'] && (
+                <p className="error-text col-span-full" role="alert">
+                  {fieldErrors['vehicle.plateType']}
+                </p>
+              )}
+              {plateStatementText && (
+                <div className="col-span-full rounded-field border border-line bg-page p-3 text-sm">
+                  <p className="font-bold">{plateStatementText}</p>
+                  <p className="mt-1 text-xs text-muted">{PLATE_DECLARATION_FOOTER}</p>
+                </div>
+              )}
+            </Section>
+          </>
         )}
 
-        <Field
-          htmlFor="model"
-          label="مدل"
-          required
-          hint="می‌توانید از فهرست پیشنهادی انتخاب کنید یا مدل دیگری بنویسید."
-          error={fieldErrors['vehicle.model']}
-        >
-          <input
-            id="model"
-            list="model-options"
-            className="field"
-            value={draft.model}
-            onChange={(e) => set('model', e.target.value)}
-            placeholder="مثلاً لندکروزر"
-          />
-          <datalist id="model-options">
-            {activeBrand.models.map((m) => (
-              <option key={m} value={m} />
-            ))}
-          </datalist>
-        </Field>
+        {mode === 'part' && (
+          <Section title="مشخصات قطعه">
+            <Field htmlFor="partCategory" label="دسته‌بندی" required error={fieldErrors.category}>
+              <select
+                id="partCategory"
+                className="field"
+                value={partDraft.category}
+                onChange={(e) => setPart('category', e.target.value)}
+              >
+                <option value="">انتخاب کنید…</option>
+                {partCategories.map((partCategory) => (
+                  <option key={partCategory} value={partCategory}>
+                    {PART_CATEGORY_LABELS[partCategory]}
+                  </option>
+                ))}
+              </select>
+            </Field>
 
-        <Field htmlFor="trim" label="تیپ (اختیاری)" error={fieldErrors['vehicle.trim']}>
-          <input
-            id="trim"
-            className="field"
-            value={draft.trim}
-            onChange={(e) => set('trim', e.target.value)}
-            placeholder="مثلاً S یا LX"
-          />
-        </Field>
+            <Field htmlFor="partTitle" label="عنوان" required error={fieldErrors.title}>
+              <input
+                id="partTitle"
+                className="field"
+                value={partDraft.title}
+                onChange={(e) => setPart('title', e.target.value)}
+                placeholder="مثلاً دیسک ترمز جلو لندکروزر"
+              />
+            </Field>
 
-        <Field
-          htmlFor="year"
-          label="سال ساخت (شمسی)"
-          required
-          hint={`بین ${toPersianDigits(MIN_VEHICLE_YEAR)} و ${toPersianDigits(MAX_VEHICLE_YEAR)}`}
-          error={fieldErrors['vehicle.year']}
-        >
-          <input
-            id="year"
-            inputMode="numeric"
-            className="field"
-            value={draft.year}
-            onChange={(e) => set('year', e.target.value)}
-            placeholder="مثلاً ۱۴۰۲"
-          />
-        </Field>
+            <Field htmlFor="partNumber" label="شماره فنی (اختیاری)" error={fieldErrors.partNumber}>
+              <input
+                id="partNumber"
+                className="field font-mono"
+                dir="ltr"
+                value={partDraft.partNumber}
+                onChange={(e) => setPart('partNumber', e.target.value)}
+                placeholder="AB-1234"
+              />
+            </Field>
 
-        <Field
-          htmlFor="mileageKm"
-          label="کارکرد (کیلومتر)"
-          required
-          hint="عدد صحیح؛ خودروی صفر کیلومتر: ۰"
-          error={fieldErrors['vehicle.mileageKm']}
-        >
-          <input
-            id="mileageKm"
-            inputMode="numeric"
-            className="field"
-            value={draft.mileageKm}
-            onChange={(e) => set('mileageKm', e.target.value)}
-            placeholder="مثلاً ۵۸۰۰۰"
-          />
-        </Field>
-
-        <Field htmlFor="gearbox" label="گیربکس" required error={fieldErrors['vehicle.gearbox']}>
-          <select
-            id="gearbox"
-            className="field"
-            value={draft.gearbox}
-            onChange={(e) => set('gearbox', e.target.value)}
-          >
-            <option value="">انتخاب کنید…</option>
-            {gearboxTypes.map((g) => (
-              <option key={g} value={g}>
-                {GEARBOX_LABELS[g]}
-              </option>
-            ))}
-          </select>
-        </Field>
-
-        <Field htmlFor="fuel" label="سوخت" required error={fieldErrors['vehicle.fuel']}>
-          <select
-            id="fuel"
-            className="field"
-            value={draft.fuel}
-            onChange={(e) => set('fuel', e.target.value)}
-          >
-            {fuelTypes.map((f) => (
-              <option key={f} value={f}>
-                {FUEL_LABELS[f]}
-              </option>
-            ))}
-          </select>
-        </Field>
-
-        <Field htmlFor="color" label="رنگ" required error={fieldErrors['vehicle.color']}>
-          <select
-            id="color"
-            className="field"
-            value={draft.color}
-            onChange={(e) => set('color', e.target.value)}
-          >
-            {colorSlugs.map((c) => (
-              <option key={c} value={c}>
-                {COLOR_LABELS[c]}
-              </option>
-            ))}
-          </select>
-        </Field>
-
-        <Field
-          htmlFor="condition"
-          label="وضعیت خودرو"
-          required
-          error={fieldErrors['vehicle.condition']}
-        >
-          <select
-            id="condition"
-            className="field"
-            value={draft.condition}
-            onChange={(e) => set('condition', e.target.value)}
-          >
-            <option value="">انتخاب کنید…</option>
-            {conditions.map((c) => (
-              <option key={c} value={c}>
-                {c === 'new' ? 'نو' : 'کارکرده'}
-              </option>
-            ))}
-          </select>
-        </Field>
-
-        <Field
-          htmlFor="vin"
-          label="شماره شاسی (VIN) — اختیاری"
-          hint="۱۷ کاراکتر؛ فقط حروف و ارقام انگلیسی"
-          error={fieldErrors['vehicle.vin']}
-        >
-          <input
-            id="vin"
-            className="field font-mono"
-            dir="ltr"
-            value={draft.vin}
-            onChange={(e) => set('vin', e.target.value)}
-            placeholder="VF3XXXXXXXXXXXXXX"
-          />
-        </Field>
-      </Section>
-
-      {/* Dedicated seller-declared plate section — spec §4: no forced police notice. */}
-      <Section title="وضعیت پلاک *">
-        <div className="col-span-full grid gap-2 sm:grid-cols-4">
-          {plateTypes.map((pt) => (
-            <label
-              key={pt}
-              className={`flex cursor-pointer items-center gap-2 rounded-field border p-3 text-sm font-bold transition ${
-                draft.plateType === pt
-                  ? 'border-cta bg-cta-soft text-ink'
-                  : 'border-line bg-card text-muted hover:border-line-strong'
-              }`}
+            <Field
+              htmlFor="partCompatibility"
+              label="سازگاری با خودرو (اختیاری)"
+              hint="اگر خالی بماند، «سازگاری عمومی» نمایش داده می‌شود."
+              error={fieldErrors.compatibility}
             >
               <input
-                type="radio"
-                name="plateType"
-                value={pt}
-                checked={draft.plateType === pt}
-                onChange={(e) => set('plateType', e.target.value)}
-                className="accent-[var(--color-accent)]"
+                id="partCompatibility"
+                className="field"
+                value={partDraft.compatibility}
+                onChange={(e) => setPart('compatibility', e.target.value)}
+                placeholder="لندکروزر و پاترول"
               />
-              {PLATE_TYPE_LABELS[pt]}
-            </label>
-          ))}
-        </div>
-        {fieldErrors['vehicle.plateType'] && (
-          <p className="error-text col-span-full" role="alert">
-            {fieldErrors['vehicle.plateType']}
-          </p>
+            </Field>
+
+            <Field htmlFor="partOrigin" label="منشأ" required error={fieldErrors.origin}>
+              <select
+                id="partOrigin"
+                className="field"
+                value={partDraft.origin}
+                onChange={(e) => setPart('origin', e.target.value)}
+              >
+                <option value="">انتخاب کنید…</option>
+                {partOrigins.map((origin) => (
+                  <option key={origin} value={origin}>
+                    {PART_ORIGIN_LABELS[origin]}
+                  </option>
+                ))}
+              </select>
+            </Field>
+
+            <Field htmlFor="partCondition" label="وضعیت" required error={fieldErrors.condition}>
+              <select
+                id="partCondition"
+                className="field"
+                value={partDraft.condition}
+                onChange={(e) => setPart('condition', e.target.value)}
+              >
+                <option value="">انتخاب کنید…</option>
+                {partConditions.map((condition) => (
+                  <option key={condition} value={condition}>
+                    {PART_CONDITION_LABELS[condition]}
+                  </option>
+                ))}
+              </select>
+            </Field>
+
+            <Field htmlFor="partWarranty" label="گارانتی (اختیاری)" error={fieldErrors.warranty}>
+              <input
+                id="partWarranty"
+                className="field"
+                value={partDraft.warranty}
+                onChange={(e) => setPart('warranty', e.target.value)}
+                placeholder="مثلاً 6 ماه"
+              />
+            </Field>
+          </Section>
         )}
-        {plateStatementText && (
-          <div className="col-span-full rounded-field border border-line bg-page p-3 text-sm">
-            <p className="font-bold">{plateStatementText}</p>
-            <p className="mt-1 text-xs text-muted">{PLATE_DECLARATION_FOOTER}</p>
-          </div>
-        )}
-      </Section>
-        </>
-      )}
-
-      {mode === 'part' && (
-        <Section title="مشخصات قطعه">
-          <Field htmlFor="partCategory" label="دسته‌بندی" required error={fieldErrors.category}>
-            <select
-              id="partCategory"
-              className="field"
-              value={partDraft.category}
-              onChange={(e) => setPart('category', e.target.value)}
-            >
-              <option value="">انتخاب کنید…</option>
-              {partCategories.map((category) => (
-                <option key={category} value={category}>
-                  {PART_CATEGORY_LABELS[category]}
-                </option>
-              ))}
-            </select>
-          </Field>
-
-          <Field htmlFor="partTitle" label="عنوان" required error={fieldErrors.title}>
-            <input
-              id="partTitle"
-              className="field"
-              value={partDraft.title}
-              onChange={(e) => setPart('title', e.target.value)}
-              placeholder="مثلاً دیسک ترمز جلو لندکروزر"
-            />
-          </Field>
-
-          <Field
-            htmlFor="partNumber"
-            label="شماره فنی (اختیاری)"
-            error={fieldErrors.partNumber}
-          >
-            <input
-              id="partNumber"
-              className="field font-mono"
-              dir="ltr"
-              value={partDraft.partNumber}
-              onChange={(e) => setPart('partNumber', e.target.value)}
-              placeholder="AB-1234"
-            />
-          </Field>
-
-          <Field
-            htmlFor="partCompatibility"
-            label="سازگاری با خودرو (اختیاری)"
-            hint="اگر خالی بماند، «سازگاری عمومی» نمایش داده می‌شود."
-            error={fieldErrors.compatibility}
-          >
-            <input
-              id="partCompatibility"
-              className="field"
-              value={partDraft.compatibility}
-              onChange={(e) => setPart('compatibility', e.target.value)}
-              placeholder="لندکروزر و پاترول"
-            />
-          </Field>
-
-          <Field htmlFor="partOrigin" label="منشأ" required error={fieldErrors.origin}>
-            <select
-              id="partOrigin"
-              className="field"
-              value={partDraft.origin}
-              onChange={(e) => setPart('origin', e.target.value)}
-            >
-              <option value="">انتخاب کنید…</option>
-              {partOrigins.map((origin) => (
-                <option key={origin} value={origin}>
-                  {PART_ORIGIN_LABELS[origin]}
-                </option>
-              ))}
-            </select>
-          </Field>
-
-          <Field htmlFor="partCondition" label="وضعیت" required error={fieldErrors.condition}>
-            <select
-              id="partCondition"
-              className="field"
-              value={partDraft.condition}
-              onChange={(e) => setPart('condition', e.target.value)}
-            >
-              <option value="">انتخاب کنید…</option>
-              {partConditions.map((condition) => (
-                <option key={condition} value={condition}>
-                  {PART_CONDITION_LABELS[condition]}
-                </option>
-              ))}
-            </select>
-          </Field>
-
-          <Field htmlFor="partWarranty" label="گارانتی (اختیاری)" error={fieldErrors.warranty}>
-            <input
-              id="partWarranty"
-              className="field"
-              value={partDraft.warranty}
-              onChange={(e) => setPart('warranty', e.target.value)}
-              placeholder="مثلاً 6 ماه"
-            />
-          </Field>
-        </Section>
-      )}
       </StepCard>
 
       <StepCard step={3} title="قیمت، عکس و تماس">
-      <Section title="قیمت، شهر و تماس">
-        <div className="col-span-full flex flex-wrap items-center gap-2" role="group" aria-label="واحد قیمت">
-          {(
-            [
-              { key: 'toman', label: 'تومان' },
-              { key: 'aed', label: 'درهم (AED)' },
-            ] as const
-          ).map((option) => (
-            <button
-              key={option.key}
-              type="button"
-              aria-pressed={unit === option.key}
-              onClick={() => switchUnit(option.key)}
-              className={`rounded-[var(--radius-pill)] border px-3 py-1.5 text-xs font-extrabold transition ${
-                unit === option.key
-                  ? 'border-cta bg-cta-soft text-ink'
-                  : 'border-line bg-card text-muted hover:border-line-strong'
-              }`}
-            >
-              {option.label}
-            </button>
-          ))}
-          <span className="text-xs font-bold text-muted">
-            نرخ روز: ۱ درهم ≈ {formatAmountLatin(irrToToman(aedToIRR(1)))} تومان
-          </span>
-        </div>
-
-        <Field
-          htmlFor="priceIRR"
-          label={`قیمت (${unit === 'toman' ? 'تومان' : 'درهم'})`}
-          required
-          hint={
-            pricePreview
-              ? `معادل: ${pricePreview}`
-              : `قیمت را به ${unit === 'toman' ? 'تومان' : 'درهم'} بنویسید؛ ارقام فارسی یا انگلیسی مجاز است`
-          }
-          error={fieldErrors['priceIRR']}
-        >
-          <input
-            id="priceIRR"
-            inputMode="numeric"
-            className="field"
-            value={draft.priceIRR}
-            onChange={(e) => set('priceIRR', e.target.value)}
-            placeholder={unit === 'toman' ? 'مثلاً ۳۴٬۰۰۰٬۰۰۰٬۰۰۰' : 'مثلاً ۱۲۵٬۰۰۰'}
-          />
-        </Field>
-
-        {/* C8: city is a disabled select with کیش as the only option. */}
-        <Field
-          htmlFor="city"
-          label="شهر"
-          hint="در این مرحله فقط کیش فعال است."
-          error={fieldErrors['city']}
-        >
-          <select id="city" className="field" value={draft.city} disabled>
-            {selectableCities().map((c) => (
-              <option key={c.slug} value={c.slug}>
-                {c.label}
-              </option>
+        <Section title="قیمت، شهر و تماس">
+          <div className="col-span-full flex flex-wrap items-center gap-2" role="group" aria-label="واحد قیمت">
+            {(
+              [
+                { key: 'toman', label: 'تومان' },
+                { key: 'aed', label: 'درهم (AED)' },
+              ] as const
+            ).map((option) => (
+              <button
+                key={option.key}
+                type="button"
+                aria-pressed={unit === option.key}
+                onClick={() => switchUnit(option.key)}
+                className={`rounded-[var(--radius-pill)] border px-3 py-1.5 text-xs font-extrabold transition ${
+                  unit === option.key
+                    ? 'border-cta bg-cta-soft text-ink'
+                    : 'border-line bg-card text-muted hover:border-line-strong'
+                }`}
+              >
+                {option.label}
+              </button>
             ))}
-          </select>
-        </Field>
+          </div>
+          <div className="col-span-full rounded-field border border-line bg-page px-3 py-2">
+            <p className="mb-0.5 text-[11px] font-bold text-faint">نرخ روز درهم</p>
+            <RateLine />
+          </div>
 
-        <label className="col-span-full flex cursor-pointer items-start gap-2 text-sm font-semibold">
-          <input
-            type="checkbox"
-            checked={draft.hideAed}
-            onChange={(e) => set('hideAed', e.target.checked)}
-            className="mt-1 accent-[var(--color-accent)]"
-          />
-          <span>
-            عدم نمایش قیمت درهم در آگهی (فقط نمایش قیمت به تومان)
-            <span className="hint mt-0 block">
-              خط «≈ … AED» روی کارت، فهرست و صفحه‌ی آگهی نمایش داده نمی‌شود.
+          <Field
+            htmlFor="priceIRR"
+            label={`قیمت (${unit === 'toman' ? 'تومان' : 'درهم'})`}
+            required
+            hint={
+              pricePreview
+                ? `معادل: ${pricePreview}`
+                : `قیمت را به ${unit === 'toman' ? 'تومان' : 'درهم'} بنویسید؛ ارقام فارسی یا انگلیسی مجاز است`
+            }
+            error={fieldErrors['priceIRR']}
+          >
+            <input
+              id="priceIRR"
+              inputMode="numeric"
+              className="field"
+              value={draft.priceIRR}
+              onChange={(e) => set('priceIRR', e.target.value)}
+              placeholder={unit === 'toman' ? 'مثلاً ۳۴٬۰۰۰٬۰۰۰٬۰۰۰' : 'مثلاً ۱۲۵٬۰۰۰'}
+            />
+          </Field>
+
+          {/* City is a disabled select with کیش as the only option. */}
+          <Field
+            htmlFor="city"
+            label="شهر"
+            hint="در این مرحله فقط کیش فعال است."
+            error={fieldErrors['city']}
+          >
+            <select id="city" className="field" value={draft.city} disabled>
+              {selectableCities().map((c) => (
+                <option key={c.slug} value={c.slug}>
+                  {c.label}
+                </option>
+              ))}
+            </select>
+          </Field>
+
+          <label className="col-span-full flex cursor-pointer items-start gap-2 text-sm font-semibold">
+            <input
+              type="checkbox"
+              checked={draft.hideAed}
+              onChange={(e) => set('hideAed', e.target.checked)}
+              className="mt-1 accent-[var(--color-accent)]"
+            />
+            <span>
+              عدم نمایش قیمت درهم در آگهی (فقط نمایش قیمت به تومان)
+              <span className="hint mt-0 block">
+                خط «≈ … AED» روی کارت، فهرست و صفحه‌ی آگهی نمایش داده نمی‌شود.
+              </span>
             </span>
-          </span>
-        </label>
+          </label>
 
-        <label className="col-span-full flex cursor-pointer items-start gap-2 text-sm font-semibold">
-          <input
-            type="checkbox"
-            checked={draft.allowPhoneReveal}
-            onChange={(e) => set('allowPhoneReveal', e.target.checked)}
-            className="mt-1 accent-[var(--color-accent)]"
-          />
-          <span>
-            شماره تماس من در آگهی نمایش داده شود
-            <span className="hint mt-0 block">
-              در غیر این صورت، خریداران فقط از طریق پیام‌رسان داخلی با شما تماس می‌گیرند.
+          <label className="col-span-full flex cursor-pointer items-start gap-2 text-sm font-semibold">
+            <input
+              type="checkbox"
+              checked={draft.allowPhoneReveal}
+              onChange={(e) => set('allowPhoneReveal', e.target.checked)}
+              className="mt-1 accent-[var(--color-accent)]"
+            />
+            <span>
+              شماره تماس من در آگهی نمایش داده شود
+              <span className="hint mt-0 block">
+                در غیر این صورت، خریداران فقط از طریق پیام‌رسان داخلی با شما تماس می‌گیرند.
+              </span>
             </span>
-          </span>
-        </label>
-      </Section>
+          </label>
+        </Section>
 
-      <Section title="توضیحات">
-        <Field
-          className="col-span-full"
-          htmlFor="description"
-          label="توضیحات آگهی"
-          required
-          hint={`دست‌کم ${toPersianDigits(mode === 'part' ? 10 : 20)} نویسه — اکنون ${toPersianDigits(draft.description.trim().length)} نویسه`}
-          error={fieldErrors['description']}
-        >
-          <textarea
-            id="description"
-            rows={5}
-            className="field resize-y"
-            value={draft.description}
-            onChange={(e) => set('description', e.target.value)}
-            placeholder="وضعیت فنی، دلیل فروش، لوازم همراه خودرو…"
-          />
-        </Field>
-      </Section>
+        <Section title="توضیحات">
+          <Field
+            className="col-span-full"
+            htmlFor="description"
+            label="توضیحات آگهی"
+            required
+            hint={`دست‌کم ${toPersianDigits(mode === 'part' ? 10 : 20)} نویسه — اکنون ${toPersianDigits(draft.description.trim().length)} نویسه`}
+            error={fieldErrors['description']}
+          >
+            <textarea
+              id="description"
+              rows={5}
+              className="field resize-y"
+              value={draft.description}
+              onChange={(e) => set('description', e.target.value)}
+              placeholder="وضعیت فنی، دلیل فروش، لوازم همراه…"
+            />
+          </Field>
+        </Section>
 
-      <Section title="عکس‌های آگهی">
-        <div className="col-span-full">
-          <p className="mb-2 text-xs font-bold text-muted">
-            عکس اختیاری است؛ اگر عکسی انتخاب نکنید یک تصویر پیش‌فرض برای آگهی استفاده می‌شود.
-          </p>
-          <PhotoUploader
-            photos={photos}
-            onChange={setPhotos}
-            onBusyChange={setPhotosBusy}
-            error={fieldErrors['photos']}
-          />
-        </div>
-      </Section>
+        <Section title="عکس‌های آگهی">
+          <div className="col-span-full">
+            <p className="mb-2 text-xs font-bold text-muted">
+              عکس اختیاری است؛ اگر عکسی انتخاب نکنید یک تصویر پیش‌فرض برای آگهی استفاده می‌شود.
+            </p>
+            <PhotoUploader
+              photos={photos}
+              onChange={setPhotos}
+              onBusyChange={setPhotosBusy}
+              error={fieldErrors['photos']}
+            />
+          </div>
+        </Section>
       </StepCard>
 
       <div className="flex flex-wrap items-center justify-between gap-3">

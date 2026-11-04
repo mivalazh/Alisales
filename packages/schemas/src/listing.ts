@@ -1,6 +1,7 @@
 import { z } from 'zod';
 import { citySlugs, vehicleSchema } from './vehicle';
 import { listingStates, plateTypes, type ListingState } from './enums';
+import { bikeTypeKeys, heavyTypeKeys, vehicleCategories } from './categories';
 
 // ── Photo pipeline rules ─────────────────────────────────────────────────────
 export const MAX_PHOTOS = 20;
@@ -20,6 +21,19 @@ export type ListingPhoto = z.infer<typeof listingPhotoSchema>;
 // ── Listing input (draft-tolerant) ───────────────────────────────────────────
 const listingBaseSchema = z.object({
   vehicle: vehicleSchema,
+  /**
+   * Top-level category the seller picked first: خودرو / موتورسیکلت /
+   * ماشین‌آلات سنگین. Parts have their own payload (`kind: 'part'`).
+   */
+  category: z.enum(vehicleCategories).optional(),
+  /** Motorcycle engine displacement (cc). */
+  engineCc: z.number().int().min(0).max(3000).nullable().optional(),
+  /** Motorcycle class: کلاسیک / اسپرت / اسکوتر / کراس … */
+  bikeType: z.enum(bikeTypeKeys).nullable().optional(),
+  /** Heavy machinery class: کامیون / کشنده / بیل مکانیکی … */
+  heavyType: z.enum(heavyTypeKeys).nullable().optional(),
+  /** Heavy machinery working hours (instead of a mileage). */
+  workingHours: z.number().int().min(0).max(500_000).nullable().optional(),
   priceIRR: z.number().int().min(0).max(10 ** 15),
   city: z.enum(citySlugs as [string, ...string[]]),
   description: z.string().trim().max(3000),
@@ -78,6 +92,11 @@ export const LISTING_FIELD_LABELS: Record<string, string> = {
   'vehicle.condition': 'وضعیت خودرو',
   'vehicle.plateType': 'وضعیت پلاک',
   'vehicle.vin': 'شماره شاسی (VIN)',
+  category: 'دسته‌بندی',
+  engineCc: 'حجم موتور',
+  bikeType: 'نوع موتورسیکلت',
+  heavyType: 'نوع ماشین‌آلات',
+  workingHours: 'ساعت کارکرد',
   priceIRR: 'قیمت',
   city: 'شهر',
   description: 'توضیحات',

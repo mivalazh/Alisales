@@ -2,21 +2,28 @@
 
 import Link from 'next/link';
 import { usePathname } from 'next/navigation';
-import { useEffect, useState } from 'react';
-import { LOCKUP, logoSvgDocument } from '@studio/design';
+import { useEffect, useState, type ReactNode } from 'react';
+import { LOCKUP, logoSvgDocument, type IconName } from '@studio/design';
 import { NAV_ITEMS, type NavItem } from '@/lib/nav';
-import { CAR_BODY_TYPES, PART_CATEGORY_LINKS } from '@/lib/browse';
 import { CitySelect } from './CitySelect';
 import { Icon } from './Icon';
+import { LogoutButton } from './LogoutButton';
+import { PRICE_UNIT_LABELS, usePriceUnit, type PriceUnit } from './PriceUnitProvider';
 import { ThemeToggle } from './ThemeToggle';
 import { useActivePath } from './useActivePath';
 
 /**
- * App header (C8).
+ * App header (C8) + the standard drawer.
  *
  * Start edge (right in RTL): hamburger, theme toggle and the account action,
  * grouped together. End edge: the full «A ALI SALES» lockup as the home link.
  * The city lives in the sub-bar's `CitySelect`, not in this row.
+ *
+ * The drawer is the product menu, not a copy of the bottom bar: it carries the
+ * actions that have no tab (post a listing, my listings, saved listings), the
+ * viewer's preferences (city, price unit, theme) and the information pages,
+ * each row with one icon, one label and a chevron, in headed sections. Home,
+ * chats and profile stay in the navigation bars only.
  *
  * The header itself is opaque (no `backdrop-filter`): a filtered ancestor would
  * become the containing block for the pinned drawer and clip it to the header's
@@ -26,47 +33,74 @@ import { useActivePath } from './useActivePath';
 const DESTINATIONS: readonly NavItem[] = NAV_ITEMS.filter((item) => !item.primary);
 const POST_ITEM = NAV_ITEMS.find((item) => item.primary);
 
-const ACCOUNT_LINKS: ReadonlyArray<{ href: string; label: string }> = [
-  { href: '/profile/listings', label: 'آگهی‌های من' },
-  { href: '/favorites', label: 'علاقه‌مندی‌ها' },
-  { href: '/chats', label: 'پیام‌ها' },
-];
-
-type GroupKey = 'cars' | 'parts';
-
-/** One collapsible drawer group — closed until the buyer taps it. */
-function MenuGroup({
-  id,
+function DrawerLink({
+  href,
   label,
-  open,
-  onToggle,
-  children,
+  icon,
+  hint,
+  active = false,
 }: {
-  id: GroupKey;
+  href: string;
   label: string;
-  open: boolean;
-  onToggle: () => void;
-  children: React.ReactNode;
+  icon: IconName;
+  hint?: string;
+  active?: boolean;
 }) {
   return (
-    <div className="rounded-field border border-line bg-page">
-      <button
-        type="button"
-        onClick={onToggle}
-        aria-expanded={open}
-        aria-controls={`drawer-group-${id}`}
-        className="flex w-full items-center justify-between gap-2 px-3 py-2.5 text-sm font-extrabold text-ink"
+    <li>
+      <Link
+        href={href}
+        aria-current={active ? 'page' : undefined}
+        className={`flex items-center gap-3 rounded-field px-3 py-2.5 text-sm transition hover:bg-cta-soft ${
+          active ? 'font-extrabold text-ink' : 'font-semibold text-muted hover:text-ink'
+        }`}
       >
-        <span>{label}</span>
-        <span aria-hidden="true" className="text-muted">
-          {open ? '▴' : '▾'}
-        </span>
-      </button>
-      {open && (
-        <ul id={`drawer-group-${id}`} className="grid gap-1 border-t border-line p-2">
-          {children}
-        </ul>
-      )}
+        <Icon name={icon} size={18} className="shrink-0 text-cta" />
+        <span className="flex-1">{label}</span>
+        {hint && <span className="text-[11px] font-bold text-faint">{hint}</span>}
+        <Icon name="chevronLeft" size={14} className="shrink-0 text-faint" />
+      </Link>
+    </li>
+  );
+}
+
+function DrawerSection({ title, children }: { title: string; children: ReactNode }) {
+  return (
+    <section className="mt-3 first:mt-0">
+      <h2 className="px-3 pb-1 text-[11px] font-extrabold uppercase tracking-wide text-faint">
+        {title}
+      </h2>
+      <ul className="space-y-0.5">{children}</ul>
+    </section>
+  );
+}
+
+/** «واحد نمایش قیمت» — تومان / درهم / هر دو, stored on this device. */
+function PriceUnitRow() {
+  const { unit, setUnit } = usePriceUnit();
+  return (
+    <div className="rounded-field px-3 py-2.5">
+      <div className="flex items-center gap-3">
+        <Icon name="tag" size={18} className="shrink-0 text-cta" />
+        <span className="flex-1 text-sm font-semibold text-muted">واحد نمایش قیمت</span>
+      </div>
+      <div role="group" aria-label="واحد نمایش قیمت" className="mt-2 grid grid-cols-3 gap-1">
+        {(['toman', 'aed', 'both'] as const).map((option: PriceUnit) => (
+          <button
+            key={option}
+            type="button"
+            aria-pressed={unit === option}
+            onClick={() => setUnit(option)}
+            className={`rounded-field border px-2 py-1.5 text-xs font-extrabold transition ${
+              unit === option
+                ? 'border-cta bg-cta-soft text-ink'
+                : 'border-line text-muted hover:text-ink'
+            }`}
+          >
+            {PRICE_UNIT_LABELS[option]}
+          </button>
+        ))}
+      </div>
     </div>
   );
 }
@@ -82,13 +116,11 @@ export function Header({
   admin?: boolean;
 }) {
   const [menuOpen, setMenuOpen] = useState(false);
-  const [openGroup, setOpenGroup] = useState<GroupKey | null>(null);
   const pathname = usePathname();
   const isActive = useActivePath();
 
   useEffect(() => {
     setMenuOpen(false);
-    setOpenGroup(null);
   }, [pathname]);
 
   // Escape closes the drawer, and the page behind it must not scroll.
@@ -105,9 +137,6 @@ export function Header({
       document.removeEventListener('keydown', onKey);
     };
   }, [menuOpen]);
-
-  const toggleGroup = (group: GroupKey) =>
-    setOpenGroup((current) => (current === group ? null : group));
 
   return (
     <>
@@ -210,94 +239,99 @@ export function Header({
               </button>
             </div>
 
-            <div className="flex-1 overflow-y-auto p-4">
-              <h2 className="mb-2 text-xs font-extrabold text-faint">دسته‌بندی‌ها</h2>
-              <div className="space-y-2">
-                <MenuGroup
-                  id="cars"
-                  label="خودرو"
-                  open={openGroup === 'cars'}
-                  onToggle={() => toggleGroup('cars')}
-                >
-                  {CAR_BODY_TYPES.map((type) => (
-                    <li key={type.key}>
-                      <Link
-                        href={`/cars?body=${type.key}`}
-                        className="block rounded-field px-2 py-1.5 text-sm font-semibold text-muted transition hover:bg-cta-soft hover:text-ink"
-                      >
-                        {type.label}
-                      </Link>
-                    </li>
-                  ))}
-                </MenuGroup>
+            <div className="flex-1 overflow-y-auto p-3">
+              <DrawerSection title="آگهی‌ها">
+                <DrawerLink href="/new" label="ثبت آگهی" icon="plus" />
+                <DrawerLink
+                  href="/profile/listings"
+                  label="آگهی‌های من"
+                  icon="tag"
+                  active={pathname === '/profile/listings'}
+                />
+                <DrawerLink
+                  href="/favorites"
+                  label="ذخیره‌شده‌ها"
+                  icon="heart"
+                  active={pathname === '/favorites'}
+                />
+              </DrawerSection>
 
-                <MenuGroup
-                  id="parts"
-                  label="قطعات و لوازم"
-                  open={openGroup === 'parts'}
-                  onToggle={() => toggleGroup('parts')}
-                >
-                  {PART_CATEGORY_LINKS.map((category) => (
-                    <li key={category.key}>
-                      <Link
-                        href={`/parts?category=${category.key}`}
-                        className="block rounded-field px-2 py-1.5 text-sm font-semibold text-muted transition hover:bg-cta-soft hover:text-ink"
-                      >
-                        {category.label}
-                      </Link>
-                    </li>
-                  ))}
-                </MenuGroup>
-              </div>
+              <DrawerSection title="دسته‌بندی‌ها">
+                <DrawerLink href="/cars" label="خودرو" icon="car" active={pathname === '/cars'} />
+                <DrawerLink
+                  href="/motorcycles"
+                  label="موتورسیکلت"
+                  icon="plate"
+                  active={pathname === '/motorcycles'}
+                />
+                <DrawerLink
+                  href="/heavy"
+                  label="ماشین‌آلات سنگین"
+                  icon="gear"
+                  active={pathname === '/heavy'}
+                />
+                <DrawerLink href="/parts" label="قطعات" icon="tag" active={pathname === '/parts'} />
+              </DrawerSection>
 
-              <div className="my-4 border-t border-line" />
-
-              <h2 className="mb-2 text-xs font-extrabold text-faint">حساب کاربری</h2>
-              <ul className="grid gap-1">
-                <li>
-                  <Link
-                    href={authed ? '/profile' : '/login'}
-                    className="block rounded-field px-2 py-1.5 text-sm font-semibold text-muted transition hover:bg-cta-soft hover:text-ink"
-                  >
-                    {authed ? 'پروفایل' : 'ورود'}
-                  </Link>
+              <DrawerSection title="تنظیمات">
+                <li className="px-1 py-1">
+                  <div className="flex items-center gap-2 rounded-field border border-line bg-page px-3 py-2">
+                    <Icon name="pin" size={18} className="shrink-0 text-cta" />
+                    <span className="flex-1 text-sm font-semibold text-muted">شهر</span>
+                    <CitySelect />
+                  </div>
                 </li>
-                <li>
-                  <Link
-                    href="/new"
-                    className="block rounded-field px-2 py-1.5 text-sm font-semibold text-muted transition hover:bg-cta-soft hover:text-ink"
-                  >
-                    ثبت آگهی
-                  </Link>
+                <li className="px-1 py-1">
+                  <PriceUnitRow />
                 </li>
+                <li className="flex items-center gap-3 px-3 py-2">
+                  <Icon name="moon" size={18} className="shrink-0 text-cta" />
+                  <span className="flex-1 text-sm font-semibold text-muted">تم روشن / تیره</span>
+                  <ThemeToggle />
+                </li>
+              </DrawerSection>
+
+              <DrawerSection title="اطلاعات">
+                <DrawerLink
+                  href="/support"
+                  label="پشتیبانی و سوالات متداول"
+                  icon="message"
+                  active={pathname === '/support'}
+                />
+                <DrawerLink
+                  href="/terms"
+                  label="قوانین و حریم خصوصی"
+                  icon="shieldCheck"
+                  active={pathname === '/terms'}
+                />
+                <DrawerLink
+                  href="/about"
+                  label="درباره ما"
+                  icon="sparkle"
+                  active={pathname === '/about'}
+                />
                 {admin && (
-                  <li>
-                    <Link
-                      href="/admin"
-                      aria-current={pathname === '/admin' ? 'page' : undefined}
-                      className="flex items-center gap-1.5 rounded-field px-2 py-1.5 text-sm font-bold text-cta transition hover:bg-cta-soft"
-                    >
-                      <Icon name="gear" size={14} />
-                      پنل مدیریت
-                    </Link>
-                  </li>
+                  <>
+                    <DrawerLink href="/admin" label="پنل مدیریت" icon="gear" active={pathname === '/admin'} />
+                    <DrawerLink
+                      href="/admin/settings"
+                      label="تنظیمات سایت (نرخ درهم)"
+                      icon="sliders"
+                      active={pathname === '/admin/settings'}
+                    />
+                  </>
                 )}
-                {ACCOUNT_LINKS.map((item) => (
-                  <li key={item.href}>
-                    <Link
-                      href={item.href}
-                      aria-current={pathname === item.href ? 'page' : undefined}
-                      className="block rounded-field px-2 py-1.5 text-sm font-semibold text-muted transition hover:bg-cta-soft hover:text-ink"
-                    >
-                      {item.label}
-                    </Link>
-                  </li>
-                ))}
-              </ul>
-            </div>
+              </DrawerSection>
 
-            <div className="border-t border-line p-4">
-              <CitySelect className="w-full [&>button]:w-full [&>button]:justify-between" />
+              <div className="mt-4 border-t border-line pt-3">
+                {authed ? (
+                  <LogoutButton />
+                ) : (
+                  <Link href="/login" className="btn-cta w-full text-sm">
+                    ورود به حساب
+                  </Link>
+                )}
+              </div>
             </div>
           </div>
         </div>

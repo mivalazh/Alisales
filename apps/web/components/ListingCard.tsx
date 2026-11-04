@@ -6,14 +6,13 @@ import { useRef, useState, type MouseEvent, type TouchEvent } from 'react';
 import { badgeFor, type BadgeKey } from '@studio/design';
 import {
   CITY_LABELS,
-  GEARBOX_LABELS,
   PART_CATEGORY_LABELS,
   PART_ORIGIN_LABELS,
-  PLATE_TYPE_LABELS,
   compatibilityLabel,
   postingAgeLabel,
 } from '@alisales/schemas';
 import type { ListingCardData } from '@/lib/data/listings';
+import { brandLatinFor, specParts, vehicleTitle } from '@/lib/listing-text';
 import { FavoriteButton } from './FavoriteButton';
 import { Icon } from './Icon';
 import { PriceText } from './PriceText';
@@ -79,8 +78,12 @@ function cardBadges(listing: ListingCardData): BadgeKey[] {
 export function ListingCard({ listing }: { listing: ListingCardData }) {
   const sold = listing.state === 'sold';
   const part = listing.part ?? null;
-  const title = part ? part.title : `${listing.model}${listing.trim ? ` ${listing.trim}` : ''}`;
+  const title = part ? part.title : vehicleTitle(listing);
   const sellerName = sellerDisplayName(listing.showroomName);
+  // Latin marque on its own line, spec facts as separate items — see
+  // lib/listing-text.ts for why both are bdi/dir guarded.
+  const latin = part ? null : brandLatinFor(listing.brand);
+  const specs = part ? [] : specParts(listing);
 
   const photos = listing.photos?.length
     ? listing.photos
@@ -198,36 +201,57 @@ export function ListingCard({ listing }: { listing: ListingCardData }) {
           ))}
         </div>
 
-        <h3
-          className="text-base font-extrabold leading-tight"
+        {part ? (
+          <h3
+            className="line-clamp-2 text-sm font-extrabold leading-tight sm:text-base"
+            style={sold ? { color: SOLD_TEXT } : undefined}
+          >
+            {part.title}
+          </h3>
+        ) : (
+          <div className="min-w-0">
+            {latin && (
+              <p
+                dir="ltr"
+                className="truncate text-start text-[10px] font-extrabold uppercase tracking-[0.08em] text-muted"
+              >
+                {latin}
+              </p>
+            )}
+            <h3
+              className="mt-0.5 line-clamp-2 text-sm font-extrabold leading-tight sm:text-base"
+              style={sold ? { color: SOLD_TEXT } : undefined}
+            >
+              <bdi>{title}</bdi>{' '}
+              {listing.year > 0 && <span className="font-bold">{listing.year}</span>}
+            </h3>
+          </div>
+        )}
+
+        <p
+          className="line-clamp-1 text-[11px] leading-5 text-muted sm:text-xs"
           style={sold ? { color: SOLD_TEXT } : undefined}
         >
-          {part ? (
-            part.title
-          ) : (
-            <>
-              {listing.model}
-              {listing.trim ? ` ${listing.trim}` : ''}{' '}
-              <span className="font-bold">{listing.year}</span>
-            </>
-          )}
-        </h3>
-
-        <p className="text-xs text-muted" style={sold ? { color: SOLD_TEXT } : undefined}>
           {part ? (
             <>
               {PART_CATEGORY_LABELS[part.category]} · {PART_ORIGIN_LABELS[part.origin]} ·{' '}
               {compatibilityLabel(part.compatibility)}
             </>
           ) : (
-            <>
-              {listing.mileageKm} کیلومتر · {GEARBOX_LABELS[listing.gearbox]} ·{' '}
-              {PLATE_TYPE_LABELS[listing.plateType]}
-            </>
+            specs.map((item, i) => (
+              <span key={`${item}-${i}`}>
+                {i > 0 && <span className="mx-1 text-faint">·</span>}
+                <bdi>{item}</bdi>
+              </span>
+            ))
           )}
         </p>
 
-        <PriceText irr={listing.priceIRR} sold={sold} hideAed={listing.hideAed} />
+        {/* The price owns its own fixed-height row, so the spec line above can
+            never run into it and every card in a row lines up. */}
+        <div className="pt-1">
+          <PriceText irr={listing.priceIRR} sold={sold} hideAed={listing.hideAed} />
+        </div>
 
         {/* Verified sellers show the standardized pill only; the old
             «اتومبیل کیش •» label never prints again. */}

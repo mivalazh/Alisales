@@ -109,7 +109,9 @@ describe('luxury / Kish brand catalog (schema validation)', () => {
   it('accepts the luxury brands in the search filter payload', () => {
     const brands = ['toyota', 'nissan', 'mercedes-benz', 'bmw', 'lexus', 'porsche', 'land-rover'];
     expect(searchFiltersSchema.parse({ brand: brands }).brand).toEqual(brands);
-    expect(searchFiltersSchema.safeParse({ brand: ['tesla'] }).success).toBe(false);
+    // The catalogue grew to the full Iranian market (Tesla included), so the
+    // rejection case is now a slug that has never existed.
+    expect(searchFiltersSchema.safeParse({ brand: ['tesla-motors'] }).success).toBe(false);
   });
 });
 

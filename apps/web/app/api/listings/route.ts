@@ -75,6 +75,13 @@ function toDevCard(data: ListingPublish, sellerId: string): ListingCardData {
     allowPhoneReveal: data.allowPhoneReveal,
     hideAed: data.hideAed,
     kind: 'vehicle',
+    // Category + spec live on the demo card; hosted mode keeps the base row
+    // (the shared `vehicles` table has no category column yet).
+    category: data.category,
+    engineCc: data.engineCc,
+    bikeType: data.bikeType,
+    heavyType: data.heavyType,
+    workingHours: data.workingHours,
     part: null,
   };
 }

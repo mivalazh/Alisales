@@ -1,16 +1,18 @@
 'use client';
 
 import { useRouter } from 'next/navigation';
-import { useEffect, useState, type ReactNode } from 'react';
+import { useEffect, useMemo, useState, type ReactNode } from 'react';
 import {
   DEFAULT_FILTERS,
   activeFilterCount,
   filtersToSearchParams,
   type SearchFilters,
+  type VehicleCategory,
 } from '@alisales/schemas';
 import type { ListingCardData } from '@/lib/data/listings';
 import { sortListings, type SortKey } from '@/lib/sort';
 import { CategoryCards } from './CategoryCards';
+import { FilterBar, FilterSheet, FilterSidebar } from './FilterSystem';
 import { FilterChips } from './FilterChips';
 import { FilterPanel } from './FilterPanel';
 import { ListingGrid } from './ListingGrid';
@@ -34,12 +36,17 @@ export interface CatalogContext {
 
 /**
  * Catalog container — server renders the listings from the one search
- * implementation; this client shell owns the story rail, the two category
- * cards, quick chips, filter/sort/view UX and commits changes to the URL so
+ * implementation; this client shell owns the brand box, the filter system,
+ * the story rail, quick chips, sort/view UX and commits changes to the URL so
  * the server re-runs that same search.
  *
+ * Order on a vehicle page (top to bottom): search → brand box (with its model
+ * row) → filters → stories → chips → sort → grid. Desktop carries the filters
+ * in a left sidebar; phones get one «فیلترها» button that opens a bottom sheet.
+ *
  * `basePath` keeps the same controls on the dedicated category pages
- * (`/cars`, `/parts`): every commit pushes to that path instead of `/`.
+ * (`/cars`, `/motorcycles`, `/heavy`, `/parts`): every commit pushes to that
+ * path instead of `/`.
  */
 export function Catalog({
   listings,
@@ -58,6 +65,8 @@ export function Catalog({
   hideQuickChips = false,
   storiesLabel,
   pool,
+  category,
+  heading,
 }: {
   listings: ListingCardData[];
   filters: SearchFilters;
@@ -71,24 +80,28 @@ export function Catalog({
   showStories?: boolean;
   searchPlaceholder?: string;
   /**
-   * Category-specific filter strip (cars / parts). It replaces the generic
-   * `فیلترها` row and receives the shared commit handles, so a page can own its
-   * own pill bar without duplicating the search/catalog plumbing.
+   * Category-specific filter strip (parts page). It replaces the generic
+   * filter system and receives the shared commit handles.
    */
   filterStrip?: (ctx: CatalogContext) => ReactNode;
-  /** Slot under the strip — the vehicles page puts its brand/model box here. */
+  /** The brand/model box — vehicles only, above the filters. */
   brandBox?: (ctx: CatalogContext) => ReactNode;
   hideQuickChips?: boolean;
   /** «داستان‌های خودرو» / «داستان‌های قطعات» — the rail's accessible title. */
   storiesLabel?: string;
   /**
-   * Unfiltered result pool for the filter modal's live count. Defaults to the
-   * rendered listings, which is right on the home page (no strip).
+   * Unfiltered result pool for the filter sidebar/sheet live counts. Defaults
+   * to the rendered listings, which is right on the home page.
    */
   pool?: ListingCardData[];
+  /** Enables the sidebar/sheet filter system for this vehicle category. */
+  category?: VehicleCategory;
+  /** Small caption above the count («خودروها»، «موتورسیکلت‌ها» …). */
+  heading?: string;
 }) {
   const router = useRouter();
   const [panelOpen, setPanelOpen] = useState(false);
+  const [sheetOpen, setSheetOpen] = useState(false);
   const [view, setView] = useState<ViewMode>('grid');
 
   useEffect(() => {
@@ -123,52 +136,18 @@ export function Catalog({
   };
 
   const filterCount = activeFilterCount(filters);
+  const filterPool = useMemo(() => pool ?? listings, [pool, listings]);
 
-  return (
+  const ctx: CatalogContext = {
+    openPanel: () => setPanelOpen((v) => !v),
+    filterCount,
+    pool: filterPool,
+    filters,
+    commitFilters: (next) => commit(next, sort),
+  };
+
+  const content = (
     <div className="space-y-4">
-      {/* A pick from the suggestion panel is a fresh search: it replaces the
-          filters instead of stacking another brand on top of them. */}
-      <SearchBar
-        q={filters.q ?? ''}
-        placeholder={searchPlaceholder}
-        onApply={(patch) => commit({ ...DEFAULT_FILTERS, ...patch })}
-      />
-
-      {filterStrip
-        ? filterStrip({
-            openPanel: () => setPanelOpen((v) => !v),
-            filterCount,
-            pool: pool ?? listings,
-            filters,
-            commitFilters: (next) => commit(next, sort),
-          })
-        : (
-          <div className="flex flex-wrap items-center gap-3">
-            <button
-              type="button"
-              onClick={() => setPanelOpen((v) => !v)}
-              aria-expanded={panelOpen}
-              className="btn-ghost relative text-sm"
-            >
-              <Icon name="sliders" size={18} />
-              فیلترها
-              {filterCount > 0 && (
-                <span className="flex h-5 min-w-5 items-center justify-center rounded-full bg-cta px-1 text-xs font-extrabold text-[color:var(--color-text-on-accent)]">
-                  {filterCount}
-                </span>
-              )}
-            </button>
-          </div>
-        )}
-
-      {brandBox?.({
-        openPanel: () => setPanelOpen((v) => !v),
-        filterCount,
-        pool: pool ?? listings,
-        filters,
-        commitFilters: (next) => commit(next, sort),
-      })}
-
       {showStories && <Stories stories={stories} label={storiesLabel} />}
 
       {showCategories && <CategoryCards vehicleCount={vehicleCount} partCount={partCount} />}
@@ -192,10 +171,87 @@ export function Catalog({
       </div>
 
       <p className="text-sm font-bold text-muted" aria-live="polite">
+        {heading ? `${heading} · ` : ''}
         {listings.length} آگهی
       </p>
 
       <ListingGrid listings={sortListings(listings, sort)} view={view} />
+    </div>
+  );
+
+  return (
+    <div className="space-y-4">
+      {/* A pick from the suggestion panel is a fresh search: it replaces the
+          filters instead of stacking another brand on top of them. */}
+      <SearchBar
+        q={filters.q ?? ''}
+        placeholder={searchPlaceholder}
+        onApply={(patch) => commit({ ...DEFAULT_FILTERS, ...patch })}
+      />
+
+      {brandBox?.(ctx)}
+
+      {category && (
+        <FilterBar
+          category={category}
+          filters={filters}
+          pool={filterPool}
+          onOpen={() => setSheetOpen(true)}
+          onChange={(next) => commit(next, sort)}
+        />
+      )}
+
+      {filterStrip && <div className={category ? 'lg:hidden' : undefined}>{filterStrip(ctx)}</div>}
+
+      {category ? (
+        <div className="grid gap-4 lg:grid-cols-[264px_minmax(0,1fr)] lg:items-start">
+          <FilterSidebar
+            category={category}
+            filters={filters}
+            onChange={(next) => commit(next, sort)}
+            onClear={() => commit({ ...DEFAULT_FILTERS, q: filters.q }, sort)}
+            pool={filterPool}
+          />
+          {content}
+        </div>
+      ) : (
+        content
+      )}
+
+      {category && (
+        <FilterSheet
+          open={sheetOpen}
+          category={category}
+          filters={filters}
+          pool={filterPool}
+          onApply={(next) => {
+            commit(next, sort);
+            setSheetOpen(false);
+          }}
+          onClear={() => commit({ ...DEFAULT_FILTERS, q: filters.q }, sort)}
+          onClose={() => setSheetOpen(false)}
+        />
+      )}
+
+      {/* The generic panel is the fallback for pages without a category. */}
+      {!category && !filterStrip && (
+        <div className="flex flex-wrap items-center gap-3">
+          <button
+            type="button"
+            onClick={() => setPanelOpen((v) => !v)}
+            aria-expanded={panelOpen}
+            className="btn-ghost relative text-sm"
+          >
+            <Icon name="sliders" size={18} />
+            فیلترها
+            {filterCount > 0 && (
+              <span className="flex h-5 min-w-5 items-center justify-center rounded-full bg-cta px-1 text-xs font-extrabold text-[color:var(--color-text-on-accent)]">
+                {filterCount}
+              </span>
+            )}
+          </button>
+        </div>
+      )}
     </div>
   );
 }

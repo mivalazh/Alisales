@@ -42,15 +42,47 @@ export type {
 export {
   BRANDS,
   brandSlugs,
+  BRAND_LATIN,
+  BRAND_NAME,
+  brandsForCategory,
+  modelsForBrand,
+  carBrands,
+  CAR_UI_BRAND_SLUGS,
   kishUiBrands,
   KISH_UI_BRAND_SLUGS,
   CITIES,
   citySlugs,
   MIN_VEHICLE_YEAR,
   MAX_VEHICLE_YEAR,
+  QAMARI_YEARS,
   vehicleSchema,
 } from './vehicle';
 export type { BrandSlug, VehicleInput } from './vehicle';
+
+// Vehicle categories (car / motorcycle / heavy) + parts
+export {
+  vehicleCategories,
+  listingCategories,
+  VEHICLE_CATEGORY_LABELS,
+  LISTING_CATEGORY_LABELS,
+  MOTORCYCLE_BRANDS,
+  HEAVY_BRANDS,
+  BIKE_TYPES,
+  BIKE_TYPE_LABELS,
+  bikeTypeKeys,
+  HEAVY_TYPES,
+  HEAVY_TYPE_LABELS,
+  heavyTypeKeys,
+  motorcycleSpec,
+  heavySpec,
+} from './categories';
+export type {
+  VehicleCategory,
+  ListingCategory,
+  CategoryBrand,
+  BikeType,
+  HeavyType,
+} from './categories';
 
 // Feature flags (one source for web + mobile)
 export { featureFlags, DEFAULT_CITY, selectableCities } from './features';
@@ -226,6 +258,18 @@ export {
   irrToToman,
 } from './listing-edit';
 export type { ListingEdit, OwnerStateTarget } from './listing-edit';
+
+// AED reference rate — the single source for every AED conversion
+export {
+  DEFAULT_AED_TO_IRR,
+  DEFAULT_AED_RATE,
+  isPlausibleAedRate,
+  aedToToman,
+  tomanRateToIrr,
+  formatAedRateLine,
+  formatAedToman,
+} from './rate';
+export type { AedRate, RateSource } from './rate';
 
 // Read-only plan preview («بزودی») behind the third-listing gate
 export { PLAN_PREVIEW_SOON, PLAN_PREVIEWS } from './plan-preview';

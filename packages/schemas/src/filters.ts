@@ -1,10 +1,15 @@
 import { z } from 'zod';
-import { conditions, gearboxTypes, plateTypes } from './enums';
-import { BRANDS, CITIES, brandSlugs } from './vehicle';
+import { conditions, fuelTypes, gearboxTypes, plateTypes } from './enums';
+import { BRAND_NAME, CITIES, MAX_VEHICLE_YEAR, MIN_VEHICLE_YEAR, brandSlugs } from './vehicle';
+import { bikeTypeKeys, heavyTypeKeys } from './categories';
 
 /**
  * Search filters — the URL is the source of truth on web, and the same shape
  * is passed to the `search_listings` RPC (single filter implementation in DB).
+ *
+ * The category-specific blocks (bike type / heavy type / engine cc / working
+ * hours) only ever apply to listings of that category, so a car search is
+ * unaffected by them and vice versa.
  */
 const citySlugsTuple = CITIES.map((c) => c.slug) as [string, ...string[]];
 
@@ -13,15 +18,23 @@ export const searchFiltersSchema = z.object({
   model: z.string().trim().min(1).max(60).optional(),
   /** Trim/تیپ free-text — «VXR», «S 500», «Platinum». */
   trim: z.string().trim().min(1).max(60).optional(),
-  yearFrom: z.number().int().min(1300).max(1420).optional(),
-  yearTo: z.number().int().min(1300).max(1420).optional(),
+  yearFrom: z.number().int().min(MIN_VEHICLE_YEAR).max(MAX_VEHICLE_YEAR).optional(),
+  yearTo: z.number().int().min(MIN_VEHICLE_YEAR).max(MAX_VEHICLE_YEAR).optional(),
   priceFrom: z.number().int().min(0).max(10 ** 15).optional(),
   priceTo: z.number().int().min(0).max(10 ** 15).optional(),
   mileageMax: z.number().int().min(0).max(2_000_000).optional(),
   gearbox: z.array(z.enum(gearboxTypes)).default([]),
+  fuel: z.array(z.enum(fuelTypes)).default([]),
   plateType: z.array(z.enum(plateTypes)).default([]),
   condition: z.array(z.enum(conditions)).default([]),
   city: z.array(z.enum(citySlugsTuple)).default([]),
+  /** Motorcycles: displacement window in cc. */
+  engineCcMin: z.number().int().min(0).max(3000).optional(),
+  engineCcMax: z.number().int().min(0).max(3000).optional(),
+  bikeType: z.array(z.enum(bikeTypeKeys)).default([]),
+  /** Heavy machinery: class and a working-hours ceiling. */
+  heavyType: z.array(z.enum(heavyTypeKeys)).default([]),
+  workingHoursMax: z.number().int().min(0).max(500_000).optional(),
   hasReport: z.boolean().default(false),
   kishOnly: z.boolean().default(false),
   q: z.string().trim().min(1).max(80).optional(),
@@ -71,9 +84,12 @@ export function parseFiltersFromSearchParams(params: Record<string, QueryValue>)
   const raw: Record<string, unknown> = {
     brand: csv(params.brand),
     gearbox: csv(params.gearbox),
+    fuel: csv(params.fuel),
     plateType: csv(params.plateType),
     condition: csv(params.condition),
     city: csv(params.city),
+    bikeType: csv(params.bikeType),
+    heavyType: csv(params.heavyType),
     hasReport: boolOrNull(params.hasReport) ?? false,
     kishOnly: boolOrNull(params.kishOnly) ?? false,
   };
@@ -87,7 +103,16 @@ export function parseFiltersFromSearchParams(params: Record<string, QueryValue>)
   const q = first(params.q)?.trim();
   if (q) raw.q = toAsciiDigits(q);
 
-  for (const key of ['yearFrom', 'yearTo', 'priceFrom', 'priceTo', 'mileageMax'] as const) {
+  for (const key of [
+    'yearFrom',
+    'yearTo',
+    'priceFrom',
+    'priceTo',
+    'mileageMax',
+    'engineCcMin',
+    'engineCcMax',
+    'workingHoursMax',
+  ] as const) {
     const n = intOrNull(params[key]);
     if (n !== undefined) raw[key] = n;
   }
@@ -109,9 +134,15 @@ export function filtersToSearchParams(filters: SearchFilters): Record<string, st
   if (filters.priceTo !== undefined) out.priceTo = String(filters.priceTo);
   if (filters.mileageMax !== undefined) out.mileageMax = String(filters.mileageMax);
   if (filters.gearbox.length) out.gearbox = filters.gearbox.join(',');
+  if (filters.fuel.length) out.fuel = filters.fuel.join(',');
   if (filters.plateType.length) out.plateType = filters.plateType.join(',');
   if (filters.condition.length) out.condition = filters.condition.join(',');
   if (filters.city.length) out.city = filters.city.join(',');
+  if (filters.engineCcMin !== undefined) out.engineCcMin = String(filters.engineCcMin);
+  if (filters.engineCcMax !== undefined) out.engineCcMax = String(filters.engineCcMax);
+  if (filters.bikeType.length) out.bikeType = filters.bikeType.join(',');
+  if (filters.heavyType.length) out.heavyType = filters.heavyType.join(',');
+  if (filters.workingHoursMax !== undefined) out.workingHoursMax = String(filters.workingHoursMax);
   if (filters.hasReport) out.hasReport = 'true';
   if (filters.kishOnly) out.kishOnly = 'true';
   if (filters.q) out.q = filters.q;
@@ -139,19 +170,24 @@ export function activeFilterCount(filters: SearchFilters): number {
   return (
     filters.brand.length +
     filters.gearbox.length +
+    filters.fuel.length +
     filters.plateType.length +
     filters.condition.length +
     filters.city.length +
+    filters.bikeType.length +
+    filters.heavyType.length +
     (filters.model ? 1 : 0) +
     (filters.trim ? 1 : 0) +
     (filters.yearFrom !== undefined || filters.yearTo !== undefined ? 1 : 0) +
     (filters.priceFrom !== undefined || filters.priceTo !== undefined ? 1 : 0) +
     (filters.mileageMax !== undefined ? 1 : 0) +
+    (filters.engineCcMin !== undefined || filters.engineCcMax !== undefined ? 1 : 0) +
+    (filters.workingHoursMax !== undefined ? 1 : 0) +
     (filters.hasReport ? 1 : 0) +
     (filters.kishOnly ? 1 : 0) +
     (filters.q ? 1 : 0)
   );
 }
 
-export const BRAND_LABELS = Object.fromEntries(BRANDS.map((b) => [b.slug, b.label]));
+export const BRAND_LABELS = BRAND_NAME;
 export const CITY_LABELS = Object.fromEntries(CITIES.map((c) => [c.slug, c.label]));

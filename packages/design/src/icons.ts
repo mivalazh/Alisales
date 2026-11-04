@@ -234,6 +234,14 @@ export const ICONS = {
       'M7 17l-2.1 2.1',
     ],
   },
+  // «اشتراک‌گذاری» on the public seller profile.
+  share: {
+    paths: [
+      'M12 3v12',
+      'M8 7l4-4 4 4',
+      'M5 13v6a2 2 0 0 0 2 2h10a2 2 0 0 0 2-2v-6',
+    ],
+  },
 } as const satisfies Record<string, IconDef>;
 
 export type IconName = keyof typeof ICONS;

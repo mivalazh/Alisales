@@ -16,9 +16,11 @@ import { FavoriteButton } from '@/components/FavoriteButton';
 import { Icon } from '@/components/Icon';
 import { ReportListingButton } from '@/components/ReportListingButton';
 import { PriceText } from '@/components/PriceText';
+import { RateLine } from '@/components/RateLine';
 import { VerifiedPill, sellerDisplayName } from '@/components/SellerVerified';
 import { SoldBadge } from '@/components/SoldBadge';
 import { getListing, getSellerPhone } from '@/lib/data/listings';
+import { brandLatinFor, vehicleTitle } from '@/lib/listing-text';
 import { getSession } from '@/lib/auth/session';
 import { recordView } from '@/lib/data/s2-store';
 import { shouldRecordView } from '@/lib/data/stats-rules';
@@ -171,13 +173,28 @@ export default async function ListingDetailPage({
               })}
             </div>
 
+            {/* Latin marque above the model, LTR and bidi-isolated so a mixed
+                Persian/Latin title never reorders. */}
+            {!part && brandLatinFor(listing.brand) && (
+              <p
+                dir="ltr"
+                className="mt-3 text-start text-xs font-extrabold uppercase tracking-[0.1em] text-muted"
+              >
+                {brandLatinFor(listing.brand)}
+              </p>
+            )}
             <h1
-              className="mt-3 text-lg font-extrabold leading-tight sm:text-xl"
+              className={`${part ? 'mt-3' : 'mt-1'} text-lg font-extrabold leading-tight sm:text-xl`}
               style={sold ? { color: '#64748B' } : undefined}
             >
-              {part
-                ? part.title
-                : `${listing.model}${listing.trim ? ` ${listing.trim}` : ''} — ${listing.year}`}
+              {part ? (
+                part.title
+              ) : (
+                <>
+                  <bdi>{vehicleTitle(listing)}</bdi>
+                  {listing.year > 0 && <span className="font-bold"> — {listing.year}</span>}
+                </>
+              )}
             </h1>
 
             <div className="mt-3">
@@ -187,6 +204,11 @@ export default async function ListingDetailPage({
                 hideAed={listing.hideAed}
                 size="lg"
               />
+              {/* One rate for the whole product: the number and its «آخرین
+                  بروزرسانی» stamp sit under every AED reference. */}
+              <div className="mt-1.5">
+                <RateLine />
+              </div>
             </div>
 
             <dl className="mt-4 grid grid-cols-2 gap-2">
@@ -218,6 +240,14 @@ export default async function ListingDetailPage({
               </div>
               <FavoriteButton slug={listing.slug} listingId={listing.id} />
             </div>
+
+            <Link
+              href={`/seller/${listing.sellerId}`}
+              className="mt-2 inline-flex items-center gap-1 text-xs font-bold text-muted underline transition hover:text-ink"
+            >
+              <Icon name="user" size={14} />
+              مشاهده‌ی پروفایل فروشنده
+            </Link>
 
             <div className="mt-4 border-t border-line pt-4">
               <ContactButtons
