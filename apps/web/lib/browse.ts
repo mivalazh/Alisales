@@ -127,6 +127,36 @@ export function filterByPartCategory(
   );
 }
 
+/** Parts-only attributes that have no vehicle counterpart (origin, warranty). */
+export interface PartAttributes {
+  origin?: string | null;
+  warrantyOnly?: boolean;
+  compatibility?: string | null;
+}
+
+/**
+ * Narrows a parts feed by the spare-parts strip's own controls. Category is
+ * handled separately (it is a first-class URL param shared with the header
+ * menu), and condition rides in the shared search filters.
+ */
+export function filterPartsByAttributes(
+  listings: readonly ListingCardData[],
+  attributes: PartAttributes,
+): ListingCardData[] {
+  const compat = attributes.compatibility?.trim().toLowerCase() ?? '';
+  return listings.filter((listing) => {
+    const part = listing.part;
+    if (!part) return false;
+    if (attributes.origin && part.origin !== attributes.origin) return false;
+    if (attributes.warrantyOnly && !part.warranty?.trim()) return false;
+    if (compat) {
+      const haystack = `${part.compatibility ?? ''} ${part.title}`.toLowerCase();
+      if (!haystack.includes(compat)) return false;
+    }
+    return true;
+  });
+}
+
 /** «قطعات و لوازم» menu links — derived, so the eight categories never drift. */
 export const PART_CATEGORY_LINKS: ReadonlyArray<{
   key: PartCategory;

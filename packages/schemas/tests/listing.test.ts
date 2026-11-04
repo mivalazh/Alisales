@@ -73,8 +73,15 @@ describe('listing draft schema', () => {
 });
 
 describe('listing publish schema', () => {
-  it('requires at least one photo', () => {
-    expect(listingPublishSchema.safeParse({ ...baseDraft, photos: [] }).success).toBe(false);
+  it('publishes without photos (the API assigns a default cover)', () => {
+    const parsed = listingPublishSchema.safeParse({ ...baseDraft, photos: [] });
+    expect(parsed.success).toBe(true);
+    expect(parsed.success && parsed.data.hideAed).toBe(false);
+  });
+
+  it('carries the Toman-only option', () => {
+    const parsed = listingPublishSchema.safeParse({ ...baseDraft, hideAed: true });
+    expect(parsed.success && parsed.data.hideAed).toBe(true);
   });
 
   it('requires a description of at least 20 chars', () => {

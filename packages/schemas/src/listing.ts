@@ -26,6 +26,8 @@ const listingBaseSchema = z.object({
   photos: z.array(listingPhotoSchema).max(MAX_PHOTOS),
   showroomId: z.string().uuid().nullable().default(null),
   allowPhoneReveal: z.boolean().default(false),
+  /** Hide the «≈ … AED» reference line on this listing (Toman-only). */
+  hideAed: z.boolean().default(false),
 });
 
 function checkUniquePhotoPositions(
@@ -49,16 +51,17 @@ export const listingDraftSchema = listingBaseSchema.superRefine(checkUniquePhoto
 
 export type ListingDraft = z.infer<typeof listingDraftSchema>;
 
-/** Everything that must hold before a listing can go to pending_review. */
+/**
+ * Everything that must hold before a listing can go to pending_review.
+ *
+ * Photos are optional: a seller can publish text-only and the API assigns a
+ * default cover, so a submission without a local file still succeeds.
+ */
 export const listingPublishSchema = listingBaseSchema
   .extend({
     description: z.string().trim().min(20).max(3000),
   })
-  .superRefine(checkUniquePhotoPositions)
-  .refine((v) => v.photos.length >= 1, {
-    message: 'برای انتشار آگهی حداقل یک عکس لازم است',
-    path: ['photos'],
-  });
+  .superRefine(checkUniquePhotoPositions);
 
 export type ListingPublish = z.infer<typeof listingPublishSchema>;
 
@@ -80,6 +83,7 @@ export const LISTING_FIELD_LABELS: Record<string, string> = {
   description: 'توضیحات',
   photos: 'عکس‌ها',
   allowPhoneReveal: 'نمایش شماره تماس',
+  hideAed: 'نمایش قیمت درهم',
 };
 
 // ── State machine ────────────────────────────────────────────────────────────

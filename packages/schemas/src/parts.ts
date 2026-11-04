@@ -22,15 +22,19 @@ export const partCategories = [
 ] as const;
 export type PartCategory = (typeof partCategories)[number];
 
+/**
+ * Part categories as buyers see them on /parts. `engine` covers the drivetrain
+ * (engine, gearbox, clutch) because the parts taxonomy groups them together.
+ */
 export const PART_CATEGORY_LABELS: Record<PartCategory, string> = {
-  engine: 'موتور و انتقال قدرت',
+  engine: 'موتور و گیربکس',
   brake: 'ترمز و تعلیق',
-  body: 'بدنه و آپشن',
-  electrical: 'برق و روشنایی',
-  interior: 'داخل کابین',
+  body: 'بدنه و رنگ',
+  electrical: 'برق و الکترونیک',
+  interior: 'داخلی',
   tires: 'لاستیک و رینگ',
   oil_filters: 'روغن و فیلتر',
-  other: 'سایر',
+  other: 'لوازم جانبی',
 };
 
 export const partOrigins = ['original', 'commercial', 'unknown'] as const;
@@ -95,12 +99,10 @@ export const partListingPublishSchema = z
     photos: z.array(listingPhotoSchema).max(MAX_PHOTOS),
     showroomId: z.string().uuid().nullable().default(null),
     allowPhoneReveal: z.boolean().default(false),
+    /** Hide the «≈ … AED» reference line on this listing (Toman-only). */
+    hideAed: z.boolean().default(false),
   })
-  .superRefine(checkUniquePhotoPositions)
-  .refine((v) => v.photos.length >= 1, {
-    message: 'برای انتشار آگهی حداقل یک عکس لازم است',
-    path: ['photos'],
-  });
+  .superRefine(checkUniquePhotoPositions);
 
 export type PartListingPublish = z.infer<typeof partListingPublishSchema>;
 
@@ -118,4 +120,5 @@ export const PART_FIELD_LABELS: Record<string, string> = {
   description: 'توضیحات',
   photos: 'عکس‌ها',
   allowPhoneReveal: 'نمایش شماره تماس',
+  hideAed: 'نمایش قیمت درهم',
 };

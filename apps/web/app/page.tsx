@@ -2,15 +2,15 @@ import Link from 'next/link';
 import { PART_CATEGORY_LABELS, parseFiltersFromSearchParams } from '@alisales/schemas';
 import { Catalog } from '@/components/Catalog';
 import type { CatalogKind } from '@/components/CategoryCards';
-import type { StoryItem } from '@/components/Stories';
 import {
   filterByBodyType,
   filterByPartCategory,
   parseBodyType,
   parsePartCategory,
 } from '@/lib/browse';
-import { searchListings, type ListingCardData } from '@/lib/data/listings';
+import { searchListings } from '@/lib/data/listings';
 import { approvedStories } from '@/lib/data/moderation';
+import { storiesFrom } from '@/lib/stories';
 import { parseSortKey } from '@/lib/sort';
 
 type SearchParams = Record<string, string | string[] | undefined>;
@@ -30,35 +30,6 @@ const STORY_SLUGS = [
   's-class-kish',
   'cayenne-kish',
 ] as const;
-
-function storyTitle(listing: ListingCardData): string {
-  if (listing.part) return listing.part.title;
-  return `${listing.model}${listing.trim ? ` ${listing.trim}` : ''}`;
-}
-
-/**
- * Story rail: listings the owner approved in /admin come first, then the
- * editorial picks, then any photographed listing as a fallback. Approval is a
- * real moderation decision, so it must be visible on the home page.
- */
-function storiesFrom(listings: readonly ListingCardData[], approved: readonly string[]): StoryItem[] {
-  const bySlug = (slug: string) => listings.find((l) => l.slug === slug);
-  const pinned = approved.map(bySlug).filter((l): l is ListingCardData => Boolean(l?.coverUrl));
-  const picked = STORY_SLUGS.map(bySlug).filter((l): l is ListingCardData => Boolean(l?.coverUrl));
-  const fallback = listings.filter((l) => l.coverUrl).slice(0, 4);
-  const seen = new Set<string>();
-  const source = [...pinned, ...picked, ...fallback].filter((listing) => {
-    if (seen.has(listing.slug)) return false;
-    seen.add(listing.slug);
-    return true;
-  });
-  return source.slice(0, 4).map((listing) => ({
-    slug: listing.slug,
-    title: storyTitle(listing),
-    coverUrl: listing.coverUrl!,
-    href: `/listing/${listing.slug}`,
-  }));
-}
 
 /**
  * Browse results. `?body=` / `?category=` come from the hamburger groups and
@@ -114,7 +85,7 @@ export default async function HomePage({
         listings={listings}
         filters={filters}
         sort={sort}
-        stories={storiesFrom(base, approved)}
+        stories={storiesFrom(base, approved, STORY_SLUGS, 4)}
         kind={kind}
         vehicleCount={vehicleCount}
         partCount={partCount}

@@ -32,8 +32,8 @@ const base = {
 describe('parts labels', () => {
   it('has Persian labels for every category', () => {
     expect(PART_CATEGORY_LABELS.brake).toBe('ترمز و تعلیق');
-    expect(PART_CATEGORY_LABELS.engine).toBe('موتور و انتقال قدرت');
-    expect(PART_CATEGORY_LABELS.other).toBe('سایر');
+    expect(PART_CATEGORY_LABELS.engine).toBe('موتور و گیربکس');
+    expect(PART_CATEGORY_LABELS.other).toBe('لوازم جانبی');
     expect(Object.keys(PART_CATEGORY_LABELS)).toHaveLength(8);
   });
 
@@ -88,8 +88,8 @@ describe('partListingPublishSchema', () => {
     expect(partListingPublishSchema.safeParse({ ...base, title: 'دی' }).success).toBe(false);
   });
 
-  it('requires at least one photo', () => {
-    expect(partListingPublishSchema.safeParse({ ...base, photos: [] }).success).toBe(false);
+  it('publishes without photos (the API assigns a default cover)', () => {
+    expect(partListingPublishSchema.safeParse({ ...base, photos: [] }).success).toBe(true);
   });
 
   it('requires a short description of at least ten characters', () => {

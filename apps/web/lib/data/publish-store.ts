@@ -32,6 +32,8 @@ export interface ListingPatch {
   city?: string;
   allowPhoneReveal?: boolean;
   photos?: ListingPhoto[];
+  /** Toman-only price preference (fixture store keeps it; hosted needs a column). */
+  hideAed?: boolean;
 }
 
 export type UpdateResult =

@@ -99,7 +99,7 @@ describe('luxury first-impression catalogue', () => {
     );
   });
 
-  it('carries the five luxury cars and two luxury parts', () => {
+  it('carries the five luxury cars and a full spare-parts catalogue', () => {
     const cars = fixtureListings.filter((l) => l.kind !== 'part' && l.priceIRR > 200_000_000_000);
     expect(cars.map((l) => l.slug)).toEqual(
       expect.arrayContaining([
@@ -111,8 +111,16 @@ describe('luxury first-impression catalogue', () => {
       ]),
     );
     const parts = fixtureListings.filter((l) => l.kind === 'part');
-    expect(parts).toHaveLength(2);
-    expect(parts.every((p) => p.part && p.part.origin === 'original')).toBe(true);
+    expect(parts.length).toBeGreaterThanOrEqual(7);
+    expect(parts.map((p) => p.slug)).toEqual(
+      expect.arrayContaining([
+        'porsche-ceramic-brake-kit',
+        's-class-body-kit',
+        'bmw-turbocharger',
+        'patrol-leather-interior',
+      ]),
+    );
+    expect(parts.filter((p) => p.part?.origin === 'original').length).toBeGreaterThanOrEqual(2);
   });
 
   it('ends the grid with exactly one sold listing', () => {

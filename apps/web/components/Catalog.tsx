@@ -1,7 +1,7 @@
 'use client';
 
 import { useRouter } from 'next/navigation';
-import { useEffect, useState } from 'react';
+import { useEffect, useState, type ReactNode } from 'react';
 import {
   DEFAULT_FILTERS,
   activeFilterCount,
@@ -21,6 +21,16 @@ import { Stories, type StoryItem } from './Stories';
 import { Icon } from './Icon';
 
 const VIEW_KEY = 'alisales-view';
+
+/** Handles a category page's own filter bar needs from the catalog shell. */
+export interface CatalogContext {
+  openPanel: () => void;
+  filterCount: number;
+  pool: ListingCardData[];
+  filters: SearchFilters;
+  /** Commits a filter set to the URL (sort unchanged). */
+  commitFilters: (next: SearchFilters) => void;
+}
 
 /**
  * Catalog container — server renders the listings from the one search
@@ -43,6 +53,11 @@ export function Catalog({
   showCategories = true,
   showStories = true,
   searchPlaceholder,
+  filterStrip,
+  brandBox,
+  hideQuickChips = false,
+  storiesLabel,
+  pool,
 }: {
   listings: ListingCardData[];
   filters: SearchFilters;
@@ -55,6 +70,22 @@ export function Catalog({
   showCategories?: boolean;
   showStories?: boolean;
   searchPlaceholder?: string;
+  /**
+   * Category-specific filter strip (cars / parts). It replaces the generic
+   * `فیلترها` row and receives the shared commit handles, so a page can own its
+   * own pill bar without duplicating the search/catalog plumbing.
+   */
+  filterStrip?: (ctx: CatalogContext) => ReactNode;
+  /** Slot under the strip — the vehicles page puts its brand/model box here. */
+  brandBox?: (ctx: CatalogContext) => ReactNode;
+  hideQuickChips?: boolean;
+  /** «داستان‌های خودرو» / «داستان‌های قطعات» — the rail's accessible title. */
+  storiesLabel?: string;
+  /**
+   * Unfiltered result pool for the filter modal's live count. Defaults to the
+   * rendered listings, which is right on the home page (no strip).
+   */
+  pool?: ListingCardData[];
 }) {
   const router = useRouter();
   const [panelOpen, setPanelOpen] = useState(false);
@@ -103,33 +134,46 @@ export function Catalog({
         onApply={(patch) => commit({ ...DEFAULT_FILTERS, ...patch })}
       />
 
-      {showStories && <Stories stories={stories} />}
+      {filterStrip
+        ? filterStrip({
+            openPanel: () => setPanelOpen((v) => !v),
+            filterCount,
+            pool: pool ?? listings,
+            filters,
+            commitFilters: (next) => commit(next, sort),
+          })
+        : (
+          <div className="flex flex-wrap items-center gap-3">
+            <button
+              type="button"
+              onClick={() => setPanelOpen((v) => !v)}
+              aria-expanded={panelOpen}
+              className="btn-ghost relative text-sm"
+            >
+              <Icon name="sliders" size={18} />
+              فیلترها
+              {filterCount > 0 && (
+                <span className="flex h-5 min-w-5 items-center justify-center rounded-full bg-cta px-1 text-xs font-extrabold text-[color:var(--color-text-on-accent)]">
+                  {filterCount}
+                </span>
+              )}
+            </button>
+          </div>
+        )}
+
+      {brandBox?.({
+        openPanel: () => setPanelOpen((v) => !v),
+        filterCount,
+        pool: pool ?? listings,
+        filters,
+        commitFilters: (next) => commit(next, sort),
+      })}
+
+      {showStories && <Stories stories={stories} label={storiesLabel} />}
 
       {showCategories && <CategoryCards vehicleCount={vehicleCount} partCount={partCount} />}
 
-      <QuickChips filters={filters} onChange={(f) => commit(f)} />
-
-      <div className="flex flex-wrap items-center gap-3">
-        <button
-          type="button"
-          onClick={() => setPanelOpen((v) => !v)}
-          aria-expanded={panelOpen}
-          className="btn-ghost relative text-sm"
-        >
-          <Icon name="sliders" size={18} />
-          فیلترها
-          {filterCount > 0 && (
-            <span className="flex h-5 min-w-5 items-center justify-center rounded-full bg-cta px-1 text-xs font-extrabold text-[color:var(--color-text-on-accent)]">
-              {filterCount}
-            </span>
-          )}
-        </button>
-
-        <div className="ms-auto flex items-center gap-3">
-          <SortControl value={sort} onChange={(key) => commit(filters, key)} />
-          <ViewModeToggle value={view} onChange={changeView} />
-        </div>
-      </div>
+      {!hideQuickChips && <QuickChips filters={filters} onChange={(f) => commit(f)} />}
 
       {panelOpen && (
         <FilterPanel
@@ -139,7 +183,13 @@ export function Catalog({
         />
       )}
 
-      <FilterChips filters={filters} onChange={(f) => commit(f)} />
+      <div className="flex flex-wrap items-center justify-between gap-3">
+        <FilterChips filters={filters} onChange={(f) => commit(f)} />
+        <div className="ms-auto flex items-center gap-3">
+          <SortControl value={sort} onChange={(key) => commit(filters, key)} />
+          <ViewModeToggle value={view} onChange={changeView} />
+        </div>
+      </div>
 
       <p className="text-sm font-bold text-muted" aria-live="polite">
         {listings.length} آگهی

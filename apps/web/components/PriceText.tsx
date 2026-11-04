@@ -12,8 +12,12 @@ const SECONDARY_INK = '#64748B';
  * and the dirham reference sits directly underneath it in the muted secondary
  * color. The block is a right-aligned stack: in RTL `items-start` is the start
  * (right) edge, so the `≈ … AED` line stays under the Toman amount instead of
- * floating to the far left. The Toman line never wraps — a 1.2-billion Toman
- * price must stay on one line at card width.
+ * floating to the far left.
+ *
+ * The Toman line never wraps and scales with the viewport (`12px` on a narrow
+ * phone, `16px` from `sm` up), so an eleven-digit price still fits beside the
+ * «تومان» suffix in a two-column mobile grid. `hideAed` is the seller's
+ * «فقط تومان» preference: the reference line is then not rendered at all.
  *
  * Display only — no payment or checkout path reads the reference rate, and the
  * rial figure is never shown.
@@ -21,10 +25,13 @@ const SECONDARY_INK = '#64748B';
 export function PriceText({
   irr,
   sold = false,
+  hideAed = false,
   size = 'md',
 }: {
   irr: number;
   sold?: boolean;
+  /** Seller chose «عدم نمایش قیمت درهم» for this listing. */
+  hideAed?: boolean;
   /** `md` for cards/rows, `lg` for the detail page. */
   size?: 'md' | 'lg';
 }) {
@@ -32,24 +39,26 @@ export function PriceText({
   const aed = formatAmountLatin(irrToAED(irr));
 
   return (
-    <span className="flex flex-col items-start gap-1 text-right">
+    <span className="flex min-w-0 flex-col items-start gap-0.5 text-right">
       <span
         className={
           size === 'lg'
-            ? 'whitespace-nowrap text-2xl font-extrabold leading-tight'
-            : 'whitespace-nowrap text-lg font-extrabold leading-tight'
+            ? 'whitespace-nowrap text-xl font-extrabold leading-tight sm:text-2xl'
+            : 'whitespace-nowrap text-[12px] font-extrabold leading-tight sm:text-base'
         }
         style={{ color: sold ? SECONDARY_INK : PRICE_INK }}
       >
         {toman} تومان
       </span>
-      <span
-        className="inline-block self-start text-right text-xs font-bold"
-        dir="ltr"
-        style={{ color: SECONDARY_INK }}
-      >
-        ≈ {aed} AED
-      </span>
+      {!hideAed && (
+        <span
+          className="inline-block self-start whitespace-nowrap text-right text-[10px] font-bold sm:text-xs"
+          dir="ltr"
+          style={{ color: SECONDARY_INK }}
+        >
+          ≈ {aed} AED
+        </span>
+      )}
     </span>
   );
 }

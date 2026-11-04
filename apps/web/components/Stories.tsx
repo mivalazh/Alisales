@@ -17,14 +17,14 @@ export interface StoryItem {
  * with the Habañero ring and a full-screen viewer. Tapping a ring opens the
  * viewer; its «مشاهده‌ی آگهی» link carries the buyer to the listing.
  */
-export function Stories({ stories }: { stories: StoryItem[] }) {
+export function Stories({ stories, label = 'داستان‌های آگهی' }: { stories: StoryItem[]; label?: string }) {
   const [openIndex, setOpenIndex] = useState<number | null>(null);
   const active = openIndex === null ? null : (stories[openIndex] ?? null);
 
   if (stories.length === 0) return null;
 
   return (
-    <section aria-label="داستان‌های آگهی" className="rounded-card border border-line bg-card p-3">
+    <section aria-label={label} className="rounded-card border border-line bg-card p-3">
       <ul dir="ltr" className="flex items-start gap-3 overflow-x-auto pb-1">
         {stories.map((story, index) => (
           <li key={story.slug} className="shrink-0">

@@ -140,6 +140,11 @@
     color: var(--color-text-primary);
   }
 
+  /* A field the seller still has to fix — red border until it validates. */
+  .field-invalid .field {
+    border-color: var(--color-danger-fg);
+  }
+
   .hint {
     margin-top: 4px;
     font-size: var(--font-size-xs);

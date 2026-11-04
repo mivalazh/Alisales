@@ -44,11 +44,6 @@ describe('Persian validation messages (Zod error map)', () => {
   });
 
   it('keeps custom Persian refinement messages intact', () => {
-    const noPhoto = listingPublishSchema.safeParse({ ...base, photos: [] });
-    expect(!noPhoto.success && noPhoto.error.issues[0]?.message).toBe(
-      'برای انتشار آگهی حداقل یک عکس لازم است',
-    );
-
     const dup = listingPublishSchema.safeParse({
       ...base,
       photos: [...base.photos, { ...base.photos[0]!, path: 'u/l/0b.webp' }],

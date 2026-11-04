@@ -181,7 +181,12 @@ export default async function ListingDetailPage({
             </h1>
 
             <div className="mt-3">
-              <PriceText irr={listing.priceIRR} sold={sold} size="lg" />
+              <PriceText
+                irr={listing.priceIRR}
+                sold={sold}
+                hideAed={listing.hideAed}
+                size="lg"
+              />
             </div>
 
             <dl className="mt-4 grid grid-cols-2 gap-2">

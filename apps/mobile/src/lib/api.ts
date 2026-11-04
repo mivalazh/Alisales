@@ -79,6 +79,7 @@ function seedDemo(): MyListing[] {
         photos: [],
         showroomId: null,
         allowPhoneReveal: false,
+        hideAed: false,
       },
     },
     {
@@ -107,6 +108,7 @@ function seedDemo(): MyListing[] {
         photos: [],
         showroomId: null,
         allowPhoneReveal: false,
+        hideAed: false,
       },
     },
   ];
@@ -222,6 +224,8 @@ function rowToMyListing(row: ListingRow): MyListing {
         })),
       showroomId: null,
       allowPhoneReveal: row.allow_phone_reveal,
+      // Hosted listings have no Toman-only column yet; the reference line shows.
+      hideAed: false,
     },
   };
 }

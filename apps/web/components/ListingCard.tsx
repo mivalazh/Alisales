@@ -120,7 +120,7 @@ export function ListingCard({ listing }: { listing: ListingCardData }) {
 
   return (
     <li
-      className="group relative overflow-hidden rounded-card border border-line bg-card transition hover:border-line-strong hover:shadow-lg"
+      className="group relative flex h-full flex-col overflow-hidden rounded-card border border-line bg-card transition hover:border-line-strong hover:shadow-lg"
       onTouchStart={onTouchStart}
       onTouchEnd={onTouchEnd}
     >
@@ -191,7 +191,7 @@ export function ListingCard({ listing }: { listing: ListingCardData }) {
 
       </div>
 
-      <div className="flex flex-col gap-2 p-3 sm:p-4">
+      <div className="flex flex-1 flex-col gap-2 p-3 sm:p-4">
         <div className="flex flex-wrap gap-1.5">
           {cardBadges(listing).map((b) => (
             <Badge key={b} badgeKey={b} />
@@ -227,7 +227,7 @@ export function ListingCard({ listing }: { listing: ListingCardData }) {
           )}
         </p>
 
-        <PriceText irr={listing.priceIRR} sold={sold} />
+        <PriceText irr={listing.priceIRR} sold={sold} hideAed={listing.hideAed} />
 
         {/* Verified sellers show the standardized pill only; the old
             «اتومبیل کیش •» label never prints again. */}

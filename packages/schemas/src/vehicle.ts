@@ -67,13 +67,25 @@ export const BRANDS = [
       'Land Cruiser Prado',
       'Prado',
       'Hilux',
+      'Fortuner',
       'C-HR',
+      'Supra',
     ],
   },
   {
     slug: 'nissan',
     label: 'نیسان',
-    models: ['Patrol', 'X-Trail', 'Juke', 'Sunny', 'Qashqai', 'Z370'],
+    models: [
+      'Patrol',
+      'Altima',
+      'Maxima',
+      'GT-R',
+      'X-Trail',
+      'Sunny',
+      'Juke',
+      'Qashqai',
+      'Z370',
+    ],
   },
   { slug: 'renault', label: 'رنو', models: ['مگان', 'فلوئنس', 'کولیوس'] },
   {
@@ -104,8 +116,54 @@ export const BRANDS = [
     models: ['Range Rover', 'Range Rover Sport', 'Discovery', 'Defender', 'Evoque'],
   },
   { slug: 'chery', label: 'چری', models: ['آریزو ۶', 'تیگو ۸'] },
-  { slug: 'mazda', label: 'مزدا', models: ['مزدا ۲', 'مزدا ۳', 'CX-5'] },
+  {
+    slug: 'mazda',
+    label: 'مزدا',
+    models: ['مزدا ۲', 'مزدا ۳', 'CX-5', 'CX-9', 'MX-5'],
+  },
   { slug: 'byd', label: 'بی‌ای‌دی', models: ['F0', 'F3', 'S6'] },
+  {
+    slug: 'chevrolet',
+    label: 'شورولت',
+    models: ['Camaro', 'Corvette', 'Tahoe', 'Silverado', 'Malibu', 'Traverse'],
+  },
+  {
+    slug: 'ford',
+    label: 'فورد',
+    models: ['Mustang', 'Explorer', 'F-150', 'Edge', 'Expedition', 'Bronco'],
+  },
+  { slug: 'dodge', label: 'دوج', models: ['Challenger', 'Charger', 'Durango', 'Ram 1500'] },
+  {
+    slug: 'jeep',
+    label: 'جیپ',
+    models: ['Wrangler', 'Grand Cherokee', 'Compass', 'Cherokee', 'Gladiator'],
+  },
+  {
+    slug: 'mitsubishi',
+    label: 'میتسوبیشی',
+    models: ['Pajero', 'L200', 'Outlander', 'Eclipse Cross', 'ASX'],
+  },
+  { slug: 'honda', label: 'هوندا', models: ['Accord', 'Civic', 'CR-V', 'Pilot', 'HR-V'] },
+  {
+    slug: 'audi',
+    label: 'آئودی',
+    models: ['A4', 'A6', 'A8', 'Q5', 'Q7', 'Q8', 'RS7', 'e-tron'],
+  },
+  {
+    slug: 'volkswagen',
+    label: 'فولکس‌واگن',
+    models: ['Golf', 'Tiguan', 'Passat', 'Touareg', 'Arteon', 'ID.4'],
+  },
+  {
+    slug: 'genesis',
+    label: 'جنسیس',
+    models: ['G70', 'G80', 'G90', 'GV70', 'GV80'],
+  },
+  {
+    slug: 'maserati',
+    label: 'مازراتی',
+    models: ['Ghibli', 'Levante', 'Quattroporte', 'GranTurismo', 'MC20'],
+  },
   { slug: 'other', label: 'سایر', models: [] },
 ] as const;
 
@@ -121,15 +179,26 @@ export const brandSlugs = BRANDS.map((b) => b.slug) as [BrandSlug, ...BrandSlug[
  * select or a brand tag row.
  */
 export const KISH_UI_BRAND_SLUGS = [
-  'toyota',
   'nissan',
+  'toyota',
   'mercedes-benz',
   'bmw',
   'porsche',
   'lexus',
-  'land-rover',
-  'kia',
   'hyundai',
+  'kia',
+  'chevrolet',
+  'ford',
+  'dodge',
+  'jeep',
+  'land-rover',
+  'mitsubishi',
+  'honda',
+  'mazda',
+  'audi',
+  'volkswagen',
+  'genesis',
+  'maserati',
 ] as const;
 
 export const kishUiBrands = BRANDS.filter((b) =>

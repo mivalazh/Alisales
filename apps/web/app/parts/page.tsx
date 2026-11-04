@@ -1,10 +1,20 @@
 import type { Metadata } from 'next';
 import Link from 'next/link';
-import { PART_CATEGORY_LABELS, parseFiltersFromSearchParams } from '@alisales/schemas';
-import { Catalog } from '@/components/Catalog';
+import {
+  DEFAULT_FILTERS,
+  PART_CATEGORY_LABELS,
+  parseFiltersFromSearchParams,
+} from '@alisales/schemas';
+import { PartsCatalog } from '@/components/PartsCatalog';
 import { Icon } from '@/components/Icon';
-import { filterByPartCategory, parsePartCategory } from '@/lib/browse';
+import {
+  filterByPartCategory,
+  filterPartsByAttributes,
+  parsePartCategory,
+} from '@/lib/browse';
 import { searchListings } from '@/lib/data/listings';
+import { approvedStories } from '@/lib/data/moderation';
+import { storiesFrom } from '@/lib/stories';
 import { parseSortKey } from '@/lib/sort';
 
 export const metadata: Metadata = {
@@ -18,10 +28,21 @@ function first(value: string | string[] | undefined): string | undefined {
   return Array.isArray(value) ? value[0] : value;
 }
 
+/** Editorial parts highs for the parts rail (approved ones come first). */
+const PART_STORIES = [
+  'porsche-ceramic-brake-kit',
+  'land-cruiser-gearbox-part',
+  's-class-body-kit',
+  'bmw-turbocharger',
+  'cayenne-brake-kit-part',
+] as const;
+
 /**
- * Dedicated «قطعات و لوازم یدکی» browse page — the parts card's destination.
- * Same catalog shell as the cars page, scoped to `kind: part` and to the
- * requested part category.
+ * Dedicated «قطعات و لوازم یدکی» page. Deliberately *not* the car layout: no
+ * brand box, because parts buyers shop by category, condition and origin.
+ *
+ *   search → circular parts stories → category pills + condition/origin/
+ *   warranty/compatibility strip → sort/view → parts grid.
  */
 export default async function PartsPage({
   searchParams,
@@ -38,10 +59,26 @@ export default async function PartsPage({
   const filters = parseFiltersFromSearchParams(raw);
   const sort = parseSortKey(first(params.sort));
   const category = parsePartCategory(first(params.category));
+  const origin = first(params.origin) ?? null;
+  const warranty = first(params.warranty) === '1';
+  const compatibility = first(params.compat) ?? '';
 
-  const base = await searchListings(filters);
+  const [base, pool, approved] = await Promise.all([
+    searchListings(filters),
+    searchListings(DEFAULT_FILTERS),
+    approvedStories(),
+  ]);
+
   const parts = base.filter((listing) => listing.kind === 'part');
-  const listings = category ? filterByPartCategory(parts, category) : parts;
+  let listings = category ? filterByPartCategory(parts, category) : parts;
+  listings = filterPartsByAttributes(listings, {
+    origin,
+    warrantyOnly: warranty,
+    compatibility,
+  });
+
+  const partPool = pool.filter((listing) => listing.kind === 'part');
+  const stories = storiesFrom(partPool, approved, PART_STORIES, 6);
 
   return (
     <div className="space-y-4">
@@ -49,7 +86,9 @@ export default async function PartsPage({
         <div>
           <h1 className="text-xl font-extrabold sm:text-2xl">قطعات و لوازم یدکی</h1>
           <p className="mt-1 text-sm text-muted">
-            {category ? PART_CATEGORY_LABELS[category] : 'قطعات اصلی و استوک برای خودروهای وارداتی'}{' '}
+            {category
+              ? PART_CATEGORY_LABELS[category]
+              : 'قطعات اصلی و استوک برای خودروهای وارداتی'}{' '}
             · {listings.length.toLocaleString('en-US')} آگهی
           </p>
         </div>
@@ -62,15 +101,16 @@ export default async function PartsPage({
         </Link>
       </div>
 
-      <Catalog
+      <PartsCatalog
         listings={listings}
+        pool={partPool}
         filters={filters}
         sort={sort}
-        basePath="/parts"
-        kind="part"
-        showCategories={false}
-        showStories={false}
-        searchPlaceholder="جستجوی قطعه، شماره فنی یا برند"
+        stories={stories}
+        category={category}
+        origin={origin}
+        warranty={warranty}
+        compatibility={compatibility}
       />
     </div>
   );

@@ -76,7 +76,7 @@ export const CONDITION_LABELS: Record<Condition, string> = {
 };
 
 export const PLATE_TYPE_LABELS: Record<PlateType, string> = {
-  standard: 'پلاک عادی',
+  standard: 'پلاک ملی',
   kish: 'پلاک کیش',
   temporary_transit: 'گذر موقت',
   unplated: 'بدون پلاک',

@@ -18,8 +18,14 @@ const UPCOMING_CITIES: ReadonlyArray<{ slug: string; label: string }> = [
   { slug: 'shiraz', label: 'شیراز' },
   { slug: 'isfahan', label: 'اصفهان' },
   { slug: 'mashhad', label: 'مشهد' },
+  { slug: 'tabriz', label: 'تبریز' },
+  { slug: 'karaj', label: 'کرج' },
+  { slug: 'ahvaz', label: 'اهواز' },
+  { slug: 'rasht', label: 'رشت' },
   { slug: 'qeshm', label: 'قشم' },
-  { slug: 'dubai', label: 'دبی' },
+  { slug: 'bandar-abbas', label: 'بندرعباس' },
+  { slug: 'chabahar', label: 'چابهار' },
+  { slug: 'sari', label: 'ساری' },
 ];
 
 export function CitySelect({ className = '' }: { className?: string }) {

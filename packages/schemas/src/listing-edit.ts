@@ -34,7 +34,14 @@ export const listingEditSchema = z
     description: z.string().trim().min(10).max(3000).optional(),
     city: z.enum(citySlugs as [string, ...string[]]).optional(),
     allowPhoneReveal: z.boolean().optional(),
-    photos: z.array(listingPhotoSchema).min(1).max(MAX_PHOTOS).optional(),
+    /**
+     * Replacement photo set. An empty array is allowed: photos are optional at
+     * publish, so a photo-less listing must stay editable (the cover falls back
+     * to the catalogue default).
+     */
+    photos: z.array(listingPhotoSchema).max(MAX_PHOTOS).optional(),
+    /** «فقط تومان» price preference (Toman-only, no AED reference line). */
+    hideAed: z.boolean().optional(),
   })
   .refine((value) => Object.keys(value).length > 0, {
     message: 'هیچ تغییری ارسال نشده است.',

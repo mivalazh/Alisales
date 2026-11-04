@@ -134,7 +134,7 @@ export function ListingRow({
           </p>
 
           <div className="mt-auto flex items-center justify-between gap-2">
-            <PriceText irr={listing.priceIRR} sold={sold} />
+            <PriceText irr={listing.priceIRR} sold={sold} hideAed={listing.hideAed} />
             <time dateTime={listing.publishedAt ?? undefined} className="text-xs text-faint">
               {postingAgeLabel(listing.publishedAt ?? Date.now())}
             </time>

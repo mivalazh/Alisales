@@ -11,6 +11,8 @@ const citySlugsTuple = CITIES.map((c) => c.slug) as [string, ...string[]];
 export const searchFiltersSchema = z.object({
   brand: z.array(z.enum(brandSlugs)).default([]),
   model: z.string().trim().min(1).max(60).optional(),
+  /** Trim/تیپ free-text — «VXR», «S 500», «Platinum». */
+  trim: z.string().trim().min(1).max(60).optional(),
   yearFrom: z.number().int().min(1300).max(1420).optional(),
   yearTo: z.number().int().min(1300).max(1420).optional(),
   priceFrom: z.number().int().min(0).max(10 ** 15).optional(),
@@ -79,6 +81,9 @@ export function parseFiltersFromSearchParams(params: Record<string, QueryValue>)
   const model = first(params.model)?.trim();
   if (model) raw.model = model;
 
+  const trim = first(params.trim)?.trim();
+  if (trim) raw.trim = trim;
+
   const q = first(params.q)?.trim();
   if (q) raw.q = toAsciiDigits(q);
 
@@ -97,6 +102,7 @@ export function filtersToSearchParams(filters: SearchFilters): Record<string, st
   const out: Record<string, string> = {};
   if (filters.brand.length) out.brand = filters.brand.join(',');
   if (filters.model) out.model = filters.model;
+  if (filters.trim) out.trim = filters.trim;
   if (filters.yearFrom !== undefined) out.yearFrom = String(filters.yearFrom);
   if (filters.yearTo !== undefined) out.yearTo = String(filters.yearTo);
   if (filters.priceFrom !== undefined) out.priceFrom = String(filters.priceFrom);
@@ -137,6 +143,7 @@ export function activeFilterCount(filters: SearchFilters): number {
     filters.condition.length +
     filters.city.length +
     (filters.model ? 1 : 0) +
+    (filters.trim ? 1 : 0) +
     (filters.yearFrom !== undefined || filters.yearTo !== undefined ? 1 : 0) +
     (filters.priceFrom !== undefined || filters.priceTo !== undefined ? 1 : 0) +
     (filters.mileageMax !== undefined ? 1 : 0) +

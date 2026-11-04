@@ -1,6 +1,8 @@
 import type { Metadata } from 'next';
-import { requireUser } from '@/lib/auth/require-user';
+import { redirect } from 'next/navigation';
 import { FREE_LISTING_LIMIT } from '@alisales/schemas';
+import { getSession } from '@/lib/auth/session';
+import { demoAuthMode } from '@/lib/config/mode';
 import { activeListingsCount } from '@/lib/data/s2-store';
 import { ListingForm } from '@/components/ListingForm';
 import { PlanPreview } from '@/components/PlanPreview';
@@ -14,7 +16,14 @@ export const metadata: Metadata = { title: 'ثبت آگهی' };
  * «بزودی» plan preview: no publish attempt, no payment call.
  */
 export default async function NewListingPage() {
-  const session = await requireUser('/new');
+  const session = await getSession();
+  if (!session) {
+    // Demo deployments have no SMS channel, so «ثبت آگهی» would stop at the
+    // login form forever. Provision + sign in the demo seller instead; a real
+    // deployment (Supabase or SMS configured) keeps the normal login guard.
+    if (demoAuthMode()) redirect('/api/auth/demo?next=/new');
+    redirect('/login?next=/new');
+  }
   const active = await activeListingsCount(session.sub);
   const atCap = active >= FREE_LISTING_LIMIT;
 

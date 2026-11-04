@@ -103,7 +103,10 @@ export async function PATCH(
     ...(patch.allowPhoneReveal !== undefined
       ? { allowPhoneReveal: patch.allowPhoneReveal }
       : {}),
-    ...(nextPhotos ? { photos: nextPhotos, coverUrl: nextPhotos[0] ?? null } : {}),
+    ...(patch.hideAed !== undefined ? { hideAed: patch.hideAed } : {}),
+    ...(nextPhotos
+      ? { photos: nextPhotos, ...(nextPhotos.length > 0 ? { coverUrl: nextPhotos[0] } : {}) }
+      : {}),
   });
 
   return NextResponse.json({ ok: true });

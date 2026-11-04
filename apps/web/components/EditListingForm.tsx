@@ -36,6 +36,7 @@ export function EditListingForm({
   priceIRR,
   description,
   allowPhoneReveal,
+  hideAed = false,
   photos: existing,
 }: {
   id: string;
@@ -44,6 +45,8 @@ export function EditListingForm({
   priceIRR: number;
   description: string;
   allowPhoneReveal: boolean;
+  /** Current «فقط تومان» preference. */
+  hideAed?: boolean;
   photos: OwnerPhotoMeta[];
 }) {
   const router = useRouter();
@@ -51,6 +54,7 @@ export function EditListingForm({
   const [price, setPrice] = useState<string>(String(irrToToman(priceIRR)));
   const [text, setText] = useState(description);
   const [showPhone, setShowPhone] = useState(allowPhoneReveal);
+  const [tomanOnly, setTomanOnly] = useState(hideAed);
   const [photos, setPhotos] = useState<ProcessedPhoto[]>(() =>
     existing.map((photo) => ({
       blob: null,
@@ -111,10 +115,6 @@ export function EditListingForm({
       setError('توضیحات باید دست‌کم ۱۰ نویسه باشد.');
       return;
     }
-    if (photos.length === 0) {
-      setError('حداقل یک عکس برای آگهی لازم است.');
-      return;
-    }
     if (photos.some((p) => !p.path)) {
       setError('عکس‌ها هنوز بارگذاری نشده‌اند؛ چند لحظه صبر کنید.');
       return;
@@ -129,6 +129,7 @@ export function EditListingForm({
           priceIRR: irrFor(parsedPrice, unit),
           description: text.trim(),
           allowPhoneReveal: showPhone,
+          hideAed: tomanOnly,
           photos: photos.map((photo, index) => ({
             path: photo.path as string,
             mime: 'image/webp',
@@ -228,6 +229,21 @@ export function EditListingForm({
             ? `معادل ${groupDigits(irrToToman(irrPreview))} تومان در فهرست`
             : 'قیمت در فهرست به تومان نمایش داده می‌شود.'}
         </p>
+
+        <label className="mt-4 flex cursor-pointer items-start gap-2 text-sm font-semibold">
+          <input
+            type="checkbox"
+            checked={tomanOnly}
+            onChange={(e) => setTomanOnly(e.target.checked)}
+            className="mt-1 accent-[var(--color-accent)]"
+          />
+          <span>
+            عدم نمایش قیمت درهم در آگهی (فقط نمایش قیمت به تومان)
+            <span className="hint mt-0 block">
+              خط «≈ … AED» روی کارت، فهرست و صفحه‌ی آگهی نمایش داده نمی‌شود.
+            </span>
+          </span>
+        </label>
 
         <label className="mt-4 flex cursor-pointer items-start gap-2 text-sm font-semibold">
           <input

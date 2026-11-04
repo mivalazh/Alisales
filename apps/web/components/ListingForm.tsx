@@ -20,8 +20,11 @@ import {
   conditions,
   fuelTypes,
   gearboxTypes,
+  aedToIRR,
   formatAmountLatin,
+  irrToAED,
   irrToToman,
+  tomanToIRR,
   listingPublishSchema,
   partCategories,
   partConditions,
@@ -42,6 +45,8 @@ const FIELD_LABELS: Record<string, string> = { ...LISTING_FIELD_LABELS, ...PART_
 
 const INITIAL_DRAFT = {
   brand: 'toyota',
+  /** Free-typed brand when «سایر» is chosen; folded into the model title. */
+  customBrand: '',
   model: '',
   trim: '',
   year: '',
@@ -56,7 +61,11 @@ const INITIAL_DRAFT = {
   city: 'kish',
   description: '',
   allowPhoneReveal: false,
+  /** «عدم نمایش قیمت درهم در آگهی» — Toman-only price. */
+  hideAed: false,
 };
+
+type PriceUnit = 'toman' | 'aed';
 
 type Draft = typeof INITIAL_DRAFT;
 
@@ -78,6 +87,7 @@ function Field({
   label,
   hint,
   error,
+  required = false,
   children,
   className = '',
 }: {
@@ -85,13 +95,20 @@ function Field({
   label: string;
   hint?: string;
   error?: string;
+  /** Required fields carry a red asterisk next to their label. */
+  required?: boolean;
   children: ReactNode;
   className?: string;
 }) {
   return (
-    <div className={className}>
+    <div className={`${className} ${error ? 'field-invalid' : ''}`.trim()}>
       <label className="label" htmlFor={htmlFor}>
         {label}
+        {required && (
+          <span aria-hidden="true" className="ms-0.5 text-[var(--color-danger-fg)]">
+            *
+          </span>
+        )}
       </label>
       {children}
       {error ? (
@@ -150,6 +167,9 @@ export function ListingForm() {
   const [photos, setPhotos] = useState<ProcessedPhoto[]>([]);
   const [photosBusy, setPhotosBusy] = useState(false);
   const [submitting, setSubmitting] = useState(false);
+  // Toman is what Kish buyers negotiate in; AED entry is a convenience that
+  // still submits IRR (the one stored currency).
+  const [unit, setUnit] = useState<PriceUnit>('toman');
   const [fieldErrors, setFieldErrors] = useState<Record<string, string>>({});
   const [formError, setFormError] = useState<string | null>(null);
   const [successSlug, setSuccessSlug] = useState<string | null>(null);
@@ -182,14 +202,32 @@ export function ListingForm() {
   const plateStatementText = draft.plateType
     ? plateStatement(draft.plateType as PlateType)
     : null;
-  // The field is filled in Toman (the unit Kish buyers negotiate in); the
-  // schema stores IRR, so every payload below multiplies by ten.
-  const pricePreview = (() => {
+
+  /** Whatever the seller typed, converted to the IRR the schema stores. */
+  function priceIRR(): number {
     const n = parseIntLoose(draft.priceIRR);
-    return Number.isFinite(n) && n > 0
-      ? `${formatAmountLatin(n)} تومان · ≈ ${formatAmountLatin(irrToToman(n * 10) / 2_720_000)} AED`
-      : null;
+    if (!Number.isFinite(n) || n < 0) return Number.NaN;
+    return unit === 'toman' ? tomanToIRR(n) : aedToIRR(n);
+  }
+
+  const pricePreview = (() => {
+    const irr = priceIRR();
+    if (!Number.isFinite(irr) || irr <= 0) return null;
+    return `${formatAmountLatin(irrToToman(irr))} تومان · ≈ ${formatAmountLatin(
+      irrToAED(irr),
+    )} AED`;
   })();
+
+  /** Switch unit and restate the typed number in the new unit. */
+  function switchUnit(next: PriceUnit): void {
+    if (next === unit) return;
+    const n = parseIntLoose(draft.priceIRR);
+    if (Number.isFinite(n)) {
+      const irr = unit === 'toman' ? tomanToIRR(n) : aedToIRR(n);
+      set('priceIRR', String(next === 'toman' ? irrToToman(irr) : irrToAED(irr)));
+    }
+    setUnit(next);
+  }
 
   function photoPayload(): ListingPublish['photos'] {
     return photos.map((p, i) => ({
@@ -215,19 +253,24 @@ export function ListingForm() {
         origin: partDraft.origin,
         condition: partDraft.condition,
         warranty: partDraft.warranty.trim() || null,
-        priceIRR: Math.round(parseIntLoose(draft.priceIRR) * 10),
+        priceIRR: Math.round(priceIRR()),
         city: draft.city,
         description: draft.description.trim(),
         photos: photoPayload(),
         showroomId: null,
         allowPhoneReveal: draft.allowPhoneReveal,
+        hideAed: draft.hideAed,
       };
     }
+    // A marque nobody preset? The free-typed name becomes «سایر» plus the
+    // model line, so the card, the search and the filters all still work.
+    const customBrand = draft.customBrand.trim();
+    const model = draft.model.trim();
     return {
       kind: 'vehicle',
       vehicle: {
-        brand: draft.brand as ListingPublish['vehicle']['brand'],
-        model: draft.model.trim(),
+        brand: (customBrand ? 'other' : draft.brand) as ListingPublish['vehicle']['brand'],
+        model: customBrand ? `${customBrand} ${model}`.trim() : model,
         trim: draft.trim.trim() || null,
         year: parseIntLoose(draft.year),
         mileageKm: parseIntLoose(draft.mileageKm),
@@ -238,12 +281,13 @@ export function ListingForm() {
         plateType: draft.plateType as PlateType,
         vin: draft.vin.trim() ? draft.vin.trim().toUpperCase() : null,
       },
-      priceIRR: Math.round(parseIntLoose(draft.priceIRR) * 10),
+      priceIRR: Math.round(priceIRR()),
       city: draft.city,
       description: draft.description.trim(),
       photos: photoPayload(),
       showroomId: null,
       allowPhoneReveal: draft.allowPhoneReveal,
+      hideAed: draft.hideAed,
     };
   }
 
@@ -256,6 +300,15 @@ export function ListingForm() {
       errs[issue.path] = label ? `${label} — ${issue.message}` : issue.message;
     }
     setFieldErrors(errs);
+    // Red borders are applied by the Field wrapper; bring the first one into
+    // view so a long form never leaves an off-screen error behind.
+    if (Object.keys(errs).length > 0) {
+      window.setTimeout(() => {
+        document
+          .querySelector('.field-invalid')
+          ?.scrollIntoView({ behavior: 'smooth', block: 'center' });
+      }, 0);
+    }
   }
 
   async function handleSubmit(event: FormEvent<HTMLFormElement>): Promise<void> {
@@ -408,7 +461,12 @@ export function ListingForm() {
       {mode === 'vehicle' && (
         <>
       <Section title="مشخصات خودرو">
-        <Field htmlFor="brand" label="برند" error={fieldErrors['vehicle.brand']}>
+        <Field
+          htmlFor="brand"
+          label="برند"
+          required
+          error={fieldErrors['vehicle.brand']}
+        >
           <select
             id="brand"
             className="field"
@@ -420,12 +478,30 @@ export function ListingForm() {
                 {b.label}
               </option>
             ))}
+            <option value="other">سایر / تایپ نام برند یا مدل دلخواه</option>
           </select>
         </Field>
+
+        {draft.brand === 'other' && (
+          <Field
+            htmlFor="customBrand"
+            label="نام برند دلخواه"
+            hint="اگر برند خودرو در فهرست نیست، نام آن را اینجا بنویسید."
+          >
+            <input
+              id="customBrand"
+              className="field"
+              value={draft.customBrand}
+              onChange={(e) => set('customBrand', e.target.value)}
+              placeholder="مثلاً بوگاتی یا کوئنیگزگ"
+            />
+          </Field>
+        )}
 
         <Field
           htmlFor="model"
           label="مدل"
+          required
           hint="می‌توانید از فهرست پیشنهادی انتخاب کنید یا مدل دیگری بنویسید."
           error={fieldErrors['vehicle.model']}
         >
@@ -457,6 +533,7 @@ export function ListingForm() {
         <Field
           htmlFor="year"
           label="سال ساخت (شمسی)"
+          required
           hint={`بین ${toPersianDigits(MIN_VEHICLE_YEAR)} و ${toPersianDigits(MAX_VEHICLE_YEAR)}`}
           error={fieldErrors['vehicle.year']}
         >
@@ -473,6 +550,7 @@ export function ListingForm() {
         <Field
           htmlFor="mileageKm"
           label="کارکرد (کیلومتر)"
+          required
           hint="عدد صحیح؛ خودروی صفر کیلومتر: ۰"
           error={fieldErrors['vehicle.mileageKm']}
         >
@@ -486,7 +564,7 @@ export function ListingForm() {
           />
         </Field>
 
-        <Field htmlFor="gearbox" label="گیربکس" error={fieldErrors['vehicle.gearbox']}>
+        <Field htmlFor="gearbox" label="گیربکس" required error={fieldErrors['vehicle.gearbox']}>
           <select
             id="gearbox"
             className="field"
@@ -502,7 +580,7 @@ export function ListingForm() {
           </select>
         </Field>
 
-        <Field htmlFor="fuel" label="سوخت" error={fieldErrors['vehicle.fuel']}>
+        <Field htmlFor="fuel" label="سوخت" required error={fieldErrors['vehicle.fuel']}>
           <select
             id="fuel"
             className="field"
@@ -517,7 +595,7 @@ export function ListingForm() {
           </select>
         </Field>
 
-        <Field htmlFor="color" label="رنگ" error={fieldErrors['vehicle.color']}>
+        <Field htmlFor="color" label="رنگ" required error={fieldErrors['vehicle.color']}>
           <select
             id="color"
             className="field"
@@ -532,7 +610,12 @@ export function ListingForm() {
           </select>
         </Field>
 
-        <Field htmlFor="condition" label="وضعیت خودرو" error={fieldErrors['vehicle.condition']}>
+        <Field
+          htmlFor="condition"
+          label="وضعیت خودرو"
+          required
+          error={fieldErrors['vehicle.condition']}
+        >
           <select
             id="condition"
             className="field"
@@ -566,7 +649,7 @@ export function ListingForm() {
       </Section>
 
       {/* Dedicated seller-declared plate section — spec §4: no forced police notice. */}
-      <Section title="وضعیت پلاک">
+      <Section title="وضعیت پلاک *">
         <div className="col-span-full grid gap-2 sm:grid-cols-4">
           {plateTypes.map((pt) => (
             <label
@@ -606,7 +689,7 @@ export function ListingForm() {
 
       {mode === 'part' && (
         <Section title="مشخصات قطعه">
-          <Field htmlFor="partCategory" label="دسته‌بندی" error={fieldErrors.category}>
+          <Field htmlFor="partCategory" label="دسته‌بندی" required error={fieldErrors.category}>
             <select
               id="partCategory"
               className="field"
@@ -622,7 +705,7 @@ export function ListingForm() {
             </select>
           </Field>
 
-          <Field htmlFor="partTitle" label="عنوان" error={fieldErrors.title}>
+          <Field htmlFor="partTitle" label="عنوان" required error={fieldErrors.title}>
             <input
               id="partTitle"
               className="field"
@@ -662,7 +745,7 @@ export function ListingForm() {
             />
           </Field>
 
-          <Field htmlFor="partOrigin" label="منشأ" error={fieldErrors.origin}>
+          <Field htmlFor="partOrigin" label="منشأ" required error={fieldErrors.origin}>
             <select
               id="partOrigin"
               className="field"
@@ -678,7 +761,7 @@ export function ListingForm() {
             </select>
           </Field>
 
-          <Field htmlFor="partCondition" label="وضعیت" error={fieldErrors.condition}>
+          <Field htmlFor="partCondition" label="وضعیت" required error={fieldErrors.condition}>
             <select
               id="partCondition"
               className="field"
@@ -709,10 +792,41 @@ export function ListingForm() {
 
       <StepCard step={3} title="قیمت، عکس و تماس">
       <Section title="قیمت، شهر و تماس">
+        <div className="col-span-full flex flex-wrap items-center gap-2" role="group" aria-label="واحد قیمت">
+          {(
+            [
+              { key: 'toman', label: 'تومان' },
+              { key: 'aed', label: 'درهم (AED)' },
+            ] as const
+          ).map((option) => (
+            <button
+              key={option.key}
+              type="button"
+              aria-pressed={unit === option.key}
+              onClick={() => switchUnit(option.key)}
+              className={`rounded-[var(--radius-pill)] border px-3 py-1.5 text-xs font-extrabold transition ${
+                unit === option.key
+                  ? 'border-cta bg-cta-soft text-ink'
+                  : 'border-line bg-card text-muted hover:border-line-strong'
+              }`}
+            >
+              {option.label}
+            </button>
+          ))}
+          <span className="text-xs font-bold text-muted">
+            نرخ روز: ۱ درهم ≈ {formatAmountLatin(irrToToman(aedToIRR(1)))} تومان
+          </span>
+        </div>
+
         <Field
           htmlFor="priceIRR"
-          label="قیمت (تومان)"
-          hint={pricePreview ? `معادل: ${pricePreview}` : 'قیمت را به تومان بنویسید؛ ارقام فارسی یا انگلیسی مجاز است'}
+          label={`قیمت (${unit === 'toman' ? 'تومان' : 'درهم'})`}
+          required
+          hint={
+            pricePreview
+              ? `معادل: ${pricePreview}`
+              : `قیمت را به ${unit === 'toman' ? 'تومان' : 'درهم'} بنویسید؛ ارقام فارسی یا انگلیسی مجاز است`
+          }
           error={fieldErrors['priceIRR']}
         >
           <input
@@ -721,7 +835,7 @@ export function ListingForm() {
             className="field"
             value={draft.priceIRR}
             onChange={(e) => set('priceIRR', e.target.value)}
-            placeholder="مثلاً ۳۴٬۰۰۰٬۰۰۰٬۰۰۰"
+            placeholder={unit === 'toman' ? 'مثلاً ۳۴٬۰۰۰٬۰۰۰٬۰۰۰' : 'مثلاً ۱۲۵٬۰۰۰'}
           />
         </Field>
 
@@ -744,6 +858,21 @@ export function ListingForm() {
         <label className="col-span-full flex cursor-pointer items-start gap-2 text-sm font-semibold">
           <input
             type="checkbox"
+            checked={draft.hideAed}
+            onChange={(e) => set('hideAed', e.target.checked)}
+            className="mt-1 accent-[var(--color-accent)]"
+          />
+          <span>
+            عدم نمایش قیمت درهم در آگهی (فقط نمایش قیمت به تومان)
+            <span className="hint mt-0 block">
+              خط «≈ … AED» روی کارت، فهرست و صفحه‌ی آگهی نمایش داده نمی‌شود.
+            </span>
+          </span>
+        </label>
+
+        <label className="col-span-full flex cursor-pointer items-start gap-2 text-sm font-semibold">
+          <input
+            type="checkbox"
             checked={draft.allowPhoneReveal}
             onChange={(e) => set('allowPhoneReveal', e.target.checked)}
             className="mt-1 accent-[var(--color-accent)]"
@@ -762,6 +891,7 @@ export function ListingForm() {
           className="col-span-full"
           htmlFor="description"
           label="توضیحات آگهی"
+          required
           hint={`دست‌کم ${toPersianDigits(mode === 'part' ? 10 : 20)} نویسه — اکنون ${toPersianDigits(draft.description.trim().length)} نویسه`}
           error={fieldErrors['description']}
         >
@@ -778,6 +908,9 @@ export function ListingForm() {
 
       <Section title="عکس‌های آگهی">
         <div className="col-span-full">
+          <p className="mb-2 text-xs font-bold text-muted">
+            عکس اختیاری است؛ اگر عکسی انتخاب نکنید یک تصویر پیش‌فرض برای آگهی استفاده می‌شود.
+          </p>
           <PhotoUploader
             photos={photos}
             onChange={setPhotos}

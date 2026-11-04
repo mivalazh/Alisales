@@ -62,9 +62,14 @@ describe('listing edit schema (owner PATCH)', () => {
 
   it('rejects an empty change and an out-of-range photo set', () => {
     expect(listingEditSchema.safeParse({}).success).toBe(false);
-    expect(listingEditSchema.safeParse({ photos: [] }).success).toBe(false);
     expect(listingEditSchema.safeParse({ photos: [photo(20)] }).success).toBe(false);
     expect(listingEditSchema.safeParse({ description: 'کوتاه' }).success).toBe(false);
+  });
+
+  it('accepts an emptied photo set and the Toman-only preference', () => {
+    // Photos are optional at publish, so a photo-less listing stays editable.
+    expect(listingEditSchema.safeParse({ photos: [] }).success).toBe(true);
+    expect(listingEditSchema.safeParse({ hideAed: true }).success).toBe(true);
   });
 
   it('converts Toman/AED entry to IRR and back', () => {

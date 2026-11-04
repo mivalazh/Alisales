@@ -4,6 +4,7 @@ import { redirect } from 'next/navigation';
 import { FREE_LISTING_LIMIT, FREE_THIRD_LISTING_MESSAGE } from '@alisales/schemas';
 import { getSession } from '@/lib/auth/session';
 import { listingsBySeller } from '@/lib/data/s2-store';
+import { mergeMyListings, readMyListings } from '@/lib/data/my-listings-cookie';
 import { ListingRow } from '@/components/ListingRow';
 import { ListingOwnerActions } from '@/components/ListingOwnerActions';
 import { PlanPreview } from '@/components/PlanPreview';
@@ -35,7 +36,9 @@ export default async function MyListingsPage({
   const { tab } = await searchParams;
   const activeTab: Tab = tab === 'paused' || tab === 'sold' ? tab : 'active';
 
-  const listings = await listingsBySeller(session.sub);
+  // The signed cookie carries publishes that landed on another demo isolate.
+  const mine = (await readMyListings()).filter((l) => l.sellerId === session.sub);
+  const listings = mergeMyListings(mine, await listingsBySeller(session.sub));
   const shown = listings.filter((l) => l.state === activeTab);
   const activeCount = listings.filter((l) => l.state === 'active').length;
   const atCap = activeCount >= FREE_LISTING_LIMIT;

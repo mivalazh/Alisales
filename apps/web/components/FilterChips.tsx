@@ -48,6 +48,9 @@ export function FilterChips({
     const model = filters.model;
     chips.push({ id: 'model', label: `مدل: ${model}`, clear: (f) => ({ ...f, model: '' }) });
   }
+  if (filters.trim) {
+    chips.push({ id: 'trim', label: `تیپ: ${filters.trim}`, clear: (f) => ({ ...f, trim: '' }) });
+  }
   const year = rangeLabel('سال', filters.yearFrom, filters.yearTo);
   if (year) {
     chips.push({
@@ -131,6 +134,7 @@ export function FilterChips({
             ...filters,
             brand: [],
             model: '',
+            trim: '',
             yearFrom: undefined,
             yearTo: undefined,
             priceFrom: undefined,

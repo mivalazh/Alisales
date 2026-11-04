@@ -19,7 +19,9 @@ import { fixtureListings } from './fixtures';
 import { applyListingOverrides, devListings } from './dev-store';
 import { moderationOverlay } from './moderation-store';
 import { applyModeration } from './moderation-rules';
+import { matchesFilters } from '../filter-match';
 import { admin } from './s2-store';
+import { mergeMyListings, readMyListings } from './my-listings-cookie';
 
 /** Structured part data for a non-vehicle listing (`parts_listings`). */
 export interface PartInfo {
@@ -68,6 +70,8 @@ export interface ListingCardData {
   showroomVerified: boolean;
   /** Seller opted into showing the phone (server still gates sold → never). */
   allowPhoneReveal: boolean;
+  /** Seller asked to show the Toman price only (no «≈ … AED» line). */
+  hideAed?: boolean;
   /** «vehicle» for cars; «part» for parts & accessories listings. */
   kind?: 'vehicle' | 'part';
   /** Present only for parts listings. */
@@ -184,26 +188,6 @@ function launchFilters(filters: SearchFilters): SearchFilters {
   return { ...filters, city: [DEFAULT_CITY] };
 }
 
-function matches(listing: ListingCardData, f: SearchFilters): boolean {
-  if (f.city.length && !f.city.includes(listing.city)) return false;
-  if (f.kishOnly && listing.city !== 'kish') return false;
-  if (f.brand.length && !f.brand.some((b) => b === listing.brand)) return false;
-  if (f.model && !listing.model.includes(f.model)) return false;
-  if (f.yearFrom !== undefined && listing.year < f.yearFrom) return false;
-  if (f.yearTo !== undefined && listing.year > f.yearTo) return false;
-  if (f.priceFrom !== undefined && listing.priceIRR < f.priceFrom) return false;
-  if (f.priceTo !== undefined && listing.priceIRR > f.priceTo) return false;
-  if (f.mileageMax !== undefined && listing.mileageKm > f.mileageMax) return false;
-  if (f.gearbox.length && !f.gearbox.includes(listing.gearbox)) return false;
-  if (f.plateType.length && !f.plateType.includes(listing.plateType)) return false;
-  if (f.condition.length && !f.condition.includes(listing.condition)) return false;
-  if (f.hasReport && !listing.hasReport) return false;
-  if (f.q && !`${listing.model} ${listing.trim ?? ''} ${listing.brand}`.includes(f.q)) {
-    return false;
-  }
-  return true;
-}
-
 /**
  * Credential-less mode: same filter semantics as the RPC, applied locally so
  * the offline catalog behaves exactly like the hosted one (chips included).
@@ -213,7 +197,7 @@ export function applyFiltersLocally(
   filters: SearchFilters,
 ): ListingCardData[] {
   const effective = launchFilters(filters);
-  return list.filter((l) => matches(l, effective)).sort(soldLastThenRecency);
+  return list.filter((l) => matchesFilters(l, effective)).sort(soldLastThenRecency);
 }
 
 /** Same ranking shape as the RPC: sold last, then most recent first. */
@@ -241,10 +225,16 @@ export async function searchListings(
   const supabase = supabaseClient();
   if (!supabase) {
     const overlay = moderationOverlay();
-    const local = applyModeration(applyListingOverrides([...devListings(), ...fixtureListings]), {
-      hidden: overlay.hidden,
-      verifiedSellers: overlay.verifiedSellers,
-    });
+    // The seller's own just-published cards ride in a signed cookie so they are
+    // visible even when the demo store lives in another Workers isolate.
+    const mine = await readMyListings();
+    const local = applyModeration(
+      applyListingOverrides(mergeMyListings(mine, [...devListings(), ...fixtureListings])),
+      {
+        hidden: overlay.hidden,
+        verifiedSellers: overlay.verifiedSellers,
+      },
+    );
     return applyFiltersLocally(local, filters);
   }
 
@@ -264,7 +254,8 @@ export async function searchListings(
 export async function getListing(slug: string): Promise<ListingDetailData | null> {
   const supabase = supabaseClient();
   if (!supabase) {
-    const all = [...devListings(), ...fixtureListings];
+    const mine = await readMyListings();
+    const all = mergeMyListings(mine, [...devListings(), ...fixtureListings]);
     const found = applyListingOverrides(all).find((l) => l.slug === slug);
     // Owner-removed listings are gone from the public site, not just the grid.
     if (!found || found.state === 'rejected') return null;
