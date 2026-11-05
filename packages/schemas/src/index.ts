@@ -41,6 +41,8 @@ export type {
 // Vehicle
 export {
   BRANDS,
+  ALL_BRANDS,
+  LEGACY_BRANDS,
   brandSlugs,
   BRAND_LATIN,
   BRAND_NAME,
@@ -54,7 +56,12 @@ export {
   citySlugs,
   MIN_VEHICLE_YEAR,
   MAX_VEHICLE_YEAR,
-  QAMARI_YEARS,
+  LATEST_VEHICLE_YEAR,
+  OLDEST_VEHICLE_YEAR,
+  VEHICLE_YEARS,
+  JALALI_VEHICLE_YEARS,
+  gregorianToJalaliYear,
+  jalaliToGregorianYear,
   vehicleSchema,
 } from './vehicle';
 export type { BrandSlug, VehicleInput } from './vehicle';

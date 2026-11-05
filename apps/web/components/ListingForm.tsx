@@ -5,7 +5,8 @@ import {
   BIKE_TYPES,
   DEFAULT_AED_TO_IRR,
   HEAVY_TYPES,
-  QAMARI_YEARS,
+  VEHICLE_YEARS,
+  gregorianToJalaliYear,
   VEHICLE_CATEGORY_LABELS,
   brandsForCategory,
   COLOR_LABELS,
@@ -778,9 +779,9 @@ export function ListingForm() {
 
               <Field
                 htmlFor="year"
-                label="سال ساخت (هجری قمری)"
+                label="سال ساخت (میلادی)"
                 required
-                hint="سال قمری را از فهرست انتخاب کنید؛ همان عدد روی کارت و فیلترها نمایش داده می‌شود."
+                hint="سال میلادی خودرو را انتخاب کنید؛ معادل شمسی کنار هر گزینه نوشته شده است."
                 error={fieldErrors['vehicle.year']}
               >
                 <select
@@ -790,9 +791,9 @@ export function ListingForm() {
                   onChange={(e) => set('year', e.target.value)}
                 >
                   <option value="">انتخاب کنید…</option>
-                  {QAMARI_YEARS.map((year) => (
+                  {VEHICLE_YEARS.map((year) => (
                     <option key={year} value={year}>
-                      {toPersianDigits(year)} هـ.ق
+                      {toPersianDigits(year)} — {toPersianDigits(gregorianToJalaliYear(year))} شمسی
                     </option>
                   ))}
                 </select>

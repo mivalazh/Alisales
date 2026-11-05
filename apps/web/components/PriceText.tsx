@@ -13,9 +13,9 @@ const SECONDARY_INK = '#64748B';
  *
  * The stored price is always IRR. The rate comes from the one stored value
  * (`RateProvider` → `/admin/settings`), so every AED figure on the site matches.
- * The block is a right-aligned stack with a fixed-height primary row: the
- * headline never grows into the spec line above it, and the reference line
- * below never touches it.
+ * The headline sits in its own fixed-height container filled with the brand
+ * orange (#F98513), so the spec line above and the reference line below can
+ * never collide with it, and every card in a row keeps the same rhythm.
  *
  * Display unit («واحد نمایش قیمت») is a viewer preference:
  *  - `both`  → Toman headline + «≈ … AED» reference (the default),
@@ -51,14 +51,14 @@ export function PriceText({
     effective === 'aed' ? `${toman} تومان` : effective === 'both' ? `≈ ${aed} AED` : null;
 
   return (
-    <span className="flex min-w-0 flex-col items-start gap-0.5 text-right">
+    <span className="flex min-w-0 flex-col items-start gap-1 text-right">
       <span
         className={
           size === 'lg'
-            ? 'flex h-7 items-center whitespace-nowrap text-xl font-extrabold leading-tight sm:h-8 sm:text-2xl'
-            : 'flex h-5 items-center whitespace-nowrap text-[12px] font-extrabold leading-tight sm:h-6 sm:text-base'
+            ? 'flex h-9 items-center overflow-hidden whitespace-nowrap rounded-[7px] px-2.5 text-xl font-extrabold leading-none text-white sm:h-10 sm:px-3 sm:text-2xl'
+            : 'flex h-6 items-center overflow-hidden whitespace-nowrap rounded-[5px] px-1.5 text-[12px] font-extrabold leading-none text-white sm:h-7 sm:px-2 sm:text-[15px]'
         }
-        style={{ color: sold ? SECONDARY_INK : PRICE_INK }}
+        style={{ background: sold ? SECONDARY_INK : PRICE_INK }}
       >
         {primary}
       </span>

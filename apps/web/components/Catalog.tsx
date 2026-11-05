@@ -162,14 +162,6 @@ export function Catalog({
         />
       )}
 
-      <div className="flex flex-wrap items-center justify-between gap-3">
-        <FilterChips filters={filters} onChange={(f) => commit(f)} />
-        <div className="ms-auto flex items-center gap-3">
-          <SortControl value={sort} onChange={(key) => commit(filters, key)} />
-          <ViewModeToggle value={view} onChange={changeView} />
-        </div>
-      </div>
-
       <p className="text-sm font-bold text-muted" aria-live="polite">
         {heading ? `${heading} · ` : ''}
         {listings.length} آگهی
@@ -190,6 +182,17 @@ export function Catalog({
       />
 
       {brandBox?.(ctx)}
+
+      {/* The pill strip (removable filter chips + sort/view) sits *below* the
+          brand and model selectors, so a brand pick never pushes it out of
+          reach and the active filters read directly above the results. */}
+      <div className="flex flex-wrap items-center justify-between gap-3">
+        <FilterChips filters={filters} onChange={(f) => commit(f)} />
+        <div className="ms-auto flex items-center gap-3">
+          <SortControl value={sort} onChange={(key) => commit(filters, key)} />
+          <ViewModeToggle value={view} onChange={changeView} />
+        </div>
+      </div>
 
       {category && (
         <FilterBar

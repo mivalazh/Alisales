@@ -201,9 +201,9 @@ export function FilterGroups({
         </div>
       </Group>
 
-      <Group title="سال ساخت (هجری قمری)" open>
+      <Group title="سال ساخت (میلادی)" open>
         <RangePair
-          label="بازه‌ی سال"
+          label="بازه‌ی سال (میلادی)"
           from={filters.yearFrom}
           to={filters.yearTo}
           onFrom={(v) => set({ yearFrom: v })}

@@ -1,7 +1,10 @@
 import { describe, expect, it } from 'vitest';
 import {
   DEFAULT_FILTERS,
-  QAMARI_YEARS,
+  JALALI_VEHICLE_YEARS,
+  VEHICLE_YEARS,
+  gregorianToJalaliYear,
+  jalaliToGregorianYear,
   activeFilterCount,
   brandsForCategory,
   formatAedRateLine,
@@ -29,7 +32,7 @@ const car: FilterableListing = {
   brand: 'toyota',
   model: 'Land Cruiser VXR',
   trim: 'VXR',
-  year: 1446,
+  year: 2024,
   priceIRR: 34_000_000_000,
   mileageKm: 96_000,
   gearbox: 'automatic',
@@ -45,7 +48,7 @@ const bike: FilterableListing = {
   brand: 'bike-yamaha',
   model: 'MT-07',
   trim: null,
-  year: 1445,
+  year: 2023,
   priceIRR: 4_200_000_000,
   mileageKm: 12_000,
   gearbox: 'manual',
@@ -61,7 +64,7 @@ const truck: FilterableListing = {
   brand: 'heavy-volvo',
   model: 'FH 460',
   trim: null,
-  year: 1440,
+  year: 2018,
   priceIRR: 92_000_000_000,
   mileageKm: 480_000,
   gearbox: 'manual',
@@ -102,9 +105,9 @@ describe('matchesFilters — category specs', () => {
     expect(matchesFilters(truck, { ...DEFAULT_FILTERS, fuel: ['petrol'] })).toBe(false);
   });
 
-  it('matches the Qamari year range used on cards', () => {
-    expect(matchesFilters(truck, { ...DEFAULT_FILTERS, yearFrom: 1440, yearTo: 1440 })).toBe(true);
-    expect(matchesFilters(truck, { ...DEFAULT_FILTERS, yearFrom: 1441 })).toBe(false);
+  it('matches the Gregorian model-year range used on cards', () => {
+    expect(matchesFilters(truck, { ...DEFAULT_FILTERS, yearFrom: 2018, yearTo: 2018 })).toBe(true);
+    expect(matchesFilters(truck, { ...DEFAULT_FILTERS, yearFrom: 2019 })).toBe(false);
   });
 
   it('counts the new groups as active filters', () => {
@@ -128,6 +131,16 @@ describe('category brand catalogues', () => {
     expect(bikes.some((slug) => heavy.includes(slug))).toBe(false);
   });
 
+  it('offers only the import catalogue in the car brand box', () => {
+    const cars = brandsForCategory('car').map((b) => b.slug);
+    expect(cars).toContain('toyota');
+    expect(cars).toContain('mercedes-benz');
+    expect(cars).toContain('porsche');
+    for (const domestic of ['ikco', 'saipa', 'mvm', 'parskhodro']) {
+      expect(cars).not.toContain(domestic);
+    }
+  });
+
   it('offers «سایر» as the last entry in every category', () => {
     for (const category of ['car', 'motorcycle', 'heavy'] as const) {
       const brands = brandsForCategory(category);
@@ -135,9 +148,17 @@ describe('category brand catalogues', () => {
     }
   });
 
-  it('lists Qamari years newest first', () => {
-    expect(QAMARI_YEARS[0]).toBe(1448);
-    expect(QAMARI_YEARS).toEqual([...QAMARI_YEARS].sort((a, b) => b - a));
+  it('lists Gregorian model years newest first', () => {
+    expect(VEHICLE_YEARS[0]).toBe(2026);
+    expect(VEHICLE_YEARS).toContain(2022);
+    expect(VEHICLE_YEARS).not.toContain(1444);
+    expect(VEHICLE_YEARS).toEqual([...VEHICLE_YEARS].sort((a, b) => b - a));
+  });
+
+  it('shows the Jalali year beside the Gregorian one', () => {
+    expect(gregorianToJalaliYear(2022)).toBe(1401);
+    expect(jalaliToGregorianYear(1401)).toBe(2022);
+    expect(JALALI_VEHICLE_YEARS[0]).toBe(1405);
   });
 });
 

@@ -190,8 +190,8 @@ export function BrandModelBox({
         </ul>
       )}
 
-      {active && models.length > 0 && (
-        <div className="mt-3 rounded-field border border-line bg-page p-2">
+      {active && (
+        <div className="mt-2 rounded-field border border-line bg-page p-2">
           <div className="flex items-center justify-between gap-2 px-1">
             <p className="text-xs font-extrabold text-ink">
               مدل‌های{' '}
@@ -201,7 +201,7 @@ export function BrandModelBox({
             </p>
             <span className="text-[11px] font-bold text-faint">{models.length} مدل</span>
           </div>
-          <ul dir="rtl" className="mt-2 flex gap-1.5 overflow-x-auto pb-1">
+          <ul dir="rtl" className="mt-2 flex snap-x gap-1.5 overflow-x-auto pb-1 [scrollbar-width:none] [&::-webkit-scrollbar]:hidden">
             <li className="shrink-0">
               <button
                 type="button"
@@ -216,6 +216,13 @@ export function BrandModelBox({
                 همه مدل‌ها
               </button>
             </li>
+            {models.length === 0 && (
+              <li className="shrink-0">
+                <span className="whitespace-nowrap px-1 text-[11px] font-bold text-muted">
+                  مدل پیشنهادی نداریم؛ نام مدل را در فیلترها بنویسید.
+                </span>
+              </li>
+            )}
             {models.map((name) => {
               const selected = model === name;
               return (
@@ -239,20 +246,7 @@ export function BrandModelBox({
         </div>
       )}
 
-      {active && models.length === 0 && (
-        <div className="mt-3 flex items-center justify-between gap-2 rounded-field border border-line bg-page px-3 py-2">
-          <p className="text-xs font-bold text-muted">
-            برای این برند مدل پیشنهادی نداریم؛ نام مدل را در فیلترها بنویسید.
-          </p>
-          <button
-            type="button"
-            onClick={() => onPick('', null)}
-            className="text-[11px] font-bold text-cta underline"
-          >
-            حذف برند
-          </button>
-        </div>
-      )}
+
     </section>
   );
 }

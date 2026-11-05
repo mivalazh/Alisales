@@ -27,7 +27,7 @@ const photo = (position: number, path = `seller/${position}.webp`) => ({
 
 const vehicleBase = {
   trim: null,
-  year: 1402,
+  year: 2023,
   mileageKm: 10_000,
   gearbox: 'automatic',
   fuel: 'petrol',

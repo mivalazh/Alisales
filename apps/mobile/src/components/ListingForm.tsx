@@ -55,7 +55,7 @@ export interface DraftValues {
 }
 
 export const EMPTY_DRAFT: DraftValues = {
-  brand: 'saipa',
+  brand: 'toyota',
   model: '',
   trim: '',
   year: '',
