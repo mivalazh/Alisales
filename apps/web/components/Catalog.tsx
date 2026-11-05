@@ -167,15 +167,26 @@ export function Catalog({
     </div>
   );
 
-  /* Chips, count and sort/view share one bar so the grid starts right under a
-     single control strip instead of two stacked ones. */
+  /* One line of chips, one count, one sort/view cluster. On phones the chips
+     scroll sideways instead of wrapping into a third stacked row, so the sort
+     bar and the chips still read as a single control strip. */
+  const chipScroller = !hideQuickChips && (
+    <div className="min-w-0 overflow-x-auto [scrollbar-width:none] [&::-webkit-scrollbar]:hidden">
+      <QuickChips
+        filters={filters}
+        onChange={(f) => commit(f)}
+        className="flex-nowrap whitespace-nowrap"
+      />
+    </div>
+  );
+
   const controlBar = (
-    <div className="flex flex-wrap items-center justify-between gap-3">
-      <div className="flex min-w-0 flex-wrap items-center gap-2">
-        {!hideQuickChips && <QuickChips filters={filters} onChange={(f) => commit(f)} />}
+    <div className="flex flex-wrap items-center gap-x-3 gap-y-2">
+      {chipScroller}
+      <div className="ms-auto flex shrink-0 items-center gap-3">
         {countLine}
+        {sortCluster}
       </div>
-      <div className="ms-auto">{sortCluster}</div>
     </div>
   );
 
@@ -188,10 +199,10 @@ export function Catalog({
       {sortBar === 'bottom' ? (
         controlBar
       ) : (
-        <>
-          {!hideQuickChips && <QuickChips filters={filters} onChange={(f) => commit(f)} />}
-          {countLine}
-        </>
+        <div className="flex flex-wrap items-center gap-x-3 gap-y-2">
+          {chipScroller}
+          <div className="ms-auto shrink-0">{countLine}</div>
+        </div>
       )}
 
       {panelOpen && (

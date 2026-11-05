@@ -9,9 +9,12 @@ import type { SearchFilters } from '@alisales/schemas';
 export function QuickChips({
   filters,
   onChange,
+  className = '',
 }: {
   filters: SearchFilters;
   onChange: (f: SearchFilters) => void;
+  /** Extra classes — the catalog keeps the chips on one scrollable line on phones. */
+  className?: string;
 }) {
   const conditionNew = filters.condition.length === 1 && filters.condition[0] === 'new';
   const conditionUsed = filters.condition.length === 1 && filters.condition[0] === 'used';
@@ -26,7 +29,7 @@ export function QuickChips({
   ];
 
   return (
-    <div className="flex flex-wrap items-center gap-2">
+    <div className={`flex flex-wrap items-center gap-2 ${className}`.trim()}>
       {chips.map((chip) => (
         <button
           key={chip.id}

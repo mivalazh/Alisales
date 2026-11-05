@@ -79,7 +79,7 @@ export function specParts(listing: TextListing): string[] {
   } else if (listing.category === 'heavy') {
     if (listing.heavyType) parts.push(HEAVY_TYPE_LABELS[listing.heavyType] ?? listing.heavyType);
     if (listing.workingHours) {
-      parts.push(`${formatAmountLatin(listing.workingHours)} hours`);
+      parts.push(`${formatAmountLatin(listing.workingHours)} ساعت`);
     }
     if (listing.mileageKm > 0) parts.push(mileageLabel(listing.mileageKm));
   } else {
