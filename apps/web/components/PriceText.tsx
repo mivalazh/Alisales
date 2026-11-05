@@ -46,7 +46,10 @@ export function PriceText({
   const aed = formatAmountLatin(Math.round(irr / perAed));
 
   const effective = hideAed ? 'toman' : unit;
-  const primary = effective === 'aed' ? `${aed} AED` : `${toman} تومان`;
+  // Amount and unit are separate spans: the unit shrinks with the card instead
+  // of pushing an 11-digit price out of its fixed-height container.
+  const main = effective === 'aed' ? aed : toman;
+  const unitLabel = effective === 'aed' ? 'AED' : 'تومان';
   const secondary =
     effective === 'aed' ? `${toman} تومان` : effective === 'both' ? `≈ ${aed} AED` : null;
 
@@ -55,12 +58,25 @@ export function PriceText({
       <span
         className={
           size === 'lg'
-            ? 'flex h-9 items-center overflow-hidden whitespace-nowrap rounded-[7px] px-2.5 text-xl font-extrabold leading-none text-white sm:h-10 sm:px-3 sm:text-2xl'
-            : 'flex h-6 items-center overflow-hidden whitespace-nowrap rounded-[5px] px-1.5 text-[12px] font-extrabold leading-none text-white sm:h-7 sm:px-2 sm:text-[15px]'
+            ? 'flex h-9 max-w-full items-center gap-1 whitespace-nowrap rounded-[7px] px-2.5 font-extrabold leading-none text-white sm:h-10 sm:px-3'
+            : 'flex h-6 max-w-full items-center gap-1 whitespace-nowrap rounded-[5px] px-1.5 font-extrabold leading-none text-white sm:h-7 sm:px-2'
         }
         style={{ background: sold ? SECONDARY_INK : PRICE_INK }}
       >
-        {primary}
+        <span
+          className={`min-w-0 truncate tabular-nums ${
+            size === 'lg' ? 'text-xl sm:text-2xl' : 'text-[12px] sm:text-[13px]'
+          }`}
+        >
+          {main}
+        </span>
+        <span
+          className={`shrink-0 font-bold ${
+            size === 'lg' ? 'text-xs' : 'text-[9px] sm:text-[10px]'
+          }`}
+        >
+          {unitLabel}
+        </span>
       </span>
       {/* Fixed slot: an absent reference line keeps the same vertical rhythm,
           so cards in a row stay equal height with or without AED. */}
