@@ -285,7 +285,7 @@ export function FilterGroups({
       </Group>
 
       {category === 'motorcycle' && (
-        <Group title="نوع موتورسیکلت" open>
+        <Group title="نوع موتور" open>
           {BIKE_TYPES.map((type) => (
             <CheckOption
               key={type.key}
@@ -569,7 +569,11 @@ export function FilterSheet({
   );
 }
 
-/** Mobile control row: the one «فیلترها» button plus quick condition picks. */
+/**
+ * Mobile control row: the one «فیلترها» button, the new/used picks and the
+ * live result count. The brand row lives in the emblem carousel above, so this
+ * strip never repeats the same marques as a second row of pills.
+ */
 export function FilterBar({
   category,
   filters,
@@ -640,27 +644,6 @@ export function FilterBar({
             </button>
           );
         })}
-        {brandsForCategory(category)
-          .slice(0, 6)
-          .map((brand) => {
-            const slug = brand.slug as SearchFilters['brand'][number];
-            const on = filters.brand.includes(slug);
-            return (
-              <button
-                key={brand.slug}
-                type="button"
-                aria-pressed={on}
-                onClick={() => onChange({ ...filters, brand: toggle(filters.brand, slug) })}
-                className={`shrink-0 whitespace-nowrap rounded-[var(--radius-pill)] border px-3 py-1.5 text-xs font-bold transition ${
-                  on
-                    ? 'border-cta bg-cta-soft text-ink'
-                    : 'border-line bg-card text-muted hover:text-ink'
-                }`}
-              >
-                {brand.label}
-              </button>
-            );
-          })}
         <span className="shrink-0 whitespace-nowrap px-2 text-[11px] font-bold text-faint">
           {countMatches(pool, filters)} آگهی
         </span>

@@ -97,10 +97,10 @@ describe('local filter path (parity with the RPC semantics)', () => {
   it('filters by brand and price range', () => {
     const result = applyFiltersLocally(fixtures, {
       ...DEFAULT_FILTERS,
-      brand: ['other'],
+      brand: ['lamborghini'],
       priceTo: 1_100_000_000_000,
     });
-    expect(result.every((l) => l.brand === 'other')).toBe(true);
+    expect(result.every((l) => l.brand === 'lamborghini')).toBe(true);
     expect(result.every((l) => l.priceIRR <= 1_100_000_000_000)).toBe(true);
     expect(result.length).toBeGreaterThan(0);
   });

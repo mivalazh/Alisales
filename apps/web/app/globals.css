@@ -140,9 +140,17 @@
     color: var(--color-text-primary);
   }
 
-  /* A field the seller still has to fix — red border until it validates. */
+  /* A field the seller still has to fix — a clear 2px red frame plus a red
+     wash on the control itself, so the error is visible at a glance and not
+     only in the caption underneath. */
   .field-invalid .field {
-    border-color: var(--color-danger-fg);
+    border-width: 2px;
+    border-color: #ef4444;
+    background: rgb(239 68 68 / 0.07);
+  }
+
+  .field-invalid .label {
+    color: #dc2626;
   }
 
   .hint {
@@ -151,11 +159,13 @@
     color: var(--color-text-tertiary);
   }
 
+  /* Error captions use a real red: the danger token is navy, which read as
+     ordinary helper text under an invalid field. */
   .error-text {
     margin-top: 4px;
     font-size: var(--font-size-xs);
-    font-weight: 600;
-    color: var(--color-danger-fg);
+    font-weight: 700;
+    color: #dc2626;
   }
 
   /* Primary CTA — accent background with navy label (WCAG AA, tested). */

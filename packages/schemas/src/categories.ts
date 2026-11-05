@@ -23,7 +23,7 @@ export type ListingCategory = (typeof listingCategories)[number];
 
 export const VEHICLE_CATEGORY_LABELS: Record<VehicleCategory, string> = {
   car: 'خودرو',
-  motorcycle: 'موتورسیکلت',
+  motorcycle: 'موتور و اسکوتر برقی',
   heavy: 'ماشین‌آلات سنگین',
 };
 
@@ -43,6 +43,72 @@ export interface CategoryBrand {
 // ── Motorcycles ─────────────────────────────────────────────────────────────
 
 export const MOTORCYCLE_BRANDS: readonly CategoryBrand[] = [
+  {
+    slug: 'bike-niu',
+    label: 'نیو',
+    latin: 'NIU',
+    models: ['NQi GT', 'NQi Sport', 'MQi+', 'UQi GT', 'KQi3 Pro'],
+  },
+  {
+    slug: 'bike-super-soco',
+    label: 'سوپر سوکو',
+    latin: 'Super Soco',
+    models: ['TC Max', 'TS', 'CU Mini', 'CPx', 'Stash'],
+  },
+  {
+    slug: 'bike-segway',
+    label: 'سگوی ناین‌بات',
+    latin: 'Segway-Ninebot',
+    models: ['E300SE', 'E125S', 'Max G2', 'KickScooter F2', 'C80'],
+  },
+  {
+    slug: 'bike-horwin',
+    label: 'هوروین',
+    latin: 'Horwin',
+    models: ['EK3', 'EK1', 'SK3', 'CR6', 'EZ3'],
+  },
+  {
+    slug: 'bike-yadea',
+    label: 'یادیا',
+    latin: 'Yadea',
+    models: ['G5', 'T9', 'C1S', 'V7', 'Keen'],
+  },
+  {
+    slug: 'bike-vespa',
+    label: 'وسپا',
+    latin: 'Vespa',
+    models: ['GTS 300', 'GTV 300', 'Primavera 150', 'Sprint 150', 'Elettrica'],
+  },
+  {
+    slug: 'bike-sur-ron',
+    label: 'سورون',
+    latin: 'Sur-Ron',
+    models: ['Light Bee X', 'Storm Bee', 'Ultra Bee', 'Light Bee S'],
+  },
+  {
+    slug: 'bike-talaria',
+    label: 'تالاریا',
+    latin: 'Talaria',
+    models: ['Sting R', 'Sting MX3', 'Sting MX4', 'XXX'],
+  },
+  {
+    slug: 'bike-zero',
+    label: 'زیرو',
+    latin: 'Zero',
+    models: ['SR/F', 'SR/S', 'DSR/X', 'FXE', 'S'],
+  },
+  {
+    slug: 'bike-kavir',
+    label: 'کویر',
+    latin: 'Kavir',
+    models: ['Kavir 250', 'Kavir 200', 'Kavir Scooter'],
+  },
+  {
+    slug: 'bike-mado',
+    label: 'مادو',
+    latin: 'Mado',
+    models: ['Mado 150', 'Mado Scooter', 'Mado Electric'],
+  },
   {
     slug: 'bike-yamaha',
     label: 'یاماها',
@@ -66,6 +132,12 @@ export const MOTORCYCLE_BRANDS: readonly CategoryBrand[] = [
     label: 'کاوازاکی',
     latin: 'Kawasaki',
     models: ['Ninja 400', 'Ninja ZX-6R', 'Z900', 'Versys 650', 'Vulcan S'],
+  },
+  {
+    slug: 'bike-bmw',
+    label: 'بی‌ام‌و موتورراد',
+    latin: 'BMW Motorrad',
+    models: ['CE 04', 'R 1250 GS', 'S 1000 RR', 'F 900 XR', 'G 310 R'],
   },
   {
     slug: 'bike-ktm',
@@ -171,12 +243,13 @@ export const HEAVY_BRANDS: readonly CategoryBrand[] = [
 // ── Type filters ────────────────────────────────────────────────────────────
 
 export const BIKE_TYPES = [
+  { key: 'scooter', label: 'اسکوتر برقی' },
+  { key: 'electric', label: 'موتور برقی' },
+  { key: 'petrol_scooter', label: 'اسکوتر بنزینی' },
+  { key: 'sport', label: 'موتور اسپرت / ریس' },
+  { key: 'cross', label: 'کراس و آفرود' },
   { key: 'classic', label: 'کلاسیک' },
-  { key: 'sport', label: 'اسپرت' },
-  { key: 'scooter', label: 'اسکوتر' },
-  { key: 'cross', label: 'کراس' },
   { key: 'touring', label: 'توریستی' },
-  { key: 'offroad', label: 'آفرود' },
 ] as const;
 export type BikeType = (typeof BIKE_TYPES)[number]['key'];
 export const bikeTypeKeys = BIKE_TYPES.map((t) => t.key) as [BikeType, ...BikeType[]];

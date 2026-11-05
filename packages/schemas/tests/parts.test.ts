@@ -92,8 +92,10 @@ describe('partListingPublishSchema', () => {
     expect(partListingPublishSchema.safeParse({ ...base, photos: [] }).success).toBe(true);
   });
 
-  it('requires a short description of at least ten characters', () => {
-    expect(partListingPublishSchema.safeParse({ ...base, description: 'کوتاه' }).success).toBe(false);
+  it('accepts a short or empty description', () => {
+    // Descriptions are optional for parts too — no minimum length.
+    expect(partListingPublishSchema.safeParse({ ...base, description: 'کوتاه' }).success).toBe(true);
+    expect(partListingPublishSchema.safeParse({ ...base, description: '' }).success).toBe(true);
   });
 
   it('only accepts the part kind', () => {

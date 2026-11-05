@@ -25,6 +25,7 @@ export interface TextListing {
   year: number;
   mileageKm: number;
   gearbox?: string;
+  fuel?: string;
   plateType?: string;
   category?: 'car' | 'motorcycle' | 'heavy';
   engineCc?: number | null;
@@ -34,10 +35,21 @@ export interface TextListing {
   part?: { title: string } | null;
 }
 
-/** Latin marque for the top line; `other` has none (the model tells the story). */
+/**
+ * Latin marque for the top line.
+ *
+ * Catalogue slugs resolve through `BRAND_LATIN`; a slug the catalogue does not
+ * know (a custom marque stored under its own value) is still printed by
+ * prettifying the slug, so a card never loses its brand line. `other` has no
+ * Latin name — the model tells the story there.
+ */
 export function brandLatinFor(brand: string): string | null {
   if (!brand || brand === 'other') return null;
-  return BRAND_LATIN[brand] ?? null;
+  const known = BRAND_LATIN[brand];
+  if (known) return known;
+  const cleaned = brand.replace(/^(bike|heavy)-/, '').replace(/[-_]+/g, ' ').trim();
+  if (!cleaned) return null;
+  return cleaned.replace(/\b[a-z]/g, (c) => c.toUpperCase());
 }
 
 /** «Land Cruiser VXR» — model plus trim, without the year. */
@@ -59,7 +71,9 @@ export function specParts(listing: TextListing): string[] {
   const parts: string[] = [];
 
   if (listing.category === 'motorcycle') {
+    // Electric scooters have no displacement: the drive type takes its place.
     if (listing.engineCc) parts.push(`${formatAmountLatin(listing.engineCc)} cc`);
+    else if (listing.fuel === 'electric') parts.push('برقی');
     if (listing.bikeType) parts.push(BIKE_TYPE_LABELS[listing.bikeType] ?? listing.bikeType);
     if (listing.mileageKm > 0) parts.push(mileageLabel(listing.mileageKm));
   } else if (listing.category === 'heavy') {

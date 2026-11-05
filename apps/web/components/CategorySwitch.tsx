@@ -2,20 +2,21 @@
 
 import Link from 'next/link';
 import { usePathname } from 'next/navigation';
-import type { IconName } from './Icon';
-import { Icon } from './Icon';
 
 /**
- * Top-level category switch: خودرو | موتورسیکلت | ماشین‌آلات سنگین | قطعات.
+ * Top-level category switch: خودرو | موتور و اسکوتر برقی | ماشین‌آلات سنگین |
+ * قطعات.
  *
  * One row of four destinations, shared by the home page and every browse page,
- * so a buyer can move between markets without going back through the menu.
+ * so a buyer can move between markets without going back through the menu. The
+ * tabs are label-only: a decorative outline icon next to every word added
+ * noise without adding information.
  */
-const CATEGORIES: ReadonlyArray<{ href: string; label: string; icon: IconName }> = [
-  { href: '/cars', label: 'خودرو', icon: 'car' },
-  { href: '/motorcycles', label: 'موتورسیکلت', icon: 'plate' },
-  { href: '/heavy', label: 'ماشین‌آلات سنگین', icon: 'gear' },
-  { href: '/parts', label: 'قطعات', icon: 'tag' },
+const CATEGORIES: ReadonlyArray<{ href: string; label: string }> = [
+  { href: '/cars', label: 'خودرو' },
+  { href: '/motorcycles', label: 'موتور و اسکوتر برقی' },
+  { href: '/heavy', label: 'ماشین‌آلات سنگین' },
+  { href: '/parts', label: 'قطعات' },
 ];
 
 export function CategorySwitch() {
@@ -31,13 +32,12 @@ export function CategorySwitch() {
               <Link
                 href={item.href}
                 aria-current={active ? 'page' : undefined}
-                className={`flex items-center justify-center gap-1.5 rounded-field px-2 py-2.5 text-xs font-extrabold transition sm:text-sm ${
+                className={`flex items-center justify-center rounded-field px-2 py-2.5 text-xs font-extrabold transition sm:text-sm ${
                   active
                     ? 'bg-cta-soft text-ink'
                     : 'text-muted hover:bg-sunken hover:text-ink'
                 }`}
               >
-                <Icon name={item.icon} size={16} className={active ? 'text-cta' : undefined} />
                 {item.label}
               </Link>
             </li>

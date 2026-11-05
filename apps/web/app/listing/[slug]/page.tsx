@@ -153,34 +153,35 @@ export default async function ListingDetailPage({
         {/* Left column in RTL: the decision block, sticky on desktop. */}
         <aside className="flex flex-col gap-4 lg:col-span-5 lg:sticky lg:top-24">
           <div className="rounded-card border border-line bg-card p-4 sm:p-5">
-            <div className="flex flex-wrap items-center gap-1.5">
-              {sold && <SoldBadge size="lg" />}
-              {badges.map((b) => {
+            <div className="flex items-start justify-between gap-3">
+              <div className="flex flex-wrap items-center gap-1.5">
+                {sold && <SoldBadge size="lg" />}
+                {badges.map((b) => {
                 const token = badgeFor(b);
-                return (
-                  <span
-                    key={b}
-                    className="rounded-[var(--radius-pill)] border px-2 py-0.5 text-xs font-bold"
-                    style={{
-                      background: token.background,
-                      color: token.foreground,
-                      borderColor: token.border,
-                    }}
-                  >
-                    {token.label}
-                  </span>
-                );
-              })}
+                  return (
+                    <span
+                      key={b}
+                      className="rounded-[var(--radius-pill)] border px-2 py-0.5 text-xs font-bold"
+                      style={{
+                        background: token.background,
+                        color: token.foreground,
+                        borderColor: token.border,
+                      }}
+                    >
+                      {token.label}
+                    </span>
+                  );
+                })}
+              </div>
+              {/* Save action lives with the status row: the summary card's
+                  opposite corner, not buried in the seller card below. */}
+              <FavoriteButton slug={listing.slug} listingId={listing.id} className="shrink-0" />
             </div>
 
-            {/* Latin marque above the model, LTR and bidi-isolated so a mixed
-                Persian/Latin title never reorders. */}
+            {/* Latin marque above the model, on the same start edge. */}
             {!part && brandLatinFor(listing.brand) && (
-              <p
-                dir="ltr"
-                className="mt-3 text-start text-xs font-extrabold uppercase tracking-[0.1em] text-muted"
-              >
-                {brandLatinFor(listing.brand)}
+              <p className="mt-3 max-w-full truncate text-xs font-extrabold uppercase tracking-[0.1em] text-muted">
+                <bdi dir="ltr">{brandLatinFor(listing.brand)}</bdi>
               </p>
             )}
             <h1
@@ -238,7 +239,6 @@ export default async function ListingDetailPage({
                   {CITY_LABELS[listing.city] ?? listing.city}
                 </p>
               </div>
-              <FavoriteButton slug={listing.slug} listingId={listing.id} />
             </div>
 
             <Link

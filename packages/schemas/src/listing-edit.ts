@@ -29,9 +29,9 @@ export const LISTING_EDIT_LOCKED_FIELDS = [
 export const listingEditSchema = z
   .object({
     priceIRR: z.number().int().min(0).max(10 ** 15).optional(),
-    // Parts descriptions may be as short as 10 characters (part schema), so
-    // the edit floor follows the shorter of the two publish rules.
-    description: z.string().trim().min(10).max(3000).optional(),
+    // Descriptions are optional everywhere (a listing may ship with none), so
+    // the edit rule has no minimum either.
+    description: z.string().trim().max(3000).optional(),
     city: z.enum(citySlugs as [string, ...string[]]).optional(),
     allowPhoneReveal: z.boolean().optional(),
     /**

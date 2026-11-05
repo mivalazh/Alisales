@@ -19,13 +19,13 @@ import { Icon } from './Icon';
 
 const CATEGORY_TITLE: Record<VehicleCategory, string> = {
   car: 'برند خودرو',
-  motorcycle: 'برند موتورسیکلت',
+  motorcycle: 'برند موتور و اسکوتر برقی',
   heavy: 'برند ماشین‌آلات',
 };
 
 const SEARCH_PLACEHOLDER: Record<VehicleCategory, string> = {
   car: 'جستجوی برند خودرو...',
-  motorcycle: 'جستجوی برند موتورسیکلت...',
+  motorcycle: 'جستجوی برند موتور و اسکوتر...',
   heavy: 'جستجوی برند ماشین‌آلات...',
 };
 
@@ -113,10 +113,7 @@ export function BrandModelBox({
       className="rounded-card border border-line bg-card p-3 sm:p-4"
     >
       <div className="flex flex-wrap items-center justify-between gap-2">
-        <h2 className="flex items-center gap-1.5 text-sm font-extrabold text-ink">
-          <Icon name="car" size={16} className="text-cta" />
-          {CATEGORY_TITLE[category]}
-        </h2>
+        <h2 className="text-sm font-extrabold text-ink">{CATEGORY_TITLE[category]}</h2>
         <Link
           href="/new"
           className="text-xs font-bold text-muted underline transition hover:text-ink"

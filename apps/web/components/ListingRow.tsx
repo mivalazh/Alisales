@@ -37,7 +37,7 @@ export function ListingRow({
   const specs = part ? [] : specParts(listing);
 
   return (
-    <li className="relative overflow-hidden rounded-card border border-line bg-card transition hover:border-line-strong hover:shadow-lg">
+    <li className="relative min-w-0 overflow-hidden rounded-card border border-line bg-card transition hover:border-line-strong hover:shadow-lg">
       <Link href={`/listing/${listing.slug}`} className="flex items-stretch gap-3 p-3 sm:gap-4 sm:p-4">
         <div className="relative aspect-square w-24 shrink-0 overflow-hidden rounded-field bg-sunken sm:w-32">
           {listing.coverUrl ? (
@@ -102,11 +102,8 @@ export function ListingRow({
           </div>
 
           {!part && latin && (
-            <p
-              dir="ltr"
-              className="truncate text-start text-[10px] font-extrabold uppercase tracking-[0.08em] text-muted"
-            >
-              {latin}
+            <p className="max-w-full truncate text-[10px] font-extrabold uppercase tracking-[0.08em] text-muted">
+              <bdi dir="ltr">{latin}</bdi>
             </p>
           )}
 

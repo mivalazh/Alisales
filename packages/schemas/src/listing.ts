@@ -28,7 +28,7 @@ const listingBaseSchema = z.object({
   category: z.enum(vehicleCategories).optional(),
   /** Motorcycle engine displacement (cc). */
   engineCc: z.number().int().min(0).max(3000).nullable().optional(),
-  /** Motorcycle class: کلاسیک / اسپرت / اسکوتر / کراس … */
+  /** Two-wheeler class: اسکوتر برقی / موتور برقی / اسپرت / کلاسیک … */
   bikeType: z.enum(bikeTypeKeys).nullable().optional(),
   /** Heavy machinery class: کامیون / کشنده / بیل مکانیکی … */
   heavyType: z.enum(heavyTypeKeys).nullable().optional(),
@@ -73,7 +73,12 @@ export type ListingDraft = z.infer<typeof listingDraftSchema>;
  */
 export const listingPublishSchema = listingBaseSchema
   .extend({
-    description: z.string().trim().min(20).max(3000),
+    /**
+     * Fully optional: sellers can publish with no description at all (or a
+     * single word). The detail page prints a neutral placeholder instead of an
+     * empty block, so nothing here needs a minimum length.
+     */
+    description: z.string().trim().max(3000),
   })
   .superRefine(checkUniquePhotoPositions);
 
@@ -94,7 +99,7 @@ export const LISTING_FIELD_LABELS: Record<string, string> = {
   'vehicle.vin': 'شماره شاسی (VIN)',
   category: 'دسته‌بندی',
   engineCc: 'حجم موتور',
-  bikeType: 'نوع موتورسیکلت',
+  bikeType: 'نوع موتور',
   heavyType: 'نوع ماشین‌آلات',
   workingHours: 'ساعت کارکرد',
   priceIRR: 'قیمت',

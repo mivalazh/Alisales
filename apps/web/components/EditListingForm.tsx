@@ -111,10 +111,6 @@ export function EditListingForm({
       setError('قیمت را به عدد وارد کنید.');
       return;
     }
-    if (text.trim().length < 10) {
-      setError('توضیحات باید دست‌کم ۱۰ نویسه باشد.');
-      return;
-    }
     if (photos.some((p) => !p.path)) {
       setError('عکس‌ها هنوز بارگذاری نشده‌اند؛ چند لحظه صبر کنید.');
       return;
@@ -264,7 +260,7 @@ export function EditListingForm({
       <section className="rounded-card border border-line bg-card p-4 sm:p-5">
         <h2 className="mb-4 border-b border-line pb-2 text-md font-extrabold">توضیحات</h2>
         <label className="label" htmlFor="description">
-          توضیحات آگهی
+          توضیحات آگهی (اختیاری)
         </label>
         <textarea
           id="description"
@@ -274,7 +270,9 @@ export function EditListingForm({
           onChange={(e) => setText(e.target.value)}
           placeholder="وضعیت فنی، دلیل فروش، لوازم همراه…"
         />
-        <p className="hint">دست‌کم ۱۰ نویسه — اکنون {toPersianDigits(text.trim().length)} نویسه</p>
+        <p className="hint">
+          اختیاری است و حداقل نویسه ندارد — اکنون {toPersianDigits(text.trim().length)} نویسه
+        </p>
       </section>
 
       <section className="rounded-card border border-line bg-card p-4 sm:p-5">

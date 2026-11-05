@@ -43,6 +43,7 @@ import {
   type VehicleCategory,
   type VehicleInput,
 } from '@alisales/schemas';
+import { CustomSelect, type SelectOption } from './CustomSelect';
 import { PhotoUploader } from './PhotoUploader';
 import { RateLine } from './RateLine';
 import { useAedRate } from './RateProvider';
@@ -97,9 +98,16 @@ type ListingMode = 'vehicle' | 'part';
 
 const CATEGORY_OPTIONS: ReadonlyArray<{ key: VehicleCategory; label: string; hint: string }> = [
   { key: 'car', label: 'خودرو', hint: 'سواری، شاسی‌بلند و وارداتی' },
-  { key: 'motorcycle', label: 'موتورسیکلت', hint: 'اسپرت، کلاسیک، اسکوتر و کراس' },
+  { key: 'motorcycle', label: 'موتور و اسکوتر برقی', hint: 'اسکوتر و موتور برقی، اسپرت و کلاسیک' },
   { key: 'heavy', label: 'ماشین‌آلات سنگین', hint: 'کامیون، کشنده و راه‌سازی' },
 ];
+
+/** The step-2 spec card is named after the category actually being filled. */
+const SPEC_TITLE: Record<VehicleCategory, string> = {
+  car: 'مشخصات خودرو',
+  motorcycle: 'مشخصات موتور و اسکوتر',
+  heavy: 'مشخصات ماشین‌آلات سنگین',
+};
 
 function Field({
   htmlFor,
@@ -124,7 +132,7 @@ function Field({
       <label className="label" htmlFor={htmlFor}>
         {label}
         {required && (
-          <span aria-hidden="true" className="ms-0.5 text-[var(--color-danger-fg)]">
+          <span aria-hidden="true" className="ms-0.5 text-red-600">
             *
           </span>
         )}
@@ -391,6 +399,58 @@ export function ListingForm() {
   const [formError, setFormError] = useState<string | null>(null);
   const [successSlug, setSuccessSlug] = useState<string | null>(null);
 
+  /* Option lists for the custom dropdowns — one shape for every field so all
+     of them look and behave like the brand/model comboboxes. */
+  const yearOptions: SelectOption[] = useMemo(
+    () =>
+      VEHICLE_YEARS.map((year) => ({
+        value: String(year),
+        label: toPersianDigits(year),
+        hint: `${toPersianDigits(gregorianToJalaliYear(year))} شمسی`,
+      })),
+    [],
+  );
+  const gearboxOptions: SelectOption[] = useMemo(
+    () => gearboxTypes.map((g) => ({ value: g, label: GEARBOX_LABELS[g] })),
+    [],
+  );
+  const fuelOptions: SelectOption[] = useMemo(
+    () => fuelTypes.map((f) => ({ value: f, label: FUEL_LABELS[f] })),
+    [],
+  );
+  const colorOptions: SelectOption[] = useMemo(
+    () => colorSlugs.map((c) => ({ value: c, label: COLOR_LABELS[c] })),
+    [],
+  );
+  const conditionOptions: SelectOption[] = conditions.map((c) => ({
+    value: c,
+    label: c === 'new' ? 'نو' : 'کارکرده',
+  }));
+  const bikeTypeOptions: SelectOption[] = BIKE_TYPES.map((type) => ({
+    value: type.key,
+    label: type.label,
+  }));
+  const heavyTypeOptions: SelectOption[] = HEAVY_TYPES.map((type) => ({
+    value: type.key,
+    label: type.label,
+  }));
+  const partCategoryOptions: SelectOption[] = partCategories.map((partCategory) => ({
+    value: partCategory,
+    label: PART_CATEGORY_LABELS[partCategory],
+  }));
+  const partOriginOptions: SelectOption[] = partOrigins.map((origin) => ({
+    value: origin,
+    label: PART_ORIGIN_LABELS[origin],
+  }));
+  const partConditionOptions: SelectOption[] = partConditions.map((condition) => ({
+    value: condition,
+    label: PART_CONDITION_LABELS[condition],
+  }));
+  const cityOptions: SelectOption[] = selectableCities().map((c) => ({
+    value: c.slug,
+    label: c.label,
+  }));
+
   const photosRef = useRef<ProcessedPhoto[]>([]);
   useEffect(() => {
     photosRef.current = photos;
@@ -503,19 +563,22 @@ export function ListingForm() {
     // model line, so the card, the search and the filters all still work.
     const customBrand = draft.customBrand.trim();
     const model = draft.model.trim();
+    // Electric scooters are rated in watts and may leave the volume empty; a
+    // blank numeric field becomes null instead of NaN.
+    const engineCc = parseIntLoose(draft.engineCc);
+    const workingHours = parseIntLoose(draft.workingHours);
     return {
       kind: 'vehicle',
       category,
-      engineCc: category === 'motorcycle' ? parseIntLoose(draft.engineCc) : null,
+      engineCc: category === 'motorcycle' && Number.isFinite(engineCc) ? engineCc : null,
       bikeType: category === 'motorcycle' ? (draft.bikeType || null) : null,
       heavyType: category === 'heavy' ? (draft.heavyType || null) : null,
-      workingHours: category === 'heavy' ? parseIntLoose(draft.workingHours) : null,
+      workingHours: category === 'heavy' && Number.isFinite(workingHours) ? workingHours : null,
       vehicle: {
         brand: (customBrand ? 'other' : draft.brand) as VehicleInput['brand'],
         model: customBrand ? `${customBrand} ${model}`.trim() : model,
         trim: draft.trim.trim() || null,
-        // Qamari (lunar) year, stored as the one integer the cards and filters
-        // read back.
+        // Gregorian model year, stored as the one integer the cards read back.
         year: parseIntLoose(draft.year),
         mileageKm: parseIntLoose(draft.mileageKm),
         gearbox: draft.gearbox as VehicleInput['gearbox'],
@@ -709,7 +772,7 @@ export function ListingForm() {
 
       {formError && (
         <div
-          className="rounded-field border border-[var(--color-danger-fg)] bg-bad-soft px-4 py-3 text-sm font-bold text-bad"
+          className="rounded-field border-2 border-red-500 bg-red-50 px-4 py-3 text-sm font-bold text-red-700 dark:bg-red-950/30 dark:text-red-300"
           role="alert"
         >
           {formError}
@@ -719,7 +782,7 @@ export function ListingForm() {
       <StepCard step={2} title="مشخصات">
         {mode === 'vehicle' && (
           <>
-            <Section title="مشخصات خودرو">
+            <Section title={SPEC_TITLE[category]}>
               <Field
                 htmlFor="brand"
                 label="برند"
@@ -784,19 +847,14 @@ export function ListingForm() {
                 hint="سال میلادی خودرو را انتخاب کنید؛ معادل شمسی کنار هر گزینه نوشته شده است."
                 error={fieldErrors['vehicle.year']}
               >
-                <select
+                <CustomSelect
                   id="year"
-                  className="field"
                   value={draft.year}
-                  onChange={(e) => set('year', e.target.value)}
-                >
-                  <option value="">انتخاب کنید…</option>
-                  {VEHICLE_YEARS.map((year) => (
-                    <option key={year} value={year}>
-                      {toPersianDigits(year)} — {toPersianDigits(gregorianToJalaliYear(year))} شمسی
-                    </option>
-                  ))}
-                </select>
+                  onChange={(next) => set('year', next)}
+                  options={yearOptions}
+                  placeholder="انتخاب سال…"
+                  invalid={Boolean(fieldErrors['vehicle.year'])}
+                />
               </Field>
 
               <Field
@@ -818,11 +876,21 @@ export function ListingForm() {
 
               {category === 'motorcycle' && (
                 <>
+                  {/* Electric scooters are rated in watts, not cc — the volume
+                      field is only offered (and required) for petrol bikes. */}
                   <Field
                     htmlFor="engineCc"
-                    label="حجم موتور (cc)"
-                    required
-                    hint="مثلاً ۳۹۹ یا ۸۹۰"
+                    label={
+                      draft.fuel === 'electric'
+                        ? 'توان موتور (وات) — اختیاری'
+                        : 'حجم موتور (cc)'
+                    }
+                    required={draft.fuel !== 'electric'}
+                    hint={
+                      draft.fuel === 'electric'
+                        ? 'مثلاً ۳۰۰۰ وات؛ برای موتورهای برقی خالی گذاشتن مجاز است.'
+                        : 'مثلاً ۳۹۹ یا ۸۹۰'
+                    }
                     error={fieldErrors.engineCc}
                   >
                     <input
@@ -832,29 +900,24 @@ export function ListingForm() {
                       dir="ltr"
                       value={draft.engineCc}
                       onChange={(e) => set('engineCc', e.target.value)}
-                      placeholder="890"
+                      placeholder={draft.fuel === 'electric' ? '3000' : '890'}
                     />
                   </Field>
 
                   <Field
                     htmlFor="bikeType"
-                    label="نوع موتورسیکلت"
+                    label="نوع موتور"
                     required
                     error={fieldErrors.bikeType}
                   >
-                    <select
+                    <CustomSelect
                       id="bikeType"
-                      className="field"
                       value={draft.bikeType}
-                      onChange={(e) => set('bikeType', e.target.value)}
-                    >
-                      <option value="">انتخاب کنید…</option>
-                      {BIKE_TYPES.map((type) => (
-                        <option key={type.key} value={type.key}>
-                          {type.label}
-                        </option>
-                      ))}
-                    </select>
+                      onChange={(next) => set('bikeType', next)}
+                      options={bikeTypeOptions}
+                      placeholder="نوع موتور را انتخاب کنید…"
+                      invalid={Boolean(fieldErrors.bikeType)}
+                    />
                   </Field>
                 </>
               )}
@@ -867,19 +930,14 @@ export function ListingForm() {
                     required
                     error={fieldErrors.heavyType}
                   >
-                    <select
+                    <CustomSelect
                       id="heavyType"
-                      className="field"
                       value={draft.heavyType}
-                      onChange={(e) => set('heavyType', e.target.value)}
-                    >
-                      <option value="">انتخاب کنید…</option>
-                      {HEAVY_TYPES.map((type) => (
-                        <option key={type.key} value={type.key}>
-                          {type.label}
-                        </option>
-                      ))}
-                    </select>
+                      onChange={(next) => set('heavyType', next)}
+                      options={heavyTypeOptions}
+                      placeholder="نوع ماشین‌آلات را انتخاب کنید…"
+                      invalid={Boolean(fieldErrors.heavyType)}
+                    />
                   </Field>
 
                   <Field
@@ -902,71 +960,60 @@ export function ListingForm() {
                 </>
               )}
 
-              <Field htmlFor="gearbox" label="گیربکس" required error={fieldErrors['vehicle.gearbox']}>
-                <select
+              <Field
+                htmlFor="gearbox"
+                label={category === 'motorcycle' ? 'گیربکس / انتقال قدرت' : 'گیربکس'}
+                required
+                error={fieldErrors['vehicle.gearbox']}
+              >
+                <CustomSelect
                   id="gearbox"
-                  className="field"
                   value={draft.gearbox}
-                  onChange={(e) => set('gearbox', e.target.value)}
-                >
-                  <option value="">انتخاب کنید…</option>
-                  {gearboxTypes.map((g) => (
-                    <option key={g} value={g}>
-                      {GEARBOX_LABELS[g]}
-                    </option>
-                  ))}
-                </select>
+                  onChange={(next) => set('gearbox', next)}
+                  options={gearboxOptions}
+                  invalid={Boolean(fieldErrors['vehicle.gearbox'])}
+                />
               </Field>
 
-              <Field htmlFor="fuel" label="سوخت" required error={fieldErrors['vehicle.fuel']}>
-                <select
+              <Field
+                htmlFor="fuel"
+                label={category === 'motorcycle' ? 'نوع سوخت / محرکه' : 'سوخت'}
+                required
+                error={fieldErrors['vehicle.fuel']}
+              >
+                <CustomSelect
                   id="fuel"
-                  className="field"
                   value={draft.fuel}
-                  onChange={(e) => set('fuel', e.target.value)}
-                >
-                  {fuelTypes.map((f) => (
-                    <option key={f} value={f}>
-                      {FUEL_LABELS[f]}
-                    </option>
-                  ))}
-                </select>
+                  onChange={(next) => set('fuel', next)}
+                  options={fuelOptions}
+                  invalid={Boolean(fieldErrors['vehicle.fuel'])}
+                />
               </Field>
 
               <Field htmlFor="color" label="رنگ" required error={fieldErrors['vehicle.color']}>
-                <select
+                <CustomSelect
                   id="color"
-                  className="field"
                   value={draft.color}
-                  onChange={(e) => set('color', e.target.value)}
-                >
-                  {colorSlugs.map((c) => (
-                    <option key={c} value={c}>
-                      {COLOR_LABELS[c]}
-                    </option>
-                  ))}
-                </select>
+                  onChange={(next) => set('color', next)}
+                  options={colorOptions}
+                  invalid={Boolean(fieldErrors['vehicle.color'])}
+                />
               </Field>
 
               <Field
                 htmlFor="condition"
-                label="وضعیت خودرو"
+                label={category === 'heavy' ? 'وضعیت' : 'وضعیت خودرو'}
                 required
                 error={fieldErrors['vehicle.condition']}
               >
-                <select
+                <CustomSelect
                   id="condition"
-                  className="field"
                   value={draft.condition}
-                  onChange={(e) => set('condition', e.target.value)}
-                >
-                  <option value="">انتخاب کنید…</option>
-                  {conditions.map((c) => (
-                    <option key={c} value={c}>
-                      {c === 'new' ? 'نو' : 'کارکرده'}
-                    </option>
-                  ))}
-                </select>
+                  onChange={(next) => set('condition', next)}
+                  options={conditionOptions}
+                  placeholder="انتخاب کنید…"
+                  invalid={Boolean(fieldErrors['vehicle.condition'])}
+                />
               </Field>
 
               <Field
@@ -995,7 +1042,9 @@ export function ListingForm() {
                     className={`flex cursor-pointer items-center gap-2 rounded-field border p-3 text-sm font-bold transition ${
                       draft.plateType === pt
                         ? 'border-cta bg-cta-soft text-ink'
-                        : 'border-line bg-card text-muted hover:border-line-strong'
+                        : fieldErrors['vehicle.plateType']
+                          ? 'border-2 border-red-500 bg-red-50/40 text-red-700 dark:bg-red-950/20'
+                          : 'border-line bg-card text-muted hover:border-line-strong'
                     }`}
                   >
                     <input
@@ -1028,19 +1077,14 @@ export function ListingForm() {
         {mode === 'part' && (
           <Section title="مشخصات قطعه">
             <Field htmlFor="partCategory" label="دسته‌بندی" required error={fieldErrors.category}>
-              <select
+              <CustomSelect
                 id="partCategory"
-                className="field"
                 value={partDraft.category}
-                onChange={(e) => setPart('category', e.target.value)}
-              >
-                <option value="">انتخاب کنید…</option>
-                {partCategories.map((partCategory) => (
-                  <option key={partCategory} value={partCategory}>
-                    {PART_CATEGORY_LABELS[partCategory]}
-                  </option>
-                ))}
-              </select>
+                onChange={(next) => setPart('category', next)}
+                options={partCategoryOptions}
+                placeholder="دسته‌بندی قطعه…"
+                invalid={Boolean(fieldErrors.category)}
+              />
             </Field>
 
             <Field htmlFor="partTitle" label="عنوان" required error={fieldErrors.title}>
@@ -1080,35 +1124,25 @@ export function ListingForm() {
             </Field>
 
             <Field htmlFor="partOrigin" label="منشأ" required error={fieldErrors.origin}>
-              <select
+              <CustomSelect
                 id="partOrigin"
-                className="field"
                 value={partDraft.origin}
-                onChange={(e) => setPart('origin', e.target.value)}
-              >
-                <option value="">انتخاب کنید…</option>
-                {partOrigins.map((origin) => (
-                  <option key={origin} value={origin}>
-                    {PART_ORIGIN_LABELS[origin]}
-                  </option>
-                ))}
-              </select>
+                onChange={(next) => setPart('origin', next)}
+                options={partOriginOptions}
+                placeholder="منشأ قطعه…"
+                invalid={Boolean(fieldErrors.origin)}
+              />
             </Field>
 
             <Field htmlFor="partCondition" label="وضعیت" required error={fieldErrors.condition}>
-              <select
+              <CustomSelect
                 id="partCondition"
-                className="field"
                 value={partDraft.condition}
-                onChange={(e) => setPart('condition', e.target.value)}
-              >
-                <option value="">انتخاب کنید…</option>
-                {partConditions.map((condition) => (
-                  <option key={condition} value={condition}>
-                    {PART_CONDITION_LABELS[condition]}
-                  </option>
-                ))}
-              </select>
+                onChange={(next) => setPart('condition', next)}
+                options={partConditionOptions}
+                placeholder="وضعیت قطعه…"
+                invalid={Boolean(fieldErrors.condition)}
+              />
             </Field>
 
             <Field htmlFor="partWarranty" label="گارانتی (اختیاری)" error={fieldErrors.warranty}>
@@ -1181,13 +1215,14 @@ export function ListingForm() {
             hint="در این مرحله فقط کیش فعال است."
             error={fieldErrors['city']}
           >
-            <select id="city" className="field" value={draft.city} disabled>
-              {selectableCities().map((c) => (
-                <option key={c.slug} value={c.slug}>
-                  {c.label}
-                </option>
-              ))}
-            </select>
+            <CustomSelect
+              id="city"
+              value={draft.city}
+              onChange={(next) => set('city', next)}
+              options={cityOptions}
+              disabled
+              invalid={Boolean(fieldErrors['city'])}
+            />
           </Field>
 
           <label className="col-span-full flex cursor-pointer items-start gap-2 text-sm font-semibold">
@@ -1225,9 +1260,8 @@ export function ListingForm() {
           <Field
             className="col-span-full"
             htmlFor="description"
-            label="توضیحات آگهی"
-            required
-            hint={`دست‌کم ${toPersianDigits(mode === 'part' ? 10 : 20)} نویسه — اکنون ${toPersianDigits(draft.description.trim().length)} نویسه`}
+            label="توضیحات آگهی (اختیاری)"
+            hint={`اختیاری است و حداقل نویسه ندارد — اکنون ${toPersianDigits(draft.description.trim().length)} نویسه`}
             error={fieldErrors['description']}
           >
             <textarea

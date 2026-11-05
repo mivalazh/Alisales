@@ -123,7 +123,7 @@ export function ListingCard({ listing }: { listing: ListingCardData }) {
 
   return (
     <li
-      className="group relative flex h-full flex-col overflow-hidden rounded-card border border-line bg-card transition hover:border-line-strong hover:shadow-lg"
+      className="group relative flex h-full min-w-0 flex-col overflow-hidden rounded-card border border-line bg-card transition hover:border-line-strong hover:shadow-lg"
       onTouchStart={onTouchStart}
       onTouchEnd={onTouchEnd}
     >
@@ -209,17 +209,17 @@ export function ListingCard({ listing }: { listing: ListingCardData }) {
             {part.title}
           </h3>
         ) : (
-          <div className="min-w-0">
+          <div className="flex min-w-0 flex-col items-start text-right">
+            {/* Latin marque first, on the same start edge as the model: the
+                <bdi dir="ltr"> keeps the word unshuffled without floating the
+                whole line to the opposite corner of an RTL card. */}
             {latin && (
-              <p
-                dir="ltr"
-                className="truncate text-start text-[10px] font-extrabold uppercase tracking-[0.08em] text-muted"
-              >
-                {latin}
+              <p className="max-w-full truncate text-[10px] font-extrabold uppercase tracking-[0.08em] text-muted">
+                <bdi dir="ltr">{latin}</bdi>
               </p>
             )}
             <h3
-              className="mt-0.5 line-clamp-2 text-sm font-extrabold leading-tight sm:text-base"
+              className="line-clamp-2 text-sm font-extrabold leading-tight sm:text-base"
               style={sold ? { color: SOLD_TEXT } : undefined}
             >
               <bdi>{title}</bdi>{' '}
@@ -247,8 +247,8 @@ export function ListingCard({ listing }: { listing: ListingCardData }) {
           )}
         </p>
 
-        {/* The price owns its own fixed-height row, so the spec line above can
-            never run into it and every card in a row lines up. */}
+        {/* The price owns its own row, so the spec line above can never run
+            into it and every card in a row lines up. */}
         <div className="pt-1">
           <PriceText irr={listing.priceIRR} sold={sold} hideAed={listing.hideAed} />
         </div>

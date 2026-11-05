@@ -217,13 +217,15 @@ function launchFilters(filters: SearchFilters): SearchFilters {
  *
  * Motorcycles and heavy machinery have their own top-level pages; without this
  * narrowing they would also leak into the home grid and into every car filter
- * count. Parts always pass (they are not a vehicle category).
+ * count. A dedicated vehicle page shows vehicles only — a brake disc has no
+ * business in the car or motorcycle grid (parts live on `/parts` and the home
+ * mixed feed).
  */
 function inBrowseCategory(
   listing: ListingCardData,
   category: VehicleCategory | undefined,
 ): boolean {
-  if (listing.kind === 'part') return true;
+  if (listing.kind === 'part') return category === undefined;
   return (listing.category ?? 'car') === (category ?? 'car');
 }
 
@@ -307,7 +309,9 @@ export async function getListing(slug: string): Promise<ListingDetailData | null
     const found = applyListingOverrides(all).find((l) => l.slug === slug);
     // Owner-removed listings are gone from the public site, not just the grid.
     if (!found || found.state === 'rejected') return null;
-    return { ...found, description: null, photos: found.photos ?? [] };
+    // Fixture sellers do write descriptions; the detail page shows them like
+    // any other listing (empty only when the seller truly left it blank).
+    return { ...found, description: found.description ?? null, photos: found.photos ?? [] };
   }
 
   const { data, error } = await supabase

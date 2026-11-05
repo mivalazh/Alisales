@@ -47,7 +47,7 @@ describe('vehicle validation used by listing forms', () => {
 
   it('rejects unknown brands', () => {
     const res = listingDraftSchema.safeParse({
-      vehicle: { ...vehicle, brand: 'ferrari' },
+      vehicle: { ...vehicle, brand: 'bugatti' },
       priceIRR: 1,
       city: 'kish',
       description: 'x',

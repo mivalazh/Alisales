@@ -240,8 +240,9 @@ export function Header({
             </div>
 
             <div className="flex-1 overflow-y-auto p-3">
+              {/* «ثبت آگهی» already lives in the desktop sub-bar and the mobile
+                  bottom bar, so the drawer stays a navigation list. */}
               <DrawerSection title="آگهی‌ها">
-                <DrawerLink href="/new" label="ثبت آگهی" icon="plus" />
                 <DrawerLink
                   href="/profile/listings"
                   label="آگهی‌های من"
@@ -260,7 +261,7 @@ export function Header({
                 <DrawerLink href="/cars" label="خودرو" icon="car" active={pathname === '/cars'} />
                 <DrawerLink
                   href="/motorcycles"
-                  label="موتورسیکلت"
+                  label="موتور و اسکوتر برقی"
                   icon="plate"
                   active={pathname === '/motorcycles'}
                 />

@@ -52,7 +52,7 @@ describe('filter URL codec', () => {
 
   it('falls back to defaults on malformed input instead of throwing', () => {
     expect(parseFilterQueryString('yearFrom=not-a-number')).toEqual(DEFAULT_FILTERS);
-    expect(parseFilterQueryString('brand=ferrari')).toEqual(DEFAULT_FILTERS);
+    expect(parseFilterQueryString('brand=bugatti')).toEqual(DEFAULT_FILTERS);
     expect(parseFilterQueryString('hasReport=maybe')).toEqual({ ...DEFAULT_FILTERS });
   });
 

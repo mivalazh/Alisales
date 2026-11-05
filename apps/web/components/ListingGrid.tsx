@@ -32,7 +32,9 @@ export function ListingGrid({
   }
 
   return (
-    <ul className="grid grid-cols-2 gap-3 sm:grid-cols-3 sm:gap-4 lg:grid-cols-4">
+    /* minmax(0,1fr) + min-w-0 keeps an 11-digit price from widening a column
+       past the viewport on a 375px phone. */
+    <ul className="grid grid-cols-2 gap-3 sm:grid-cols-3 sm:gap-4 lg:grid-cols-4 [&>li]:min-w-0">
       {listings.map((listing) => (
         <ListingCard key={listing.slug} listing={listing} />
       ))}

@@ -95,7 +95,8 @@ export const partListingPublishSchema = z
     warranty: z.string().trim().max(60).nullable().default(null),
     priceIRR: z.number().int().min(0).max(10 ** 15),
     city: z.enum(citySlugs as [string, ...string[]]),
-    description: z.string().trim().min(10).max(3000),
+    /** Optional, like vehicles: no minimum length. */
+    description: z.string().trim().max(3000),
     photos: z.array(listingPhotoSchema).max(MAX_PHOTOS),
     showroomId: z.string().uuid().nullable().default(null),
     allowPhoneReveal: z.boolean().default(false),

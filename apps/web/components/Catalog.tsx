@@ -67,6 +67,7 @@ export function Catalog({
   pool,
   category,
   heading,
+  sortBar = 'top',
 }: {
   listings: ListingCardData[];
   filters: SearchFilters;
@@ -98,6 +99,12 @@ export function Catalog({
   category?: VehicleCategory;
   /** Small caption above the count («خودروها»، «موتورسیکلت‌ها» …). */
   heading?: string;
+  /**
+   * Where the quick chips + count + sort/view bar sits. Vehicle pages keep it
+   * under the brand box (`top`); the home page pushes it below the two category
+   * photo cards (`bottom`), directly above the grid.
+   */
+  sortBar?: 'top' | 'bottom';
 }) {
   const router = useRouter();
   const [panelOpen, setPanelOpen] = useState(false);
@@ -146,13 +153,46 @@ export function Catalog({
     commitFilters: (next) => commit(next, sort),
   };
 
+  const countLine = (
+    <p className="text-sm font-bold text-muted" aria-live="polite">
+      {heading ? `${heading} · ` : ''}
+      {listings.length} آگهی
+    </p>
+  );
+
+  const sortCluster = (
+    <div className="flex items-center gap-3">
+      <SortControl value={sort} onChange={(key) => commit(filters, key)} />
+      <ViewModeToggle value={view} onChange={changeView} />
+    </div>
+  );
+
+  /* Chips, count and sort/view share one bar so the grid starts right under a
+     single control strip instead of two stacked ones. */
+  const controlBar = (
+    <div className="flex flex-wrap items-center justify-between gap-3">
+      <div className="flex min-w-0 flex-wrap items-center gap-2">
+        {!hideQuickChips && <QuickChips filters={filters} onChange={(f) => commit(f)} />}
+        {countLine}
+      </div>
+      <div className="ms-auto">{sortCluster}</div>
+    </div>
+  );
+
   const content = (
-    <div className="space-y-4">
+    <div className="min-w-0 space-y-4">
       {showStories && <Stories stories={stories} label={storiesLabel} />}
 
       {showCategories && <CategoryCards vehicleCount={vehicleCount} partCount={partCount} />}
 
-      {!hideQuickChips && <QuickChips filters={filters} onChange={(f) => commit(f)} />}
+      {sortBar === 'bottom' ? (
+        controlBar
+      ) : (
+        <>
+          {!hideQuickChips && <QuickChips filters={filters} onChange={(f) => commit(f)} />}
+          {countLine}
+        </>
+      )}
 
       {panelOpen && (
         <FilterPanel
@@ -161,11 +201,6 @@ export function Catalog({
           onClose={() => setPanelOpen(false)}
         />
       )}
-
-      <p className="text-sm font-bold text-muted" aria-live="polite">
-        {heading ? `${heading} · ` : ''}
-        {listings.length} آگهی
-      </p>
 
       <ListingGrid listings={sortListings(listings, sort)} view={view} />
     </div>
@@ -183,16 +218,15 @@ export function Catalog({
 
       {brandBox?.(ctx)}
 
-      {/* The pill strip (removable filter chips + sort/view) sits *below* the
+      {/* The pill strip (active filter chips + sort/view) sits *below* the
           brand and model selectors, so a brand pick never pushes it out of
           reach and the active filters read directly above the results. */}
-      <div className="flex flex-wrap items-center justify-between gap-3">
-        <FilterChips filters={filters} onChange={(f) => commit(f)} />
-        <div className="ms-auto flex items-center gap-3">
-          <SortControl value={sort} onChange={(key) => commit(filters, key)} />
-          <ViewModeToggle value={view} onChange={changeView} />
+      {sortBar === 'top' && (
+        <div className="flex flex-wrap items-center justify-between gap-3">
+          <FilterChips filters={filters} onChange={(f) => commit(f)} />
+          <div className="ms-auto flex items-center gap-3">{sortCluster}</div>
         </div>
-      </div>
+      )}
 
       {category && (
         <FilterBar

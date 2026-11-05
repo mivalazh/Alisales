@@ -2,7 +2,6 @@ import type { Metadata } from 'next';
 import Link from 'next/link';
 import { CategoryCatalog } from '@/components/CategoryCatalog';
 import { CategorySwitch } from '@/components/CategorySwitch';
-import { Icon } from '@/components/Icon';
 import { filterByBodyType, parseBodyType } from '@/lib/browse';
 import { loadCategoryPage } from '@/lib/category-page';
 
@@ -47,9 +46,8 @@ export default async function CarsPage({
         </div>
         <Link
           href="/parts"
-          className="inline-flex items-center gap-1.5 text-sm font-bold text-muted transition hover:text-ink"
+          className="text-sm font-bold text-muted transition hover:text-ink"
         >
-          <Icon name="gear" size={16} />
           قطعات و لوازم یدکی
         </Link>
       </div>

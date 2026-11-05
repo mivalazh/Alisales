@@ -84,8 +84,11 @@ describe('listing publish schema', () => {
     expect(parsed.success && parsed.data.hideAed).toBe(true);
   });
 
-  it('requires a description of at least 20 chars', () => {
-    expect(listingPublishSchema.safeParse({ ...baseDraft, description: 'کوتاه' }).success).toBe(false);
+  it('accepts any description length, including none at all', () => {
+    // The description is optional by product decision: one word or no words
+    // must both publish.
+    expect(listingPublishSchema.safeParse({ ...baseDraft, description: 'کوتاه' }).success).toBe(true);
+    expect(listingPublishSchema.safeParse({ ...baseDraft, description: '' }).success).toBe(true);
     expect(listingPublishSchema.safeParse(baseDraft).success).toBe(true);
   });
 });

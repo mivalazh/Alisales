@@ -63,7 +63,8 @@ describe('listing edit schema (owner PATCH)', () => {
   it('rejects an empty change and an out-of-range photo set', () => {
     expect(listingEditSchema.safeParse({}).success).toBe(false);
     expect(listingEditSchema.safeParse({ photos: [photo(20)] }).success).toBe(false);
-    expect(listingEditSchema.safeParse({ description: 'کوتاه' }).success).toBe(false);
+    // A one-word description is a valid edit now that the minimum is gone.
+    expect(listingEditSchema.safeParse({ description: 'کوتاه' }).success).toBe(true);
   });
 
   it('accepts an emptied photo set and the Toman-only preference', () => {

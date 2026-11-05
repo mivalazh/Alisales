@@ -13,9 +13,11 @@ const SECONDARY_INK = '#64748B';
  *
  * The stored price is always IRR. The rate comes from the one stored value
  * (`RateProvider` → `/admin/settings`), so every AED figure on the site matches.
- * The headline sits in its own fixed-height container filled with the brand
- * orange (#F98513), so the spec line above and the reference line below can
- * never collide with it, and every card in a row keeps the same rhythm.
+ *
+ * The headline is bold brand orange (#F98513) text on a transparent background;
+ * the reference «≈ … AED» sits directly underneath in muted slate, right-aligned
+ * on the start edge of the card, so the figure reads like a classifieds price
+ * instead of a button.
  *
  * Display unit («واحد نمایش قیمت») is a viewer preference:
  *  - `both`  → Toman headline + «≈ … AED» reference (the default),
@@ -46,42 +48,32 @@ export function PriceText({
   const aed = formatAmountLatin(Math.round(irr / perAed));
 
   const effective = hideAed ? 'toman' : unit;
-  // Amount and unit are separate spans: the unit shrinks with the card instead
-  // of pushing an 11-digit price out of its fixed-height container.
   const main = effective === 'aed' ? aed : toman;
   const unitLabel = effective === 'aed' ? 'AED' : 'تومان';
   const secondary =
     effective === 'aed' ? `${toman} تومان` : effective === 'both' ? `≈ ${aed} AED` : null;
 
   return (
-    <span className="flex min-w-0 flex-col items-start gap-1 text-right">
+    <span className="flex min-w-0 flex-col items-start gap-0.5 text-right">
       <span
-        className={
-          size === 'lg'
-            ? 'flex h-9 max-w-full items-center gap-1 whitespace-nowrap rounded-[7px] px-2.5 font-extrabold leading-none text-white sm:h-10 sm:px-3'
-            : 'flex h-6 max-w-full items-center gap-1 whitespace-nowrap rounded-[5px] px-1.5 font-extrabold leading-none text-white sm:h-7 sm:px-2'
-        }
-        style={{ background: sold ? SECONDARY_INK : PRICE_INK }}
+        dir="ltr"
+        className={`whitespace-nowrap font-extrabold tabular-nums tracking-tight ${
+          // Cards stay at 14px: an 11-digit Toman figure plus «تومان» must fit
+          // inside a 167px card column at 1280px without spilling out.
+          size === 'lg' ? 'text-xl sm:text-2xl' : 'text-[13px] sm:text-[14px]'
+        }`}
+        style={{ color: sold ? SECONDARY_INK : PRICE_INK }}
       >
-        <span
-          className={`min-w-0 tabular-nums ${
-            size === 'lg' ? 'text-xl sm:text-2xl' : 'text-[11px] sm:text-[12px]'
-          }`}
-        >
-          {main}
-        </span>
-        <span
-          className={`shrink-0 font-bold ${
-            size === 'lg' ? 'text-xs' : 'text-[8px] sm:text-[9px]'
-          }`}
-        >
-          {unitLabel}
-        </span>
+        {main}
+        <span className="ms-1 text-[0.7em] font-bold">{unitLabel}</span>
       </span>
       {/* Fixed slot: an absent reference line keeps the same vertical rhythm,
           so cards in a row stay equal height with or without AED. */}
       <span
-        className="flex h-3.5 items-center self-start whitespace-nowrap text-[10px] font-bold sm:h-4 sm:text-xs"
+        dir="ltr"
+        className={`flex items-center whitespace-nowrap text-xs font-semibold ${
+          size === 'lg' ? 'h-4' : 'h-3.5'
+        }`}
         style={{ color: SECONDARY_INK }}
         aria-hidden={secondary ? undefined : true}
       >

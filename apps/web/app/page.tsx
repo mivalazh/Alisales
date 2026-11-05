@@ -93,6 +93,7 @@ export default async function HomePage({
         kind={kind}
         vehicleCount={vehicleCount}
         partCount={partCount}
+        sortBar="bottom"
       />
     </>
   );

@@ -10,10 +10,11 @@ import { CitySelect } from './CitySelect';
  * edge and the «Created by Miva Tech» credit on the end edge, set in Latin so
  * the studio name never gets bidi-shuffled.
  */
+// «ثبت آگهی» is already in the header and bottom bar — not repeated here.
 const QUICK_LINKS = [
   { href: '/cars', label: 'خودروها' },
+  { href: '/motorcycles', label: 'موتور و اسکوتر برقی' },
   { href: '/parts', label: 'قطعات و لوازم یدکی' },
-  { href: '/new', label: 'ثبت آگهی' },
 ] as const;
 
 const GUIDE_LINKS = [
@@ -38,7 +39,7 @@ function FooterColumn({
   return (
     <div>
       <h2 className="text-sm font-extrabold text-ink">{title}</h2>
-      <ul className="mt-3 space-y-2">
+      <ul className="mt-2 space-y-1.5">
         {links.map((link) => (
           <li key={link.href}>
             <Link
@@ -57,9 +58,9 @@ function FooterColumn({
 export function SiteFooter() {
   return (
     <footer className="mt-12 border-t border-line bg-card pb-20 sm:pb-0">
-      <div className="mx-auto w-full max-w-[var(--content-max)] px-4 py-10 sm:px-6">
-        <div className="grid gap-8 sm:grid-cols-2 lg:grid-cols-4">
-          <div className="sm:col-span-2 lg:col-span-1">
+      <div className="mx-auto w-full max-w-[var(--content-max)] px-4 py-8 sm:px-6 sm:py-10">
+        <div className="grid gap-8 lg:grid-cols-4">
+          <div className="lg:col-span-1">
             <p className="text-base font-extrabold text-ink">Ali Sales</p>
             <p className="mt-2 max-w-xs text-sm leading-7 text-muted">
               بازار آگهی خودروهای لوکس و قطعات یدکی در منطقه آزاد کیش؛ واردات، پلاک
@@ -70,9 +71,12 @@ export function SiteFooter() {
             </div>
           </div>
 
-          <FooterColumn title="دسترسی سریع" links={QUICK_LINKS} />
-          <FooterColumn title="راهنما و قوانین" links={GUIDE_LINKS} />
-          <FooterColumn title="پشتیبانی" links={SUPPORT_LINKS} />
+          {/* Two link columns on phones instead of one tall vertical list. */}
+          <div className="grid grid-cols-2 gap-x-4 gap-y-6 sm:grid-cols-3 lg:col-span-3">
+            <FooterColumn title="دسترسی سریع" links={QUICK_LINKS} />
+            <FooterColumn title="راهنما و قوانین" links={GUIDE_LINKS} />
+            <FooterColumn title="پشتیبانی" links={SUPPORT_LINKS} />
+          </div>
         </div>
 
         <div className="mt-10 flex flex-col items-center justify-between gap-3 border-t border-line pt-6 sm:flex-row">
