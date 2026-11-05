@@ -19,3 +19,6 @@ apps/web/.dev-data/
 
 # local verification artefacts (screenshots, rendered covers)
 /artifacts/
+
+# Local demo store (JSON fixtures written by the app)
+.dev-data/

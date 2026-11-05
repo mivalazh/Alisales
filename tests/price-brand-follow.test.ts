@@ -9,6 +9,12 @@ import {
   tomanToIRR,
 } from '@alisales/schemas';
 import { boostFollowed, followedListingCount } from '../apps/web/lib/follow-priority';
+import {
+  applyListingOverrides,
+  removeDevListing,
+  removedListingIds,
+} from '../apps/web/lib/data/dev-store';
+import { readJson, writeJson } from '../apps/web/lib/storage/demo-store';
 import { storiesFrom } from '../apps/web/lib/stories';
 import type { ListingCardData } from '../apps/web/lib/data/listings';
 
@@ -78,6 +84,22 @@ describe('brand box — two scrollable rows', () => {
     expect(source).toContain('overflow-x-auto');
     expect(source).toMatch(/auto-cols-\[\d+px\]/);
     expect(source).toContain('overscroll-x-contain');
+  });
+});
+
+describe('owner deletion in demo mode', () => {
+  it('tombstones a seeded listing so every feed drops it', () => {
+    const id = `delete-test-${Date.now()}-${Math.random().toString(36).slice(2)}`;
+    const listings = [{ id, slug: 'to-delete', sellerId: 'seller-a' } as unknown as ListingCardData];
+    try {
+      expect(applyListingOverrides(listings)).toHaveLength(1);
+      removeDevListing(id);
+      expect(removedListingIds()).toContain(id);
+      expect(applyListingOverrides(listings)).toHaveLength(0);
+    } finally {
+      const rest = readJson<string[]>('deleted-listings.json', () => []).filter((x) => x !== id);
+      writeJson('deleted-listings.json', rest);
+    }
   });
 });
 
