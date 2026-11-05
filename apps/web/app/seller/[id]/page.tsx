@@ -5,41 +5,37 @@ import { notFound } from 'next/navigation';
 import { CITY_LABELS, formatJalaliDate, formatAmountLatin, irrToToman, postingAgeLabel } from '@alisales/schemas';
 import { getSession } from '@/lib/auth/session';
 import { loadSellerProfile } from '@/lib/data/seller-profile';
+import { isFollowing } from '@/lib/data/social-store';
 import { brandLatinFor, vehicleTitle } from '@/lib/listing-text';
 import { Icon } from '@/components/Icon';
+import { FollowSellerButton } from '@/components/FollowSellerButton';
 import { SellerActions } from '@/components/SellerActions';
+import { Stories } from '@/components/Stories';
 import { VerifiedPill } from '@/components/SellerVerified';
 import { isPreSizedSource } from '@/lib/images';
 
 export const metadata: Metadata = { title: 'پروفایل فروشنده' };
 
-type Tab = 'active' | 'sold' | 'reviews';
+type Tab = 'active' | 'stories' | 'reviews';
 const TABS: ReadonlyArray<{ key: Tab; label: string }> = [
   { key: 'active', label: 'آگهی‌های فعال' },
-  { key: 'sold', label: 'فروخته‌شده' },
-  { key: 'reviews', label: 'نظرات' },
+  { key: 'stories', label: 'استوری‌ها' },
+  { key: 'reviews', label: 'امتیاز و نظرات' },
 ];
 
 function parseTab(value: string | string[] | undefined): Tab {
   const v = Array.isArray(value) ? value[0] : value;
-  return v === 'sold' || v === 'reviews' ? v : 'active';
-}
-
-function replyTime(minutes: number | null): string {
-  if (minutes === null) return '—';
-  if (minutes < 60) return `${minutes} دقیقه`;
-  const hours = Math.round(minutes / 60);
-  if (hours < 24) return `${hours} ساعت`;
-  return `${Math.round(hours / 24)} روز`;
+  return v === 'stories' || v === 'reviews' ? v : 'active';
 }
 
 /**
- * Public seller profile — an Instagram-style identity page, not a settings page.
+ * Public showroom profile — an Instagram-style identity page.
  *
- * Visitors and the owner see the same identity (cover, avatar, showroom name,
- * verification, city, member since, stats) and the same three tabs. The only
- * difference is the primary action: a visitor gets «پیام دادن», the owner gets
- * «ویرایش پروفایل».
+ * Four numbers only: live listings, stories, rating and followers. Sold counts,
+ * response rate and reply time are deliberately absent; they were noise on a
+ * page whose job is «who is this showroom and what do they have». The primary
+ * action is «دنبال کردن» for a visitor (their stories then lead the rail and
+ * their stock leads the feeds) and «ویرایش پروفایل» for the owner.
  */
 export default async function SellerPage({
   params,
@@ -57,7 +53,7 @@ export default async function SellerPage({
   const isOwner = session?.sub === profile.id;
   const tab = parseTab(query.tab);
   const firstActive = profile.active[0] ?? null;
-  const tabList = tab === 'active' ? profile.active : tab === 'sold' ? profile.sold : [];
+  const following = isFollowing(session?.sub, profile.id);
 
   return (
     <div className="mx-auto max-w-4xl space-y-4">
@@ -65,16 +61,30 @@ export default async function SellerPage({
       <section className="overflow-hidden rounded-card border border-line bg-card">
         <div
           aria-hidden
-          className="h-28 w-full sm:h-36"
+          className="relative h-28 w-full overflow-hidden sm:h-36"
           style={{ background: 'linear-gradient(135deg, #F98513 0%, #ffb457 55%, #7c5a2e 100%)' }}
-        />
+        >
+          {profile.coverUrl && (
+            // eslint-disable-next-line @next/next/no-img-element
+            <img
+              src={profile.coverUrl}
+              alt=""
+              className="absolute inset-0 h-full w-full object-cover"
+            />
+          )}
+        </div>
         <div className="px-4 pb-4">
           <div className="-mt-9 flex items-end gap-3">
             <span
               aria-hidden
-              className="flex h-[76px] w-[76px] shrink-0 items-center justify-center rounded-full border-4 border-[color:var(--color-surface)] bg-card text-2xl font-extrabold text-ink shadow"
+              className="flex h-[76px] w-[76px] shrink-0 items-center justify-center overflow-hidden rounded-full border-4 border-[color:var(--color-surface)] bg-card text-2xl font-extrabold text-ink shadow"
             >
-              {profile.initials}
+              {profile.avatarUrl ? (
+                // eslint-disable-next-line @next/next/no-img-element
+                <img src={profile.avatarUrl} alt="" className="h-full w-full object-cover" />
+              ) : (
+                profile.initials
+              )}
             </span>
             <div className="min-w-0 flex-1 pb-1">
               <h1 className="flex flex-wrap items-center gap-1.5 text-lg font-extrabold leading-tight">
@@ -93,29 +103,41 @@ export default async function SellerPage({
             </div>
           </div>
 
-          <SellerActions
-            sellerId={profile.id}
-            listingId={firstActive?.id ?? null}
-            name={profile.name}
-            isOwner={isOwner}
-            canCall={Boolean(firstActive?.allowPhoneReveal)}
-          />
+          {profile.bio && (
+            <p className="mt-3 whitespace-pre-line text-sm leading-7 text-ink/85">{profile.bio}</p>
+          )}
 
-          {/* Stats row */}
-          <dl className="mt-4 grid grid-cols-3 gap-2 sm:grid-cols-5">
+          <div className="mt-3 flex flex-wrap items-start gap-2">
+            {!isOwner && (
+              <FollowSellerButton
+                sellerId={profile.id}
+                initialFollowing={following}
+                authed={Boolean(session)}
+                isOwner={isOwner}
+              />
+            )}
+            <SellerActions
+              sellerId={profile.id}
+              listingId={firstActive?.id ?? null}
+              name={profile.name}
+              isOwner={isOwner}
+              canCall={Boolean(firstActive?.allowPhoneReveal)}
+            />
+          </div>
+
+          {/* Four numbers, nothing else. */}
+          <dl className="mt-4 grid grid-cols-2 gap-2 sm:grid-cols-4">
             {[
-              { label: 'آگهی فعال', value: formatAmountLatin(profile.stats.active) },
-              { label: 'فروخته‌شده', value: formatAmountLatin(profile.stats.sold) },
+              { label: 'آگهی‌های فعال', value: formatAmountLatin(profile.stats.active) },
+              { label: 'استوری‌ها', value: formatAmountLatin(profile.stats.stories) },
               {
-                label: 'نرخ پاسخ',
+                label: 'امتیاز و نظرات',
                 value:
-                  profile.stats.responseRate === null ? '—' : `${profile.stats.responseRate}٪`,
+                  profile.stats.rating === null
+                    ? '—'
+                    : `${profile.stats.rating} / 5 (${profile.stats.reviewCount})`,
               },
-              { label: 'زمان پاسخ', value: replyTime(profile.stats.averageReplyMinutes) },
-              {
-                label: 'امتیاز',
-                value: profile.stats.rating === null ? '—' : `${profile.stats.rating} / 5`,
-              },
+              { label: 'دنبال‌کننده', value: formatAmountLatin(profile.stats.followers) },
             ].map((stat) => (
               <div
                 key={stat.label}
@@ -138,8 +160,8 @@ export default async function SellerPage({
           const count =
             item.key === 'active'
               ? profile.active.length
-              : item.key === 'sold'
-                ? profile.sold.length
+              : item.key === 'stories'
+                ? profile.stories.length
                 : profile.reviews.length;
           return (
             <Link
@@ -157,7 +179,17 @@ export default async function SellerPage({
         })}
       </nav>
 
-      {tab === 'reviews' ? (
+      {tab === 'stories' ? (
+        profile.stories.length === 0 ? (
+          <div className="rounded-card border border-dashed border-line-strong bg-card px-6 py-12 text-center">
+            <Icon name="camera" size={32} className="mx-auto text-faint" />
+            <p className="mt-3 text-sm font-extrabold">هنوز استوری‌ای برای این نمایشگاه نیست.</p>
+            <p className="mt-1 text-xs text-muted">استوری‌ها از آگهی‌های فعال عکس‌دار ساخته می‌شوند.</p>
+          </div>
+        ) : (
+          <Stories stories={profile.stories} label="استوری‌های این نمایشگاه" />
+        )
+      ) : tab === 'reviews' ? (
         profile.reviews.length === 0 ? (
           <div className="rounded-card border border-dashed border-line-strong bg-card px-6 py-12 text-center">
             <Icon name="message" size={32} className="mx-auto text-faint" />
@@ -186,16 +218,14 @@ export default async function SellerPage({
             ))}
           </ul>
         )
-      ) : tabList.length === 0 ? (
+      ) : profile.active.length === 0 ? (
         <div className="rounded-card border border-dashed border-line-strong bg-card px-6 py-12 text-center">
           <Icon name="tag" size={32} className="mx-auto text-faint" />
-          <p className="mt-3 text-sm font-extrabold">
-            {tab === 'active' ? 'آگهی فعالی ندارد.' : 'هنوز آگهی فروخته‌شده ندارد.'}
-          </p>
+          <p className="mt-3 text-sm font-extrabold">آگهی فعالی ندارد.</p>
         </div>
       ) : (
         <ul className="grid grid-cols-3 gap-1.5 sm:gap-2">
-          {tabList.map((listing) => {
+          {profile.active.map((listing) => {
             const title = listing.part ? listing.part.title : vehicleTitle(listing);
             const latin = listing.part ? null : brandLatinFor(listing.brand);
             return (
@@ -212,9 +242,7 @@ export default async function SellerPage({
                         fill
                         sizes="(min-width: 640px) 30vw, 33vw"
                         unoptimized={isPreSizedSource(listing.coverUrl)}
-                        className={`object-cover transition group-hover:scale-105 ${
-                          listing.state === 'sold' ? 'opacity-70 grayscale' : ''
-                        }`}
+                        className="object-cover transition group-hover:scale-105"
                       />
                     ) : (
                       <span className="flex h-full items-center justify-center text-faint">
@@ -232,7 +260,11 @@ export default async function SellerPage({
                       </p>
                     )}
                     <p className="truncate text-[11px] font-extrabold text-ink">{title}</p>
-                    <p className="mt-0.5 truncate text-[11px] font-extrabold" style={{ color: '#F98513' }} dir="rtl">
+                    <p
+                      className="mt-0.5 truncate text-[11px] font-extrabold"
+                      style={{ color: '#F98513' }}
+                      dir="rtl"
+                    >
                       {formatAmountLatin(irrToToman(listing.priceIRR))} تومان
                     </p>
                   </div>

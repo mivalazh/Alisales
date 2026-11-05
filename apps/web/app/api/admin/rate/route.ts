@@ -1,7 +1,7 @@
 import { NextResponse } from 'next/server';
 import { tomanRateToIrr } from '@alisales/schemas';
 import { adminSession } from '@/lib/admin/guard';
-import { getAedRate, setAedRate } from '@/lib/data/rate-store';
+import { getAedRate, refreshAedRate, setAedRate } from '@/lib/data/rate-store';
 
 /** GET — the current stored rate (admin only). */
 export async function GET(): Promise<NextResponse> {
@@ -23,11 +23,23 @@ export async function POST(request: Request): Promise<NextResponse> {
     return NextResponse.json({ error: 'دسترسی ندارید.' }, { status: 403 });
   }
 
-  let body: { toman?: unknown };
+  let body: { toman?: unknown; refresh?: unknown };
   try {
-    body = (await request.json()) as { toman?: unknown };
+    body = (await request.json()) as { toman?: unknown; refresh?: unknown };
   } catch {
     return NextResponse.json({ error: 'بدنه درخواست نامعتبر است.' }, { status: 400 });
+  }
+
+  // «دریافت نرخ لحظه‌ای» — pulls the live market value and stores it as auto.
+  if (body.refresh === true) {
+    try {
+      return NextResponse.json({ ok: true, rate: await refreshAedRate() });
+    } catch {
+      return NextResponse.json(
+        { error: 'نرخ لحظه‌ای در دسترس نیست؛ از نرخ ذخیره‌شده استفاده می‌شود.' },
+        { status: 502 },
+      );
+    }
   }
 
   const toman =
@@ -37,9 +49,11 @@ export async function POST(request: Request): Promise<NextResponse> {
   }
 
   const rial = tomanRateToIrr(toman);
-  if (rial < 10_000 || rial > 10_000_000) {
+  // Same 15,000–60,000 Toman window as the automatic feed: a manual override
+  // cannot push an impossible number either.
+  if (rial < 150_000 || rial > 600_000) {
     return NextResponse.json(
-      { error: 'نرخ باید بین ۱٬۰۰۰ و ۱٬۰۰۰٬۰۰۰ تومان برای هر درهم باشد.' },
+      { error: 'نرخ باید بین ۱۵٬۰۰۰ و ۶۰٬۰۰۰ تومان برای هر درهم باشد.' },
       { status: 400 },
     );
   }

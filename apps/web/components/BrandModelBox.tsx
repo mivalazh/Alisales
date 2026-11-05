@@ -156,18 +156,18 @@ export function BrandModelBox({
           onPointerUp={drag.onPointerUp}
           onPointerLeave={drag.onPointerLeave}
           onClickCapture={drag.onClickCapture}
-          className="mt-3 flex snap-x snap-mandatory gap-1.5 overflow-x-auto pb-1 [scrollbar-width:none] [&::-webkit-scrollbar]:hidden"
+          className="mt-3 grid w-full max-w-full grid-flow-col grid-rows-2 auto-cols-[84px] gap-2.5 overflow-x-auto overscroll-x-contain pb-2 sm:auto-cols-[92px] [&::-webkit-scrollbar]:h-1 [&::-webkit-scrollbar-thumb]:rounded-full [&::-webkit-scrollbar-thumb]:bg-slate-300/70"
         >
           {filtered.map((item) => {
             const selected = item.slug === brand;
             return (
-              <li key={item.slug} className="shrink-0 snap-start">
+              <li key={item.slug} className="snap-start">
                 <button
                   type="button"
                   onClick={() => onPick(selected ? '' : item.slug, null)}
                   aria-pressed={selected}
                   title={item.label}
-                  className={`flex w-[76px] flex-col items-center gap-1 rounded-field border px-1 py-2 transition active:scale-95 ${
+                  className={`flex h-full w-full flex-col items-center justify-center gap-1 rounded-field border px-1 py-2 transition active:scale-95 ${
                     selected
                       ? 'border-cta bg-cta-soft'
                       : 'border-transparent bg-page hover:border-line-strong'

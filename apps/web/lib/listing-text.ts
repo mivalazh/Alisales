@@ -3,7 +3,6 @@ import {
   BIKE_TYPE_LABELS,
   GEARBOX_LABELS,
   HEAVY_TYPE_LABELS,
-  PLATE_TYPE_LABELS,
   formatAmountLatin,
 } from '@alisales/schemas';
 
@@ -89,8 +88,8 @@ export function specParts(listing: TextListing): string[] {
     }
   }
 
-  if (listing.plateType && PLATE_TYPE_LABELS[listing.plateType as keyof typeof PLATE_TYPE_LABELS]) {
-    parts.push(PLATE_TYPE_LABELS[listing.plateType as keyof typeof PLATE_TYPE_LABELS]);
-  }
+  // The plate status already rides as a badge above the title on cards and
+  // rows, so the spec line keeps only the facts that are not repeated above:
+  // mileage, gearbox, displacement, machine type and working hours.
   return parts;
 }

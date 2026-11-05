@@ -142,6 +142,28 @@ export function mergeMyListings(
   return [...mine.filter((l) => !seen.has(l.slug)), ...feed];
 }
 
+/** Drops a deleted listing from the signed snapshot (route-handler context). */
+export async function forgetMyListing(slug: string): Promise<void> {
+  const secret = authSecret();
+  if (!secret) return;
+  const previous = await readMyListings();
+  const next = previous.filter((listing) => listing.slug !== slug);
+  if (next.length === previous.length) return;
+  const encoded = toBase64Url(JSON.stringify(next.map(compact)));
+  const signature = await hmacSha256(secret, encoded);
+  try {
+    (await cookies()).set(MY_LISTINGS_COOKIE, `${encoded}.${signature}`, {
+      httpOnly: true,
+      sameSite: 'lax',
+      path: '/',
+      maxAge: 60 * 60 * 24 * 30,
+      secure: process.env.NODE_ENV === 'production',
+    });
+  } catch {
+    // Read-only context; the store deletion is still authoritative.
+  }
+}
+
 /** Appends a just-published card to the cookie (route-handler context only). */
 export async function rememberMyListing(card: ListingCardData): Promise<void> {
   const secret = authSecret();

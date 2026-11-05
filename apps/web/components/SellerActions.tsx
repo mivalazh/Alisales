@@ -100,7 +100,7 @@ export function SellerActions({
     <div className="mt-3">
       <div className="flex flex-wrap items-center gap-2">
         {isOwner ? (
-          <a href="/profile/settings" className="btn-ghost text-sm">
+          <a href="/profile" className="btn-ghost text-sm">
             <Icon name="pencil" size={16} />
             ویرایش پروفایل
           </a>

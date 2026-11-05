@@ -1,5 +1,6 @@
 'use client';
 
+import Link from 'next/link';
 import { useRouter, useSearchParams } from 'next/navigation';
 import { useEffect, useState, type FormEvent } from 'react';
 import {
@@ -32,6 +33,10 @@ export function LoginForm() {
   const next = safeNextPath(params.get('next'));
 
   const [step, setStep] = useState<'phone' | 'code'>('phone');
+  // «ورود با رمز عبور» is the fast path for a returning user; the SMS code
+  // stays one tab away and is still the only way to create an account.
+  const [mode, setMode] = useState<'otp' | 'password'>('otp');
+  const [password, setPassword] = useState('');
   const [phone, setPhone] = useState('');
   const [code, setCode] = useState('');
   const [demoCode, setDemoCode] = useState<string | null>(null);
@@ -84,6 +89,27 @@ export function LoginForm() {
     }
   }
 
+  async function passwordLogin(event: FormEvent<HTMLFormElement>): Promise<void> {
+    event.preventDefault();
+    if (busy) return;
+    setError(null);
+    setNotice(null);
+    setBusy(true);
+    try {
+      const { status, data } = await post('/api/auth/password', { phone, password });
+      if (status === 200) {
+        router.push(next.startsWith('/login') ? '/' : next);
+        router.refresh();
+        return;
+      }
+      setError(String(data.error ?? 'ورود ناموفق بود.'));
+    } catch {
+      setError('ارتباط با سرور برقرار نشد.');
+    } finally {
+      setBusy(false);
+    }
+  }
+
   async function verify(event: FormEvent<HTMLFormElement>): Promise<void> {
     event.preventDefault();
     if (busy) return;
@@ -119,11 +145,98 @@ export function LoginForm() {
         </span>
         <div>
           <h1 className="text-lg font-extrabold">ورود به حساب</h1>
-          <p className="text-xs text-muted">ورود با شماره موبایل و کد یک‌بارمصرف</p>
+          <p className="text-xs text-muted">ورود با کد پیامکی یا رمز عبور</p>
         </div>
       </div>
 
-      {step === 'phone' ? (
+      <div
+        role="tablist"
+        aria-label="روش ورود"
+        className="mt-5 grid grid-cols-2 gap-1 rounded-card border border-line bg-page p-1"
+      >
+        {(
+          [
+            { key: 'otp', label: 'کد پیامکی' },
+            { key: 'password', label: 'رمز عبور' },
+          ] as const
+        ).map((tab) => (
+          <button
+            key={tab.key}
+            type="button"
+            role="tab"
+            aria-selected={mode === tab.key}
+            onClick={() => {
+              setMode(tab.key);
+              setError(null);
+              setNotice(null);
+              setStep('phone');
+              setDemoCode(null);
+            }}
+            className={`rounded-field px-3 py-2 text-sm font-extrabold transition ${
+              mode === tab.key ? 'bg-cta-soft text-ink' : 'text-muted hover:text-ink'
+            }`}
+          >
+            {tab.label}
+          </button>
+        ))}
+      </div>
+
+      {mode === 'password' ? (
+        <form onSubmit={(e) => void passwordLogin(e)} className="mt-6 space-y-4" noValidate>
+          <div>
+            <label htmlFor="pw-phone" className="label">
+              شماره موبایل
+            </label>
+            <input
+              id="pw-phone"
+              dir="ltr"
+              inputMode="tel"
+              autoComplete="username"
+              className="field text-center tracking-widest"
+              value={phone}
+              onChange={(e) => setPhone(e.target.value)}
+              placeholder="09123456789"
+              required
+            />
+          </div>
+          <div>
+            <label htmlFor="pw" className="label">
+              رمز عبور
+            </label>
+            <input
+              id="pw"
+              type="password"
+              dir="ltr"
+              autoComplete="current-password"
+              className="field text-center tracking-widest"
+              value={password}
+              onChange={(e) => setPassword(e.target.value)}
+              placeholder="••••••••"
+              required
+            />
+            <p className="hint mt-1">
+              رمز عبور را در «تنظیمات حساب» تعیین کنید؛ اگر رمزی نساخته‌اید، از کد پیامکی وارد شوید.
+            </p>
+          </div>
+
+          {error && (
+            <p className="error-text" role="alert">
+              {error}
+            </p>
+          )}
+
+          <button type="submit" disabled={busy} className="btn-cta w-full text-sm disabled:opacity-60">
+            {busy ? 'در حال ورود…' : 'ورود با رمز عبور'}
+          </button>
+
+          <Link
+            href="/profile/settings"
+            className="block text-center text-xs font-bold text-muted underline"
+          >
+            تعیین یا تغییر رمز عبور
+          </Link>
+        </form>
+      ) : step === 'phone' ? (
         <form onSubmit={(e) => void requestCode(e)} className="mt-6 space-y-4" noValidate>
           <div>
             <label htmlFor="phone" className="label">

@@ -8,7 +8,6 @@ import { NAV_ITEMS, type NavItem } from '@/lib/nav';
 import { CitySelect } from './CitySelect';
 import { Icon } from './Icon';
 import { LogoutButton } from './LogoutButton';
-import { PRICE_UNIT_LABELS, usePriceUnit, type PriceUnit } from './PriceUnitProvider';
 import { ThemeToggle } from './ThemeToggle';
 import { useActivePath } from './useActivePath';
 
@@ -75,45 +74,12 @@ function DrawerSection({ title, children }: { title: string; children: ReactNode
   );
 }
 
-/** «واحد نمایش قیمت» — تومان / درهم / هر دو, stored on this device. */
-function PriceUnitRow() {
-  const { unit, setUnit } = usePriceUnit();
-  return (
-    <div className="rounded-field px-3 py-2.5">
-      <div className="flex items-center gap-3">
-        <Icon name="tag" size={18} className="shrink-0 text-cta" />
-        <span className="flex-1 text-sm font-semibold text-muted">واحد نمایش قیمت</span>
-      </div>
-      <div role="group" aria-label="واحد نمایش قیمت" className="mt-2 grid grid-cols-3 gap-1">
-        {(['toman', 'aed', 'both'] as const).map((option: PriceUnit) => (
-          <button
-            key={option}
-            type="button"
-            aria-pressed={unit === option}
-            onClick={() => setUnit(option)}
-            className={`rounded-field border px-2 py-1.5 text-xs font-extrabold transition ${
-              unit === option
-                ? 'border-cta bg-cta-soft text-ink'
-                : 'border-line text-muted hover:text-ink'
-            }`}
-          >
-            {PRICE_UNIT_LABELS[option]}
-          </button>
-        ))}
-      </div>
-    </div>
-  );
-}
-
 export function Header({
   authed = false,
   displayName = null,
-  admin = false,
 }: {
   authed?: boolean;
   displayName?: string | null;
-  /** Owner moderation link — resolved on the server from ADMIN_PHONES. */
-  admin?: boolean;
 }) {
   const [menuOpen, setMenuOpen] = useState(false);
   const pathname = usePathname();
@@ -274,16 +240,16 @@ export function Header({
                 <DrawerLink href="/parts" label="قطعات" icon="tag" active={pathname === '/parts'} />
               </DrawerSection>
 
-              <DrawerSection title="تنظیمات">
+              {/* Display lives here as two plain rows. Price unit, legal text and
+                  the owner's moderation tools deliberately do not: they belong
+                  to the header, the footer and /profile respectively. */}
+              <DrawerSection title="نمایش">
                 <li className="px-1 py-1">
                   <div className="flex items-center gap-2 rounded-field border border-line bg-page px-3 py-2">
                     <Icon name="pin" size={18} className="shrink-0 text-cta" />
                     <span className="flex-1 text-sm font-semibold text-muted">شهر</span>
                     <CitySelect />
                   </div>
-                </li>
-                <li className="px-1 py-1">
-                  <PriceUnitRow />
                 </li>
                 <li className="flex items-center gap-3 px-3 py-2">
                   <Icon name="moon" size={18} className="shrink-0 text-cta" />
@@ -300,28 +266,11 @@ export function Header({
                   active={pathname === '/support'}
                 />
                 <DrawerLink
-                  href="/terms"
-                  label="قوانین و حریم خصوصی"
-                  icon="shieldCheck"
-                  active={pathname === '/terms'}
-                />
-                <DrawerLink
                   href="/about"
                   label="درباره ما"
                   icon="sparkle"
                   active={pathname === '/about'}
                 />
-                {admin && (
-                  <>
-                    <DrawerLink href="/admin" label="پنل مدیریت" icon="gear" active={pathname === '/admin'} />
-                    <DrawerLink
-                      href="/admin/settings"
-                      label="تنظیمات سایت (نرخ درهم)"
-                      icon="sliders"
-                      active={pathname === '/admin/settings'}
-                    />
-                  </>
-                )}
               </DrawerSection>
 
               <div className="mt-4 border-t border-line pt-3">

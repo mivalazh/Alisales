@@ -13,6 +13,7 @@ export function AdminRateForm({ initial }: { initial: AedRate }) {
   const [rate, setRate] = useState<AedRate>(initial);
   const [value, setValue] = useState(String(aedToToman(initial.aedToIrr)));
   const [busy, setBusy] = useState(false);
+  const [refreshing, setRefreshing] = useState(false);
   const [message, setMessage] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
 
@@ -39,6 +40,32 @@ export function AdminRateForm({ initial }: { initial: AedRate }) {
       setError('ارتباط با سرور برقرار نشد.');
     } finally {
       setBusy(false);
+    }
+  }
+
+  async function refresh(): Promise<void> {
+    if (refreshing) return;
+    setRefreshing(true);
+    setError(null);
+    setMessage(null);
+    try {
+      const res = await fetch('/api/admin/rate', {
+        method: 'POST',
+        headers: { 'content-type': 'application/json' },
+        body: JSON.stringify({ refresh: true }),
+      });
+      const data = (await res.json().catch(() => ({}))) as { rate?: AedRate; error?: string };
+      if (res.ok && data.rate) {
+        setRate(data.rate);
+        setValue(String(aedToToman(data.rate.aedToIrr)));
+        setMessage('نرخ لحظه‌ای بازار دریافت و ذخیره شد.');
+      } else {
+        setError(data.error ?? 'دریافت نرخ لحظه‌ای انجام نشد.');
+      }
+    } catch {
+      setError('ارتباط با سرور برقرار نشد.');
+    } finally {
+      setRefreshing(false);
     }
   }
 
@@ -72,10 +99,22 @@ export function AdminRateForm({ initial }: { initial: AedRate }) {
             onChange={(e) => setValue(e.target.value)}
           />
         </div>
-        <button type="submit" className="btn-cta text-sm" disabled={busy}>
+        <button type="submit" className="btn-cta text-sm" disabled={busy || refreshing}>
           {busy ? 'در حال ذخیره…' : 'ذخیره نرخ'}
         </button>
+        <button
+          type="button"
+          onClick={() => void refresh()}
+          className="btn-ghost text-sm"
+          disabled={busy || refreshing}
+        >
+          {refreshing ? 'در حال دریافت…' : 'دریافت نرخ لحظه‌ای'}
+        </button>
       </form>
+      <p className="mt-1 text-[11px] text-faint">
+        نرخ خودکار از بازار (تتر/درهم) خوانده می‌شود و فقط اگر بین ۱۵٬۰۰۰ و ۶۰٬۰۰۰ تومان
+        باشد ذخیره می‌شود؛ در غیر این صورت نرخ قبلی دست‌نخورده می‌ماند.
+      </p>
 
       {message && (
         <p className="mt-2 text-xs font-bold text-[var(--color-success-fg)]" role="status">

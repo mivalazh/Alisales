@@ -15,6 +15,7 @@ import { ListingGallery } from '@/components/ListingGallery';
 import { FavoriteButton } from '@/components/FavoriteButton';
 import { Icon } from '@/components/Icon';
 import { ReportListingButton } from '@/components/ReportListingButton';
+import { DeleteListingButton } from '@/components/DeleteListingButton';
 import { PriceText } from '@/components/PriceText';
 import { RateLine } from '@/components/RateLine';
 import { VerifiedPill, sellerDisplayName } from '@/components/SellerVerified';
@@ -259,7 +260,22 @@ export default async function ListingDetailPage({
               />
             </div>
 
-            {(!session || session.sub !== listing.sellerId) && (
+            {session?.sub === listing.sellerId ? (
+              <div className="mt-3 flex flex-wrap items-center gap-2 border-t border-line pt-3">
+                <Link
+                  href={`/edit/${listing.id}`}
+                  className="inline-flex items-center gap-1 rounded-[var(--radius-pill)] border border-line bg-card px-3 py-1.5 text-xs font-extrabold text-ink transition hover:border-line-strong"
+                >
+                  <Icon name="pencil" size={14} />
+                  ویرایش آگهی
+                </Link>
+                <DeleteListingButton
+                  id={listing.id}
+                  redirectTo={`/seller/${listing.sellerId}`}
+                  compact
+                />
+              </div>
+            ) : (
               <div className="mt-3 border-t border-line pt-3">
                 <ReportListingButton listingId={listing.id} />
               </div>

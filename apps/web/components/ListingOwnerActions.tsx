@@ -4,6 +4,7 @@ import Link from 'next/link';
 import { useRouter } from 'next/navigation';
 import { useState } from 'react';
 import { FREE_THIRD_LISTING_MESSAGE, type ListingState } from '@alisales/schemas';
+import { DeleteListingButton } from './DeleteListingButton';
 
 type Target = 'active' | 'paused' | 'sold';
 
@@ -72,6 +73,7 @@ export function ListingOwnerActions({ id, state }: { id: string; state: ListingS
           {busy === target ? 'در حال اعمال…' : ACTION_LABELS[target]}
         </button>
       ))}
+      <DeleteListingButton id={id} compact />
       {error && (
         <span className="text-xs font-bold text-bad" role="alert">
           {error}

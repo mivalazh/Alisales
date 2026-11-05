@@ -13,6 +13,9 @@ import {
   filterPartsByAttributes,
   parsePartCategory,
 } from '@/lib/browse';
+import { getSession } from '@/lib/auth/session';
+import { followedSellerIds } from '@/lib/data/social-store';
+import { boostFollowed } from '@/lib/follow-priority';
 import { searchListings } from '@/lib/data/listings';
 import { approvedStories } from '@/lib/data/moderation';
 import { storiesFrom } from '@/lib/stories';
@@ -64,6 +67,8 @@ export default async function PartsPage({
   const warranty = first(params.warranty) === '1';
   const compatibility = first(params.compat) ?? '';
 
+  const session = await getSession();
+  const followed = followedSellerIds(session?.sub);
   const [base, pool, approved] = await Promise.all([
     searchListings(filters),
     searchListings(DEFAULT_FILTERS),
@@ -79,7 +84,8 @@ export default async function PartsPage({
   });
 
   const partPool = pool.filter((listing) => listing.kind === 'part');
-  const stories = storiesFrom(partPool, approved, PART_STORIES, 6);
+  const stories = storiesFrom(partPool, approved, PART_STORIES, 6, followed);
+  listings = boostFollowed(listings, followed);
 
   return (
     <div className="space-y-4">

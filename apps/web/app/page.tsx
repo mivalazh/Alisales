@@ -9,6 +9,9 @@ import {
   parseBodyType,
   parsePartCategory,
 } from '@/lib/browse';
+import { getSession } from '@/lib/auth/session';
+import { followedSellerIds } from '@/lib/data/social-store';
+import { boostFollowed } from '@/lib/follow-priority';
 import { searchListings } from '@/lib/data/listings';
 import { approvedStories } from '@/lib/data/moderation';
 import { storiesFrom } from '@/lib/stories';
@@ -56,6 +59,8 @@ export default async function HomePage({
   const body = parseBodyType(first(params.body));
   const category = parsePartCategory(first(params.category));
 
+  const session = await getSession();
+  const followed = followedSellerIds(session?.sub);
   const [base, approved] = await Promise.all([searchListings(filters), approvedStories()]);
   let listings = base;
   if (kind) {
@@ -63,6 +68,9 @@ export default async function HomePage({
   }
   if (body) listings = filterByBodyType(listings, body);
   if (category) listings = filterByPartCategory(listings, category);
+  // Followed showrooms lead the default feed; sort/filter stay intact inside
+  // each group because the boost is a stable partition.
+  listings = boostFollowed(listings, followed);
 
   const groupLabel = body?.label ?? (category ? PART_CATEGORY_LABELS[category] : null);
   const vehicleCount = base.filter((l) => l.kind !== 'part').length;
@@ -89,7 +97,7 @@ export default async function HomePage({
         listings={listings}
         filters={filters}
         sort={sort}
-        stories={storiesFrom(base, approved, STORY_SLUGS, 4)}
+        stories={storiesFrom(base, approved, STORY_SLUGS, 4, followed)}
         kind={kind}
         vehicleCount={vehicleCount}
         partCount={partCount}

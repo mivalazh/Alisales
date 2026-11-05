@@ -19,13 +19,17 @@ export function storiesFrom(
   approved: readonly string[],
   editorial: readonly string[],
   limit = 6,
+  /** Showrooms this buyer follows — their stories take the front of the rail. */
+  followedSellerIds: readonly string[] = [],
 ): StoryItem[] {
   const bySlug = (slug: string) => listings.find((l) => l.slug === slug);
+  const followed = new Set(followedSellerIds);
+  const following = listings.filter((l) => followed.has(l.sellerId) && l.coverUrl);
   const pinned = approved.map(bySlug).filter((l): l is ListingCardData => Boolean(l?.coverUrl));
   const picked = editorial.map(bySlug).filter((l): l is ListingCardData => Boolean(l?.coverUrl));
   const fallback = listings.filter((l) => l.coverUrl);
   const seen = new Set<string>();
-  const source = [...pinned, ...picked, ...fallback].filter((listing) => {
+  const source = [...following, ...pinned, ...picked, ...fallback].filter((listing) => {
     if (seen.has(listing.slug)) return false;
     seen.add(listing.slug);
     return true;

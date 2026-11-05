@@ -1,36 +1,26 @@
 import type { ListingCardData } from './listings';
-import {
-  accountPhone,
-  conversationsForUser,
-  getUser,
-  listingsBySeller,
-  messagesForConversation,
-  type Account,
-} from './s2-store';
+import { accountPhone, getUser, listingsBySeller, type Account } from './s2-store';
 import { averageRating, reviewsFor, type SellerReview } from './reviews';
 import { fixtureListings } from './fixtures';
 import { devListings } from './dev-store';
+import { followerCount, profileCustomization } from './social-store';
+import { storiesFrom } from '../stories';
+import type { StoryItem } from '@/components/Stories';
 
 /**
  * Public seller profile data.
  *
- * Everything here is derived from rows the app already has — listings, accounts
- * and conversations — so the profile never invents a statistic:
- *
- *  - active / sold counts come from the seller's own listing rows,
- *  - response rate = conversations where the seller replied at least once,
- *  - average reply time = mean gap between a buyer message and the seller's
- *    next message in the same conversation,
- *  - rating = the mean of the stored reviews (null when there are none).
+ * The brief trims the identity page to what a buyer actually uses: how many
+ * listings are live, how the showroom is rated, what it has on its story rail
+ * and who follows it. Sold counts, response rate and reply time are gone —
+ * they answered a question nobody asked on a showroom page.
  */
 export interface SellerStats {
   active: number;
-  sold: number;
-  responseRate: number | null;
-  /** Minutes; null when the seller has not replied yet. */
-  averageReplyMinutes: number | null;
   rating: number | null;
   reviewCount: number;
+  followers: number;
+  stories: number;
 }
 
 export interface SellerProfile {
@@ -41,57 +31,14 @@ export interface SellerProfile {
   city: string;
   memberSince: string | null;
   hasPhone: boolean;
+  bio: string | null;
+  avatarUrl: string | null;
+  coverUrl: string | null;
   listings: ListingCardData[];
   active: ListingCardData[];
-  sold: ListingCardData[];
   reviews: SellerReview[];
+  stories: StoryItem[];
   stats: SellerStats;
-}
-
-/** Reply statistics from the seller's side of every conversation. */
-async function responseStats(sellerId: string): Promise<{
-  responseRate: number | null;
-  averageReplyMinutes: number | null;
-}> {
-  const conversations = (await conversationsForUser(sellerId)).filter(
-    (conversation) => conversation.sellerId === sellerId,
-  );
-  if (conversations.length === 0) return { responseRate: null, averageReplyMinutes: null };
-
-  let replied = 0;
-  const gaps: number[] = [];
-
-  for (const conversation of conversations) {
-    const messages = (await messagesForConversation(conversation.id)).sort((a, b) =>
-      a.createdAt.localeCompare(b.createdAt),
-    );
-    let waitingSince: number | null = null;
-    let didReply = false;
-
-    for (const message of messages) {
-      const at = Date.parse(message.createdAt);
-      if (message.senderId !== sellerId) {
-        // The buyer's newest unanswered message starts the clock.
-        if (waitingSince === null) waitingSince = at;
-        continue;
-      }
-      if (waitingSince !== null) {
-        gaps.push(Math.max(0, (at - waitingSince) / 60_000));
-        waitingSince = null;
-      }
-      didReply = true;
-    }
-    if (didReply) replied += 1;
-  }
-
-  const average = gaps.length
-    ? Math.round(gaps.reduce((sum, gap) => sum + gap, 0) / gaps.length)
-    : null;
-
-  return {
-    responseRate: Math.round((replied / conversations.length) * 100),
-    averageReplyMinutes: average,
-  };
 }
 
 /** The profile of one seller, or null when the account does not exist. */
@@ -106,16 +53,15 @@ export async function loadSellerProfile(sellerId: string): Promise<SellerProfile
     : [...devListings(), ...fixtureListings].filter((listing) => listing.sellerId === sellerId);
   if (!account && listings.length === 0) return null;
 
-  const [reviews, response, phone] = await Promise.all([
-    reviewsFor(sellerId),
-    responseStats(sellerId),
-    accountPhone(sellerId),
-  ]);
+  const [reviews, phone] = await Promise.all([reviewsFor(sellerId), accountPhone(sellerId)]);
 
   const active = listings.filter((listing) => listing.state === 'active');
-  const sold = listings.filter((listing) => listing.state === 'sold');
   const name =
     account?.displayName?.trim() || listings[0]?.showroomName?.trim() || 'فروشنده آلی‌سیلز';
+  const custom = profileCustomization(sellerId);
+  // The seller's own story rail: their live, photographed stock, newest first.
+  const stories = storiesFrom(active, [], [], 8);
+  const rating = averageRating(reviews);
 
   // The seller's market: the city most of their listings are in.
   const counts = new Map<string, number>();
@@ -131,17 +77,19 @@ export async function loadSellerProfile(sellerId: string): Promise<SellerProfile
     city,
     memberSince: account?.createdAt ?? listings.at(-1)?.publishedAt ?? null,
     hasPhone: Boolean(phone),
+    bio: custom?.bio?.trim() ? custom.bio.trim() : null,
+    avatarUrl: custom?.avatarUrl ?? null,
+    coverUrl: custom?.coverUrl ?? null,
     listings,
     active,
-    sold,
     reviews,
+    stories,
     stats: {
       active: active.length,
-      sold: sold.length,
-      responseRate: response.responseRate,
-      averageReplyMinutes: response.averageReplyMinutes,
-      rating: averageRating(reviews),
+      rating,
       reviewCount: reviews.length,
+      followers: followerCount(sellerId),
+      stories: stories.length,
     },
   };
 }

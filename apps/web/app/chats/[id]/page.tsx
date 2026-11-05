@@ -71,7 +71,8 @@ export default async function ChatPage({ params }: { params: Promise<{ id: strin
     : null;
 
   return (
-    <ChatThread
+    <>
+      <ChatThread
       conversationId={conversation.id}
       currentUserId={session.sub}
       peer={{
@@ -79,16 +80,17 @@ export default async function ChatPage({ params }: { params: Promise<{ id: strin
         initials,
         lastActiveAt: latest([peerMessages.at(-1)?.createdAt, otherReadAt]),
       }}
-      listing={context}
-      initialOtherReadAt={otherReadAt}
-      initialMessages={messages.map((m) => ({
-        id: m.id,
-        senderId: m.senderId,
-        body: m.body,
-        createdAt: m.createdAt,
-        kind: m.kind,
-        visit: m.visit,
-      }))}
-    />
+        listing={context}
+        initialOtherReadAt={otherReadAt}
+        initialMessages={messages.map((m) => ({
+          id: m.id,
+          senderId: m.senderId,
+          body: m.body,
+          createdAt: m.createdAt,
+          kind: m.kind,
+          visit: m.visit,
+        }))}
+      />
+    </>
   );
 }

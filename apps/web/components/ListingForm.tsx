@@ -37,6 +37,7 @@ import {
   selectableCities,
   toAsciiDigits,
   toPersianDigits,
+  tomanInWords,
   tomanToIRR,
   type ListingPublish,
   type PlateType,
@@ -184,6 +185,18 @@ function StepCard({
 function parseIntLoose(raw: string): number {
   const cleaned = toAsciiDigits(raw).replace(/[٬,\s]/g, '');
   return cleaned === '' ? Number.NaN : Number(cleaned);
+}
+
+/**
+ * Group a typed amount while the seller types: «54400000000» → «54,400,000,000».
+ *
+ * The field keeps its separators, the payload strips them, so a long price can
+ * be counted by eye instead of by re-reading a run of eleven digits.
+ */
+function groupTypedAmount(raw: string): string {
+  const digits = toAsciiDigits(raw).replace(/\D/g, '').replace(/^0+(?=\d)/, '');
+  if (!digits) return '';
+  return formatAmountLatin(Number(digits));
 }
 
 /**
@@ -506,12 +519,14 @@ export function ListingForm() {
     return unit === 'toman' ? tomanToIRR(n) : aedToIRR(n, perAed);
   }
 
-  const pricePreview = (() => {
+  /** «۵۴ میلیارد و ۴۰۰ میلیون تومان · ≈ ۱٬۲۵۰٬۰۰۰ درهم» under the price field. */
+  const priceWords = (() => {
     const irr = priceIRR();
     if (!Number.isFinite(irr) || irr <= 0) return null;
-    return `${formatAmountLatin(irrToToman(irr))} تومان · ≈ ${formatAmountLatin(
-      irrToAED(irr, perAed),
-    )} AED`;
+    const toman = irrToToman(irr);
+    const words = tomanInWords(toman);
+    const aed = formatAmountLatin(irrToAED(irr, perAed));
+    return { toman, words, line: `${words} · ≈ ${aed} درهم` };
   })();
 
   /** Switch unit and restate the typed number in the new unit. */
@@ -520,7 +535,10 @@ export function ListingForm() {
     const n = parseIntLoose(draft.priceIRR);
     if (Number.isFinite(n)) {
       const irr = unit === 'toman' ? tomanToIRR(n) : aedToIRR(n, perAed);
-      set('priceIRR', String(next === 'toman' ? irrToToman(irr) : irrToAED(irr, perAed)));
+      set(
+        'priceIRR',
+        groupTypedAmount(String(next === 'toman' ? irrToToman(irr) : irrToAED(irr, perAed))),
+      );
     }
     setUnit(next);
   }
@@ -1191,21 +1209,28 @@ export function ListingForm() {
             htmlFor="priceIRR"
             label={`قیمت (${unit === 'toman' ? 'تومان' : 'درهم'})`}
             required
-            hint={
-              pricePreview
-                ? `معادل: ${pricePreview}`
-                : `قیمت را به ${unit === 'toman' ? 'تومان' : 'درهم'} بنویسید؛ ارقام فارسی یا انگلیسی مجاز است`
-            }
+            hint={`قیمت را به ${unit === 'toman' ? 'تومان' : 'درهم'} بنویسید؛ ارقام فارسی یا انگلیسی مجاز است و جداکننده هزار خودکار اضافه می‌شود.`}
             error={fieldErrors['priceIRR']}
           >
             <input
               id="priceIRR"
               inputMode="numeric"
+              autoComplete="off"
               className="field"
               value={draft.priceIRR}
-              onChange={(e) => set('priceIRR', e.target.value)}
-              placeholder={unit === 'toman' ? 'مثلاً ۳۴٬۰۰۰٬۰۰۰٬۰۰۰' : 'مثلاً ۱۲۵٬۰۰۰'}
+              onChange={(e) => set('priceIRR', groupTypedAmount(e.target.value))}
+              placeholder={unit === 'toman' ? 'مثلاً 34,000,000,000' : 'مثلاً 125,000'}
+              aria-describedby="priceIRR-words"
             />
+            <p
+              id="priceIRR-words"
+              aria-live="polite"
+              className="mt-1.5 min-h-4 text-[11px] font-bold leading-5 text-muted"
+            >
+              {priceWords
+                ? priceWords.line
+                : 'مبلغ را با ارقام وارد کنید تا به حروف و درهم همین‌جا نوشته شود.'}
+            </p>
           </Field>
 
           {/* City is a disabled select with کیش as the only option. */}

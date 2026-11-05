@@ -101,6 +101,7 @@ export {
   MAX_PHOTO_BYTES,
   ALLOWED_PHOTO_MIME,
   listingPhotoSchema,
+  priceAmountSchema,
   LISTING_FIELD_LABELS,
   listingDraftSchema,
   listingPublishSchema,
@@ -174,6 +175,9 @@ export {
   formatAmountLatin,
   formatPriceLatin,
 } from './digits';
+
+// «قیمت به حروف» — the live price helper in the listing form
+export { amountToPersianWords, tomanInWords } from './price-words';
 
 // Phone (S2 login)
 export { normalizePhone, isValidMobile, maskPhone } from './phone';
@@ -271,6 +275,10 @@ export {
   DEFAULT_AED_TO_IRR,
   DEFAULT_AED_RATE,
   isPlausibleAedRate,
+  isPlausibleAedRateToman,
+  MIN_AED_TOMAN,
+  MAX_AED_TOMAN,
+  AED_PER_USD,
   aedToToman,
   tomanRateToIrr,
   formatAedRateLine,

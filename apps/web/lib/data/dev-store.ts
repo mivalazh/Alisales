@@ -18,9 +18,24 @@ import { readJson, writeJson } from '../storage/demo-store';
 const FILE = 'listings.json';
 /** Owner/admin edits to seeded fixture listings (they are read-only constants). */
 const OVERRIDES = 'listing-overrides.json';
+/** Ids the owner deleted; fixtures cannot be un-written, so they are tombstoned. */
+const DELETED = 'deleted-listings.json';
 
 function readAll(): ListingCardData[] {
   return readJson<ListingCardData[]>(FILE, () => []);
+}
+
+export function removedListingIds(): string[] {
+  return readJson<string[]>(DELETED, () => []);
+}
+
+/** Permanently remove a listing in demo mode (own rows and seeded fixtures). */
+export function removeDevListing(id: string): void {
+  const all = readAll();
+  const next = all.filter((listing) => listing.id !== id);
+  if (next.length !== all.length) writeJson(FILE, next);
+  const removed = removedListingIds();
+  if (!removed.includes(id)) writeJson(DELETED, [...removed, id]);
 }
 
 type ListingPatch = Partial<ListingCardData>;
@@ -41,8 +56,10 @@ export function listingOverrides(): Record<string, ListingPatch> {
 /** Merges persisted overrides into a mixed fixture/dev feed. */
 export function applyListingOverrides<T extends ListingCardData>(listings: readonly T[]): T[] {
   const overrides = readOverrides();
-  if (Object.keys(overrides).length === 0) return [...listings];
-  return listings.map((listing) => {
+  const removed = new Set(removedListingIds());
+  const visible = removed.size ? listings.filter((listing) => !removed.has(listing.id)) : listings;
+  if (Object.keys(overrides).length === 0) return [...visible];
+  return visible.map((listing) => {
     const patch = overrides[listing.id];
     return patch ? { ...listing, ...patch } : listing;
   });

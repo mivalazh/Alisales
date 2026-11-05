@@ -3,13 +3,12 @@ import type { ReactNode } from 'react';
 import '@fontsource-variable/vazirmatn';
 import './globals.css';
 import { Header } from '@/components/Header';
-import { SiteFooter } from '@/components/Footer';
+import { AppFooter } from '@/components/AppFooter';
 import { BottomNav } from '@/components/BottomNav';
 import { themeBootstrapScript } from '@/components/ThemeToggle';
 import { PriceUnitProvider } from '@/components/PriceUnitProvider';
 import { RateProvider } from '@/components/RateProvider';
 import { getSession } from '@/lib/auth/session';
-import { showAdminLink } from '@/lib/admin/guard';
 import { getAedRate } from '@/lib/data/rate-store';
 
 const siteUrl = process.env.NEXT_PUBLIC_SITE_URL;
@@ -45,11 +44,7 @@ export const viewport: Viewport = {
  * footer to the bottom of the viewport instead of leaving a gap under it.
  */
 export default async function RootLayout({ children }: { children: ReactNode }) {
-  const [session, admin, aedRate] = await Promise.all([
-    getSession(),
-    showAdminLink(),
-    getAedRate(),
-  ]);
+  const [session, aedRate] = await Promise.all([getSession(), getAedRate()]);
 
   return (
     <html lang="fa" dir="rtl" suppressHydrationWarning>
@@ -60,11 +55,11 @@ export default async function RootLayout({ children }: { children: ReactNode }) 
       <body className="flex min-h-screen flex-col bg-page font-sans text-ink antialiased">
         <RateProvider rate={aedRate}>
           <PriceUnitProvider>
-            <Header authed={Boolean(session)} displayName={session?.displayName ?? null} admin={admin} />
+            <Header authed={Boolean(session)} displayName={session?.displayName ?? null} />
             <main className="mx-auto w-full max-w-[var(--content-max)] flex-1 px-4 py-6 pb-24 sm:px-6 sm:pb-6 lg:py-8">
               {children}
             </main>
-            <SiteFooter />
+            <AppFooter />
             <BottomNav />
           </PriceUnitProvider>
         </RateProvider>

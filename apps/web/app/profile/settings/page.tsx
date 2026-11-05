@@ -3,31 +3,25 @@ import Link from 'next/link';
 import { redirect } from 'next/navigation';
 import { ACCOUNT_TYPE_LABELS, maskPhone } from '@alisales/schemas';
 import { getSession } from '@/lib/auth/session';
+import { hasPassword } from '@/lib/auth/password';
 import { LogoutButton } from '@/components/LogoutButton';
+import { PasswordForm } from '@/components/PasswordForm';
 
 export const metadata: Metadata = { title: 'تنظیمات حساب' };
 
 /**
- * Account settings. The optional password (C7) and account deletion are
- * deliberately UI placeholders for this stage: the row is visible and honest
- * about not being available yet, and no half-working credential path ships.
+ * Account settings.
+ *
+ * The password is real now: setting one makes repeat logins instant on
+ * /login (the SMS code stays available as the recovery path). Account deletion
+ * is still an honest placeholder — the endpoint does not exist yet, so the row
+ * says so instead of shipping a button that fails.
  */
 export default async function SettingsPage() {
   const session = await getSession();
   if (!session) redirect('/login?next=/profile/settings');
 
-  const rows = [
-    {
-      title: 'رمز عبور اختیاری',
-      body: 'ورود دوم with رمز، در گام بعدی ارائه می‌شود؛ ورود اصلی همان کد یک‌بارمصرف پیامکی است.',
-      action: 'به‌زودی',
-    },
-    {
-      title: 'حذف حساب',
-      body: 'حذف کامل حساب و آگهی‌ها در گام بعدی فعال می‌شود.',
-      action: 'به‌زودی',
-    },
-  ];
+  const passwordReady = hasPassword(session.phone);
 
   return (
     <div className="space-y-4">
@@ -57,20 +51,27 @@ export default async function SettingsPage() {
         </dl>
       </section>
 
-      {rows.map((row) => (
-        <section
-          key={row.title}
-          className="flex flex-wrap items-center justify-between gap-2 rounded-card border border-line bg-card p-4"
-        >
-          <div>
-            <h2 className="font-extrabold">{row.title}</h2>
-            <p className="mt-0.5 text-xs text-muted">{row.body}</p>
-          </div>
-          <span className="rounded-[var(--radius-pill)] border border-line px-3 py-1 text-xs font-bold text-faint">
-            {row.action}
-          </span>
-        </section>
-      ))}
+      <section className="rounded-card border border-line bg-card p-4">
+        <h2 className="font-extrabold">رمز عبور</h2>
+        <p className="mt-0.5 text-xs text-muted">
+          {passwordReady
+            ? 'رمز عبور فعال است. برای تغییر، رمز فعلی را وارد کنید. ورود با کد پیامکی همیشه در دسترس است.'
+            : 'با تعیین رمز عبور، بار بعد بدون انتظار برای پیامک وارد می‌شوید. ورود با کد پیامکی همیشه در دسترس است.'}
+        </p>
+        <PasswordForm hasPassword={passwordReady} />
+      </section>
+
+      <section className="flex flex-wrap items-center justify-between gap-2 rounded-card border border-line bg-card p-4">
+        <div>
+          <h2 className="font-extrabold">حذف حساب</h2>
+          <p className="mt-0.5 text-xs text-muted">
+            حذف کامل حساب و آگهی‌ها در گام بعدی فعال می‌شود.
+          </p>
+        </div>
+        <span className="rounded-[var(--radius-pill)] border border-line px-3 py-1 text-xs font-bold text-faint">
+          به‌زودی
+        </span>
+      </section>
 
       <section className="rounded-card border border-line bg-card p-4">
         <LogoutButton />

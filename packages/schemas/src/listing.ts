@@ -1,4 +1,5 @@
 import { z } from 'zod';
+import { toLatinDigits } from './digits';
 import { citySlugs, vehicleSchema } from './vehicle';
 import { listingStates, plateTypes, type ListingState } from './enums';
 import { bikeTypeKeys, heavyTypeKeys, vehicleCategories } from './categories';
@@ -18,6 +19,21 @@ export const listingPhotoSchema = z.object({
 });
 export type ListingPhoto = z.infer<typeof listingPhotoSchema>;
 
+/**
+ * A price in IRR, tolerant of how people actually type it.
+ *
+ * `"54,400,000,000"`, `"۵۴٬۴۰۰٬۰۰۰٬۰۰۰"` and `544000000000` all mean the same
+ * stored integer. Anything that is not a positive integer inside the ceiling is
+ * rejected with the price field's own message rather than a generic type error.
+ */
+export const priceAmountSchema = z.preprocess((value) => {
+  if (typeof value === 'string') {
+    const cleaned = toLatinDigits(value).replace(/[٬,\s]/g, '');
+    return cleaned === '' ? undefined : Number(cleaned);
+  }
+  return value;
+}, z.number().int().positive().max(10 ** 15));
+
 // ── Listing input (draft-tolerant) ───────────────────────────────────────────
 const listingBaseSchema = z.object({
   vehicle: vehicleSchema,
@@ -34,7 +50,14 @@ const listingBaseSchema = z.object({
   heavyType: z.enum(heavyTypeKeys).nullable().optional(),
   /** Heavy machinery working hours (instead of a mileage). */
   workingHours: z.number().int().min(0).max(500_000).nullable().optional(),
-  priceIRR: z.number().int().min(0).max(10 ** 15),
+  /**
+   * Stored in IRR. Typed input arrives as a string, often with thousands
+   * separators and sometimes in Persian/Arabic digits; it is normalised here so
+   * a correctly typed price is never rejected as a wrong *type*. The ceiling is
+   * high enough for a 500-billion-toman luxury listing (5,000,000,000,000 IRR)
+   * with room to spare, and stays far from 32-bit overflow.
+   */
+  priceIRR: priceAmountSchema,
   city: z.enum(citySlugs as [string, ...string[]]),
   description: z.string().trim().max(3000),
   photos: z.array(listingPhotoSchema).max(MAX_PHOTOS),

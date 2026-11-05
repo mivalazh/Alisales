@@ -1,6 +1,6 @@
 import { z } from 'zod';
 import { citySlugs } from './vehicle';
-import { MAX_PHOTOS, listingPhotoSchema } from './listing';
+import { MAX_PHOTOS, listingPhotoSchema, priceAmountSchema } from './listing';
 
 /**
  * Parts & accessories listings (`parts_listings` flag).
@@ -93,7 +93,7 @@ export const partListingPublishSchema = z
     origin: z.enum(partOrigins, { message: 'منشأ قطعه را انتخاب کنید' }),
     condition: z.enum(partConditions, { message: 'وضعیت قطعه را انتخاب کنید' }),
     warranty: z.string().trim().max(60).nullable().default(null),
-    priceIRR: z.number().int().min(0).max(10 ** 15),
+    priceIRR: priceAmountSchema,
     city: z.enum(citySlugs as [string, ...string[]]),
     /** Optional, like vehicles: no minimum length. */
     description: z.string().trim().max(3000),

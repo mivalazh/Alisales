@@ -1,6 +1,8 @@
 import {
+  AED_PER_USD,
   DEFAULT_AED_RATE,
   isPlausibleAedRate,
+  isPlausibleAedRateToman,
   tomanRateToIrr,
   type AedRate,
 } from '@alisales/schemas';
@@ -25,8 +27,17 @@ import { readJson, writeJson } from '../storage/demo-store';
  */
 
 const FILE = 'settings.json';
-const FEED_TTL_MS = 24 * 3_600_000;
-const FEED_TIMEOUT_MS = 2_500;
+/** An automatic value younger than this is reused without a network call. */
+const FEED_TTL_MS = 6 * 3_600_000;
+const FEED_TIMEOUT_MS = 3_000;
+/** A failed fetch backs off for this long so a dead API cannot stall renders. */
+const FAILURE_BACKOFF_MS = 15 * 60_000;
+
+/** Tether is the market's dollar proxy; dirhams are pegged at 3.6725/USD. */
+const NOBITEX_USDT_IRT = 'https://api.nobitex.ir/v2/orderbook/USDTIRT';
+const NAVASAN_LATEST = 'https://api.navasan.tech/latest/';
+
+let feedFailedAt = 0;
 
 interface SettingsFile {
   rate?: Partial<AedRate>;
@@ -78,41 +89,104 @@ export async function setAedRate(tomanPerAed: number, source: 'admin' | 'auto'):
 }
 
 /**
- * Optional daily FX refresh.
+ * Automatic FX refresh from the live market.
  *
- * Returns the stored rate untouched unless `AED_RATE_FEED_URL` is configured
- * and the cached auto value is older than a day. The feed must answer
- * `{ "aedToIrr": 272000 }`, `{ "rate": 272000 }` or a bare number — rial per
- * AED, exactly like the stored value.
+ * Order of preference:
+ *  1. `AED_RATE_FEED_URL` — an owner-supplied JSON feed (`aedToIrr`/`rate` in
+ *     rial, or a bare number).
+ *  2. Navasan (`api.navasan.tech/latest/?api_key=…`) when `NAVASAN_API_KEY` is
+ *     set — a dirham quote in Toman.
+ *  3. Nobitex USDT/IRT last price ÷ 3.6725 — the Tether-linked fallback that
+ *     needs no key, so a fresh install still gets a market-derived number.
+ *
+ * Every candidate goes through the 15,000–60,000 Toman window before it is
+ * stored: `0`, `NaN`, a rial/Toman mix-up or a stale quote keeps the previous
+ * (or default) rate instead of poisoning every price on the site. A failed
+ * fetch backs off for 15 minutes so a dead API cannot slow each render.
  */
 async function autoRate(): Promise<AedRate | null> {
-  const url = process.env.AED_RATE_FEED_URL;
-  if (!url) return null;
-
   const stored = normalize(readSettings().rate);
-  const fresh = stored && Date.now() - Date.parse(stored.updatedAt) < FEED_TTL_MS;
-  if (stored && stored.source !== 'admin' && fresh) return stored;
   if (stored?.source === 'admin') return stored; // an owner value always wins
+  if (stored && stored.source === 'auto') {
+    if (Date.now() - Date.parse(stored.updatedAt) < FEED_TTL_MS) return stored;
+  }
+  if (Date.now() - feedFailedAt < FAILURE_BACKOFF_MS) return stored;
 
-  try {
-    const response = await fetch(url, {
-      signal: AbortSignal.timeout(FEED_TIMEOUT_MS),
-      headers: { accept: 'application/json' },
-    });
-    if (!response.ok) return stored;
-    const body: unknown = await response.json();
-    const raw =
-      typeof body === 'number'
-        ? body
-        : (body as { aedToIrr?: unknown; rate?: unknown }).aedToIrr ??
-          (body as { rate?: unknown }).rate;
-    const numeric = typeof raw === 'string' ? Number(raw) : raw;
-    if (!isPlausibleAedRate(numeric)) return stored;
-    return await setAedRate(numeric / 10, 'auto');
-  } catch {
-    // Offline, timeout, malformed body — the stored value stays authoritative.
+  const toman = await fetchLiveToman();
+  if (!isPlausibleAedRateToman(toman)) {
+    feedFailedAt = Date.now();
     return stored;
   }
+  return await setAedRate(toman, 'auto');
+}
+
+async function getJson(url: string): Promise<unknown> {
+  const response = await fetch(url, {
+    signal: AbortSignal.timeout(FEED_TIMEOUT_MS),
+    headers: { accept: 'application/json' },
+    cache: 'no-store',
+  });
+  if (!response.ok) return null;
+  return (await response.json()) as unknown;
+}
+
+/** Toman per 1 AED, or null when no source answered a plausible number. */
+async function fetchLiveToman(): Promise<number | null> {
+  const custom = process.env.AED_RATE_FEED_URL;
+  if (custom) {
+    try {
+      const body = await getJson(custom);
+      const raw =
+        typeof body === 'number'
+          ? body
+          : (body as { aedToIrr?: unknown; rate?: unknown } | null)?.aedToIrr ??
+            (body as { rate?: unknown } | null)?.rate;
+      const rial = typeof raw === 'string' ? Number(raw) : raw;
+      if (isPlausibleAedRate(rial)) return rial / 10;
+    } catch {
+      // fall through to the next source
+    }
+  }
+
+  const navasanKey = process.env.NAVASAN_API_KEY;
+  if (navasanKey) {
+    try {
+      const body = await getJson(`${NAVASAN_LATEST}?api_key=${encodeURIComponent(navasanKey)}`);
+      const entry = (body as Record<string, { value?: unknown } | undefined> | null)?.['aed'];
+      const raw = typeof entry?.value === 'string' ? Number(entry.value) : entry?.value;
+      // Navasan quotes free-market Toman; a >200k answer is a rial value.
+      const toman = typeof raw === 'number' && raw > 200_000 ? raw / 10 : raw;
+      if (isPlausibleAedRateToman(toman)) return toman;
+    } catch {
+      // fall through to Tether
+    }
+  }
+
+  try {
+    const body = await getJson(NOBITEX_USDT_IRT);
+    const raw = (body as { lastTradePrice?: unknown; last?: unknown } | null)?.lastTradePrice ??
+      (body as { last?: unknown } | null)?.last;
+    const irtPerUsdt = typeof raw === 'string' ? Number(raw) : raw;
+    if (typeof irtPerUsdt !== 'number' || !Number.isFinite(irtPerUsdt) || irtPerUsdt <= 0) {
+      return null;
+    }
+    // IRT is rial; Toman = /10, and one dirham is 1/3.6725 dollars.
+    const toman = irtPerUsdt / 10 / AED_PER_USD;
+    return isPlausibleAedRateToman(toman) ? Math.round(toman) : null;
+  } catch {
+    return null;
+  }
+}
+
+/** Force a market refresh from the admin panel; returns the new stored rate. */
+export async function refreshAedRate(): Promise<AedRate> {
+  feedFailedAt = 0;
+  const toman = await fetchLiveToman();
+  if (!isPlausibleAedRateToman(toman)) {
+    feedFailedAt = Date.now();
+    throw new Error('invalid rate');
+  }
+  return setAedRate(toman, 'auto');
 }
 
 /** Test hook: drop the memoised value (the admin save path does it itself). */

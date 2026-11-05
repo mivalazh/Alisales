@@ -1,10 +1,11 @@
 import { NextResponse } from 'next/server';
 import { listingEditSchema, type ListingPhoto } from '@alisales/schemas';
 import { getSession } from '@/lib/auth/session';
-import { admin } from '@/lib/data/s2-store';
+import { admin, listingById } from '@/lib/data/s2-store';
+import { forgetMyListing } from '@/lib/data/my-listings-cookie';
 import { updateHostedListing, type ListingPatch } from '@/lib/data/publish-store';
 import { isOwnedPhotoPath } from '@/lib/data/photo-rules';
-import { updateDevListing } from '@/lib/data/dev-store';
+import { removeDevListing, updateDevListing } from '@/lib/data/dev-store';
 
 /**
  * PATCH /api/listings/{id} — edit a listing (owner only).
@@ -110,4 +111,55 @@ export async function PATCH(
   });
 
   return NextResponse.json({ ok: true });
+}
+
+/**
+ * DELETE /api/listings/{id} — owner-only permanent removal.
+ *
+ * Hosted: the row is deleted from `listings` (photos cascade) and the card
+ * disappears from every feed on the next render. Demo mode: the row leaves
+ * `listings.json` and, for seeded fixtures that cannot be un-written, its id is
+ * tombstoned so filters drop it. In both modes the signed my-listings cookie is
+ * rewritten so a stale snapshot cannot resurrect the ad.
+ */
+export async function DELETE(
+  _request: Request,
+  context: { params: Promise<{ id: string }> },
+): Promise<NextResponse> {
+  const session = await getSession();
+  if (!session) {
+    return NextResponse.json({ error: 'برای حذف آگهی وارد حساب خود شوید.' }, { status: 401 });
+  }
+
+  const { id } = await context.params;
+  const sb = admin();
+  if (sb) {
+    const { data } = await sb
+      .from('listings')
+      .select('id, slug, created_by')
+      .eq('id', id)
+      .maybeSingle();
+    if (!data) return NextResponse.json({ error: 'آگهی پیدا نشد.' }, { status: 404 });
+    if (String(data.created_by) !== session.sub) {
+      return NextResponse.json({ error: 'این آگهی متعلق به شما نیست.' }, { status: 403 });
+    }
+    const removed = await sb.from('listings').delete().eq('id', id);
+    if (removed.error) {
+      return NextResponse.json(
+        { error: 'حذف آگهی انجام نشد؛ دوباره تلاش کنید.' },
+        { status: 500 },
+      );
+    }
+    await forgetMyListing(String(data.slug));
+    return NextResponse.json({ ok: true, deleted: true });
+  }
+
+  const listing = await listingById(id);
+  if (!listing) return NextResponse.json({ error: 'آگهی پیدا نشد.' }, { status: 404 });
+  if (listing.sellerId !== session.sub) {
+    return NextResponse.json({ error: 'این آگهی متعلق به شما نیست.' }, { status: 403 });
+  }
+  removeDevListing(id);
+  await forgetMyListing(listing.slug);
+  return NextResponse.json({ ok: true, deleted: true });
 }

@@ -3,7 +3,7 @@ import Link from 'next/link';
 import { Icon } from '@/components/Icon';
 import { SupportForm } from '@/components/SupportForm';
 
-export const metadata: Metadata = { title: 'درخواست افزودن خودرو یا برند' };
+export const metadata: Metadata = { title: 'پیشنهادات شما برای بهتر کردن سایت' };
 
 export default function BrandRequestPage() {
   return (
@@ -16,9 +16,10 @@ export default function BrandRequestPage() {
         بازگشت به پشتیبانی
       </Link>
       <div>
-        <h1 className="text-xl font-extrabold">درخواست افزودن خودرو یا برند جدید</h1>
+        <h1 className="text-xl font-extrabold">پیشنهادات شما برای بهتر کردن سایت</h1>
         <p className="mt-1 text-sm text-muted">
-          خودرو یا برند مورد نظر را بنویسید تا در فهرست کاتالوگ قرار بگیرد.
+          خودرو، برند، قطعه یا هر تغییری که دوست دارید در آلی‌سیلز ببینید را بنویسید؛
+          پیشنهادها در نوبت بررسی تیم محصول قرار می‌گیرد.
         </p>
       </div>
       <SupportForm kind="brand" />

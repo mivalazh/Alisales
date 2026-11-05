@@ -63,15 +63,38 @@ export function tomanRateToIrr(tomanPerAed: number): number {
   return tomanToIRR(tomanPerAed);
 }
 
+/**
+ * The window a real AED rate can sit in: 15,000–60,000 Toman per dirham.
+ *
+ * A live feed that answers `0`, `NaN`, a rial/toman mix-up or a stale number
+ * must never reach a price on the site, so every automatic value is checked
+ * against this window before it is stored.
+ */
+export const MIN_AED_TOMAN = 15_000;
+export const MAX_AED_TOMAN = 60_000;
+
 /** Guarded parse of a stored/admin value (rial per AED). */
 export function isPlausibleAedRate(value: unknown): value is number {
   return (
     typeof value === 'number' &&
     Number.isFinite(value) &&
-    value >= 10_000 &&
-    value <= 10_000_000
+    value >= MIN_AED_TOMAN * IRR_PER_TOMAN &&
+    value <= MAX_AED_TOMAN * IRR_PER_TOMAN
   );
 }
+
+/** The same guard for a value already expressed in Toman. */
+export function isPlausibleAedRateToman(value: unknown): value is number {
+  return (
+    typeof value === 'number' &&
+    Number.isFinite(value) &&
+    value >= MIN_AED_TOMAN &&
+    value <= MAX_AED_TOMAN
+  );
+}
+
+/** The dirham's long-standing peg to the dollar — used by the Tether fallback. */
+export const AED_PER_USD = 3.6725;
 
 /** «۱ درهم ≈ ۲۷٬۲۰۰ تومان» — Persian digits with the ٬ separator. */
 export function formatAedRateLine(rate: AedRate): string {
