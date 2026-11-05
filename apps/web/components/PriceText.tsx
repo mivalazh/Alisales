@@ -64,15 +64,15 @@ export function PriceText({
         style={{ background: sold ? SECONDARY_INK : PRICE_INK }}
       >
         <span
-          className={`min-w-0 truncate tabular-nums ${
-            size === 'lg' ? 'text-xl sm:text-2xl' : 'text-[12px] sm:text-[13px]'
+          className={`min-w-0 tabular-nums ${
+            size === 'lg' ? 'text-xl sm:text-2xl' : 'text-[11px] sm:text-[12px]'
           }`}
         >
           {main}
         </span>
         <span
           className={`shrink-0 font-bold ${
-            size === 'lg' ? 'text-xs' : 'text-[9px] sm:text-[10px]'
+            size === 'lg' ? 'text-xs' : 'text-[8px] sm:text-[9px]'
           }`}
         >
           {unitLabel}
