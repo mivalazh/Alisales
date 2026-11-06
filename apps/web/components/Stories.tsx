@@ -288,7 +288,7 @@ function StoryViewer({
       onClick={onClose}
     >
       <div
-        className="relative flex h-full max-h-[92vh] w-full max-w-[420px] flex-col overflow-hidden rounded-2xl bg-black"
+        className="relative flex w-[min(92vw,420px,calc(92vh*9/16))] flex-col overflow-hidden rounded-2xl bg-black"
         style={{ aspectRatio: '9 / 16' }}
         onClick={(event) => event.stopPropagation()}
       >
