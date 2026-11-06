@@ -1,5 +1,12 @@
 import { z } from 'zod';
-import { bodyTypes, colorSlugs, conditions, fuelTypes, gearboxTypes } from './enums';
+import {
+  bodyTypes,
+  colorSlugs,
+  conditions,
+  fuelTypes,
+  gearboxTypes,
+  type BodyType,
+} from './enums';
 import {
   HEAVY_BRANDS,
   MOTORCYCLE_BRANDS,
@@ -481,6 +488,42 @@ export const vehicleSchema = z.object({
 });
 
 export type VehicleInput = z.infer<typeof vehicleSchema>;
+
+/**
+ * Body class inferred from a model name.
+ *
+ * Listings created before the body-class picker have no `bodyType`; without a
+ * hint the drawer's «شاسی‌بلند» / «سدان» shortcuts would always be empty. The
+ * keywords cover the catalogue's actual models and only ever supplement a
+ * missing value — an explicit pick always wins.
+ */
+const BODY_TYPE_HINTS: ReadonlyArray<[BodyType, readonly string[]]> = [
+  ['pickup', ['hilux', 'f-150', 'f150', 'ram', 'silverado', 'l200', 'gladiator', 'tundra']],
+  ['van', ['v-class', 'v class', 'odyssey', 'sienna', 'carnival', 'transporter']],
+  ['convertible', ['boxster', 'convertible', 'cabriolet', 'spyder', 'roadster']],
+  [
+    'coupe',
+    ['supra', '370z', 'gt-r', 'gtr', 'amg gt', '911', 'cayman', 'huracan', 'aventador', '720s', '570s', 'artura', '765lt', '488', 'f8', 'roma', 'portofino', 'sf90', 'db11', 'vantage', 'dbs', 'rapide', 'mustang', 'camaro', 'corvette', 'challenger', 'charger'],
+  ],
+  [
+    'suv',
+    ['land cruiser', 'prado', 'patrol', 'x5', 'x6', 'x7', 'x1', 'x3', 'gle', 'gls', 'glc', 'g-class', 'rx', 'nx', 'gx', 'lx', 'qx', 'cayenne', 'macan', 'touareg', 'tiguan', 'x-trail', 'qashqai', 'cr-v', 'pilot', 'hr-v', 'cx-5', 'cx-9', 'outlander', 'pajero', 'forester', 'outback', 'xv', 'xc40', 'xc60', 'xc90', 'range rover', 'defender', 'discovery', 'evoque', 'velar', 'escalade', 'tahoe', 'explorer', 'expedition', 'bronco', 'wrangler', 'grand cherokee', 'compass', 'cherokee', 'tucson', 'santa fe', 'palisade', 'kona', 'sportage', 'sorento', 'telluride', 'tiggo', 'h6', 'h9', 'jolion', 'dargo', 'coolray', 'tugella', 'okavango', 'atlas', 'cs35', 'cs55', 'cs75', 'uni-t', 'x50', 'x60', 'x70', 's3', 's5', 'j4', 't8', 'urus', 'bentayga', 'cullinan', 'dbx', 'qx80'],
+  ],
+  ['hatchback', ['golf', 'cooper', 'picanto', '206', '207', 'panda', '500', 'corsa', 'i20']],
+  [
+    'sedan',
+    ['camry', 'corolla', 'accord', 'civic', 'mazda 3', 'mazda 6', 's-class', 'e-class', 'c-class', '3 series', '5 series', '7 series', 'a4', 'a6', 'a8', 'passat', 's60', 's90', 'xe', 'xf', 'ghibli', 'quattroporte', 'ct4', 'ct5', 'malibu', 'sonata', 'elantra', 'accent', 'optima', 'k5', 'cerato', 'stinger', 'g70', 'g80', 'g90', 'mg5', 'mg6', 'arrizo', 'tondar', 'altima', 'maxima'],
+  ],
+];
+
+export function inferBodyType(model: string | null | undefined): BodyType | null {
+  const text = (model ?? '').toLowerCase();
+  if (!text) return null;
+  for (const [body, hints] of BODY_TYPE_HINTS) {
+    if (hints.some((hint) => text.includes(hint))) return body;
+  }
+  return null;
+}
 
 /**
  * Map a free-text colour back onto the legacy `color_slug` enum.

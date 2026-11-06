@@ -1,4 +1,4 @@
-import { fuzzySearchMatch, type SearchFilters } from '@alisales/schemas';
+import { fuzzySearchMatch, inferBodyType, type SearchFilters } from '@alisales/schemas';
 
 /**
  * Pure filter predicate shared by the server search and the client filter
@@ -38,8 +38,11 @@ export function matchesFilters(listing: FilterableListing, f: SearchFilters): bo
   if (f.city.length && !f.city.includes(listing.city)) return false;
   if (f.kishOnly && listing.city !== 'kish') return false;
   if (f.brand.length && !f.brand.some((b) => b === listing.brand)) return false;
-  if (f.bodyType.length && !(f.bodyType as readonly string[]).includes(listing.bodyType ?? '')) {
-    return false;
+  if (f.bodyType.length) {
+    // Legacy rows have no stored class; infer it from the model so the
+    // drawer's body shortcuts still find real inventory.
+    const body = listing.bodyType ?? inferBodyType(listing.model);
+    if (!(f.bodyType as readonly string[]).includes(body ?? '')) return false;
   }
   if (f.model && !listing.model.toLowerCase().includes(f.model.toLowerCase())) return false;
   if (f.trim && !(listing.trim ?? '').toLowerCase().includes(f.trim.toLowerCase())) return false;

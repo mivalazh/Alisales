@@ -68,6 +68,7 @@ export {
   jalaliToGregorianYear,
   vehicleSchema,
   toLegacyColorSlug,
+  inferBodyType,
 } from './vehicle';
 export type { BrandSlug, VehicleInput } from './vehicle';
 
