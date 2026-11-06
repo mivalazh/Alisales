@@ -57,6 +57,8 @@ export function EditListingForm({
   const [tomanOnly, setTomanOnly] = useState(hideAed);
   const [photos, setPhotos] = useState<ProcessedPhoto[]>(() =>
     existing.map((photo) => ({
+      kind: 'image' as const,
+      mime: 'image/webp' as const,
       blob: null,
       previewUrl: photo.url,
       url: photo.url,

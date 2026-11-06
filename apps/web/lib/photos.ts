@@ -1,4 +1,10 @@
-import { MAX_PHOTO_BYTES, ALLOWED_PHOTO_MIME } from '@alisales/schemas';
+import {
+  MAX_PHOTO_BYTES,
+  MAX_VIDEO_BYTES,
+  ALLOWED_PHOTO_MIME,
+  ALLOWED_VIDEO_MIME,
+  type ListingPhoto,
+} from '@alisales/schemas';
 
 /**
  * Client-side listing photo pipeline (spec §6 / storage migration header):
@@ -17,7 +23,11 @@ const WEBP_QUALITY = 0.85;
 const WEBP_RETRY_QUALITY = 0.6;
 
 export interface ProcessedPhoto {
-  /** Null for photos that already live in storage (edit form initial set). */
+  /** Media class — the cover slot only accepts `image`. */
+  kind: 'image' | 'video';
+  /** MIME actually uploaded (WebP for images, the clip's own type for video). */
+  mime: ListingPhoto['mime'];
+  /** Null for media that already lives in storage (edit form initial set). */
   blob: Blob | null;
   /** Object URL for the preview — callers must revoke when the photo is removed. */
   previewUrl: string;
@@ -84,6 +94,8 @@ export async function processListingPhoto(file: File): Promise<ProcessedPhoto> {
   }
 
   return {
+    kind: 'image',
+    mime: 'image/webp',
     blob,
     previewUrl: URL.createObjectURL(blob),
     width,
@@ -94,6 +106,65 @@ export async function processListingPhoto(file: File): Promise<ProcessedPhoto> {
   };
 }
 
+const VIDEO_EXT: Record<string, string> = {
+  'video/mp4': 'mp4',
+  'video/webm': 'webm',
+  'video/quicktime': 'mov',
+};
+
+/**
+ * A short clip, uploaded as-is (no canvas re-encode). The browser's own video
+ * metadata supplies the pixel size, which the schema and the storage row keep.
+ */
+export async function processListingVideo(file: File): Promise<ProcessedPhoto> {
+  if (!(ALLOWED_VIDEO_MIME as readonly string[]).includes(file.type)) {
+    throw new PhotoPipelineError('فرمت ویدیو پشتیبانی نمی‌شود (MP4، WebM یا MOV).');
+  }
+  if (file.size === 0) throw new PhotoPipelineError('فایل ویدیو خالی است.');
+  if (file.size > MAX_VIDEO_BYTES) {
+    throw new PhotoPipelineError('حجم ویدیو بیش از ۴۰ مگابایت است؛ فایل کوتاه‌تری انتخاب کنید.');
+  }
+
+  const size = await new Promise<{ width: number; height: number }>((resolve) => {
+    const url = URL.createObjectURL(file);
+    const video = document.createElement('video');
+    video.preload = 'metadata';
+    video.onloadedmetadata = () => {
+      resolve({ width: video.videoWidth || 1080, height: video.videoHeight || 1920 });
+      URL.revokeObjectURL(url);
+    };
+    video.onerror = () => {
+      resolve({ width: 1080, height: 1920 });
+      URL.revokeObjectURL(url);
+    };
+    video.src = url;
+  });
+
+  return {
+    kind: 'video',
+    mime: file.type as ListingPhoto['mime'],
+    blob: file,
+    previewUrl: URL.createObjectURL(file),
+    width: size.width,
+    height: size.height,
+    bytes: file.size,
+    path: null,
+    url: null,
+  };
+}
+
+/** Route a picked file to the photo or video pipeline. */
+export async function processListingMedia(file: File): Promise<ProcessedPhoto> {
+  if ((ALLOWED_VIDEO_MIME as readonly string[]).includes(file.type)) {
+    return processListingVideo(file);
+  }
+  return processListingPhoto(file);
+}
+
+export function videoExtension(mime: string): string {
+  return VIDEO_EXT[mime] ?? 'mp4';
+}
+
 /**
  * Upload the compressed bytes and attach the durable path.
  *
@@ -102,9 +173,12 @@ export async function processListingPhoto(file: File): Promise<ProcessedPhoto> {
  * data.
  */
 export async function uploadProcessedPhoto(photo: ProcessedPhoto): Promise<ProcessedPhoto> {
-  if (!photo.blob) throw new PhotoPipelineError('فایل عکس در دسترس نیست؛ دوباره انتخاب کنید.');
+  if (!photo.blob) throw new PhotoPipelineError('فایل رسانه در دسترس نیست؛ دوباره انتخاب کنید.');
   const form = new FormData();
-  form.append('file', photo.blob, 'photo.webp');
+  const filename =
+    photo.kind === 'video' ? `clip.${videoExtension(photo.mime)}` : 'photo.webp';
+  form.append('file', new File([photo.blob], filename, { type: photo.mime }), filename);
+  form.append('mime', photo.mime);
   form.append('width', String(photo.width));
   form.append('height', String(photo.height));
 

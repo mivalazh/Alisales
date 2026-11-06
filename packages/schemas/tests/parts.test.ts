@@ -32,18 +32,24 @@ const base = {
 describe('parts labels', () => {
   it('has Persian labels for every category', () => {
     expect(PART_CATEGORY_LABELS.brake).toBe('ترمز و تعلیق');
-    expect(PART_CATEGORY_LABELS.engine).toBe('موتور و گیربکس');
+    expect(PART_CATEGORY_LABELS.engine_battery).toBe('موتور و باتری');
+    expect(PART_CATEGORY_LABELS.engine).toBe('گیربکس و کلاچ');
+    expect(PART_CATEGORY_LABELS.body).toBe('بدنه و چراغ');
     expect(PART_CATEGORY_LABELS.other).toBe('لوازم جانبی');
-    expect(Object.keys(PART_CATEGORY_LABELS)).toHaveLength(8);
+    expect(Object.keys(PART_CATEGORY_LABELS)).toHaveLength(9);
   });
 
-  it('maps origin and condition to اصل/تجاری/نامشخص and نو/کارکرده', () => {
+  it('maps authenticity and condition to the split selector labels', () => {
     expect(PART_ORIGIN_LABELS).toEqual({
-      original: 'اصل',
-      commercial: 'تجاری',
+      original: 'اورجینال (اصلی / OEM)',
+      stock: 'استوک',
+      commercial: 'تجاری (تایوانی/چینی)',
       unknown: 'نامشخص',
     });
-    expect(PART_CONDITION_LABELS).toEqual({ new: 'نو', used: 'کارکرده' });
+    expect(PART_CONDITION_LABELS).toEqual({
+      new: 'نو / آکبند',
+      used: 'کارکرده / در حد نو',
+    });
   });
 });
 
@@ -61,9 +67,10 @@ describe('partListingPublishSchema', () => {
     const parsed = partListingPublishSchema.parse(base);
     expect(parsed.partNumber).toBeNull();
     expect(parsed.compatibility).toBeNull();
+    expect(parsed.originCountry).toBeNull();
     expect(parsed.warranty).toBeNull();
     expect(parsed.showroomId).toBeNull();
-    expect(parsed.allowPhoneReveal).toBe(false);
+    expect(parsed.allowPhoneReveal).toBe(true);
   });
 
   it('keeps optional part number, compatibility and warranty when sent', () => {

@@ -57,11 +57,28 @@ describe('listing draft schema', () => {
     expect(listingDraftSchema.safeParse(dup).success).toBe(false);
   });
 
-  it('rejects non-webp/jpeg/png mimes and oversized files', () => {
+  it('accepts photo and video media, rejects unknown mimes and oversized files', () => {
     const badMime = { ...baseDraft, photos: [{ ...photo(0), mime: 'image/gif' }] };
     expect(listingDraftSchema.safeParse(badMime).success).toBe(false);
     const tooBig = { ...baseDraft, photos: [{ ...photo(0), bytes: 9 * 1024 * 1024 }] };
     expect(listingDraftSchema.safeParse(tooBig).success).toBe(false);
+    const photoThenClip = {
+      ...baseDraft,
+      photos: [photo(0), { ...photo(1), mime: 'video/mp4' as const }],
+    };
+    expect(listingDraftSchema.safeParse(photoThenClip).success).toBe(true);
+  });
+
+  it('never lets a video fill the cover slot', () => {
+    const clipCover = {
+      ...baseDraft,
+      photos: [{ ...photo(0), mime: 'video/mp4' as const }],
+    };
+    const parsed = listingDraftSchema.safeParse(clipCover);
+    expect(parsed.success).toBe(false);
+    if (!parsed.success) {
+      expect(parsed.error.issues[0]?.message).toContain('کاور آگهی');
+    }
   });
 
   it('rejects out-of-range Jalali years and non-int prices', () => {

@@ -11,6 +11,7 @@ import { MAX_PHOTOS, listingPhotoSchema, priceAmountSchema } from './listing';
  */
 
 export const partCategories = [
+  'engine_battery',
   'engine',
   'brake',
   'body',
@@ -27,9 +28,10 @@ export type PartCategory = (typeof partCategories)[number];
  * (engine, gearbox, clutch) because the parts taxonomy groups them together.
  */
 export const PART_CATEGORY_LABELS: Record<PartCategory, string> = {
-  engine: 'موتور و گیربکس',
+  engine_battery: 'موتور و باتری',
+  engine: 'گیربکس و کلاچ',
   brake: 'ترمز و تعلیق',
-  body: 'بدنه و رنگ',
+  body: 'بدنه و چراغ',
   electrical: 'برق و الکترونیک',
   interior: 'داخلی',
   tires: 'لاستیک و رینگ',
@@ -37,21 +39,32 @@ export const PART_CATEGORY_LABELS: Record<PartCategory, string> = {
   other: 'لوازم جانبی',
 };
 
-export const partOrigins = ['original', 'commercial', 'unknown'] as const;
+export const partOrigins = ['original', 'commercial', 'unknown', 'stock'] as const;
 export type PartOrigin = (typeof partOrigins)[number];
 
 export const PART_ORIGIN_LABELS: Record<PartOrigin, string> = {
-  original: 'اصل',
-  commercial: 'تجاری',
+  original: 'اورجینال (اصلی / OEM)',
+  stock: 'استوک',
+  commercial: 'تجاری (تایوانی/چینی)',
   unknown: 'نامشخص',
 };
+
+/**
+ * «اصالت قطعه» — the authenticity selector, separate from the condition.
+ * Stored as `origin` (the DB column already exists); the two extra labels are
+ * the only change.
+ */
+export const partAuthenticities = ['original', 'stock', 'commercial', 'unknown'] as const;
+export type PartAuthenticity = (typeof partAuthenticities)[number];
+export const PART_AUTHENTICITY_LABELS: Record<PartAuthenticity, string> =
+  PART_ORIGIN_LABELS as Record<PartAuthenticity, string>;
 
 export const partConditions = ['new', 'used'] as const;
 export type PartCondition = (typeof partConditions)[number];
 
 export const PART_CONDITION_LABELS: Record<PartCondition, string> = {
-  new: 'نو',
-  used: 'کارکرده',
+  new: 'نو / آکبند',
+  used: 'کارکرده / در حد نو',
 };
 
 export const PART_COMPATIBILITY_GENERAL = 'سازگاری عمومی';
@@ -90,7 +103,10 @@ export const partListingPublishSchema = z
       .max(80, { message: 'عنوان نمی‌تواند بیش از ۸۰ نویسه باشد' }),
     partNumber: z.string().trim().max(32).nullable().default(null),
     compatibility: z.string().trim().max(80).nullable().default(null),
-    origin: z.enum(partOrigins, { message: 'منشأ قطعه را انتخاب کنید' }),
+    /** Country of manufacture, typed by the seller («ژاپن، آلمان، امارات»). */
+    originCountry: z.string().trim().max(40).nullable().default(null),
+    /** Authenticity (اورجینال / استوک / تجاری / نامشخص). */
+    origin: z.enum(partOrigins, { message: 'اصالت قطعه را انتخاب کنید' }).default('unknown'),
     condition: z.enum(partConditions, { message: 'وضعیت قطعه را انتخاب کنید' }),
     warranty: z.string().trim().max(60).nullable().default(null),
     priceIRR: priceAmountSchema,
@@ -99,7 +115,7 @@ export const partListingPublishSchema = z
     description: z.string().trim().max(3000),
     photos: z.array(listingPhotoSchema).max(MAX_PHOTOS),
     showroomId: z.string().uuid().nullable().default(null),
-    allowPhoneReveal: z.boolean().default(false),
+    allowPhoneReveal: z.boolean().default(true),
     /** Hide the «≈ … AED» reference line on this listing (Toman-only). */
     hideAed: z.boolean().default(false),
   })
@@ -113,8 +129,9 @@ export const PART_FIELD_LABELS: Record<string, string> = {
   title: 'عنوان',
   partNumber: 'شماره فنی',
   compatibility: 'سازگاری با خودرو',
-  origin: 'منشأ',
-  condition: 'وضعیت',
+  originCountry: 'کشور سازنده',
+  origin: 'اصالت قطعه',
+  condition: 'وضعیت قطعه',
   warranty: 'گارانتی',
   priceIRR: 'قیمت',
   city: 'شهر',

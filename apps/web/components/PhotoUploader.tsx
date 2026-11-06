@@ -4,10 +4,22 @@ import { useRef, useState } from 'react';
 import { MAX_PHOTOS, toPersianDigits } from '@alisales/schemas';
 import {
   PhotoPipelineError,
-  processListingPhoto,
+  processListingMedia,
   uploadProcessedPhoto,
   type ProcessedPhoto,
 } from '@/lib/photos';
+
+const COVER_RULE_MESSAGE =
+  'تصویر اول (کاور آگهی) باید عکس باشد؛ در اسلات‌های بعدی می‌توانید ویدیو هم اضافه کنید';
+
+function isVideoFile(file: File): boolean {
+  return file.type.startsWith('video/');
+}
+
+/** Images first while the cover slot is still free. */
+function rank(file: File): number {
+  return isVideoFile(file) ? 1 : 0;
+}
 
 interface Props {
   photos: ProcessedPhoto[];
@@ -38,7 +50,14 @@ export function PhotoUploader({
     setLocalError(null);
 
     const list = Array.from(files);
-    const accepted = list.slice(0, Math.max(0, remaining));
+    // Cover stays a still image: when the set is still empty, images move ahead
+    // of any picked clips; a videos-only pick is refused with the rule text.
+    const ordered = photos.length === 0 ? [...list].sort((a, b) => rank(a) - rank(b)) : list;
+    const accepted = ordered.slice(0, Math.max(0, remaining));
+    if (photos.length === 0 && accepted[0] && isVideoFile(accepted[0])) {
+      setLocalError(COVER_RULE_MESSAGE);
+      return;
+    }
     if (accepted.length < list.length) {
       setLocalError(`حداکثر ${toPersianDigits(MAX_PHOTOS)} عکس برای هر آگهی مجاز است.`);
     }
@@ -51,9 +70,9 @@ export function PhotoUploader({
       for (const file of accepted) {
         let processed: ProcessedPhoto | null = null;
         try {
-          // Compress (EXIF dropped, WebP) then upload immediately, so the
-          // publish payload carries storage paths instead of image bytes.
-          processed = await processListingPhoto(file);
+          // Images are compressed (EXIF dropped, WebP); clips go up as-is.
+          // Either way the publish payload carries storage paths, not bytes.
+          processed = await processListingMedia(file);
           added.push(await uploadProcessedPhoto(processed));
         } catch (e) {
           if (processed) URL.revokeObjectURL(processed.previewUrl);
@@ -80,6 +99,12 @@ export function PhotoUploader({
 
   function makeCover(index: number): void {
     if (index === 0) return;
+    const target = photos[index];
+    if (!target) return;
+    if (target.kind === 'video') {
+      setLocalError(COVER_RULE_MESSAGE);
+      return;
+    }
     const next = [...photos];
     const [moved] = next.splice(index, 1);
     if (moved) next.unshift(moved);
@@ -96,8 +121,9 @@ export function PhotoUploader({
       </div>
 
       <p className="hint mb-2">
-        اولین عکس به‌عنوان کاور آگهی نمایش داده می‌شود. اطلاعات مخفی عکس (EXIF)
-        حذف و همه عکس‌ها به WebP تبدیل می‌شوند.
+        تصویر اول (کاور آگهی) باید عکس باشد؛ در اسلات‌های بعدی می‌توانید ویدیو (MP4،
+        WebM یا MOV تا ۴۰ مگابایت) هم اضافه کنید. اطلاعات مخفی عکس (EXIF) حذف و همه
+        عکس‌ها به WebP تبدیل می‌شوند.
       </p>
 
       <ul className="grid grid-cols-3 gap-2 sm:grid-cols-4">
@@ -107,13 +133,27 @@ export function PhotoUploader({
             className="relative aspect-[var(--photo-aspect)] overflow-hidden rounded-field border border-line bg-sunken"
           >
             {/* Object URLs are browser-local previews; next/image cannot process them. */}
-            {/* eslint-disable-next-line @next/next/no-img-element */}
-            <img
-              src={photo.previewUrl}
-              alt={`پیش‌نمایش عکس ${toPersianDigits(index + 1)}`}
-              className="h-full w-full object-cover"
-            />
-            {index === 0 ? (
+            {photo.kind === 'video' ? (
+              <video
+                src={photo.previewUrl}
+                muted
+                playsInline
+                controls
+                className="h-full w-full object-cover"
+              />
+            ) : (
+              // eslint-disable-next-line @next/next/no-img-element
+              <img
+                src={photo.previewUrl}
+                alt={`پیش‌نمایش عکس ${toPersianDigits(index + 1)}`}
+                className="h-full w-full object-cover"
+              />
+            )}
+            {photo.kind === 'video' ? (
+              <span className="absolute top-1 start-1 rounded-[var(--radius-pill)] bg-inverse/80 px-2 py-0.5 text-[11px] font-extrabold text-white">
+                ویدیو
+              </span>
+            ) : index === 0 ? (
               <span className="absolute top-1 start-1 rounded-[var(--radius-pill)] bg-cta px-2 py-0.5 text-[11px] font-extrabold text-ink">
                 کاور
               </span>
@@ -155,7 +195,7 @@ export function PhotoUploader({
       <input
         ref={inputRef}
         type="file"
-        accept="image/jpeg,image/png,image/webp"
+        accept="image/jpeg,image/png,image/webp,video/mp4,video/webm,video/quicktime"
         multiple
         hidden
         onChange={(e) => void handleFiles(e.target.files)}

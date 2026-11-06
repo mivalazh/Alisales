@@ -63,6 +63,65 @@ function DrawerLink({
   );
 }
 
+/** One expandable drawer category with quick sub-category links. */
+function DrawerAccordion({
+  href,
+  label,
+  icon,
+  active,
+  allLabel,
+  links,
+}: {
+  href: string;
+  label: string;
+  icon: IconName;
+  active: boolean;
+  allLabel: string;
+  links: ReadonlyArray<{ href: string; label: string }>;
+}) {
+  return (
+    <li>
+      <details className="group">
+        <summary
+          className={`flex cursor-pointer list-none items-center gap-3 rounded-field px-3 py-2.5 text-sm transition hover:bg-cta-soft ${
+            active ? 'font-extrabold text-ink' : 'font-semibold text-muted hover:text-ink'
+          }`}
+        >
+          <Icon name={icon} size={18} className="shrink-0 text-cta" />
+          <span className="flex-1">{label}</span>
+          <Icon
+            name="chevronDown"
+            size={14}
+            className="shrink-0 text-faint transition group-open:rotate-180"
+          />
+        </summary>
+        <ul className="mb-1 ms-4 border-s border-line ps-2">
+          <li>
+            <Link
+              href={href}
+              className="flex items-center justify-between rounded-field px-2 py-1.5 text-xs font-bold text-muted transition hover:bg-cta-soft hover:text-ink"
+            >
+              {allLabel}
+              <Icon name="chevronLeft" size={12} className="text-faint" />
+            </Link>
+          </li>
+          {links.map((link) => (
+            <li key={link.href}>
+              <Link
+                href={link.href}
+                className="flex items-center justify-between rounded-field px-2 py-1.5 text-xs font-semibold text-muted transition hover:bg-cta-soft hover:text-ink"
+              >
+                {link.label}
+                <Icon name="chevronLeft" size={12} className="text-faint" />
+              </Link>
+            </li>
+          ))}
+        </ul>
+      </details>
+    </li>
+  );
+}
+
 function DrawerSection({ title, children }: { title: string; children: ReactNode }) {
   return (
     <section className="mt-3 first:mt-0">
@@ -224,20 +283,61 @@ export function Header({
               </DrawerSection>
 
               <DrawerSection title="دسته‌بندی‌ها">
-                <DrawerLink href="/cars" label="خودرو" icon="car" active={pathname === '/cars'} />
-                <DrawerLink
+                <DrawerAccordion
+                  href="/cars"
+                  label="خودرو"
+                  icon="car"
+                  active={pathname === '/cars'}
+                  allLabel="همه خودروها"
+                  links={[
+                    { href: '/cars?bodyType=suv', label: 'شاسی‌بلند (SUV)' },
+                    { href: '/cars?bodyType=sedan', label: 'سدان (سواری)' },
+                    { href: '/cars?bodyType=coupe', label: 'کوپه و اسپرت' },
+                    { href: '/cars?plateType=kish', label: 'پلاک منطقه آزاد' },
+                    { href: '/cars?plateType=temporary_transit', label: 'گذر موقت' },
+                  ]}
+                />
+                <DrawerAccordion
                   href="/motorcycles"
                   label="موتور و اسکوتر برقی"
                   icon="plate"
                   active={pathname === '/motorcycles'}
+                  allLabel="همه موتورها"
+                  links={[
+                    { href: '/motorcycles?bikeType=scooter', label: 'اسکوتر برقی' },
+                    { href: '/motorcycles?bikeType=electric', label: 'موتور برقی' },
+                    { href: '/motorcycles?bikeType=sport', label: 'موتور اسپرت / ریس' },
+                    { href: '/motorcycles?bikeType=cross', label: 'کراس و آفرود' },
+                    { href: '/motorcycles?bikeType=classic', label: 'کلاسیک' },
+                  ]}
                 />
-                <DrawerLink
+                <DrawerAccordion
                   href="/heavy"
                   label="ماشین‌آلات سنگین"
                   icon="gear"
                   active={pathname === '/heavy'}
+                  allLabel="همه ماشین‌آلات"
+                  links={[
+                    { href: '/heavy?heavyType=truck', label: 'کامیون' },
+                    { href: '/heavy?heavyType=tractor', label: 'کشنده' },
+                    { href: '/heavy?heavyType=excavator', label: 'بیل مکانیکی' },
+                    { href: '/heavy?heavyType=loader', label: 'لودر' },
+                    { href: '/heavy?heavyType=crane', label: 'جرثقیل' },
+                  ]}
                 />
-                <DrawerLink href="/parts" label="قطعات" icon="tag" active={pathname === '/parts'} />
+                <DrawerAccordion
+                  href="/parts"
+                  label="قطعات"
+                  icon="tag"
+                  active={pathname === '/parts'}
+                  allLabel="همه قطعات"
+                  links={[
+                    { href: '/parts?category=engine_battery', label: 'موتور و باتری' },
+                    { href: '/parts?category=brake', label: 'ترمز و تعلیق' },
+                    { href: '/parts?category=body', label: 'بدنه و چراغ' },
+                    { href: '/parts?category=engine', label: 'گیربکس و کلاچ' },
+                  ]}
+                />
               </DrawerSection>
 
               {/* Display lives here as two plain rows. Price unit, legal text and

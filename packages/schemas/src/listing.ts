@@ -8,11 +8,19 @@ import { bikeTypeKeys, heavyTypeKeys, vehicleCategories } from './categories';
 export const MAX_PHOTOS = 20;
 export const MAX_PHOTO_BYTES = 8 * 1024 * 1024; // 8 MB after webp conversion
 export const ALLOWED_PHOTO_MIME = ['image/jpeg', 'image/png', 'image/webp'] as const;
+/** Short clips uploaded next to the photos (never as the cover). */
+export const ALLOWED_VIDEO_MIME = ['video/mp4', 'video/webm', 'video/quicktime'] as const;
+export const MAX_VIDEO_BYTES = 40 * 1024 * 1024; // 40 MB per clip
+export const ALLOWED_MEDIA_MIME = [...ALLOWED_PHOTO_MIME, ...ALLOWED_VIDEO_MIME] as const;
+
+export function isVideoMime(mime: string): boolean {
+  return (ALLOWED_VIDEO_MIME as readonly string[]).includes(mime);
+}
 
 export const listingPhotoSchema = z.object({
   path: z.string().min(3).max(300), // storage path: {owner}/{listing}/{n}.webp
-  mime: z.enum(ALLOWED_PHOTO_MIME),
-  bytes: z.number().int().positive().max(MAX_PHOTO_BYTES),
+  mime: z.enum(ALLOWED_MEDIA_MIME),
+  bytes: z.number().int().positive().max(MAX_VIDEO_BYTES),
   width: z.number().int().positive().max(20_000),
   height: z.number().int().positive().max(20_000),
   position: z.number().int().min(0).max(MAX_PHOTOS - 1),
@@ -62,7 +70,8 @@ const listingBaseSchema = z.object({
   description: z.string().trim().max(3000),
   photos: z.array(listingPhotoSchema).max(MAX_PHOTOS),
   showroomId: z.string().uuid().nullable().default(null),
-  allowPhoneReveal: z.boolean().default(false),
+  /** Phone numbers are visible by default; the checkbox opts out. */
+  allowPhoneReveal: z.boolean().default(true),
   /** Hide the «≈ … AED» reference line on this listing (Toman-only). */
   hideAed: z.boolean().default(false),
 });
@@ -84,7 +93,42 @@ function checkUniquePhotoPositions(
   }
 }
 
-export const listingDraftSchema = listingBaseSchema.superRefine(checkUniquePhotoPositions);
+/** Image slots keep the 8 MB photo ceiling; clips get the larger video one. */
+function checkMediaSize(
+  val: { photos: Array<{ mime: string; bytes: number }> },
+  ctx: z.RefinementCtx,
+): void {
+  for (const [i, p] of val.photos.entries()) {
+    if (!isVideoMime(p.mime) && p.bytes > MAX_PHOTO_BYTES) {
+      ctx.addIssue({
+        code: 'custom',
+        message: 'حجم عکس بیش از ۸ مگابایت است.',
+        path: ['photos', i, 'bytes'],
+      });
+    }
+  }
+}
+
+/** The cover slot is always a still image — a video may follow it. */
+function checkCoverIsPhoto(
+  val: { photos: Array<{ position: number; mime: string }> },
+  ctx: z.RefinementCtx,
+): void {
+  for (const [i, p] of val.photos.entries()) {
+    if (p.position === 0 && isVideoMime(p.mime)) {
+      ctx.addIssue({
+        code: 'custom',
+        message: 'تصویر اول (کاور آگهی) باید عکس باشد؛ در اسلات‌های بعدی می‌توانید ویدیو هم اضافه کنید',
+        path: ['photos', i, 'mime'],
+      });
+    }
+  }
+}
+
+export const listingDraftSchema = listingBaseSchema
+  .superRefine(checkUniquePhotoPositions)
+  .superRefine(checkMediaSize)
+  .superRefine(checkCoverIsPhoto);
 
 export type ListingDraft = z.infer<typeof listingDraftSchema>;
 
@@ -103,7 +147,9 @@ export const listingPublishSchema = listingBaseSchema
      */
     description: z.string().trim().max(3000),
   })
-  .superRefine(checkUniquePhotoPositions);
+  .superRefine(checkUniquePhotoPositions)
+  .superRefine(checkMediaSize)
+  .superRefine(checkCoverIsPhoto);
 
 export type ListingPublish = z.infer<typeof listingPublishSchema>;
 
@@ -111,7 +157,8 @@ export type ListingPublish = z.infer<typeof listingPublishSchema>;
 export const LISTING_FIELD_LABELS: Record<string, string> = {
   'vehicle.brand': 'برند',
   'vehicle.model': 'مدل',
-  'vehicle.trim': 'تیپ',
+  'vehicle.trim': 'تیپ / کلاس بدنه',
+  'vehicle.bodyType': 'تیپ / کلاس بدنه',
   'vehicle.year': 'سال ساخت',
   'vehicle.mileageKm': 'کارکرد',
   'vehicle.gearbox': 'گیربکس',

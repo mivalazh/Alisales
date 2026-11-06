@@ -1,5 +1,5 @@
 import { z } from 'zod';
-import { colorSlugs, conditions, fuelTypes, gearboxTypes } from './enums';
+import { bodyTypes, colorSlugs, conditions, fuelTypes, gearboxTypes } from './enums';
 import {
   HEAVY_BRANDS,
   MOTORCYCLE_BRANDS,
@@ -457,9 +457,19 @@ export const vehicleSchema = z.object({
   trim: z.string().trim().max(60).nullable().default(null),
   year: z.number().int().min(MIN_VEHICLE_YEAR).max(MAX_VEHICLE_YEAR),
   mileageKm: z.number().int().min(0).max(2_000_000),
-  gearbox: z.enum(gearboxTypes),
+  /**
+   * Gearbox is no longer asked in the form; it defaults to automatic so rows
+   * created before and after the form change validate the same way.
+   */
+  gearbox: z.enum(gearboxTypes).default('automatic'),
   fuel: z.enum(fuelTypes),
-  color: z.enum(colorSlugs),
+  /**
+   * Free-text colour («سفید صدفی، مشکی متالیک…»). Legacy colour slugs still
+   * validate because they are plain strings; `colorLabel()` translates them.
+   */
+  color: z.string().trim().max(40),
+  /** Standard body class (تیپ / کلاس بدنه) — optional for old rows. */
+  bodyType: z.enum(bodyTypes).nullable().default(null),
   condition: z.enum(conditions),
   plateType: z.enum(['standard', 'kish', 'temporary_transit', 'unplated'] as const),
   vin: z
@@ -471,5 +481,35 @@ export const vehicleSchema = z.object({
 });
 
 export type VehicleInput = z.infer<typeof vehicleSchema>;
+
+/**
+ * Map a free-text colour back onto the legacy `color_slug` enum.
+ *
+ * The hosted `vehicles.color` column is still an enum (the demo store keeps
+ * the seller's exact words), so the publish path narrows the value instead of
+ * failing the insert. Unrecognised text lands on `other`.
+ */
+export function toLegacyColorSlug(value: string | null | undefined): (typeof colorSlugs)[number] {
+  const raw = (value ?? '').trim().toLowerCase();
+  if (!raw) return 'other';
+  if ((colorSlugs as readonly string[]).includes(raw)) return raw as (typeof colorSlugs)[number];
+  const known: ReadonlyArray<[(typeof colorSlugs)[number], readonly string[]]> = [
+    ['white', ['سفید', 'صدفی']],
+    ['black', ['مشکی', 'سیاه']],
+    ['silver', ['نقره']],
+    ['gray', ['خاکستری', 'طوسی', 'خاکسترى']],
+    ['red', ['قرمز', 'قرمزى', 'شرابی']],
+    ['blue', ['آبی', 'ابی', 'سرمه']],
+    ['green', ['سبز']],
+    ['beige', ['بژ', 'کرم']],
+    ['brown', ['قهوه', 'نسکافه']],
+    ['gold', ['طلایی', 'طلا']],
+    ['orange', ['نارنجی']],
+  ];
+  for (const [slug, words] of known) {
+    if (words.some((word) => raw.includes(word))) return slug;
+  }
+  return 'other';
+}
 
 export { vehicleCategories };

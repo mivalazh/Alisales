@@ -10,6 +10,9 @@ export {
   fuelTypes,
   colorSlugs,
   COLOR_LABELS,
+  colorLabel,
+  bodyTypes,
+  BODY_TYPE_LABELS,
   GEARBOX_LABELS,
   FUEL_LABELS,
   CONDITION_LABELS,
@@ -29,6 +32,7 @@ export type {
   Gearbox,
   Fuel,
   ColorSlug,
+  BodyType,
   UserRole,
   ShowroomStaffRole,
   SubscriptionStatus,
@@ -63,6 +67,7 @@ export {
   gregorianToJalaliYear,
   jalaliToGregorianYear,
   vehicleSchema,
+  toLegacyColorSlug,
 } from './vehicle';
 export type { BrandSlug, VehicleInput } from './vehicle';
 
@@ -100,6 +105,10 @@ export {
   MAX_PHOTOS,
   MAX_PHOTO_BYTES,
   ALLOWED_PHOTO_MIME,
+  ALLOWED_VIDEO_MIME,
+  ALLOWED_MEDIA_MIME,
+  MAX_VIDEO_BYTES,
+  isVideoMime,
   listingPhotoSchema,
   priceAmountSchema,
   LISTING_FIELD_LABELS,
@@ -226,9 +235,11 @@ export type { VisitSlot, MessageKind } from './visit';
 export {
   partCategories,
   partOrigins,
+  partAuthenticities,
   partConditions,
   PART_CATEGORY_LABELS,
   PART_ORIGIN_LABELS,
+  PART_AUTHENTICITY_LABELS,
   PART_CONDITION_LABELS,
   PART_COMPATIBILITY_GENERAL,
   PART_FIELD_LABELS,
@@ -238,6 +249,7 @@ export {
 export type {
   PartCategory,
   PartOrigin,
+  PartAuthenticity,
   PartCondition,
   PartListingPublish,
 } from './parts';
@@ -285,6 +297,17 @@ export {
   formatAedToman,
 } from './rate';
 export type { AedRate, RateSource } from './rate';
+
+// Persian-aware, typo-tolerant search (normalize + synonyms + distance)
+export {
+  normalizeSearchText,
+  compactSearchText,
+  levenshtein,
+  trigramSimilarity,
+  typoMatch,
+  fuzzySearchMatch,
+  fuzzySuggestions,
+} from './search';
 
 // Read-only plan preview («بزودی») behind the third-listing gate
 export { PLAN_PREVIEW_SOON, PLAN_PREVIEWS } from './plan-preview';

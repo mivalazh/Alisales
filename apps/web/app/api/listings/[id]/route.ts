@@ -134,16 +134,21 @@ export async function DELETE(
   const { id } = await context.params;
   const sb = admin();
   if (sb) {
-    const { data } = await sb
+    // The success screen may only know the slug (`car-…`); accept either
+    // handle instead of forcing every caller to look the uuid up first.
+    const byId = await sb
       .from('listings')
       .select('id, slug, created_by')
       .eq('id', id)
       .maybeSingle();
+    const data =
+      byId.data ??
+      (await sb.from('listings').select('id, slug, created_by').eq('slug', id).maybeSingle()).data;
     if (!data) return NextResponse.json({ error: 'آگهی پیدا نشد.' }, { status: 404 });
     if (String(data.created_by) !== session.sub) {
       return NextResponse.json({ error: 'این آگهی متعلق به شما نیست.' }, { status: 403 });
     }
-    const removed = await sb.from('listings').delete().eq('id', id);
+    const removed = await sb.from('listings').delete().eq('id', String(data.id));
     if (removed.error) {
       return NextResponse.json(
         { error: 'حذف آگهی انجام نشد؛ دوباره تلاش کنید.' },
@@ -154,7 +159,12 @@ export async function DELETE(
     return NextResponse.json({ ok: true, deleted: true });
   }
 
-  const listing = await listingById(id);
+  const listing =
+    (await listingById(id)) ??
+    (await (async () => {
+      const { devListings } = await import('@/lib/data/dev-store');
+      return devListings().find((row) => row.slug === id) ?? null;
+    })());
   if (!listing) return NextResponse.json({ error: 'آگهی پیدا نشد.' }, { status: 404 });
   if (listing.sellerId !== session.sub) {
     return NextResponse.json({ error: 'این آگهی متعلق به شما نیست.' }, { status: 403 });

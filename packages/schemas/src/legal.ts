@@ -13,7 +13,7 @@ import type { PlateType } from './enums';
 export const PLATE_SECTIONS = {
   kish: {
     key: 'kish',
-    title: 'پلاک کیش',
+    title: 'پلاک منطقه آزاد',
     plates: ['kish'] as const satisfies readonly PlateType[],
     statements: {
       kish: 'فروشنده این خودرو را دارای پلاک جزیره کیش اعلام کرده است.',

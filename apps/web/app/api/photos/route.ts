@@ -1,5 +1,10 @@
 import { NextResponse } from 'next/server';
-import { ALLOWED_PHOTO_MIME, MAX_PHOTO_BYTES } from '@alisales/schemas';
+import {
+  ALLOWED_MEDIA_MIME,
+  MAX_PHOTO_BYTES,
+  MAX_VIDEO_BYTES,
+  isVideoMime,
+} from '@alisales/schemas';
 import { getSession } from '@/lib/auth/session';
 import { storePhoto } from '@/lib/data/photo-store';
 
@@ -37,14 +42,18 @@ export async function POST(request: Request): Promise<NextResponse> {
   if (!(file instanceof File) || file.size === 0) {
     return NextResponse.json({ error: 'فایلی ارسال نشده است.' }, { status: 400 });
   }
-  if (!(ALLOWED_PHOTO_MIME as readonly string[]).includes(file.type)) {
+  if (!(ALLOWED_MEDIA_MIME as readonly string[]).includes(file.type)) {
     return NextResponse.json(
-      { error: 'فرمت عکس پشتیبانی نمی‌شود (JPG، PNG یا WebP).' },
+      { error: 'فرمت فایل پشتیبانی نمی‌شود (JPG، PNG، WebP، MP4، WebM یا MOV).' },
       { status: 400 },
     );
   }
-  if (file.size > MAX_PHOTO_BYTES) {
-    return NextResponse.json({ error: 'حجم عکس بیش از حد مجاز است.' }, { status: 413 });
+  const video = isVideoMime(file.type);
+  if (file.size > (video ? MAX_VIDEO_BYTES : MAX_PHOTO_BYTES)) {
+    return NextResponse.json(
+      { error: video ? 'حجم ویدیو بیش از ۴۰ مگابایت است.' : 'حجم عکس بیش از حد مجاز است.' },
+      { status: 413 },
+    );
   }
 
   const width = Number(form.get('width'));

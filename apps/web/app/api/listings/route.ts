@@ -65,6 +65,7 @@ function toDevCard(data: ListingPublish, sellerId: string): ListingCardData {
     gearbox: data.vehicle.gearbox,
     fuel: data.vehicle.fuel,
     color: data.vehicle.color,
+    bodyType: data.vehicle.bodyType,
     condition: data.vehicle.condition,
     plateType: data.vehicle.plateType,
     // Photos are optional: fall back to the catalogue cover, not a blank frame.
@@ -121,6 +122,7 @@ function toDevPartCard(data: PartListingPublish, sellerId: string): ListingCardD
       title: data.title,
       category: data.category,
       origin: data.origin,
+      originCountry: data.originCountry,
       condition: data.condition,
       partNumber: data.partNumber,
       compatibility: data.compatibility,
@@ -233,5 +235,7 @@ export async function POST(request: Request): Promise<NextResponse> {
   // preview the demo store is per isolate, and the next request may hit a
   // fresh one — the redirect must never land on a 404.
   await rememberMyListing(fixtureCard);
-  return NextResponse.json({ ok: true, slug }, { status: 201 });
+  // The success screen needs an id for «حذف آگهی» even when the store is a
+  // per-isolate demo and the slug is the only durable handle.
+  return NextResponse.json({ ok: true, slug, id: fixtureCard.id }, { status: 201 });
 }

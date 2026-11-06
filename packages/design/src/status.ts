@@ -86,7 +86,7 @@ function badge(
 export const STATUS_BADGES: Record<BadgeKey, BadgeToken> = {
   new: badge('new', 'نو', 'sparkle', 'core'),
   used: badge('used', 'کارکرده', 'car', 'core'),
-  kish_plate: badge('kish_plate', 'پلاک کیش', 'plate', 'core'),
+  kish_plate: badge('kish_plate', 'پلاک منطقه آزاد', 'plate', 'core'),
   temporary_transit: badge('temporary_transit', 'گذر موقت', 'clock', 'core'),
   verified_report: badge('verified_report', 'گزارش تاییدشده', 'badgeCheck', 'core'),
   draft: badge('draft', 'پیش‌نویس', 'pencil', 'lifecycle'),

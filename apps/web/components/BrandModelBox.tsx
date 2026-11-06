@@ -3,15 +3,20 @@
 import Link from 'next/link';
 import { useEffect, useMemo, useRef, useState, type ReactNode } from 'react';
 import { brandsForCategory, type VehicleCategory } from '@alisales/schemas';
+import { scrollToResults } from '@/lib/scroll';
 import { BrandEmblem } from './BrandEmblem';
 import { Icon } from './Icon';
 
 /**
- * Vehicle brand box (OpenSooq flow): a searchable, horizontally scrollable row
- * of the category's marques, each tile showing the monogram mark and the Latin
- * brand name under it. Tapping a tile commits `?brand=` and opens that marque's
- * model row right below, with «همه مدل‌ها» first; tapping a model narrows the
- * grid and the URL keeps both `brand` and `model`.
+ * Vehicle brand box (OpenSooq flow), now a single in-place surface:
+ *
+ *  • No brand picked → a searchable, horizontally scrollable 2-row row of the
+ *    category's marques.
+ *  • A brand picked → that same slot is *replaced* by a 2-row, horizontally
+ *    scrollable model grid («همه مدل‌ها» first) with a «بازگشت به همه برندها»
+ *    chip — no second box appears below.
+ *  • A model tap commits `?brand=&model=`, then the page scrolls to the first
+ *    result card so the buyer sees the narrowed grid immediately.
  *
  * The row scrolls with touch, trackpad and mouse drag (pointer capture), so it
  * behaves the same on a phone and on a desktop without a horizontal wheel.
@@ -29,7 +34,11 @@ const SEARCH_PLACEHOLDER: Record<VehicleCategory, string> = {
   heavy: 'جستجوی برند ماشین‌آلات...',
 };
 
-/** Horizontal drag-to-scroll for the brand row (mouse only; touch is native). */
+/** Shared 2-row scroller geometry for both the brand and model surfaces. */
+const TWO_ROW_GRID =
+  'mt-3 grid w-full max-w-full grid-flow-col grid-rows-2 gap-2.5 overflow-x-auto overscroll-x-contain pb-2 [&::-webkit-scrollbar]:h-1 [&::-webkit-scrollbar-thumb]:rounded-full [&::-webkit-scrollbar-thumb]:bg-slate-300/70';
+
+/** Horizontal drag-to-scroll for the rows (mouse only; touch is native). */
 function useDragScroll() {
   const ref = useRef<HTMLUListElement>(null);
   const state = useRef<{ down: boolean; startX: number; startScroll: number; moved: boolean }>({
@@ -107,144 +116,174 @@ export function BrandModelBox({
   const active = brands.find((b) => b.slug === brand) ?? null;
   const models = active ? active.models : [];
 
+  /** Model tap: commit, then bring the first result card into view. */
+  const pickModel = (name: string | null) => {
+    if (!active) return;
+    onPick(active.slug, name);
+    scrollToResults();
+  };
+
   return (
     <section
       aria-label={CATEGORY_TITLE[category]}
       className="rounded-card border border-line bg-card p-3 sm:p-4"
     >
-      <div className="flex flex-wrap items-center justify-between gap-2">
-        <h2 className="text-sm font-extrabold text-ink">{CATEGORY_TITLE[category]}</h2>
-        <Link
-          href="/new"
-          className="text-xs font-bold text-muted underline transition hover:text-ink"
-        >
-          برند شما نیست؟ آگهی ثبت کنید
-        </Link>
-      </div>
-
-      <label className="mt-3 flex items-center gap-2 rounded-field border border-line bg-page px-3">
-        <Icon name="search" size={16} className="text-faint" />
-        <span className="sr-only">{SEARCH_PLACEHOLDER[category]}</span>
-        <input
-          value={query}
-          onChange={(e) => setQuery(e.target.value)}
-          placeholder={SEARCH_PLACEHOLDER[category]}
-          className="h-10 w-full bg-transparent text-sm font-semibold text-ink outline-none placeholder:text-faint"
-        />
-        {query && (
-          <button
-            type="button"
-            onClick={() => setQuery('')}
-            aria-label="پاک کردن جستجوی برند"
-            className="text-faint transition hover:text-ink"
-          >
-            <Icon name="close" size={16} />
-          </button>
-        )}
-      </label>
-
-      {filtered.length === 0 ? (
-        <p className="mt-4 rounded-field border border-dashed border-line-strong px-3 py-6 text-center text-xs font-bold text-muted">
-          برندی با این نام پیدا نشد؛ نام برند را در جستجو یا فیلتر مدل بنویسید.
-        </p>
-      ) : (
-        <ul
-          ref={drag.ref}
-          dir="rtl"
-          onPointerDown={drag.onPointerDown}
-          onPointerMove={drag.onPointerMove}
-          onPointerUp={drag.onPointerUp}
-          onPointerLeave={drag.onPointerLeave}
-          onClickCapture={drag.onClickCapture}
-          className="mt-3 grid w-full max-w-full grid-flow-col grid-rows-2 auto-cols-[84px] gap-2.5 overflow-x-auto overscroll-x-contain pb-2 sm:auto-cols-[92px] [&::-webkit-scrollbar]:h-1 [&::-webkit-scrollbar-thumb]:rounded-full [&::-webkit-scrollbar-thumb]:bg-slate-300/70"
-        >
-          {filtered.map((item) => {
-            const selected = item.slug === brand;
-            return (
-              <li key={item.slug} className="snap-start">
-                <button
-                  type="button"
-                  onClick={() => onPick(selected ? '' : item.slug, null)}
-                  aria-pressed={selected}
-                  title={item.label}
-                  className={`flex h-full w-full flex-col items-center justify-center gap-1 rounded-field border px-1 py-2 transition active:scale-95 ${
-                    selected
-                      ? 'border-cta bg-cta-soft'
-                      : 'border-transparent bg-page hover:border-line-strong'
-                  }`}
-                >
-                  <BrandEmblem slug={item.slug} size={34} />
-                  <span
-                    dir="ltr"
-                    className="w-full truncate text-center text-[10px] font-extrabold leading-tight text-ink"
-                  >
-                    {item.latin}
-                  </span>
-                </button>
-              </li>
-            );
-          })}
-        </ul>
-      )}
-
-      {active && (
-        <div className="mt-2 rounded-field border border-line bg-page p-2">
-          <div className="flex items-center justify-between gap-2 px-1">
-            <p className="text-xs font-extrabold text-ink">
-              مدل‌های{' '}
-              <span dir="ltr" className="inline-block font-bold">
-                {active.latin}
+      {active ? (
+        <>
+          {/* The brand grid is replaced, not duplicated below. */}
+          <div className="flex flex-wrap items-center justify-between gap-2">
+            <button
+              type="button"
+              onClick={() => {
+                onPick('');
+                setQuery('');
+              }}
+              className="inline-flex items-center gap-1.5 rounded-[var(--radius-pill)] border border-line bg-page px-3 py-1.5 text-xs font-extrabold text-ink transition hover:border-line-strong"
+            >
+              <Icon name="arrowLeft" size={14} />
+              بازگشت به همه برندها
+              <span className="text-muted" dir="ltr">
+                ({active.latin})
               </span>
-            </p>
-            <span className="text-[11px] font-bold text-faint">{models.length} مدل</span>
+            </button>
+            <span className="text-[11px] font-bold text-faint">
+              {models.length > 0 ? `${models.length} مدل` : 'مدل پیشنهادی نداریم'}
+            </span>
           </div>
-          <ul dir="rtl" className="mt-2 flex snap-x gap-1.5 overflow-x-auto pb-1 [scrollbar-width:none] [&::-webkit-scrollbar]:hidden">
-            <li className="shrink-0">
+
+          <ul
+            dir="rtl"
+            aria-label={`مدل‌های ${active.latin}`}
+            className={`${TWO_ROW_GRID} auto-cols-[112px] sm:auto-cols-[132px]`}
+          >
+            <ModelTile
+              label="همه مدل‌ها"
+              selected={!model}
+              onPick={() => pickModel(null)}
+            />
+            {models.map((name) => (
+              <ModelTile
+                key={name}
+                label={name}
+                selected={model === name}
+                onPick={() => pickModel(model === name ? null : name)}
+              />
+            ))}
+          </ul>
+
+          {models.length === 0 && (
+            <p className="mt-1 text-[11px] font-bold text-muted">
+              برای این برند مدل پیشنهادی نداریم؛ نام مدل را در فیلترها بنویسید.
+            </p>
+          )}
+        </>
+      ) : (
+        <>
+          <div className="flex flex-wrap items-center justify-between gap-2">
+            <h2 className="text-sm font-extrabold text-ink">{CATEGORY_TITLE[category]}</h2>
+            <Link
+              href="/new"
+              className="text-xs font-bold text-muted underline transition hover:text-ink"
+            >
+              برند شما نیست؟ آگهی ثبت کنید
+            </Link>
+          </div>
+
+          <label className="mt-3 flex items-center gap-2 rounded-field border border-line bg-page px-3">
+            <Icon name="search" size={16} className="text-faint" />
+            <span className="sr-only">{SEARCH_PLACEHOLDER[category]}</span>
+            <input
+              value={query}
+              onChange={(e) => setQuery(e.target.value)}
+              placeholder={SEARCH_PLACEHOLDER[category]}
+              className="h-10 w-full bg-transparent text-sm font-semibold text-ink outline-none placeholder:text-faint"
+            />
+            {query && (
               <button
                 type="button"
-                onClick={() => onPick(active.slug, null)}
-                aria-pressed={!model}
-                className={`whitespace-nowrap rounded-[var(--radius-pill)] border px-3 py-1.5 text-xs font-extrabold transition ${
-                  !model
-                    ? 'border-cta bg-cta-soft text-ink'
-                    : 'border-line bg-card text-muted hover:border-line-strong hover:text-ink'
-                }`}
+                onClick={() => setQuery('')}
+                aria-label="پاک کردن جستجوی برند"
+                className="text-faint transition hover:text-ink"
               >
-                همه مدل‌ها
+                <Icon name="close" size={16} />
               </button>
-            </li>
-            {models.length === 0 && (
-              <li className="shrink-0">
-                <span className="whitespace-nowrap px-1 text-[11px] font-bold text-muted">
-                  مدل پیشنهادی نداریم؛ نام مدل را در فیلترها بنویسید.
-                </span>
-              </li>
             )}
-            {models.map((name) => {
-              const selected = model === name;
-              return (
-                <li key={name} className="shrink-0">
-                  <button
-                    type="button"
-                    onClick={() => onPick(active.slug, selected ? null : name)}
-                    aria-pressed={selected}
-                    className={`whitespace-nowrap rounded-[var(--radius-pill)] border px-3 py-1.5 text-xs font-extrabold transition ${
-                      selected
-                        ? 'border-cta bg-cta-soft text-ink'
-                        : 'border-line bg-card text-muted hover:border-line-strong hover:text-ink'
-                    }`}
-                  >
-                    <bdi>{name}</bdi>
-                  </button>
-                </li>
-              );
-            })}
-          </ul>
-        </div>
+          </label>
+
+          {filtered.length === 0 ? (
+            <p className="mt-4 rounded-field border border-dashed border-line-strong px-3 py-6 text-center text-xs font-bold text-muted">
+              برندی با این نام پیدا نشد؛ نام برند را در جستجو یا فیلتر مدل بنویسید.
+            </p>
+          ) : (
+            <ul
+              ref={drag.ref}
+              dir="rtl"
+              onPointerDown={drag.onPointerDown}
+              onPointerMove={drag.onPointerMove}
+              onPointerUp={drag.onPointerUp}
+              onPointerLeave={drag.onPointerLeave}
+              onClickCapture={drag.onClickCapture}
+              className={`${TWO_ROW_GRID} auto-cols-[84px] sm:auto-cols-[92px]`}
+            >
+              {filtered.map((item) => {
+                const selected = item.slug === brand;
+                return (
+                  <li key={item.slug} className="snap-start">
+                    <button
+                      type="button"
+                      onClick={() => onPick(selected ? '' : item.slug, null)}
+                      aria-pressed={selected}
+                      title={item.label}
+                      className={`flex h-full w-full flex-col items-center justify-center gap-1 rounded-field border px-1 py-2 transition active:scale-95 ${
+                        selected
+                          ? 'border-cta bg-cta-soft'
+                          : 'border-transparent bg-page hover:border-line-strong'
+                      }`}
+                    >
+                      <BrandEmblem slug={item.slug} size={34} />
+                      <span
+                        dir="ltr"
+                        className="w-full truncate text-center text-[10px] font-extrabold leading-tight text-ink"
+                      >
+                        {item.latin}
+                      </span>
+                    </button>
+                  </li>
+                );
+              })}
+            </ul>
+          )}
+        </>
       )}
-
-
     </section>
+  );
+}
+
+/** One model tile — the same box geometry as a brand tile, 2 rows high. */
+function ModelTile({
+  label,
+  selected,
+  onPick,
+}: {
+  label: string;
+  selected: boolean;
+  onPick: () => void;
+}) {
+  return (
+    <li className="snap-start">
+      <button
+        type="button"
+        onClick={onPick}
+        aria-pressed={selected}
+        className={`flex h-full w-full items-center justify-center rounded-field border px-2 py-2 text-center text-[11px] font-extrabold leading-tight transition active:scale-95 ${
+          selected
+            ? 'border-[#F98513] bg-cta-soft text-ink'
+            : 'border-transparent bg-page text-muted hover:border-line-strong hover:text-ink'
+        }`}
+      >
+        <bdi>{label}</bdi>
+      </button>
+    </li>
   );
 }
 

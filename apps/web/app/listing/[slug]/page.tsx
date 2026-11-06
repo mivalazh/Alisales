@@ -2,12 +2,14 @@ import Link from 'next/link';
 import { notFound } from 'next/navigation';
 import { badgeFor, type BadgeKey } from '@studio/design';
 import {
+  BODY_TYPE_LABELS,
   CITY_LABELS,
   FUEL_LABELS,
   GEARBOX_LABELS,
   PART_CATEGORY_LABELS,
   PART_CONDITION_LABELS,
   PART_ORIGIN_LABELS,
+  colorLabel,
   compatibilityLabel,
 } from '@alisales/schemas';
 import { ContactButtons } from '@/components/ContactButtons';
@@ -92,7 +94,10 @@ export default async function ListingDetailPage({
   const specs: DetailSpec[] = part
     ? [
         { icon: 'car', label: 'دسته‌بندی', value: PART_CATEGORY_LABELS[part.category] },
-        { icon: 'shieldCheck', label: 'منشأ', value: PART_ORIGIN_LABELS[part.origin] },
+        { icon: 'shieldCheck', label: 'اصالت', value: PART_ORIGIN_LABELS[part.origin] },
+        ...(part.originCountry
+          ? [{ icon: 'plate' as const, label: 'کشور سازنده', value: part.originCountry }]
+          : []),
         { icon: 'car', label: 'سازگاری', value: compatibilityLabel(part.compatibility) },
         ...(part.partNumber
           ? [{ icon: 'gear' as const, label: 'شماره فنی', value: part.partNumber }]
@@ -114,6 +119,28 @@ export default async function ListingDetailPage({
           value: FUEL_LABELS[listing.fuel],
         },
       ];
+
+  /**
+   * Every secondary spec the seller filled, minus the four tiles above, as
+   * pill tags under the description. Colour, body class, engine size, part
+   * number, warranty and compatibility all land here instead of being lost.
+   */
+  const extraSpecs: { label: string; value: string }[] = [];
+  const pushSpec = (label: string, value: string | null | undefined) => {
+    const text = (value ?? '').trim();
+    if (text) extraSpecs.push({ label, value: text });
+  };
+  if (part) {
+    pushSpec('کشور سازنده', part.originCountry ?? null);
+    pushSpec('شماره فنی', part.partNumber);
+    pushSpec('گارانتی', part.warranty);
+    if (part.compatibility) pushSpec('سازگاری خودرو', part.compatibility);
+  } else {
+    pushSpec('رنگ', colorLabel(listing.color));
+    pushSpec('تیپ / کلاس بدنه', listing.bodyType ? BODY_TYPE_LABELS[listing.bodyType] : null);
+    if (listing.engineCc) pushSpec('توان / حجم موتور', `${listing.engineCc} cc`);
+    if (listing.workingHours) pushSpec('ساعت کارکرد', `${listing.workingHours} ساعت`);
+  }
 
   return (
     <article className="mx-auto max-w-6xl space-y-5">
@@ -139,6 +166,23 @@ export default async function ListingDetailPage({
             <p className="mt-3 whitespace-pre-line text-justify text-sm leading-8 text-ink/85">
               {listing.description?.trim() || 'فروشنده برای این آگهی توضیحی ثبت نکرده است.'}
             </p>
+
+            {extraSpecs.length > 0 && (
+              <div className="mt-4 border-t border-line pt-3">
+                <p className="mb-2 text-[11px] font-extrabold text-muted">مشخصات تکمیلی</p>
+                <ul className="flex flex-wrap gap-2">
+                  {extraSpecs.map((spec) => (
+                    <li
+                      key={`${spec.label}-${spec.value}`}
+                      className="inline-flex items-center gap-1 rounded-[var(--radius-pill)] border border-line bg-page px-3 py-1 text-[11px] font-bold text-muted"
+                    >
+                      <span className="text-faint">{spec.label}:</span>
+                      <b className="font-extrabold text-ink">{spec.value}</b>
+                    </li>
+                  ))}
+                </ul>
+              </div>
+            )}
           </section>
 
           {listing.hasReport && (

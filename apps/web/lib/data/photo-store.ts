@@ -33,8 +33,19 @@ export interface PhotoBytes {
   height: number;
 }
 
+const EXT: Record<string, string> = {
+  'image/webp': 'webp',
+  'image/jpeg': 'jpg',
+  'image/png': 'png',
+  'video/mp4': 'mp4',
+  'video/webm': 'webm',
+  'video/quicktime': 'mov',
+};
+
 export async function storePhoto(input: PhotoBytes): Promise<StoredPhoto> {
-  const path = `${input.sellerId}/${randomUUID()}.webp`;
+  // The extension drives the served content type, so a clip is stored as a
+  // clip instead of a `.webp` whose bytes are an MP4.
+  const path = `${input.sellerId}/${randomUUID()}.${EXT[input.mime] ?? 'webp'}`;
   const sb = admin();
 
   if (sb) {
@@ -79,7 +90,17 @@ export function readDevPhoto(path: string): { bytes: ArrayBuffer; mime: string }
   if (!bytes) return null;
   const ext = key.slice(key.lastIndexOf('.') + 1).toLowerCase();
   const mime =
-    ext === 'png' ? 'image/png' : ext === 'jpg' || ext === 'jpeg' ? 'image/jpeg' : 'image/webp';
+    ext === 'png'
+      ? 'image/png'
+      : ext === 'jpg' || ext === 'jpeg'
+        ? 'image/jpeg'
+        : ext === 'mp4'
+          ? 'video/mp4'
+          : ext === 'webm'
+            ? 'video/webm'
+            : ext === 'mov'
+              ? 'video/quicktime'
+              : 'image/webp';
   const copy = new Uint8Array(bytes.byteLength);
   copy.set(bytes);
   return { bytes: copy.buffer, mime };

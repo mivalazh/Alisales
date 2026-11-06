@@ -9,7 +9,9 @@ import {
   GEARBOX_LABELS,
   HEAVY_TYPES,
   PLATE_TYPE_LABELS,
+  VEHICLE_YEARS,
   brandsForCategory,
+  modelsForBrand,
   conditions,
   fuelTypes,
   gearboxTypes,
@@ -103,6 +105,122 @@ function CheckOption({
   );
 }
 
+const GRID_YEARS = VEHICLE_YEARS.filter((year) => year <= 2026 && year >= 1995);
+
+/**
+ * Year picker popover — a 4-column grid of model years instead of two typed
+ * inputs. The first tap starts the range («از سال»), the second closes it
+ * («تا سال»); tapping a year already inside the range clears it. Colours use
+ * the theme tokens so it reads correctly in light and dark mode, and the
+ * active cells take the brand orange (#F98513).
+ */
+function YearGrid({
+  from,
+  to,
+  onChange,
+}: {
+  from: number | undefined;
+  to: number | undefined;
+  onChange: (next: { yearFrom?: number; yearTo?: number }) => void;
+}) {
+  const [open, setOpen] = useState(false);
+  const active = from !== undefined || to !== undefined;
+
+  const pick = (year: number) => {
+    // No range yet (or the previous range is complete) → start a new one.
+    if (from === undefined || (from !== undefined && to !== undefined)) {
+      onChange({ yearFrom: year, yearTo: undefined });
+      return;
+    }
+    if (year < from) {
+      onChange({ yearFrom: year, yearTo: from });
+      return;
+    }
+    onChange({ yearFrom: from, yearTo: year });
+  };
+
+  const inRange = (year: number) =>
+    from !== undefined && to !== undefined && year >= Math.min(from, to) && year <= Math.max(from, to);
+
+  return (
+    <div className="relative">
+      <button
+        type="button"
+        onClick={() => setOpen((v) => !v)}
+        aria-expanded={open}
+        aria-haspopup="dialog"
+        className={`flex w-full items-center justify-between gap-2 rounded-field border px-3 py-2 text-xs font-bold transition ${
+          active
+            ? 'border-cta bg-cta-soft text-ink'
+            : 'border-line bg-card text-muted hover:border-line-strong hover:text-ink'
+        }`}
+      >
+        <span className="flex items-center gap-1.5">
+          <Icon name="clock" size={14} />
+          {from === undefined && to === undefined
+            ? 'انتخاب سال ساخت'
+            : from !== undefined && to !== undefined
+              ? `${from} تا ${to}`
+              : from !== undefined
+                ? `از ${from}`
+                : `تا ${to}`}
+        </span>
+        <Icon name="chevronDown" size={14} className={open ? 'rotate-180' : undefined} />
+      </button>
+
+      {open && (
+        <div
+          role="dialog"
+          aria-label="انتخاب سال ساخت"
+          className="absolute inset-x-0 top-full z-30 mt-2 rounded-card border border-line bg-card p-3 shadow-xl"
+        >
+          <div className="mb-2 flex items-center justify-between gap-2 text-[11px] font-extrabold">
+            <span className="text-muted">
+              از سال:{' '}
+              <b className="text-ink">{from !== undefined ? from : '—'}</b>
+            </span>
+            <span className="text-muted">
+              تا سال: <b className="text-ink">{to !== undefined ? to : '—'}</b>
+            </span>
+            {active && (
+              <button
+                type="button"
+                onClick={() => onChange({ yearFrom: undefined, yearTo: undefined })}
+                className="text-cta underline"
+              >
+                پاک کردن
+              </button>
+            )}
+          </div>
+
+          <div className="grid grid-cols-4 gap-1.5">
+            {GRID_YEARS.map((year) => {
+              const isFrom = year === from;
+              const isTo = year === to;
+              const selected = inRange(year) || isFrom || isTo;
+              return (
+                <button
+                  key={year}
+                  type="button"
+                  onClick={() => pick(year)}
+                  aria-pressed={selected}
+                  className={`rounded-field border py-1.5 text-xs font-extrabold tabular-nums transition ${
+                    selected
+                      ? 'border-[#F98513] bg-[#F98513] text-white'
+                      : 'border-line bg-page text-muted hover:border-cta hover:text-ink'
+                  }`}
+                >
+                  {year}
+                </button>
+              );
+            })}
+          </div>
+        </div>
+      )}
+    </div>
+  );
+}
+
 function RangePair({
   label,
   from,
@@ -141,6 +259,50 @@ function RangePair({
           aria-label={`${label} تا`}
         />
       </div>
+    </div>
+  );
+}
+
+/** Model selector filtered by the chosen brand, with a free-text fallback. */
+function BrandModelPicker({
+  brandSlug,
+  value,
+  onChange,
+}: {
+  brandSlug: string;
+  value: string;
+  onChange: (model: string) => void;
+}) {
+  const models = modelsForBrand(brandSlug);
+  const known = models.includes(value);
+  return (
+    <div className="space-y-2">
+      {models.length > 0 ? (
+        <select
+          value={known ? value : ''}
+          onChange={(e) => onChange(e.target.value)}
+          aria-label="مدل خودرو"
+          className="field h-9 text-xs"
+        >
+          <option value="">همه مدل‌ها</option>
+          {models.map((model) => (
+            <option key={model} value={model}>
+              {model}
+            </option>
+          ))}
+        </select>
+      ) : (
+        <p className="text-[11px] font-bold text-faint">
+          برای این برند مدل پیشنهادی نداریم؛ نام مدل را بنویسید.
+        </p>
+      )}
+      <input
+        className="field h-9 text-xs"
+        value={value}
+        onChange={(e) => onChange(e.target.value)}
+        placeholder="یا نام مدل را بنویسید…"
+        aria-label="جستجوی مدل"
+      />
     </div>
   );
 }
@@ -202,12 +364,10 @@ export function FilterGroups({
       </Group>
 
       <Group title="سال ساخت (میلادی)" open>
-        <RangePair
-          label="بازه‌ی سال (میلادی)"
+        <YearGrid
           from={filters.yearFrom}
           to={filters.yearTo}
-          onFrom={(v) => set({ yearFrom: v })}
-          onTo={(v) => set({ yearTo: v })}
+          onChange={(next) => set(next)}
         />
       </Group>
 
@@ -283,6 +443,18 @@ export function FilterGroups({
           </button>
         )}
       </Group>
+
+      {/* Dependent model group: it appears as soon as a brand is picked and is
+          populated from that marque's suggestion list. */}
+      {filters.brand.length > 0 && (
+        <Group title="مدل" open>
+          <BrandModelPicker
+            brandSlug={filters.brand[0] ?? ''}
+            value={filters.model ?? ''}
+            onChange={(model) => set({ model })}
+          />
+        </Group>
+      )}
 
       {category === 'motorcycle' && (
         <Group title="نوع موتور" open>
@@ -398,7 +570,7 @@ export function FilterGroups({
         />
         <CheckOption
           checked={filters.kishOnly}
-          label="فقط پلاک کیش"
+          label="فقط پلاک منطقه آزاد"
           onToggle={() => set({ kishOnly: !filters.kishOnly })}
         />
       </Group>

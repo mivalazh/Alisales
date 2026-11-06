@@ -1,7 +1,11 @@
 'use client';
 
-import { useEffect, useRef, useState, type FormEvent } from 'react';
-import type { SearchFilters } from '@alisales/schemas';
+import { useEffect, useMemo, useRef, useState, type FormEvent } from 'react';
+import {
+  carBrands,
+  fuzzySuggestions,
+  type SearchFilters,
+} from '@alisales/schemas';
 import { Icon } from './Icon';
 
 /**
@@ -24,8 +28,15 @@ const TRENDING: ReadonlyArray<{ label: string; patch: Partial<SearchFilters> }> 
   { label: 'Mercedes S500', patch: { q: 'S-Class' } },
   { label: 'BMW X5', patch: { q: 'X5' } },
   { label: 'کیت ترمز پورشه', patch: { q: 'کیت ترمز' } },
-  { label: 'پلاک کیش', patch: { plateType: ['kish'] } },
+  { label: 'پلاک منطقه آزاد', patch: { plateType: ['kish'] } },
 ];
+
+/** Every searchable word (marque, Latin name, model) — the fuzzy pool. */
+const SUGGESTION_POOL: readonly string[] = Array.from(
+  new Set(
+    carBrands.flatMap((brand) => [brand.label, brand.latin, ...brand.models.map((m) => m)]),
+  ),
+);
 
 const BRAND_PILLS: ReadonlyArray<{ slug: BrandSlug; label: string }> = [
   { slug: 'toyota', label: 'Toyota' },
@@ -71,6 +82,12 @@ export function SearchBar({
   const [open, setOpen] = useState(false);
   const [recent, setRecent] = useState<string[]>([]);
   const wrapRef = useRef<HTMLDivElement>(null);
+
+  // Typo-tolerant live hints («لندکروز» → Land Cruiser, «پورش» → Porsche).
+  const hints = useMemo(
+    () => (value.trim().length >= 2 ? fuzzySuggestions(value, SUGGESTION_POOL, 5) : []),
+    [value],
+  );
 
   useEffect(() => setValue(q), [q]);
   useEffect(() => setRecent(readRecent()), []);
@@ -172,6 +189,26 @@ export function SearchBar({
                     >
                       <Icon name="clock" size={14} className="text-faint" />
                       {term}
+                    </button>
+                  </li>
+                ))}
+              </ul>
+            </section>
+          )}
+
+          {hints.length > 0 && (
+            <section className="mb-4">
+              <h2 className="mb-2 text-xs font-extrabold text-muted">پیشنهادهای نزدیک</h2>
+              <ul className="flex flex-wrap gap-2">
+                {hints.map((hint) => (
+                  <li key={hint}>
+                    <button
+                      type="button"
+                      onClick={() => apply({ q: hint }, hint)}
+                      className="inline-flex items-center gap-1.5 rounded-[var(--radius-pill)] border border-cta/40 bg-cta-soft px-3 py-1.5 text-xs font-extrabold text-ink transition hover:border-cta"
+                    >
+                      <Icon name="search" size={13} className="text-cta" />
+                      {hint}
                     </button>
                   </li>
                 ))}

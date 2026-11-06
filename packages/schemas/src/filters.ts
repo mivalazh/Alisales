@@ -1,5 +1,5 @@
 import { z } from 'zod';
-import { conditions, fuelTypes, gearboxTypes, plateTypes } from './enums';
+import { bodyTypes, conditions, fuelTypes, gearboxTypes, plateTypes } from './enums';
 import { BRAND_NAME, CITIES, MAX_VEHICLE_YEAR, MIN_VEHICLE_YEAR, brandSlugs } from './vehicle';
 import { bikeTypeKeys, heavyTypeKeys } from './categories';
 
@@ -16,6 +16,8 @@ const citySlugsTuple = CITIES.map((c) => c.slug) as [string, ...string[]];
 export const searchFiltersSchema = z.object({
   brand: z.array(z.enum(brandSlugs)).default([]),
   model: z.string().trim().min(1).max(60).optional(),
+  /** Body class (سدان / شاسی‌بلند / کوپه …) — used by the drawer shortcuts. */
+  bodyType: z.array(z.enum(bodyTypes)).default([]),
   /** Trim/تیپ free-text — «VXR», «S 500», «Platinum». */
   trim: z.string().trim().min(1).max(60).optional(),
   yearFrom: z.number().int().min(MIN_VEHICLE_YEAR).max(MAX_VEHICLE_YEAR).optional(),
@@ -83,6 +85,7 @@ function boolOrNull(value: QueryValue): boolean | undefined {
 export function parseFiltersFromSearchParams(params: Record<string, QueryValue>): SearchFilters {
   const raw: Record<string, unknown> = {
     brand: csv(params.brand),
+    bodyType: csv(params.bodyType),
     gearbox: csv(params.gearbox),
     fuel: csv(params.fuel),
     plateType: csv(params.plateType),
@@ -126,6 +129,7 @@ export function parseFiltersFromSearchParams(params: Record<string, QueryValue>)
 export function filtersToSearchParams(filters: SearchFilters): Record<string, string> {
   const out: Record<string, string> = {};
   if (filters.brand.length) out.brand = filters.brand.join(',');
+  if (filters.bodyType.length) out.bodyType = filters.bodyType.join(',');
   if (filters.model) out.model = filters.model;
   if (filters.trim) out.trim = filters.trim;
   if (filters.yearFrom !== undefined) out.yearFrom = String(filters.yearFrom);
@@ -169,6 +173,7 @@ export function filtersToRpcPayload(filters: SearchFilters): Record<string, stri
 export function activeFilterCount(filters: SearchFilters): number {
   return (
     filters.brand.length +
+    filters.bodyType.length +
     filters.gearbox.length +
     filters.fuel.length +
     filters.plateType.length +

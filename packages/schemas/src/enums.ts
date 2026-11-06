@@ -40,6 +40,19 @@ export const colorSlugs = [
 ] as const;
 export type ColorSlug = (typeof colorSlugs)[number];
 
+/**
+ * Colour text for a stored value.
+ *
+ * New listings keep exactly what the seller typed («سفید صدفی»); older rows
+ * still carry a `color_slug`, so known slugs are translated and anything else
+ * is shown as-is.
+ */
+export function colorLabel(value: string | null | undefined): string {
+  const raw = (value ?? '').trim();
+  if (!raw) return '';
+  return COLOR_LABELS[raw as ColorSlug] ?? raw;
+}
+
 export const COLOR_LABELS: Record<ColorSlug, string> = {
   white: 'سفید',
   black: 'مشکی',
@@ -77,9 +90,38 @@ export const CONDITION_LABELS: Record<Condition, string> = {
 
 export const PLATE_TYPE_LABELS: Record<PlateType, string> = {
   standard: 'پلاک ملی',
-  kish: 'پلاک کیش',
+  kish: 'پلاک منطقه آزاد',
   temporary_transit: 'گذر موقت',
   unplated: 'بدون پلاک',
+};
+
+/**
+ * Standard vehicle body classes (تیپ / کلاس بدنه).
+ *
+ * The seller picks one instead of typing a free-text trim; the value then
+ * travels to the card, the filter and the «توضیحات» spec tags.
+ */
+export const bodyTypes = [
+  'sedan',
+  'suv',
+  'coupe',
+  'convertible',
+  'hatchback',
+  'crossover',
+  'pickup',
+  'van',
+] as const;
+export type BodyType = (typeof bodyTypes)[number];
+
+export const BODY_TYPE_LABELS: Record<BodyType, string> = {
+  sedan: 'سدان (سواری)',
+  suv: 'شاسی‌بلند (SUV)',
+  coupe: 'کوپه',
+  convertible: 'کروک / کانورتیبل',
+  hatchback: 'هاچ‌بک',
+  crossover: 'کراس‌اوور',
+  pickup: 'پیکاپ / وانت',
+  van: 'ون',
 };
 
 /** account-level roles (showroom membership lives in showroom_staff) */

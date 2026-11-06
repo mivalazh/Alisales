@@ -3,15 +3,15 @@
 import { useEffect, useMemo, useRef, useState, type FormEvent, type ReactNode } from 'react';
 import {
   BIKE_TYPES,
+  CITY_LABELS,
   DEFAULT_AED_TO_IRR,
   HEAVY_TYPES,
   VEHICLE_YEARS,
   gregorianToJalaliYear,
   VEHICLE_CATEGORY_LABELS,
   brandsForCategory,
-  COLOR_LABELS,
+  BODY_TYPE_LABELS,
   FUEL_LABELS,
-  GEARBOX_LABELS,
   LISTING_FIELD_LABELS,
   PART_CATEGORY_LABELS,
   PART_CONDITION_LABELS,
@@ -20,10 +20,9 @@ import {
   PLATE_DECLARATION_FOOTER,
   PLATE_TYPE_LABELS,
   aedToIRR,
-  colorSlugs,
+  bodyTypes,
   conditions,
   fuelTypes,
-  gearboxTypes,
   formatAmountLatin,
   irrToAED,
   irrToToman,
@@ -44,8 +43,13 @@ import {
   type VehicleCategory,
   type VehicleInput,
 } from '@alisales/schemas';
+import type { ListingCardData } from '@/lib/data/listings';
+import { ListingCard } from './ListingCard';
+import { DeleteListingButton } from './DeleteListingButton';
 import { CustomSelect, type SelectOption } from './CustomSelect';
+import { Icon } from './Icon';
 import { PhotoUploader } from './PhotoUploader';
+import { PriceText } from './PriceText';
 import { RateLine } from './RateLine';
 import { useAedRate } from './RateProvider';
 import type { ProcessedPhoto } from '@/lib/photos';
@@ -58,19 +62,20 @@ const INITIAL_DRAFT = {
   /** Free-typed brand when no catalogue marque matches. */
   customBrand: '',
   model: '',
-  trim: '',
+  /** Standard body class (سدان / شاسی‌بلند / …). */
+  bodyType: '',
   year: '',
   mileageKm: '',
-  gearbox: 'automatic',
   fuel: 'petrol',
-  color: 'white',
+  /** Free-text colour typed by the seller. */
+  color: '',
   condition: '',
   plateType: '',
   vin: '',
   priceIRR: '',
   city: 'kish',
   description: '',
-  allowPhoneReveal: false,
+  allowPhoneReveal: true,
   /** «عدم نمایش قیمت درهم در آگهی» — Toman-only price. */
   hideAed: false,
   /** Motorcycle / heavy only. */
@@ -89,7 +94,10 @@ const INITIAL_PART_DRAFT = {
   title: '',
   partNumber: '',
   compatibility: '',
-  origin: '',
+  /** Country of manufacture (کشور سازنده). */
+  originCountry: '',
+  /** Authenticity: اورجینال / استوک / تجاری / نامشخص. */
+  origin: 'unknown',
   condition: '',
   warranty: '',
 };
@@ -166,13 +174,18 @@ function StepCard({
   children,
 }: {
   step: 1 | 2 | 3;
-  title: string;
+  /** Omitted on step 3: the «مرحله ۳ از ۳» badge is the whole header. */
+  title?: string;
   children: ReactNode;
 }) {
   return (
     <section className="rounded-card border border-line bg-card p-4 sm:p-5">
       <div className="mb-4 flex items-center justify-between gap-3 border-b border-line pb-3">
-        <h2 className="text-md font-extrabold text-ink">{title}</h2>
+        {title ? (
+          <h2 className="text-md font-extrabold text-ink">{title}</h2>
+        ) : (
+          <span aria-hidden className="flex-1" />
+        )}
         <span className="rounded-[var(--radius-pill)] bg-cta-soft px-3 py-1 text-xs font-extrabold text-ink">
           مرحله {step} از 3
         </span>
@@ -411,6 +424,8 @@ export function ListingForm() {
   const [fieldErrors, setFieldErrors] = useState<Record<string, string>>({});
   const [formError, setFormError] = useState<string | null>(null);
   const [successSlug, setSuccessSlug] = useState<string | null>(null);
+  /** The just-published row, rendered as a real card on the success screen. */
+  const [publishedCard, setPublishedCard] = useState<ListingCardData | null>(null);
 
   /* Option lists for the custom dropdowns — one shape for every field so all
      of them look and behave like the brand/model comboboxes. */
@@ -423,16 +438,12 @@ export function ListingForm() {
       })),
     [],
   );
-  const gearboxOptions: SelectOption[] = useMemo(
-    () => gearboxTypes.map((g) => ({ value: g, label: GEARBOX_LABELS[g] })),
-    [],
-  );
+  const bodyTypeOptions: SelectOption[] = bodyTypes.map((body) => ({
+    value: body,
+    label: BODY_TYPE_LABELS[body],
+  }));
   const fuelOptions: SelectOption[] = useMemo(
     () => fuelTypes.map((f) => ({ value: f, label: FUEL_LABELS[f] })),
-    [],
-  );
-  const colorOptions: SelectOption[] = useMemo(
-    () => colorSlugs.map((c) => ({ value: c, label: COLOR_LABELS[c] })),
     [],
   );
   const conditionOptions: SelectOption[] = conditions.map((c) => ({
@@ -451,7 +462,7 @@ export function ListingForm() {
     value: partCategory,
     label: PART_CATEGORY_LABELS[partCategory],
   }));
-  const partOriginOptions: SelectOption[] = partOrigins.map((origin) => ({
+  const partAuthenticityOptions: SelectOption[] = partOrigins.map((origin) => ({
     value: origin,
     label: PART_ORIGIN_LABELS[origin],
   }));
@@ -548,12 +559,87 @@ export function ListingForm() {
       // Durable path from POST /api/photos; the guard below blocks submission
       // while any photo is still uploading (empty path fails schema min length).
       path: p.path ?? '',
-      mime: 'image/webp' as const,
+      mime: p.mime,
       bytes: p.bytes,
       width: p.width,
       height: p.height,
       position: i,
     }));
+  }
+
+  /**
+   * A card-shaped view of what was just published, built from the submitted
+   * payload and the uploaded media so the success screen shows the real ad
+   * (cover, badges, price, specs) instead of a bare confirmation box.
+   */
+  function previewCard(
+    data: ListingPublish | import('@alisales/schemas').PartListingPublish,
+    slug: string,
+    id: string,
+    isPart: boolean,
+  ): ListingCardData {
+    const urls = photos.map((p) => p.url).filter((url): url is string => Boolean(url));
+    const base = {
+      id,
+      slug,
+      sellerId: 'me',
+      priceIRR: data.priceIRR,
+      city: data.city,
+      state: 'active' as const,
+      featured: false,
+      publishedAt: new Date().toISOString(),
+      hasReport: false,
+      coverUrl: urls[0] ?? null,
+      photos: urls,
+      showroomName: null,
+      showroomVerified: false,
+      allowPhoneReveal: data.allowPhoneReveal,
+      hideAed: data.hideAed,
+    };
+    if (isPart) {
+      const partData = data as import('@alisales/schemas').PartListingPublish;
+      return {
+        ...base,
+        brand: 'other',
+        model: partData.title,
+        trim: null,
+        year: new Date().getFullYear(),
+        mileageKm: 0,
+        gearbox: 'automatic',
+        fuel: 'petrol',
+        color: '',
+        condition: partData.condition,
+        plateType: 'standard',
+        kind: 'part',
+        part: {
+          title: partData.title,
+          category: partData.category,
+          origin: partData.origin,
+          originCountry: partData.originCountry,
+          condition: partData.condition,
+          partNumber: partData.partNumber,
+          compatibility: partData.compatibility,
+          warranty: partData.warranty,
+        },
+      };
+    }
+    const vehicle = (data as ListingPublish).vehicle;
+    return {
+      ...base,
+      brand: vehicle.brand,
+      model: vehicle.model,
+      trim: vehicle.trim,
+      year: vehicle.year,
+      mileageKm: vehicle.mileageKm,
+      gearbox: vehicle.gearbox,
+      fuel: vehicle.fuel,
+      color: vehicle.color,
+      bodyType: vehicle.bodyType,
+      condition: vehicle.condition,
+      plateType: vehicle.plateType,
+      kind: 'vehicle',
+      category,
+    };
   }
 
   function buildPayload(): unknown {
@@ -564,6 +650,7 @@ export function ListingForm() {
         title: partDraft.title.trim(),
         partNumber: partDraft.partNumber.trim() || null,
         compatibility: partDraft.compatibility.trim() || null,
+        originCountry: partDraft.originCountry.trim() || null,
         origin: partDraft.origin,
         condition: partDraft.condition,
         warranty: partDraft.warranty.trim() || null,
@@ -595,13 +682,13 @@ export function ListingForm() {
       vehicle: {
         brand: (customBrand ? 'other' : draft.brand) as VehicleInput['brand'],
         model: customBrand ? `${customBrand} ${model}`.trim() : model,
-        trim: draft.trim.trim() || null,
+        trim: null,
+        bodyType: (draft.bodyType || null) as VehicleInput['bodyType'],
         // Gregorian model year, stored as the one integer the cards read back.
         year: parseIntLoose(draft.year),
         mileageKm: parseIntLoose(draft.mileageKm),
-        gearbox: draft.gearbox as VehicleInput['gearbox'],
         fuel: draft.fuel as VehicleInput['fuel'],
-        color: draft.color as VehicleInput['color'],
+        color: draft.color.trim(),
         condition: draft.condition as VehicleInput['condition'],
         plateType: draft.plateType as PlateType,
         vin: draft.vin.trim() ? draft.vin.trim().toUpperCase() : null,
@@ -647,6 +734,18 @@ export function ListingForm() {
       return;
     }
 
+    // Two picks the form asks for but the schema keeps optional (old rows).
+    if (mode === 'vehicle' && !draft.bodyType) {
+      setFieldErrors({ 'vehicle.bodyType': 'تیپ / کلاس بدنه — یک گزینه را انتخاب کنید.' });
+      setFormError('لطفاً خطاهای مشخص‌شده را برطرف کنید.');
+      return;
+    }
+    if (mode === 'vehicle' && !draft.color.trim()) {
+      setFieldErrors({ 'vehicle.color': 'رنگ — رنگ خودرو را بنویسید.' });
+      setFormError('لطفاً خطاهای مشخص‌شده را برطرف کنید.');
+      return;
+    }
+
     const payload = buildPayload();
     const parsed =
       mode === 'part'
@@ -673,12 +772,16 @@ export function ListingForm() {
       const body = (await res.json().catch(() => null)) as {
         ok?: boolean;
         slug?: string;
+        id?: string;
         error?: string;
         issues?: { path: string; message: string }[];
       } | null;
 
       if (res.status === 201 && body?.slug) {
         setSuccessSlug(body.slug);
+        setPublishedCard(
+          previewCard(parsed.data, body.slug, body.id ?? body.slug, mode === 'part'),
+        );
         window.scrollTo({ top: 0, behavior: 'smooth' });
         return;
       }
@@ -707,27 +810,77 @@ export function ListingForm() {
     setFieldErrors({});
     setFormError(null);
     setSuccessSlug(null);
+    setPublishedCard(null);
   }
 
   if (successSlug) {
     return (
-      <div
-        className="mx-auto max-w-3xl rounded-card border border-line bg-card px-6 py-10 text-center"
-        role="status"
-      >
-        <p className="text-lg font-extrabold">آگهی شما منتشر شد</p>
-        <p className="mt-1 text-sm text-muted">آگهی بلافاصله در فهرست نمایش داده می‌شود.</p>
-        <div className="mt-5 flex flex-wrap justify-center gap-3">
-          <a href={`/listing/${successSlug}`} className="btn-cta text-sm">
-            مشاهده آگهی
-          </a>
-          <a href="/profile/listings" className="btn-ghost text-sm">
-            آگهی‌های من
-          </a>
-          <button type="button" onClick={resetForm} className="btn-ghost text-sm">
-            ثبت آگهی دیگر
-          </button>
+      <div className="mx-auto max-w-4xl space-y-5" role="status">
+        <div className="rounded-card border border-line bg-card px-5 py-6 text-center sm:px-8">
+          <span className="mx-auto flex h-12 w-12 items-center justify-center rounded-full bg-cta-soft text-cta">
+            <Icon name="checkCircle" size={26} />
+          </span>
+          <p className="mt-3 text-lg font-extrabold">آگهی شما منتشر شد</p>
+          <p className="mt-1 text-sm text-muted">
+            همین حالا در فهرست دیده می‌شود؛ از همین صفحه ویرایش یا حذفش کنید.
+          </p>
         </div>
+
+        {publishedCard && (
+          <div className="grid gap-4 sm:grid-cols-[minmax(0,260px)_minmax(0,1fr)]">
+            {/* A real card, not a mock: same component as the catalogue. */}
+            <div className="[&>article]:h-full">
+              <ListingCard listing={publishedCard} />
+            </div>
+            <div className="rounded-card border border-line bg-card p-4 sm:p-5">
+              <h2 className="text-sm font-extrabold text-ink">جزئیات آگهی</h2>
+              <dl className="mt-3 grid grid-cols-2 gap-2 text-xs">
+                <div className="rounded-field border border-line bg-page p-2.5">
+                  <dt className="font-bold text-muted">قیمت</dt>
+                  <dd className="mt-1 font-extrabold text-ink">
+                    <PriceText irr={publishedCard.priceIRR} hideAed={publishedCard.hideAed} />
+                  </dd>
+                </div>
+                <div className="rounded-field border border-line bg-page p-2.5">
+                  <dt className="font-bold text-muted">شهر</dt>
+                  <dd className="mt-1 font-extrabold text-ink">
+                    {CITY_LABELS[publishedCard.city] ?? publishedCard.city}
+                  </dd>
+                </div>
+                <div className="rounded-field border border-line bg-page p-2.5">
+                  <dt className="font-bold text-muted">وضعیت</dt>
+                  <dd className="mt-1 font-extrabold text-ink">
+                    {publishedCard.condition === 'new' ? 'نو' : 'کارکرده'}
+                  </dd>
+                </div>
+                <div className="rounded-field border border-line bg-page p-2.5">
+                  <dt className="font-bold text-muted">شماره تماس</dt>
+                  <dd className="mt-1 font-extrabold text-ink">
+                    {publishedCard.allowPhoneReveal ? 'نمایش داده می‌شود' : 'فقط چت داخلی'}
+                  </dd>
+                </div>
+              </dl>
+              <div className="mt-4 flex flex-wrap items-center gap-2">
+                <a href={`/edit/${publishedCard.id}`} className="btn-ghost text-sm">
+                  <Icon name="pencil" size={16} />
+                  ویرایش آگهی
+                </a>
+                <DeleteListingButton
+                  id={publishedCard.id}
+                  redirectTo="/profile/listings"
+                  compact
+                />
+                <a href={`/listing/${successSlug}`} className="btn-cta text-sm">
+                  مشاهده در سایت
+                </a>
+                <button type="button" onClick={resetForm} className="btn-ghost text-sm">
+                  <Icon name="plus" size={16} />
+                  ثبت آگهی دیگر
+                </button>
+              </div>
+            </div>
+          </div>
+        )}
       </div>
     );
   }
@@ -848,13 +1001,19 @@ export function ListingForm() {
                 />
               </Field>
 
-              <Field htmlFor="trim" label="تیپ (اختیاری)" error={fieldErrors['vehicle.trim']}>
-                <input
-                  id="trim"
-                  className="field"
-                  value={draft.trim}
-                  onChange={(e) => set('trim', e.target.value)}
-                  placeholder="مثلاً VXR یا S 500"
+              <Field
+                htmlFor="bodyType"
+                label="تیپ / کلاس بدنه"
+                required
+                error={fieldErrors['vehicle.bodyType']}
+              >
+                <CustomSelect
+                  id="bodyType"
+                  value={draft.bodyType}
+                  onChange={(next) => set('bodyType', next)}
+                  options={bodyTypeOptions}
+                  placeholder="کلاس بدنه را انتخاب کنید…"
+                  invalid={Boolean(fieldErrors['vehicle.bodyType'])}
                 />
               </Field>
 
@@ -887,8 +1046,9 @@ export function ListingForm() {
                   inputMode="numeric"
                   className="field"
                   value={draft.mileageKm}
-                  onChange={(e) => set('mileageKm', e.target.value)}
-                  placeholder="مثلاً ۵۸۰۰۰"
+                  onChange={(e) => set('mileageKm', groupTypedAmount(e.target.value))}
+                  placeholder="مثلاً 58,000"
+                  dir="ltr"
                 />
               </Field>
 
@@ -917,8 +1077,8 @@ export function ListingForm() {
                       className="field"
                       dir="ltr"
                       value={draft.engineCc}
-                      onChange={(e) => set('engineCc', e.target.value)}
-                      placeholder={draft.fuel === 'electric' ? '3000' : '890'}
+                      onChange={(e) => set('engineCc', groupTypedAmount(e.target.value))}
+                      placeholder={draft.fuel === 'electric' ? '3,000' : '890'}
                     />
                   </Field>
 
@@ -971,27 +1131,12 @@ export function ListingForm() {
                       className="field"
                       dir="ltr"
                       value={draft.workingHours}
-                      onChange={(e) => set('workingHours', e.target.value)}
-                      placeholder="9800"
+                      onChange={(e) => set('workingHours', groupTypedAmount(e.target.value))}
+                      placeholder="9,800"
                     />
                   </Field>
                 </>
               )}
-
-              <Field
-                htmlFor="gearbox"
-                label={category === 'motorcycle' ? 'گیربکس / انتقال قدرت' : 'گیربکس'}
-                required
-                error={fieldErrors['vehicle.gearbox']}
-              >
-                <CustomSelect
-                  id="gearbox"
-                  value={draft.gearbox}
-                  onChange={(next) => set('gearbox', next)}
-                  options={gearboxOptions}
-                  invalid={Boolean(fieldErrors['vehicle.gearbox'])}
-                />
-              </Field>
 
               <Field
                 htmlFor="fuel"
@@ -1008,13 +1153,19 @@ export function ListingForm() {
                 />
               </Field>
 
-              <Field htmlFor="color" label="رنگ" required error={fieldErrors['vehicle.color']}>
-                <CustomSelect
+              <Field
+                htmlFor="color"
+                label="رنگ"
+                required
+                hint="رنگ دقیق را خودتان بنویسید؛ همان عبارت در آگهی نمایش داده می‌شود."
+                error={fieldErrors['vehicle.color']}
+              >
+                <input
                   id="color"
+                  className="field"
                   value={draft.color}
-                  onChange={(next) => set('color', next)}
-                  options={colorOptions}
-                  invalid={Boolean(fieldErrors['vehicle.color'])}
+                  onChange={(e) => set('color', e.target.value)}
+                  placeholder="مثلاً سفید صدفی، مشکی متالیک..."
                 />
               </Field>
 
@@ -1141,18 +1292,21 @@ export function ListingForm() {
               />
             </Field>
 
-            <Field htmlFor="partOrigin" label="منشأ" required error={fieldErrors.origin}>
-              <CustomSelect
-                id="partOrigin"
-                value={partDraft.origin}
-                onChange={(next) => setPart('origin', next)}
-                options={partOriginOptions}
-                placeholder="منشأ قطعه…"
-                invalid={Boolean(fieldErrors.origin)}
+            <Field
+              htmlFor="partOriginCountry"
+              label="کشور سازنده"
+              error={fieldErrors.originCountry}
+            >
+              <input
+                id="partOriginCountry"
+                className="field"
+                value={partDraft.originCountry}
+                onChange={(e) => setPart('originCountry', e.target.value)}
+                placeholder="مثلاً ژاپن، آلمان، امارات..."
               />
             </Field>
 
-            <Field htmlFor="partCondition" label="وضعیت" required error={fieldErrors.condition}>
+            <Field htmlFor="partCondition" label="وضعیت قطعه" required error={fieldErrors.condition}>
               <CustomSelect
                 id="partCondition"
                 value={partDraft.condition}
@@ -1160,6 +1314,17 @@ export function ListingForm() {
                 options={partConditionOptions}
                 placeholder="وضعیت قطعه…"
                 invalid={Boolean(fieldErrors.condition)}
+              />
+            </Field>
+
+            <Field htmlFor="partOrigin" label="اصالت قطعه" required error={fieldErrors.origin}>
+              <CustomSelect
+                id="partOrigin"
+                value={partDraft.origin}
+                onChange={(next) => setPart('origin', next)}
+                options={partAuthenticityOptions}
+                placeholder="اصالت قطعه…"
+                invalid={Boolean(fieldErrors.origin)}
               />
             </Field>
 
@@ -1176,7 +1341,7 @@ export function ListingForm() {
         )}
       </StepCard>
 
-      <StepCard step={3} title="قیمت، عکس و تماس">
+      <StepCard step={3}>
         <Section title="قیمت، شهر و تماس">
           <div className="col-span-full flex flex-wrap items-center gap-2" role="group" aria-label="واحد قیمت">
             {(
@@ -1265,17 +1430,19 @@ export function ListingForm() {
             </span>
           </label>
 
+          {/* Phone visibility is ON by default; the checkbox is the opt-out. */}
           <label className="col-span-full flex cursor-pointer items-start gap-2 text-sm font-semibold">
             <input
               type="checkbox"
-              checked={draft.allowPhoneReveal}
-              onChange={(e) => set('allowPhoneReveal', e.target.checked)}
+              checked={!draft.allowPhoneReveal}
+              onChange={(e) => set('allowPhoneReveal', !e.target.checked)}
               className="mt-1 accent-[var(--color-accent)]"
             />
             <span>
-              شماره تماس من در آگهی نمایش داده شود
+              عدم نمایش شماره تماس در آگهی (فقط چت درون‌برنامه‌ای)
               <span className="hint mt-0 block">
-                در غیر این صورت، خریداران فقط از طریق پیام‌رسان داخلی با شما تماس می‌گیرند.
+                به‌صورت پیش‌فرض شماره تماس شما نمایش داده می‌شود؛ با تیک زدن این گزینه، خریداران فقط
+                از طریق پیام‌رسان داخلی با شما در تماس خواهند بود.
               </span>
             </span>
           </label>
@@ -1286,7 +1453,6 @@ export function ListingForm() {
             className="col-span-full"
             htmlFor="description"
             label="توضیحات آگهی (اختیاری)"
-            hint={`اختیاری است و حداقل نویسه ندارد — اکنون ${toPersianDigits(draft.description.trim().length)} نویسه`}
             error={fieldErrors['description']}
           >
             <textarea

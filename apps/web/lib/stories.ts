@@ -34,12 +34,18 @@ export function storiesFrom(
     seen.add(listing.slug);
     return true;
   });
-  return source.slice(0, limit).map((listing) => ({
-    slug: listing.slug,
-    title: storyTitle(listing),
-    coverUrl: listing.coverUrl!,
-    href: `/listing/${listing.slug}`,
-    // The rail's ring takes the marque colour.
-    brand: listing.brand,
-  }));
+  return source.slice(0, limit).map((listing) => {
+    // A listing may carry a clip; the story then plays it in the viewer while
+    // the cover (always a photo) stays the circle artwork.
+    const clip = (listing.photos ?? []).find((url) => /\.(mp4|webm|mov)(\?|$)/i.test(url));
+    return {
+      slug: listing.slug,
+      title: storyTitle(listing),
+      coverUrl: listing.coverUrl!,
+      href: `/listing/${listing.slug}`,
+      // The rail's ring takes the marque colour.
+      brand: listing.brand,
+      ...(clip ? { videoUrl: clip } : {}),
+    };
+  });
 }

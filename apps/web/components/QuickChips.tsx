@@ -24,7 +24,7 @@ export function QuickChips({
   const chips = [
     { id: 'new', label: 'نو', active: conditionNew, apply: () => onChange({ ...filters, condition: conditionNew ? [] : ['new'] }) },
     { id: 'used', label: 'کارکرده', active: conditionUsed, apply: () => onChange({ ...filters, condition: conditionUsed ? [] : ['used'] }) },
-    { id: 'kish', label: 'پلاک کیش', active: kishPlate, apply: () => onChange({ ...filters, plateType: kishPlate ? [] : ['kish'] }) },
+    { id: 'kish', label: 'پلاک منطقه آزاد', active: kishPlate, apply: () => onChange({ ...filters, plateType: kishPlate ? [] : ['kish'] }) },
     { id: 'all-plates', label: 'همه‌ی پلاک‌ها', active: anyPlate, apply: () => onChange({ ...filters, plateType: [] }) },
   ];
 

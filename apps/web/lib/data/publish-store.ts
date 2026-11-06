@@ -1,4 +1,9 @@
-import type { ListingPhoto, ListingPublish, PartListingPublish } from '@alisales/schemas';
+import {
+  toLegacyColorSlug,
+  type ListingPhoto,
+  type ListingPublish,
+  type PartListingPublish,
+} from '@alisales/schemas';
 import { admin } from './s2-store';
 import type { ListingCardData } from './listings';
 import { addDevListing } from './dev-store';
@@ -92,7 +97,9 @@ export async function publishHosted(input: HostedPublishInput): Promise<string> 
         mileage_km: vehicle.mileageKm,
         gearbox: vehicle.gearbox,
         fuel: vehicle.fuel,
-        color: vehicle.color,
+        // The hosted column is still the colour enum; the seller's exact words
+        // live on the card in fixture mode.
+        color: toLegacyColorSlug(vehicle.color),
         condition: vehicle.condition,
         plate_type: vehicle.plateType,
       })

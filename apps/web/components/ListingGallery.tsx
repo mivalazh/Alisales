@@ -5,6 +5,11 @@ import { useRef, useState } from 'react';
 import { Icon } from './Icon';
 import { isPreSizedSource } from '@/lib/images';
 
+/** Clips are stored with their own extension; the gallery treats them as video. */
+function isVideoUrl(url: string): boolean {
+  return /\.(mp4|webm|mov)(\?|$)/i.test(url);
+}
+
 /**
  * Detail-page gallery: one hero frame with next/prev arrows, a thumbnail strip
  * that jumps to a photo, and horizontal swipe on touch devices. The hero keeps
@@ -45,15 +50,25 @@ export function ListingGallery({
         }}
       >
         {current ? (
-          <Image
-            src={current}
-            alt={alt}
-            fill
-            sizes="(min-width: 1024px) 58vw, 100vw"
-            unoptimized={isPreSizedSource(current)}
-            priority
-            className={`object-cover ${sold ? 'opacity-60 grayscale' : ''}`}
-          />
+          isVideoUrl(current) ? (
+            <video
+              src={current}
+              controls
+              playsInline
+              preload="metadata"
+              className="h-full w-full bg-black object-contain"
+            />
+          ) : (
+            <Image
+              src={current}
+              alt={alt}
+              fill
+              sizes="(min-width: 1024px) 58vw, 100vw"
+              unoptimized={isPreSizedSource(current)}
+              priority
+              className={`object-cover ${sold ? 'opacity-60 grayscale' : ''}`}
+            />
+          )
         ) : (
           <div className="flex h-full flex-col items-center justify-center gap-2 text-faint">
             <Icon name="camera" size={40} />
@@ -99,14 +114,23 @@ export function ListingGallery({
                   i === index ? 'border-cta ring-1 ring-cta' : 'border-line hover:border-line-strong'
                 }`}
               >
-                <Image
-                  src={url}
-                  alt={`${alt} — عکس ${i + 1}`}
-                  fill
-                  sizes="(min-width: 1024px) 14vw, 25vw"
-                  unoptimized={isPreSizedSource(url)}
-                  className="object-cover"
-                />
+                {isVideoUrl(url) ? (
+                  <>
+                    <video src={url} muted playsInline preload="metadata" className="h-full w-full object-cover" />
+                    <span className="absolute inset-0 flex items-center justify-center bg-black/30 text-white">
+                      <Icon name="grid" size={16} />
+                    </span>
+                  </>
+                ) : (
+                  <Image
+                    src={url}
+                    alt={`${alt} — عکس ${i + 1}`}
+                    fill
+                    sizes="(min-width: 1024px) 14vw, 25vw"
+                    unoptimized={isPreSizedSource(url)}
+                    className="object-cover"
+                  />
+                )}
               </button>
             </li>
           ))}

@@ -4,7 +4,7 @@ import {
   DEFAULT_FILTERS,
   featureFlags,
   filtersToRpcPayload,
-  type ColorSlug,
+  type BodyType,
   type Condition,
   type Fuel,
   type Gearbox,
@@ -29,6 +29,8 @@ export interface PartInfo {
   title: string;
   category: PartCategory;
   origin: PartOrigin;
+  /** Country of manufacture typed by the seller («ژاپن»، «آلمان»). */
+  originCountry?: string | null;
   condition: PartCondition;
   partNumber: string | null;
   compatibility: string | null;
@@ -60,7 +62,10 @@ export interface ListingCardData {
   mileageKm: number;
   gearbox: Gearbox;
   fuel: Fuel;
-  color: ColorSlug;
+  /** Free-text colour for new rows; legacy rows carry a colour slug. */
+  color: string;
+  /** Standard body class (تیپ / کلاس بدنه) when the seller picked one. */
+  bodyType?: BodyType | null;
   condition: Condition;
   plateType: PlateType;
   /** Public storage URL, or null (no photo / credential-less fixture mode). */
@@ -115,7 +120,7 @@ interface ListingCardRow {
   mileage_km: number;
   gearbox: Gearbox;
   fuel: Fuel;
-  color: ColorSlug;
+  color: string;
   condition: Condition;
   plate_type: PlateType;
   cover_photo_path: string | null;

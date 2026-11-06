@@ -2,6 +2,7 @@
 
 import {
   BIKE_TYPE_LABELS,
+  BODY_TYPE_LABELS,
   BRAND_LABELS,
   CITY_LABELS,
   CONDITION_LABELS,
@@ -45,6 +46,13 @@ export function FilterChips({
       id: `brand-${brand}`,
       label: BRAND_LABELS[brand] ?? brand,
       clear: (f) => ({ ...f, brand: f.brand.filter((b) => b !== brand) }),
+    });
+  }
+  for (const body of filters.bodyType) {
+    chips.push({
+      id: `body-${body}`,
+      label: BODY_TYPE_LABELS[body],
+      clear: (f) => ({ ...f, bodyType: f.bodyType.filter((v) => v !== body) }),
     });
   }
   if (filters.model) {
@@ -146,7 +154,7 @@ export function FilterChips({
     chips.push({ id: 'hasReport', label: 'دارای گزارش بازرسی', clear: (f) => ({ ...f, hasReport: false }) });
   }
   if (filters.kishOnly) {
-    chips.push({ id: 'kishOnly', label: 'فقط پلاک کیش', clear: (f) => ({ ...f, kishOnly: false }) });
+    chips.push({ id: 'kishOnly', label: 'فقط پلاک منطقه آزاد', clear: (f) => ({ ...f, kishOnly: false }) });
   }
   if (filters.q) {
     chips.push({ id: 'q', label: `جستجو: ${filters.q}`, clear: (f) => ({ ...f, q: '' }) });
@@ -172,6 +180,7 @@ export function FilterChips({
           onChange({
             ...filters,
             brand: [],
+            bodyType: [],
             model: '',
             trim: '',
             yearFrom: undefined,

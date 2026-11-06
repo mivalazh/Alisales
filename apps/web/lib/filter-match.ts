@@ -1,4 +1,4 @@
-import type { SearchFilters } from '@alisales/schemas';
+import { fuzzySearchMatch, type SearchFilters } from '@alisales/schemas';
 
 /**
  * Pure filter predicate shared by the server search and the client filter
@@ -24,6 +24,7 @@ export interface FilterableListing {
   fuel?: string;
   plateType: string;
   condition: string;
+  bodyType?: string | null;
   hasReport: boolean;
   /** Category-specific specs — absent on cars and parts. */
   category?: 'car' | 'motorcycle' | 'heavy';
@@ -37,6 +38,9 @@ export function matchesFilters(listing: FilterableListing, f: SearchFilters): bo
   if (f.city.length && !f.city.includes(listing.city)) return false;
   if (f.kishOnly && listing.city !== 'kish') return false;
   if (f.brand.length && !f.brand.some((b) => b === listing.brand)) return false;
+  if (f.bodyType.length && !(f.bodyType as readonly string[]).includes(listing.bodyType ?? '')) {
+    return false;
+  }
   if (f.model && !listing.model.toLowerCase().includes(f.model.toLowerCase())) return false;
   if (f.trim && !(listing.trim ?? '').toLowerCase().includes(f.trim.toLowerCase())) return false;
   if (f.yearFrom !== undefined && listing.year < f.yearFrom) return false;
@@ -71,7 +75,9 @@ export function matchesFilters(listing: FilterableListing, f: SearchFilters): bo
     if ((listing.workingHours ?? 0) > f.workingHoursMax) return false;
   }
   if (f.hasReport && !listing.hasReport) return false;
-  if (f.q && !`${listing.model} ${listing.trim ?? ''} ${listing.brand}`.includes(f.q)) {
+  // Free-text query is fuzzy and bilingual: «لندکروز» / «landcruiser» with a
+  // typo both hit a «Land Cruiser VXR» row (see @alisales/schemas/search).
+  if (f.q && !fuzzySearchMatch(`${listing.brand} ${listing.model} ${listing.trim ?? ''}`, f.q)) {
     return false;
   }
   return true;

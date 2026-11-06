@@ -220,7 +220,7 @@ export function FilterPanel({
             />
             <CheckRow
               checked={filters.kishOnly}
-              label="فقط پلاک کیش"
+              label="فقط پلاک منطقه آزاد"
               onToggle={() => onChange({ ...filters, kishOnly: !filters.kishOnly })}
             />
           </div>
