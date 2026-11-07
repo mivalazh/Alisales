@@ -23,6 +23,7 @@ export function PartsCatalog({
   origin,
   warranty,
   compatibility,
+  condition,
 }: {
   listings: ListingCardData[];
   pool: ListingCardData[];
@@ -33,6 +34,7 @@ export function PartsCatalog({
   origin: string | null;
   warranty: boolean;
   compatibility: string;
+  condition: string | null;
 }) {
   return (
     <Catalog
@@ -55,6 +57,7 @@ export function PartsCatalog({
           origin={origin}
           warranty={warranty}
           compatibility={compatibility}
+          condition={condition}
           filters={current}
           onChange={commitFilters}
         />

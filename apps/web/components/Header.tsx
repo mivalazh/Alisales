@@ -143,6 +143,7 @@ export function Header({
   const [menuOpen, setMenuOpen] = useState(false);
   const pathname = usePathname();
   const isActive = useActivePath();
+  const rentMode = Boolean(pathname?.startsWith('/rent'));
 
   useEffect(() => {
     setMenuOpen(false);
@@ -194,13 +195,25 @@ export function Header({
           </div>
 
           <div className="ms-auto flex min-w-0 items-center gap-2">
+            {/* Bridge between the classifieds and the rental sister site — one
+                compact pill, never mixed feeds. */}
+            <Link
+              href={rentMode ? '/' : '/rent'}
+              aria-label={rentMode ? 'بازگشت به خرید و فروش' : 'ورود به رنت خودرو و موتور'}
+              className="inline-flex shrink-0 items-center gap-1 whitespace-nowrap rounded-[var(--radius-pill)] border border-[#064E3B]/25 bg-[#ECFDF5] px-2.5 py-1.5 text-[10px] font-extrabold text-[#064E3B] transition hover:border-[#064E3B]/50 sm:text-xs dark:border-[#047857]/50 dark:bg-[#064E3B]/30 dark:text-[#A7F3D0]"
+            >
+              <span className="sm:hidden">{rentMode ? '🚗 خرید و فروش' : '🔑 رنت'}</span>
+              <span className="hidden sm:inline">
+                {rentMode ? '🚗 بازگشت به خرید و فروش (Ali Sales)' : '🔑 رنت خودرو و موتور'}
+              </span>
+            </Link>
             {/* The lockup ships fixed 460×180 attributes; this box clips it to
                 the 36px header mark so a stylesheet hiccup can never let the
                 mark spill over the buttons on a narrow phone. */}
             <Link
               href="/"
               aria-label="Ali Sales — صفحه اصلی"
-              className="flex h-9 min-w-0 max-w-[46vw] shrink items-center overflow-hidden sm:max-w-none [&>svg]:h-9 [&>svg]:w-auto"
+              className="flex h-9 min-w-0 max-w-[38vw] shrink items-center overflow-hidden sm:max-w-none [&>svg]:h-9 [&>svg]:w-auto"
               dangerouslySetInnerHTML={{ __html: logoSvgDocument(LOCKUP, 'Ali Sales') }}
             />
           </div>

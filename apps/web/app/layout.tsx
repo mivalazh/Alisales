@@ -5,6 +5,7 @@ import './globals.css';
 import { Header } from '@/components/Header';
 import { AppFooter } from '@/components/AppFooter';
 import { BottomNav } from '@/components/BottomNav';
+import { AIAssistantWidget } from '@/components/AIAssistantWidget';
 import { themeBootstrapScript } from '@/components/ThemeToggle';
 import { PriceUnitProvider } from '@/components/PriceUnitProvider';
 import { RateProvider } from '@/components/RateProvider';
@@ -61,6 +62,7 @@ export default async function RootLayout({ children }: { children: ReactNode }) 
             </main>
             <AppFooter />
             <BottomNav />
+            <AIAssistantWidget />
           </PriceUnitProvider>
         </RateProvider>
       </body>

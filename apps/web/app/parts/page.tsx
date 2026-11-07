@@ -1,13 +1,7 @@
 import type { Metadata } from 'next';
-import Link from 'next/link';
-import {
-  DEFAULT_FILTERS,
-  PART_CATEGORY_LABELS,
-  parseFiltersFromSearchParams,
-} from '@alisales/schemas';
+import { DEFAULT_FILTERS, parseFiltersFromSearchParams } from '@alisales/schemas';
 import { PartsCatalog } from '@/components/PartsCatalog';
 import { CategorySwitch } from '@/components/CategorySwitch';
-import { Icon } from '@/components/Icon';
 import {
   filterByPartCategory,
   filterPartsByAttributes,
@@ -66,6 +60,9 @@ export default async function PartsPage({
   const origin = first(params.origin) ?? null;
   const warranty = first(params.warranty) === '1';
   const compatibility = first(params.compat) ?? '';
+  // «وضعیت قطعه» is its own three-state parts control (new / stock / used) and
+  // deliberately separate from the vehicle condition filter.
+  const condition = first(params.pcond) ?? null;
 
   const session = await getSession();
   const followed = followedSellerIds(session?.sub);
@@ -81,6 +78,7 @@ export default async function PartsPage({
     origin,
     warrantyOnly: warranty,
     compatibility,
+    condition,
   });
 
   const partPool = pool.filter((listing) => listing.kind === 'part');
@@ -89,24 +87,7 @@ export default async function PartsPage({
 
   return (
     <div className="space-y-4">
-      <div className="flex flex-wrap items-end justify-between gap-2">
-        <div>
-          <h1 className="text-xl font-extrabold sm:text-2xl">قطعات و لوازم یدکی</h1>
-          <p className="mt-1 text-sm text-muted">
-            {category
-              ? PART_CATEGORY_LABELS[category]
-              : 'قطعات اصلی و استوک برای خودروهای وارداتی'}{' '}
-            · {listings.length.toLocaleString('en-US')} آگهی
-          </p>
-        </div>
-        <Link
-          href="/cars"
-          className="inline-flex items-center gap-1.5 text-sm font-bold text-muted transition hover:text-ink"
-        >
-          <Icon name="car" size={16} />
-          خودروها
-        </Link>
-      </div>
+      <h1 className="text-xl font-extrabold sm:text-2xl">قطعات و لوازم یدکی</h1>
 
       <CategorySwitch />
 
@@ -120,6 +101,7 @@ export default async function PartsPage({
         origin={origin}
         warranty={warranty}
         compatibility={compatibility}
+        condition={condition}
       />
     </div>
   );

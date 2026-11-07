@@ -48,7 +48,8 @@ describe('parts labels', () => {
     });
     expect(PART_CONDITION_LABELS).toEqual({
       new: 'نو / آکبند',
-      used: 'کارکرده / در حد نو',
+      stock: 'استوک (اصلی وارداتی)',
+      used: 'کارکرده',
     });
   });
 });
@@ -83,6 +84,11 @@ describe('partListingPublishSchema', () => {
     expect(parsed.partNumber).toBe('AB-1234');
     expect(parsed.compatibility).toBe('پژو 206 تیپ 2');
     expect(parsed.warranty).toBe('6 ماه');
+  });
+
+  it('accepts the imported-stock condition as its own state', () => {
+    const parsed = partListingPublishSchema.parse({ ...base, condition: 'stock' });
+    expect(parsed.condition).toBe('stock');
   });
 
   it('rejects an unknown category, origin or condition', () => {

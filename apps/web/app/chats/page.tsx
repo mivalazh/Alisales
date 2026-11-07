@@ -56,15 +56,19 @@ export default async function ChatsPage() {
       <h1 className="text-xl font-extrabold">چت‌ها</h1>
 
       {rows.length === 0 ? (
-        <div className="rounded-card border border-dashed border-line-strong bg-card px-6 py-16 text-center">
-          <Icon name="message" size={40} className="mx-auto text-faint" />
-          <p className="mt-4 font-extrabold">هنوز گفتگویی ندارید.</p>
-          <p className="mt-1 text-sm text-muted">
-            از صفحه‌ی هر آگهی می‌توانید گفتگو با آگهی‌دهنده را شروع کنید.
-          </p>
-          <Link href="/" className="btn-cta mt-6 inline-flex text-sm">
-            مرور آگهی‌ها
-          </Link>
+        /* Same warm surface + white inner card as /favorites, so the two empty
+           screens read as one product rather than two templates. */
+        <div className="rounded-card border border-line bg-[var(--color-page)] p-2">
+          <div className="rounded-card border border-dashed border-line-strong bg-card px-6 py-16 text-center">
+            <Icon name="message" size={40} className="mx-auto text-faint" />
+            <p className="mt-4 font-extrabold">هنوز گفتگویی ندارید.</p>
+            <p className="mt-1 text-sm text-muted">
+              از صفحه‌ی هر آگهی می‌توانید گفتگو با آگهی‌دهنده را شروع کنید.
+            </p>
+            <Link href="/" className="btn-cta mt-6 inline-flex text-sm">
+              مرور آگهی‌ها
+            </Link>
+          </div>
         </div>
       ) : (
         <ul className="flex flex-col gap-2">

@@ -58,9 +58,9 @@ export function PriceText({
       <span
         dir="ltr"
         className={`whitespace-nowrap font-extrabold tabular-nums tracking-tight ${
-          // Cards stay at 14px: an 11-digit Toman figure plus «تومان» must fit
-          // inside a 167px card column at 1280px without spilling out.
-          size === 'lg' ? 'text-xl sm:text-2xl' : 'text-[13px] sm:text-[14px]'
+          // Cards scale with the column: 15px on a phone, 17px on a tablet and
+          // lg on desktop — crisp enough to be the first thing read.
+          size === 'lg' ? 'text-xl sm:text-2xl' : 'text-[15px] sm:text-[17px] lg:text-lg'
         }`}
         style={{ color: sold ? SECONDARY_INK : PRICE_INK }}
       >

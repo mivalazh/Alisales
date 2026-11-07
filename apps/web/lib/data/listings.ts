@@ -4,6 +4,7 @@ import {
   DEFAULT_FILTERS,
   featureFlags,
   filtersToRpcPayload,
+  searchRelevance,
   type BodyType,
   type Condition,
   type Fuel,
@@ -244,9 +245,44 @@ export function applyFiltersLocally(
   category?: VehicleCategory,
 ): ListingCardData[] {
   const effective = launchFilters(filters);
-  return list
-    .filter((l) => matchesFilters(l, effective) && inBrowseCategory(l, category))
-    .sort(soldLastThenRecency);
+  const matched = list.filter(
+    (l) => matchesFilters(l, effective) && inBrowseCategory(l, category),
+  );
+  // With a query the relevance band leads (sold still last inside a band);
+  // without one the normal sold-last/featured/recency order is the ranking.
+  return filters.q?.trim() ? rankSearch(matched, filters.q) : matched.sort(soldLastThenRecency);
+}
+
+/**
+ * Relevance ranking for a typed query.
+ *
+ * Exact / prefix hits on brand, model and title score 100, synonym hits 70 and
+ * typo-tolerant hits 40 (see SEARCH_SCORE). Sorting by that score first means
+ * «لندکروزر» can never be out-ranked by a newer listing that merely contains a
+ * fuzzy variant, while a query-less browse keeps the normal ranking untouched.
+ * `sortListings` is stable, so within one band the sold-last/recency order of
+ * `soldLastThenRecency` still decides.
+ */
+export function rankSearch(
+  list: ListingCardData[],
+  query: string | undefined,
+): ListingCardData[] {
+  if (!query?.trim()) return list;
+  const scored = list.map((listing, index) => ({
+    listing,
+    index,
+    score: searchRelevance(query, [
+      listing.brand,
+      listing.model,
+      listing.trim,
+      listing.part?.title,
+      listing.part?.compatibility,
+    ]),
+  }));
+  scored.sort(
+    (a, b) => b.score - a.score || soldLastThenRecency(a.listing, b.listing) || a.index - b.index,
+  );
+  return scored.map((entry) => entry.listing);
 }
 
 /** Same ranking shape as the RPC: sold last, then most recent first. */
@@ -297,9 +333,10 @@ export async function searchListings(
   // The hosted view has no category column yet, so every vehicle row reads as a
   // car; keeping the narrowing here means the three category pages share one
   // code path online and offline.
-  return (data as unknown as ListingCardRow[])
-    .map(mapRow)
-    .filter((l) => inBrowseCategory(l, category));
+  return rankSearch(
+    (data as unknown as ListingCardRow[]).map(mapRow).filter((l) => inBrowseCategory(l, category)),
+    filters.q,
+  );
 }
 
 /**

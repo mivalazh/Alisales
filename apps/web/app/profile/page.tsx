@@ -87,6 +87,18 @@ export default async function ProfilePage() {
       icon: 'message',
     },
     {
+      href: '/inspection',
+      label: 'کارشناسی تعمیرگاه شمس‌اله',
+      hint: 'رزرو نوبت با ۲۰٪ تخفیف ویژه کاربران سایت',
+      icon: 'shieldCheck',
+    },
+    {
+      href: '/rent',
+      label: 'رنت خودرو و موتور',
+      hint: 'اجاره خودرو و اسکوتر برقی در کیش',
+      icon: 'plate',
+    },
+    {
       href: '/profile/settings',
       label: 'تنظیمات حساب',
       hint: 'نام نمایشی، رمز عبور و شماره تماس',
@@ -96,8 +108,8 @@ export default async function ProfilePage() {
       ? [
           {
             href: '/admin',
-            label: 'پنل مدیریت',
-            hint: 'گزارش‌ها، احراز و داستان‌ها',
+            label: 'مرکز کنترل مالک',
+            hint: 'آگهی‌ها، استوری‌ها، کارشناسی، نرخ درهم و صندوق پیام‌ها',
             icon: 'gear' as IconName,
           },
         ]
@@ -127,15 +139,11 @@ export default async function ProfilePage() {
               {ACCOUNT_TYPE_LABELS[session.accountType]}
             </p>
           </div>
-          <Link
-            href={`/seller/${session.sub}`}
-            className="flex h-10 w-10 shrink-0 items-center justify-center rounded-full border border-line text-muted transition hover:border-line-strong hover:text-ink"
-            aria-label="نمایش پروفایل عمومی"
-            title="پروفایل عمومی"
-          >
-            <Icon name="user" size={18} />
-          </Link>
         </div>
+
+        {/* The unexplained circular icon that used to sit here led to the public
+            profile; that link lives in the shortcuts list below with a label. */}
+
 
         <dl className="mt-4 grid grid-cols-2 gap-2 sm:grid-cols-4">
           {[

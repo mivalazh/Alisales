@@ -194,6 +194,72 @@ export function fuzzySearchMatch(text: string, query: string): boolean {
   return queryTokens.every((token) => tokenMatches(token, textTokens));
 }
 
+/**
+ * Relevance bands for ranked search.
+ *
+ * Exact / prefix hits on brand, model or title are what a buyer means, a
+ * translated synonym («لندکروز» → Land Cruiser) is the next best thing, and a
+ * typo-tolerant hit is a last resort. The three bands keep a typo from
+ * outranking an exact match just because it is newer.
+ */
+export const SEARCH_SCORE = { exact: 100, synonym: 70, fuzzy: 40 } as const;
+
+/** Best relevance of `query` against one field, 0 when it does not match. */
+function fieldRelevance(field: string, query: string): number {
+  const text = normalizeSearchText(field);
+  const q = normalizeSearchText(query);
+  if (!q || !text) return 0;
+
+  if (text === q || text.startsWith(q) || text.includes(q)) return SEARCH_SCORE.exact;
+
+  const textTokens = text.split(' ');
+  const compactQuery = compactSearchText(q);
+  if (
+    compactQuery &&
+    textTokens.some((token) => {
+      const compact = compactSearchText(token);
+      return compact === compactQuery || compact.startsWith(compactQuery);
+    })
+  ) {
+    return SEARCH_SCORE.exact;
+  }
+
+  // A synonym anywhere in the field beats a typo but never an exact hit.
+  const queryTokens = q.split(' ').filter(Boolean);
+  const synonymHit = queryTokens.some((token) => {
+    const stories = compactSearchText(token);
+    const candidates = [stories, ...(SYNONYMS.get(stories) ?? [])];
+    return textTokens.some((textToken) => {
+      const compact = compactSearchText(textToken);
+      return candidates.some(
+        (candidate) => candidate.length >= 2 && (compact === candidate || compact.includes(candidate)),
+      );
+    });
+  });
+  if (synonymHit) return SEARCH_SCORE.synonym;
+
+  return fuzzySearchMatch(field, query) ? SEARCH_SCORE.fuzzy : 0;
+}
+
+/**
+ * Relevance of a listing for a query: the best score across the fields the
+ * buyer can see (brand, model, title). 0 means the fields do not match at all.
+ */
+export function searchRelevance(
+  query: string,
+  fields: readonly (string | null | undefined)[],
+): number {
+  if (!normalizeSearchText(query)) return 0;
+  let best = 0;
+  for (const field of fields) {
+    if (!field) continue;
+    const score = fieldRelevance(field, query);
+    if (score > best) best = score;
+    if (best === SEARCH_SCORE.exact) break;
+  }
+  return best;
+}
+
 /** Suggestions for the search panel: normalized prefix/typo hits. */
 export function fuzzySuggestions(
   query: string,

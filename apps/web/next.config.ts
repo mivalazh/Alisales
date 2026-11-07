@@ -19,6 +19,11 @@ function storageImageHost(): NextConfig['images'] {
 const nextConfig: NextConfig = {
   reactStrictMode: true,
   images: storageImageHost(),
+  // Dev-only host allowlist (preview tunnels). Production never calls next dev.
+  allowedDevOrigins: (process.env.NEXT_DEV_ALLOWED_ORIGINS ?? '')
+    .split(',')
+    .map((origin) => origin.trim())
+    .filter(Boolean),
 };
 
 export default nextConfig;

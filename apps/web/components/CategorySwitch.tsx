@@ -7,38 +7,46 @@ import { usePathname } from 'next/navigation';
  * Top-level category switch: خودرو | موتور و اسکوتر برقی | ماشین‌آلات سنگین |
  * قطعات.
  *
- * One row of four destinations, shared by the home page and every browse page,
- * so a buyer can move between markets without going back through the menu. The
- * tabs are label-only: a decorative outline icon next to every word added
- * noise without adding information.
+ * One hairline bar, shared by the home page and every browse page. The previous
+ * 2×2 boxed grid ate a third of a phone screen before any results; this is a
+ * single 40px row of label-only tabs divided by 1px lines, with the active tab
+ * carrying an orange underline on the ink colour.
  */
-const CATEGORIES: ReadonlyArray<{ href: string; label: string }> = [
-  { href: '/cars', label: 'خودرو' },
-  { href: '/motorcycles', label: 'موتور و اسکوتر برقی' },
-  { href: '/heavy', label: 'ماشین‌آلات سنگین' },
-  { href: '/parts', label: 'قطعات' },
+const CATEGORIES: ReadonlyArray<{ href: string; label: string; short: string }> = [
+  { href: '/cars', label: 'خودرو', short: 'خودرو' },
+  { href: '/motorcycles', label: 'موتور و اسکوتر برقی', short: 'موتور و اسکوتر' },
+  { href: '/heavy', label: 'ماشین‌آلات سنگین', short: 'ماشین‌آلات' },
+  { href: '/parts', label: 'قطعات', short: 'قطعات' },
 ];
 
 export function CategorySwitch() {
   const pathname = usePathname();
 
   return (
-    <nav aria-label="دسته‌بندی‌ها" className="rounded-card border border-line bg-card p-1.5">
-      <ul className="grid grid-cols-2 gap-1 sm:grid-cols-4">
-        {CATEGORIES.map((item) => {
+    <nav aria-label="دسته‌بندی‌ها" className="border-y border-line">
+      <ul className="flex items-stretch overflow-x-auto [scrollbar-width:none] [&::-webkit-scrollbar]:hidden">
+        {CATEGORIES.map((item, index) => {
           const active = pathname === item.href || pathname.startsWith(`${item.href}/`);
           return (
-            <li key={item.href}>
+            <li
+              key={item.href}
+              className={`min-w-0 flex-1 ${index > 0 ? 'border-s border-line' : ''}`}
+            >
               <Link
                 href={item.href}
                 aria-current={active ? 'page' : undefined}
-                className={`flex items-center justify-center rounded-field px-2 py-2.5 text-xs font-extrabold transition sm:text-sm ${
-                  active
-                    ? 'bg-cta-soft text-ink'
-                    : 'text-muted hover:bg-sunken hover:text-ink'
+                className={`relative flex h-10 items-center justify-center px-1 text-center text-[11px] font-extrabold leading-tight transition sm:text-sm ${
+                  active ? 'text-ink' : 'text-muted hover:text-ink'
                 }`}
               >
-                {item.label}
+                <span className="sm:hidden">{item.short}</span>
+                <span className="hidden sm:inline">{item.label}</span>
+                {active && (
+                  <span
+                    aria-hidden
+                    className="absolute inset-x-3 bottom-0 h-0.5 rounded-full bg-[#F98513]"
+                  />
+                )}
               </Link>
             </li>
           );

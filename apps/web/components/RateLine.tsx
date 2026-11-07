@@ -1,14 +1,25 @@
 'use client';
 
-import { formatAedRateLine, formatJalaliDate } from '@alisales/schemas';
+import { formatAedRateLine, formatJalali, toJalali, toPersianDigits } from '@alisales/schemas';
 import { useAedRate } from './RateProvider';
 
-/** «۱۴۰۵/۰۸/۱۳ · ۲۲:۴۵» — the moment the rate on screen was set. */
+/** «۱۴۰۵/۰۸/۱۳ · ۲۲:۴۵» — the moment the rate on screen was set, in Kish time. */
 function updatedLabel(iso: string): string {
   const date = new Date(iso);
   if (Number.isNaN(date.getTime())) return '';
-  const time = date.toLocaleTimeString('fa-IR', { hour: '2-digit', minute: '2-digit' });
-  return `${formatJalaliDate(date)} · ${time}`;
+  // Pin the clock to Iran so the server (UTC) and the browser agree during hydration.
+  const parts = new Intl.DateTimeFormat('en-US', {
+    timeZone: 'Asia/Tehran',
+    year: 'numeric',
+    month: '2-digit',
+    day: '2-digit',
+    hour: '2-digit',
+    minute: '2-digit',
+    hourCycle: 'h23',
+  }).formatToParts(date);
+  const get = (type: Intl.DateTimeFormatPartTypes) => parts.find((part) => part.type === type)?.value ?? '';
+  const jalali = toJalali(Number(get('year')), Number(get('month')), Number(get('day')));
+  return `${formatJalali(jalali)} · ${toPersianDigits(`${get('hour')}:${get('minute')}`)}`;
 }
 
 /**

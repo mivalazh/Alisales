@@ -3,6 +3,7 @@
 import { useState } from 'react';
 import { usePathname, useRouter } from 'next/navigation';
 import { ABUSE_REASON_LABELS, abuseReasons, type AbuseReason } from '@alisales/schemas';
+import { CustomSelect } from './CustomSelect';
 
 /**
  * «گزارش آگهی» (C1 / abuse_reports). A signed-in visitor submits one report per
@@ -74,18 +75,16 @@ export function ReportListingButton({ listingId }: { listingId: string }) {
           <label className="label" htmlFor="report-reason">
             دلیل گزارش
           </label>
-          <select
+          <CustomSelect
             id="report-reason"
-            className="field"
             value={reason}
-            onChange={(e) => setReason(e.target.value as AbuseReason)}
-          >
-            {abuseReasons.map((item) => (
-              <option key={item} value={item}>
-                {ABUSE_REASON_LABELS[item]}
-              </option>
-            ))}
-          </select>
+            onChange={(next) => setReason(next as AbuseReason)}
+            ariaLabel="دلیل گزارش"
+            options={abuseReasons.map((item) => ({
+              value: item,
+              label: ABUSE_REASON_LABELS[item],
+            }))}
+          />
           <label className="label" htmlFor="report-details">
             توضیح (اختیاری)
           </label>

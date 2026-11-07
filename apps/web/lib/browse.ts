@@ -132,6 +132,8 @@ export interface PartAttributes {
   origin?: string | null;
   warrantyOnly?: boolean;
   compatibility?: string | null;
+  /** Part condition: new / stock / used (three states, not the vehicle pair). */
+  condition?: string | null;
 }
 
 /**
@@ -148,6 +150,7 @@ export function filterPartsByAttributes(
     const part = listing.part;
     if (!part) return false;
     if (attributes.origin && part.origin !== attributes.origin) return false;
+    if (attributes.condition && part.condition !== attributes.condition) return false;
     if (attributes.warrantyOnly && !part.warranty?.trim()) return false;
     if (compat) {
       const haystack = `${part.compatibility ?? ''} ${part.title}`.toLowerCase();

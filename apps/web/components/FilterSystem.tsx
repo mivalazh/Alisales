@@ -26,6 +26,7 @@ import {
 import { countMatches, matchesFilters, type FilterableListing } from '@/lib/filter-match';
 import { RateLine } from './RateLine';
 import { Icon } from './Icon';
+import { CustomSelect } from './CustomSelect';
 
 /**
  * The filter system for the vehicle pages.
@@ -278,19 +279,16 @@ function BrandModelPicker({
   return (
     <div className="space-y-2">
       {models.length > 0 ? (
-        <select
+        <CustomSelect
           value={known ? value : ''}
-          onChange={(e) => onChange(e.target.value)}
-          aria-label="مدل خودرو"
-          className="field h-9 text-xs"
-        >
-          <option value="">همه مدل‌ها</option>
-          {models.map((model) => (
-            <option key={model} value={model}>
-              {model}
-            </option>
-          ))}
-        </select>
+          onChange={onChange}
+          ariaLabel="مدل خودرو"
+          placeholder="همه مدل‌ها"
+          options={[
+            { value: '', label: 'همه مدل‌ها' },
+            ...models.map((model) => ({ value: model, label: model })),
+          ]}
+        />
       ) : (
         <p className="text-[11px] font-bold text-faint">
           برای این برند مدل پیشنهادی نداریم؛ نام مدل را بنویسید.
@@ -747,11 +745,9 @@ export function FilterSheet({
  * strip never repeats the same marques as a second row of pills.
  */
 export function FilterBar({
-  category,
   filters,
   pool,
   onOpen,
-  onChange,
 }: {
   category: VehicleCategory;
   filters: SearchFilters;
@@ -791,35 +787,11 @@ export function FilterBar({
           </span>
         )}
       </button>
-
-      <div className="flex flex-1 items-center gap-1.5 overflow-x-auto">
-        {(['new', 'used'] as const).map((key) => {
-          const on = filters.condition.includes(key);
-          return (
-            <button
-              key={key}
-              type="button"
-              aria-pressed={on}
-              onClick={() =>
-                onChange({
-                  ...filters,
-                  condition: toggle(filters.condition, key),
-                })
-              }
-              className={`shrink-0 whitespace-nowrap rounded-[var(--radius-pill)] border px-3 py-1.5 text-xs font-bold transition ${
-                on
-                  ? 'border-cta bg-cta-soft text-ink'
-                  : 'border-line bg-card text-muted hover:text-ink'
-              }`}
-            >
-              {CONDITION_LABELS[key]}
-            </button>
-          );
-        })}
-        <span className="shrink-0 whitespace-nowrap px-2 text-[11px] font-bold text-faint">
-          {countMatches(pool, filters)} آگهی
-        </span>
-      </div>
+      {/* Live count kept for assistive tech without adding another visible
+          chip row; the visible count lives in the catalog control bar. */}
+      <span className="sr-only" aria-live="polite">
+        {countMatches(pool, filters)} آگهی
+      </span>
     </div>
   );
 }

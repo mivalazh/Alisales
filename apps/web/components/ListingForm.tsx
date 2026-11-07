@@ -6,8 +6,6 @@ import {
   CITY_LABELS,
   DEFAULT_AED_TO_IRR,
   HEAVY_TYPES,
-  VEHICLE_YEARS,
-  gregorianToJalaliYear,
   VEHICLE_CATEGORY_LABELS,
   brandsForCategory,
   BODY_TYPE_LABELS,
@@ -35,7 +33,6 @@ import {
   plateTypes,
   selectableCities,
   toAsciiDigits,
-  toPersianDigits,
   tomanInWords,
   tomanToIRR,
   type ListingPublish,
@@ -47,6 +44,7 @@ import type { ListingCardData } from '@/lib/data/listings';
 import { ListingCard } from './ListingCard';
 import { DeleteListingButton } from './DeleteListingButton';
 import { CustomSelect, type SelectOption } from './CustomSelect';
+import { YearGridSelect } from './YearGridSelect';
 import { Icon } from './Icon';
 import { PhotoUploader } from './PhotoUploader';
 import { PriceText } from './PriceText';
@@ -429,15 +427,6 @@ export function ListingForm() {
 
   /* Option lists for the custom dropdowns — one shape for every field so all
      of them look and behave like the brand/model comboboxes. */
-  const yearOptions: SelectOption[] = useMemo(
-    () =>
-      VEHICLE_YEARS.map((year) => ({
-        value: String(year),
-        label: toPersianDigits(year),
-        hint: `${toPersianDigits(gregorianToJalaliYear(year))} شمسی`,
-      })),
-    [],
-  );
   const bodyTypeOptions: SelectOption[] = bodyTypes.map((body) => ({
     value: body,
     label: BODY_TYPE_LABELS[body],
@@ -608,7 +597,9 @@ export function ListingForm() {
         gearbox: 'automatic',
         fuel: 'petrol',
         color: '',
-        condition: partData.condition,
+        // Card condition stays the vehicle pair; the part's own three-state
+        // «وضعیت قطعه» travels on `part.condition` and renders its own badge.
+        condition: partData.condition === 'new' ? 'new' : 'used',
         plateType: 'standard',
         kind: 'part',
         part: {
@@ -1024,12 +1015,10 @@ export function ListingForm() {
                 hint="سال میلادی خودرو را انتخاب کنید؛ معادل شمسی کنار هر گزینه نوشته شده است."
                 error={fieldErrors['vehicle.year']}
               >
-                <CustomSelect
+                <YearGridSelect
                   id="year"
                   value={draft.year}
                   onChange={(next) => set('year', next)}
-                  options={yearOptions}
-                  placeholder="انتخاب سال…"
                   invalid={Boolean(fieldErrors['vehicle.year'])}
                 />
               </Field>

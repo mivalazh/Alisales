@@ -11,7 +11,6 @@ import { activeListingsCount, admin } from '@/lib/data/s2-store';
 import { devPhotoUrls, publishFixture, publishHosted } from '@/lib/data/publish-store';
 import { isOwnedPhotoPath } from '@/lib/data/photo-rules';
 import { fixtureMode } from '@/lib/config/mode';
-import { defaultCoverFor } from '@/lib/data/default-cover';
 import { rememberMyListing } from '@/lib/data/my-listings-cookie';
 import type { ListingCardData } from '@/lib/data/listings';
 
@@ -68,8 +67,9 @@ function toDevCard(data: ListingPublish, sellerId: string): ListingCardData {
     bodyType: data.vehicle.bodyType,
     condition: data.vehicle.condition,
     plateType: data.vehicle.plateType,
-    // Photos are optional: fall back to the catalogue cover, not a blank frame.
-    coverUrl: media.coverUrl ?? defaultCoverFor('vehicle'),
+    // No photo means no photo: the card renders the neutral «No image»
+    // placeholder instead of borrowing a stock car photograph.
+    coverUrl: media.coverUrl ?? null,
     photos: media.photos,
     showroomName: null,
     showroomVerified: false,
@@ -111,7 +111,7 @@ function toDevPartCard(data: PartListingPublish, sellerId: string): ListingCardD
     color: 'white',
     condition: data.condition === 'new' ? 'new' : 'used',
     plateType: 'unplated',
-    coverUrl: media.coverUrl ?? defaultCoverFor('part'),
+    coverUrl: media.coverUrl ?? null,
     photos: media.photos,
     showroomName: null,
     showroomVerified: false,

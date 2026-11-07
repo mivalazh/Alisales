@@ -277,6 +277,34 @@ export async function removeListing(id: string): Promise<ModerationActionResult>
   return { ok: true };
 }
 
+export async function featureListing(
+  id: string,
+  featured: boolean,
+): Promise<ModerationActionResult> {
+  if (!id) return { ok: false, error: 'شناسه‌ی آگهی نامعتبر است.' };
+  updateDevListing(id, { featured });
+  const sb = admin();
+  if (sb) await sb.from('listings').update({ featured }).eq('id', id);
+  return { ok: true };
+}
+
+/** Bump: publish date = now, so the row returns to the top of «جدیدترین». */
+export async function bumpListing(id: string): Promise<ModerationActionResult> {
+  if (!id) return { ok: false, error: 'شناسه‌ی آگهی نامعتبر است.' };
+  const publishedAt = new Date().toISOString();
+  updateDevListing(id, { publishedAt });
+  const sb = admin();
+  if (sb) await sb.from('listings').update({ published_at: publishedAt }).eq('id', id);
+  return { ok: true };
+}
+
+/** Confirm an inspection and mark its listing as workshop-inspected. */
+export async function markInspected(slug: string | null): Promise<void> {
+  if (!slug) return;
+  const found = [...devListings(), ...fixtureListings].find((listing) => listing.slug === slug);
+  if (found) updateDevListing(found.id, { hasReport: true });
+}
+
 export async function pauseListing(id: string): Promise<ModerationActionResult> {
   if (!id) return { ok: false, error: 'شناسه‌ی آگهی نامعتبر است.' };
   updateDevListing(id, { state: 'paused' });

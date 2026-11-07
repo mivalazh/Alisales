@@ -2,13 +2,23 @@ import { NextResponse } from 'next/server';
 import { adminSession } from '@/lib/admin/guard';
 import {
   actionReport,
+  bumpListing,
   decideReport,
   decideStory,
   decideVerification,
+  featureListing,
+  markInspected,
   pauseListing,
   removeListing,
   type ModerationActionResult,
 } from '@/lib/data/moderation';
+import {
+  decideStorySubmission,
+  deleteStorySubmission,
+  setStoryPaidGuard,
+  updateInspection,
+  type InspectionBooking,
+} from '@/lib/data/platform-store';
 
 /**
  * POST /api/admin — owner moderation actions.
@@ -32,7 +42,14 @@ export async function POST(request: Request): Promise<NextResponse> {
     return NextResponse.json({ error: 'بدنه درخواست نامعتبر است.' }, { status: 400 });
   }
 
-  const body = raw as { action?: unknown; id?: unknown; listingId?: unknown };
+  const body = raw as {
+    action?: unknown;
+    id?: unknown;
+    listingId?: unknown;
+    featured?: unknown;
+    enabled?: unknown;
+    status?: unknown;
+  };
   const action = typeof body.action === 'string' ? body.action : '';
   const id = typeof body.id === 'string' ? body.id : '';
   const listingId = typeof body.listingId === 'string' ? body.listingId : '';
@@ -64,6 +81,44 @@ export async function POST(request: Request): Promise<NextResponse> {
     case 'listing-remove':
       result = await removeListing(id);
       break;
+    case 'listing-feature':
+      result = await featureListing(id, Boolean(body.featured));
+      break;
+    case 'listing-bump':
+      result = await bumpListing(id);
+      break;
+    case 'story-submission-approve':
+      decideStorySubmission(id, 'approved');
+      result = { ok: true };
+      break;
+    case 'story-submission-reject':
+      decideStorySubmission(id, 'rejected');
+      result = { ok: true };
+      break;
+    case 'story-submission-delete':
+      deleteStorySubmission(id);
+      result = { ok: true };
+      break;
+    case 'story-guard-toggle':
+      setStoryPaidGuard(Boolean(body.enabled));
+      result = { ok: true };
+      break;
+    case 'inspection-update': {
+      const status = body.status;
+      if (
+        status !== 'pending' &&
+        status !== 'confirmed' &&
+        status !== 'done' &&
+        status !== 'cancelled'
+      ) {
+        return NextResponse.json({ error: 'وضعیت نوبت نامعتبر است.' }, { status: 400 });
+      }
+      const booking = updateInspection(id, status as InspectionBooking['status']);
+      if (!booking) return NextResponse.json({ error: 'نوبت پیدا نشد.' }, { status: 400 });
+      if (status === 'confirmed' || status === 'done') await markInspected(booking.listingSlug);
+      result = { ok: true };
+      break;
+    }
     default:
       return NextResponse.json({ error: 'این عملیات شناخته نشد.' }, { status: 400 });
   }

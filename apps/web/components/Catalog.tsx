@@ -16,7 +16,6 @@ import { FilterBar, FilterSheet, FilterSidebar } from './FilterSystem';
 import { FilterChips } from './FilterChips';
 import { FilterPanel } from './FilterPanel';
 import { ListingGrid } from './ListingGrid';
-import { QuickChips } from './QuickChips';
 import { SearchBar } from './SearchBar';
 import { SortControl, ViewModeToggle, type ViewMode } from './SortControl';
 import { Stories, type StoryItem } from './Stories';
@@ -37,12 +36,14 @@ export interface CatalogContext {
 /**
  * Catalog container — server renders the listings from the one search
  * implementation; this client shell owns the brand box, the filter system,
- * the story rail, quick chips, sort/view UX and commits changes to the URL so
- * the server re-runs that same search.
+ * the story rail, sort/view UX and commits changes to the URL so the server
+ * re-runs that same search.
  *
- * Order on a vehicle page (top to bottom): search → brand box (with its model
- * row) → filters → stories → chips → sort → grid. Desktop carries the filters
- * in a left sidebar; phones get one «فیلترها» button that opens a bottom sheet.
+ * Reading order on every browse page: search → optional brand box or parts
+ * strip → stories → one control bar (فیلترها, active filter chips, count,
+ * sort, grid/list) → results. The condition quick-chips that used to float
+ * above the rail are gone; the filters live in the bar exactly where the
+ * buyer expects them, directly above the grid.
  *
  * `basePath` keeps the same controls on the dedicated category pages
  * (`/cars`, `/motorcycles`, `/heavy`, `/parts`): every commit pushes to that
@@ -62,12 +63,10 @@ export function Catalog({
   searchPlaceholder,
   filterStrip,
   brandBox,
-  hideQuickChips = false,
   storiesLabel,
   pool,
   category,
-  heading,
-  sortBar = 'top',
+  sortBar: _sortBar = 'top',
 }: {
   listings: ListingCardData[];
   filters: SearchFilters;
@@ -97,13 +96,8 @@ export function Catalog({
   pool?: ListingCardData[];
   /** Enables the sidebar/sheet filter system for this vehicle category. */
   category?: VehicleCategory;
-  /** Small caption above the count («خودروها»، «موتورسیکلت‌ها» …). */
+  /** Kept for page compatibility; the redundant heading is no longer shown. */
   heading?: string;
-  /**
-   * Where the quick chips + count + sort/view bar sits. Vehicle pages keep it
-   * under the brand box (`top`); the home page pushes it below the two category
-   * photo cards (`bottom`), directly above the grid.
-   */
   sortBar?: 'top' | 'bottom';
 }) {
   const router = useRouter();
@@ -153,68 +147,21 @@ export function Catalog({
     commitFilters: (next) => commit(next, sort),
   };
 
-  const countLine = (
-    <p className="text-sm font-bold text-muted" aria-live="polite">
-      {heading ? `${heading} · ` : ''}
-      {listings.length} آگهی
-    </p>
-  );
-
-  const sortCluster = (
-    <div className="flex items-center gap-3">
-      <SortControl value={sort} onChange={(key) => commit(filters, key)} />
-      <ViewModeToggle value={view} onChange={changeView} />
-    </div>
-  );
-
-  /* One line of chips, one count, one sort/view cluster. On phones the chips
-     scroll sideways instead of wrapping into a third stacked row, so the sort
-     bar and the chips still read as a single control strip. */
-  const chipScroller = !hideQuickChips && (
-    <div className="min-w-0 overflow-x-auto [scrollbar-width:none] [&::-webkit-scrollbar]:hidden">
-      <QuickChips
-        filters={filters}
-        onChange={(f) => commit(f)}
-        className="flex-nowrap whitespace-nowrap"
-      />
-    </div>
-  );
-
-  const controlBar = (
-    <div className="flex flex-wrap items-center gap-x-3 gap-y-2">
-      {chipScroller}
-      <div className="ms-auto flex shrink-0 items-center gap-3">
-        {countLine}
-        {sortCluster}
-      </div>
-    </div>
-  );
-
-  const content = (
-    <div className="min-w-0 space-y-4">
-      {showStories && <Stories stories={stories} label={storiesLabel} />}
-
-      {showCategories && <CategoryCards vehicleCount={vehicleCount} partCount={partCount} />}
-
-      {sortBar === 'bottom' ? (
-        controlBar
-      ) : (
-        <div className="flex flex-wrap items-center gap-x-3 gap-y-2">
-          {chipScroller}
-          <div className="ms-auto shrink-0">{countLine}</div>
-        </div>
+  const genericFilterButton = (
+    <button
+      type="button"
+      onClick={() => setPanelOpen((v) => !v)}
+      aria-expanded={panelOpen}
+      className="flex shrink-0 items-center gap-1.5 rounded-[var(--radius-pill)] border border-line bg-card px-3 py-2 text-xs font-extrabold text-ink transition hover:border-line-strong"
+    >
+      <Icon name="sliders" size={15} />
+      فیلترها
+      {filterCount > 0 && (
+        <span className="flex h-4 min-w-4 items-center justify-center rounded-full bg-cta px-1 text-[10px] font-extrabold text-[color:var(--color-text-on-accent)]">
+          {filterCount}
+        </span>
       )}
-
-      {panelOpen && (
-        <FilterPanel
-          filters={filters}
-          onChange={(f) => commit(f)}
-          onClose={() => setPanelOpen(false)}
-        />
-      )}
-
-      <ListingGrid listings={sortListings(listings, sort)} view={view} />
-    </div>
+    </button>
   );
 
   return (
@@ -229,27 +176,48 @@ export function Catalog({
 
       {brandBox?.(ctx)}
 
-      {/* The pill strip (active filter chips + sort/view) sits *below* the
-          brand and model selectors, so a brand pick never pushes it out of
-          reach and the active filters read directly above the results. */}
-      {sortBar === 'top' && (
-        <div className="flex flex-wrap items-center justify-between gap-3">
-          <FilterChips filters={filters} onChange={(f) => commit(f)} />
-          <div className="ms-auto flex items-center gap-3">{sortCluster}</div>
-        </div>
-      )}
+      {showCategories && <CategoryCards vehicleCount={vehicleCount} partCount={partCount} />}
 
-      {category && (
-        <FilterBar
-          category={category}
-          filters={filters}
-          pool={filterPool}
-          onOpen={() => setSheetOpen(true)}
-          onChange={(next) => commit(next, sort)}
-        />
-      )}
+      {/* The rail sits directly above the control bar, so filters, chips, sort
+          and view are the last thing seen before the grid on every page. */}
+      {showStories && <Stories stories={stories} label={storiesLabel} />}
 
       {filterStrip && <div className={category ? 'lg:hidden' : undefined}>{filterStrip(ctx)}</div>}
+
+      {/* One bar under the stories: filters, removable active chips, result
+          count, sort and the grid/list switch — never a second stacked strip. */}
+      <div className="flex flex-wrap items-center gap-x-2 gap-y-2 rounded-card border border-line bg-card px-2.5 py-2">
+        {category && (
+          <FilterBar
+            category={category}
+            filters={filters}
+            pool={filterPool}
+            onOpen={() => setSheetOpen(true)}
+            onChange={(next) => commit(next, sort)}
+          />
+        )}
+        {!category && !filterStrip && genericFilterButton}
+
+        <div className="min-w-0 flex-1 overflow-x-auto [scrollbar-width:none] [&::-webkit-scrollbar]:hidden">
+          <FilterChips filters={filters} onChange={(f) => commit(f)} />
+        </div>
+
+        <div className="ms-auto flex shrink-0 items-center gap-2">
+          <p className="text-xs font-bold text-muted" aria-live="polite">
+            {listings.length} آگهی
+          </p>
+          <SortControl value={sort} onChange={(key) => commit(filters, key)} />
+          <ViewModeToggle value={view} onChange={changeView} />
+        </div>
+      </div>
+
+      {panelOpen && (
+        <FilterPanel
+          filters={filters}
+          onChange={(f) => commit(f)}
+          onClose={() => setPanelOpen(false)}
+        />
+      )}
 
       {category ? (
         <div className="grid gap-4 lg:grid-cols-[264px_minmax(0,1fr)] lg:items-start">
@@ -260,10 +228,12 @@ export function Catalog({
             onClear={() => commit({ ...DEFAULT_FILTERS, q: filters.q }, sort)}
             pool={filterPool}
           />
-          {content}
+          <div className="min-w-0">
+            <ListingGrid listings={sortListings(listings, sort)} view={view} />
+          </div>
         </div>
       ) : (
-        content
+        <ListingGrid listings={sortListings(listings, sort)} view={view} />
       )}
 
       {category && (
@@ -279,26 +249,6 @@ export function Catalog({
           onClear={() => commit({ ...DEFAULT_FILTERS, q: filters.q }, sort)}
           onClose={() => setSheetOpen(false)}
         />
-      )}
-
-      {/* The generic panel is the fallback for pages without a category. */}
-      {!category && !filterStrip && (
-        <div className="flex flex-wrap items-center gap-3">
-          <button
-            type="button"
-            onClick={() => setPanelOpen((v) => !v)}
-            aria-expanded={panelOpen}
-            className="btn-ghost relative text-sm"
-          >
-            <Icon name="sliders" size={18} />
-            فیلترها
-            {filterCount > 0 && (
-              <span className="flex h-5 min-w-5 items-center justify-center rounded-full bg-cta px-1 text-xs font-extrabold text-[color:var(--color-text-on-accent)]">
-                {filterCount}
-              </span>
-            )}
-          </button>
-        </div>
       )}
     </div>
   );

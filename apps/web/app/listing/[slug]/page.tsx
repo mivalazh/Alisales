@@ -13,6 +13,7 @@ import {
   compatibilityLabel,
 } from '@alisales/schemas';
 import { ContactButtons } from '@/components/ContactButtons';
+import { InspectionOffer } from '@/components/InspectionOffer';
 import { ListingGallery } from '@/components/ListingGallery';
 import { FavoriteButton } from '@/components/FavoriteButton';
 import { Icon } from '@/components/Icon';
@@ -142,6 +143,36 @@ export default async function ListingDetailPage({
     if (listing.workingHours) pushSpec('ساعت کارکرد', `${listing.workingHours} ساعت`);
   }
 
+  /** «توضیحات آگهی» + its extra-spec tags. Rendered once: on phones it sits
+   * directly under the title/price card (above the seller card) because that
+   * is the reading order a buyer on a phone expects; on desktop it stays in
+   * the evidence column under the gallery. */
+  const descriptionCard = (
+    <section className="rounded-card border border-line bg-card p-4 sm:p-5">
+      <h2 className="text-base font-extrabold text-ink">توضیحات آگهی</h2>
+      <p className="mt-3 whitespace-pre-line text-justify text-sm leading-8 text-ink/85">
+        {listing.description?.trim() || 'فروشنده برای این آگهی توضیحی ثبت نکرده است.'}
+      </p>
+
+      {extraSpecs.length > 0 && (
+        <div className="mt-4 border-t border-line pt-3">
+          <p className="mb-2 text-[11px] font-extrabold text-muted">مشخصات تکمیلی</p>
+          <ul className="flex flex-wrap gap-2">
+            {extraSpecs.map((spec) => (
+              <li
+                key={`${spec.label}-${spec.value}`}
+                className="inline-flex items-center gap-1 rounded-[var(--radius-pill)] border border-line bg-page px-3 py-1 text-[11px] font-bold text-muted"
+              >
+                <span className="text-faint">{spec.label}:</span>
+                <b className="font-extrabold text-ink">{spec.value}</b>
+              </li>
+            ))}
+          </ul>
+        </div>
+      )}
+    </section>
+  );
+
   return (
     <article className="mx-auto max-w-6xl space-y-5">
       <Link
@@ -161,29 +192,7 @@ export default async function ListingDetailPage({
             sold={sold}
           />
 
-          <section className="rounded-card border border-line bg-card p-4 sm:p-5">
-            <h2 className="text-base font-extrabold text-ink">توضیحات آگهی</h2>
-            <p className="mt-3 whitespace-pre-line text-justify text-sm leading-8 text-ink/85">
-              {listing.description?.trim() || 'فروشنده برای این آگهی توضیحی ثبت نکرده است.'}
-            </p>
-
-            {extraSpecs.length > 0 && (
-              <div className="mt-4 border-t border-line pt-3">
-                <p className="mb-2 text-[11px] font-extrabold text-muted">مشخصات تکمیلی</p>
-                <ul className="flex flex-wrap gap-2">
-                  {extraSpecs.map((spec) => (
-                    <li
-                      key={`${spec.label}-${spec.value}`}
-                      className="inline-flex items-center gap-1 rounded-[var(--radius-pill)] border border-line bg-page px-3 py-1 text-[11px] font-bold text-muted"
-                    >
-                      <span className="text-faint">{spec.label}:</span>
-                      <b className="font-extrabold text-ink">{spec.value}</b>
-                    </li>
-                  ))}
-                </ul>
-              </div>
-            )}
-          </section>
+          <div className="hidden lg:block">{descriptionCard}</div>
 
           {listing.hasReport && (
             <div className="rounded-card border border-line bg-card p-4">
@@ -213,7 +222,9 @@ export default async function ListingDetailPage({
                         borderColor: token.border,
                       }}
                     >
-                      {token.label}
+                      {b === 'verified_report'
+                        ? '✓ کارشناسی‌شده تعمیرگاه شمس‌اله'
+                        : token.label}
                     </span>
                   );
                 })}
@@ -270,6 +281,9 @@ export default async function ListingDetailPage({
             </dl>
           </div>
 
+          {/* Phone order: title/price card → description → seller card. */}
+          <div className="lg:hidden">{descriptionCard}</div>
+
           <div className="rounded-card border border-line bg-card p-4 sm:p-5">
             <div className="flex items-center justify-between gap-3">
               <div className="min-w-0">
@@ -325,6 +339,11 @@ export default async function ListingDetailPage({
               </div>
             )}
           </div>
+
+          <InspectionOffer
+            listingSlug={listing.slug}
+            listingTitle={part ? part.title : vehicleTitle(listing)}
+          />
         </aside>
       </div>
     </article>

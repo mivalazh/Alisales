@@ -17,9 +17,15 @@ const QUICK_LINKS = [
 
 const GUIDE_LINKS = [
   { href: '/about', label: 'درباره‌ی ما' },
+  { href: '/inspection', label: 'کارشناسی تعمیرگاه شمس‌اله' },
+  { href: '/rent', label: 'رنت خودرو و موتور' },
   { href: '/guide', label: 'راهنمای ثبت آگهی' },
   { href: '/terms', label: 'قوانین و حریم خصوصی' },
 ] as const;
+
+/** Official sub-brand credit — one line, repeated in the footer and /about. */
+export const WORKSHOP_CREDIT =
+  'Ali Sales؛ زیرمجموعه رسمی تعمیرگاه تخصصی شمس‌اله — مرجع خرید، فروش و کارشناسی تخصصی خودرو در کیش';
 
 const SUPPORT_LINKS = [
   { href: '/support', label: 'تماس با پشتیبانی' },
@@ -103,6 +109,9 @@ export function SiteFooter() {
             بازار آگهی خودروهای لوکس و قطعات یدکی در منطقه آزاد کیش؛ واردات، پلاک کیش و گذر
             موقت، با گزارش بازرسی معتبر کارگاه.
           </p>
+          <p className="mt-2 rounded-field border border-[#F98513]/40 bg-[#FFF7EC] px-3 py-2 text-[11px] font-bold leading-6 text-ink dark:bg-[#2a2418]">
+            {WORKSHOP_CREDIT}
+          </p>
           <div className="mt-3 flex items-center justify-between gap-2 rounded-card border border-line bg-page px-3 py-2">
             <span className="text-xs font-bold text-muted">شهر</span>
             <CitySelect />
@@ -119,6 +128,9 @@ export function SiteFooter() {
             <p className="mt-2 max-w-xs text-sm leading-7 text-muted">
               بازار آگهی خودروهای لوکس و قطعات یدکی در منطقه آزاد کیش؛ واردات، پلاک
               کیش و گذر موقت، با گزارش بازرسی معتبر کارگاه.
+            </p>
+            <p className="mt-3 max-w-xs rounded-field border border-[#F98513]/40 bg-[#FFF7EC] px-3 py-2 text-[11px] font-bold leading-6 text-ink dark:bg-[#2a2418]">
+              {WORKSHOP_CREDIT}
             </p>
             <div className="mt-4">
               <CitySelect />

@@ -4,36 +4,38 @@ import { useRouter, useSearchParams } from 'next/navigation';
 import { useEffect, useRef, useState, type ReactNode } from 'react';
 import {
   PART_CATEGORY_LABELS,
-  conditions,
   partCategories,
   type SearchFilters,
 } from '@alisales/schemas';
-import type { IconName } from './Icon';
-import { Icon } from './Icon';
+import { CustomSelect } from './CustomSelect';
 
 /**
- * Spare-parts filter strip.
+ * Spare-parts filter card.
  *
- * Parts buyers do not shop by car brand, so this strip replaces the vehicle
- * brand box with what actually narrows a part: the category (with an outline
- * icon each), condition and origin chips, a warranty chip and a free-text
- * «سازگاری با خودرو» control.
+ * Buyers shop by category and condition, so the old two-row chip strip (with
+ * an outline icon on every pill and a chunky grey scrollbar) is replaced by
+ * one structured card: a labelled control row — «فیلترهای قطعه», a three-state
+ * condition selector, authenticity, warranty and compatibility — above a
+ * single text-only category strip with a thin scrollbar.
  *
- * Category / origin / warranty / compatibility live in their own URL params
- * (the parts page filters the rows server-side); condition is part of the
- * shared filter object, so the Catalog commits it exactly like the vehicle
- * page does. Both paths keep search and sort intact.
+ * Category / origin / condition / warranty / compatibility live in their own
+ * URL params, because the parts page narrows those server-side; search and
+ * sort stay in the shared catalog params.
  */
-const CATEGORY_ICONS: Record<string, IconName> = {
-  engine: 'gear',
-  brake: 'shieldCheck',
-  body: 'car',
-  electrical: 'sparkle',
-  interior: 'user',
-  tires: 'mileage',
-  oil_filters: 'tag',
-  other: 'grid',
-};
+
+const CONDITION_OPTIONS = [
+  { value: '', label: 'همه' },
+  { value: 'new', label: 'نو / آکبند' },
+  { value: 'stock', label: 'استوک (اصلی وارداتی)' },
+  { value: 'used', label: 'کارکرده' },
+] as const;
+
+const AUTHENTICITY_OPTIONS = [
+  { value: '', label: 'همه' },
+  { value: 'original', label: 'اصلی OEM' },
+  { value: 'commercial', label: 'تجاری' },
+  { value: 'stock', label: 'استوک' },
+] as const;
 
 function Chip({
   active,
@@ -66,14 +68,15 @@ export function PartFilterBar({
   origin,
   warranty,
   compatibility,
-  filters,
-  onChange,
+  condition,
 }: {
   basePath: string;
   category: string | null;
   origin: string | null;
   warranty: boolean;
   compatibility: string;
+  condition: string | null;
+  /** Shared catalog filters — the strip keeps them, only its own params change. */
   filters: SearchFilters;
   onChange: (next: SearchFilters) => void;
 }) {
@@ -100,58 +103,43 @@ export function PartFilterBar({
     const next = new URLSearchParams(params.toString());
     if (value) next.set(key, value);
     else next.delete(key);
-    // A new category/origin starts a fresh page of results.
     next.delete('page');
     const qs = next.toString();
     router.push(qs ? `${basePath}?${qs}` : basePath);
   };
 
-  const setCondition = (value: (typeof conditions)[number]) => {
-    const list = filters.condition.includes(value)
-      ? filters.condition.filter((c) => c !== value)
-      : [...filters.condition, value];
-    onChange({ ...filters, condition: list });
-  };
+  const active = Boolean(category || origin || warranty || compatibility || condition);
 
   return (
-    <div className="space-y-3">
-      <ul dir="rtl" className="flex gap-1.5 overflow-x-auto pb-1">
-        <li className="shrink-0">
-          <Chip active={!category} onClick={() => setParam('category', null)}>
-            همه قطعات
-          </Chip>
-        </li>
-        {partCategories.map((key) => (
-          <li key={key} className="shrink-0">
-            <Chip active={category === key} onClick={() => setParam('category', key)}>
-              <span className="flex items-center gap-1.5">
-                <Icon name={CATEGORY_ICONS[key] ?? 'gear'} size={15} />
-                {PART_CATEGORY_LABELS[key]}
-              </span>
-            </Chip>
-          </li>
-        ))}
-      </ul>
+    <section
+      aria-label="فیلترهای قطعه"
+      className="space-y-2.5 rounded-card border border-line bg-card p-3"
+    >
+      <div className="flex flex-wrap items-center gap-2">
+        <span className="text-xs font-extrabold text-ink">فیلترهای قطعه</span>
 
-      <div className="flex flex-wrap items-center gap-1.5">
-        <Chip active={origin === 'original'} onClick={() => setParam('origin', origin === 'original' ? null : 'original')}>
-          اصل / OEM
-        </Chip>
+        <div className="w-[170px]">
+          <CustomSelect
+            value={condition ?? ''}
+            onChange={(next) => setParam('pcond', next || null)}
+            options={CONDITION_OPTIONS}
+            ariaLabel="وضعیت قطعه"
+          />
+        </div>
+
+        <div className="w-[150px]">
+          <CustomSelect
+            value={origin ?? ''}
+            onChange={(next) => setParam('origin', next || null)}
+            options={AUTHENTICITY_OPTIONS}
+            ariaLabel="اصالت قطعه"
+          />
+        </div>
+
         <Chip
-          active={origin === 'commercial'}
-          onClick={() => setParam('origin', origin === 'commercial' ? null : 'commercial')}
+          active={warranty}
+          onClick={() => setParam('warranty', warranty ? null : '1')}
         >
-          تجاری
-        </Chip>
-        <span aria-hidden className="mx-1 h-5 w-px bg-line" />
-        <Chip active={filters.condition.includes('new')} onClick={() => setCondition('new')}>
-          نو / آکبند
-        </Chip>
-        <Chip active={filters.condition.includes('used')} onClick={() => setCondition('used')}>
-          استوک / کارکرده
-        </Chip>
-        <span aria-hidden className="mx-1 h-5 w-px bg-line" />
-        <Chip active={warranty} onClick={() => setParam('warranty', warranty ? null : '1')}>
           دارای گارانتی
         </Chip>
 
@@ -204,7 +192,39 @@ export function PartFilterBar({
           )}
         </div>
 
+        {active && (
+          <button
+            type="button"
+            onClick={() => {
+              const next = new URLSearchParams(params.toString());
+              for (const key of ['category', 'origin', 'warranty', 'compat', 'pcond']) next.delete(key);
+              const qs = next.toString();
+              router.push(qs ? `${basePath}?${qs}` : basePath);
+            }}
+            className="ms-auto text-[11px] font-bold text-muted underline"
+          >
+            پاک کردن فیلترها
+          </button>
+        )}
       </div>
-    </div>
+
+      <ul
+        dir="rtl"
+        className="flex gap-1.5 overflow-x-auto pb-1 [scrollbar-color:var(--color-line)_transparent] [scrollbar-width:thin] [&::-webkit-scrollbar]:h-1 [&::-webkit-scrollbar-thumb]:rounded-full [&::-webkit-scrollbar-thumb]:bg-line [&::-webkit-scrollbar-track]:bg-transparent"
+      >
+        <li className="shrink-0">
+          <Chip active={!category} onClick={() => setParam('category', null)}>
+            همه قطعات
+          </Chip>
+        </li>
+        {partCategories.map((key) => (
+          <li key={key} className="shrink-0">
+            <Chip active={category === key} onClick={() => setParam('category', key)}>
+              {PART_CATEGORY_LABELS[key]}
+            </Chip>
+          </li>
+        ))}
+      </ul>
+    </section>
   );
 }

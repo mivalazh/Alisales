@@ -59,12 +59,20 @@ export type PartAuthenticity = (typeof partAuthenticities)[number];
 export const PART_AUTHENTICITY_LABELS: Record<PartAuthenticity, string> =
   PART_ORIGIN_LABELS as Record<PartAuthenticity, string>;
 
-export const partConditions = ['new', 'used'] as const;
+/**
+ * Part condition — deliberately three values.
+ *
+ * «استوک» is an imported OEM pull-off part, not a used part: it is sold as
+ * genuine original hardware taken from a donor vehicle, so lumping it in with
+ * «کارکرده» hid the thing spare-parts buyers search for.
+ */
+export const partConditions = ['new', 'stock', 'used'] as const;
 export type PartCondition = (typeof partConditions)[number];
 
 export const PART_CONDITION_LABELS: Record<PartCondition, string> = {
   new: 'نو / آکبند',
-  used: 'کارکرده / در حد نو',
+  stock: 'استوک (اصلی وارداتی)',
+  used: 'کارکرده',
 };
 
 export const PART_COMPATIBILITY_GENERAL = 'سازگاری عمومی';

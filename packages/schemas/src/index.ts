@@ -308,6 +308,8 @@ export {
   typoMatch,
   fuzzySearchMatch,
   fuzzySuggestions,
+  searchRelevance,
+  SEARCH_SCORE,
 } from './search';
 
 // Read-only plan preview («بزودی») behind the third-listing gate

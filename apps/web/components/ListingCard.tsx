@@ -7,6 +7,7 @@ import { badgeFor, type BadgeKey } from '@studio/design';
 import {
   CITY_LABELS,
   PART_CATEGORY_LABELS,
+  PART_CONDITION_LABELS,
   PART_ORIGIN_LABELS,
   compatibilityLabel,
   postingAgeLabel,
@@ -27,12 +28,15 @@ const SWIPE_THRESHOLD = 36;
 
 function Badge({ badgeKey }: { badgeKey: BadgeKey }) {
   const b = badgeFor(badgeKey);
+  // The report badge speaks with the workshop's voice everywhere it renders.
+  const label =
+    badgeKey === 'verified_report' ? '✓ کارشناسی‌شده تعمیرگاه شمس‌اله' : b.label;
   return (
     <span
       className="rounded-[var(--radius-pill)] border px-2 py-0.5 text-xs font-bold"
       style={{ background: b.background, color: b.foreground, borderColor: b.border }}
     >
-      {b.label}
+      {label}
     </span>
   );
 }
@@ -58,7 +62,9 @@ function cardBadges(listing: ListingCardData): BadgeKey[] {
   if (listing.state !== 'active' && listing.state !== 'sold') {
     badges.push(STATE_BADGE[listing.state]);
   }
-  badges.push(listing.condition === 'new' ? 'new' : 'used');
+  // Parts carry their own three-state condition (new / stock / used) below;
+  // the vehicle `new`/`used` badge would mislabel an imported stock part.
+  if (!listing.part) badges.push(listing.condition === 'new' ? 'new' : 'used');
   const plate = listing.part ? null : plateBadgeKey(listing.plateType);
   if (plate) badges.push(plate);
   if (listing.hasReport) badges.push('verified_report');
@@ -138,7 +144,7 @@ export function ListingCard({ listing }: { listing: ListingCardData }) {
             className={`object-cover ${sold ? 'opacity-60 grayscale' : ''}`}
           />
         ) : (
-          <CameraPlaceholder />
+          <NoImagePlaceholder />
         )}
 
         {count > 1 && (
@@ -195,21 +201,30 @@ export function ListingCard({ listing }: { listing: ListingCardData }) {
       </div>
 
       <div className="flex flex-1 flex-col gap-2 p-3 sm:p-4">
-        <div className="flex flex-wrap gap-1.5">
+        {/* Fixed badge slot: a card with no plate/report pill keeps the same
+            title baseline as its neighbours. */}
+        <div className="flex min-h-[26px] flex-wrap content-start gap-1.5">
+          {part && (
+            <span className="rounded-[var(--radius-pill)] border border-line bg-page px-2 py-0.5 text-xs font-bold text-muted">
+              {PART_CONDITION_LABELS[part.condition]}
+            </span>
+          )}
           {cardBadges(listing).map((b) => (
             <Badge key={b} badgeKey={b} />
           ))}
         </div>
 
         {part ? (
-          <h3
-            className="line-clamp-2 text-sm font-extrabold leading-tight sm:text-base"
-            style={sold ? { color: SOLD_TEXT } : undefined}
-          >
-            {part.title}
-          </h3>
+          <div className="min-h-[48px]">
+            <h3
+              className="line-clamp-2 text-sm font-extrabold leading-tight sm:text-base"
+              style={sold ? { color: SOLD_TEXT } : undefined}
+            >
+              {part.title}
+            </h3>
+          </div>
         ) : (
-          <div className="flex min-w-0 flex-col items-start text-right">
+          <div className="flex min-h-[48px] min-w-0 flex-col items-start text-right">
             {/* Latin marque first, on the same start edge as the model: the
                 <bdi dir="ltr"> keeps the word unshuffled without floating the
                 whole line to the opposite corner of an RTL card. */}
@@ -229,7 +244,7 @@ export function ListingCard({ listing }: { listing: ListingCardData }) {
         )}
 
         <p
-          className="line-clamp-1 text-[11px] leading-5 text-muted sm:text-xs"
+          className="line-clamp-1 min-h-[22px] text-[11px] leading-5 text-muted sm:text-xs"
           style={sold ? { color: SOLD_TEXT } : undefined}
         >
           {part ? (
@@ -249,19 +264,20 @@ export function ListingCard({ listing }: { listing: ListingCardData }) {
 
         {/* The price owns its own row, so the spec line above can never run
             into it and every card in a row lines up. */}
-        <div className="pt-1">
+        <div className="min-h-[42px] pt-1">
           <PriceText irr={listing.priceIRR} sold={sold} hideAed={listing.hideAed} />
         </div>
 
-        {/* Verified sellers show the standardized pill only; the old
-            «اتومبیل کیش •» label never prints again. */}
-        {listing.showroomVerified ? (
-          <div className="flex flex-wrap gap-1.5">
+        {/* Fixed seller slot: the verified pill, a seller name or an empty line
+            all reserve the same height, so the city/date footer aligns across
+            the whole row instead of drifting up on unverified cards. */}
+        <div className="flex min-h-[28px] flex-wrap content-start gap-1.5">
+          {listing.showroomVerified ? (
             <VerifiedPill label={part ? 'تعمیرگاه معتبر' : 'نمایشگاه معتبر'} />
-          </div>
-        ) : sellerName ? (
-          <p className="truncate text-xs font-bold text-muted">{sellerName}</p>
-        ) : null}
+          ) : sellerName ? (
+            <p className="w-full truncate text-xs font-bold text-muted">{sellerName}</p>
+          ) : null}
+        </div>
 
         <div className="mt-auto flex items-center justify-between border-t border-line pt-2 text-xs text-faint">
           <span>{CITY_LABELS[listing.city] ?? listing.city}</span>
@@ -283,24 +299,20 @@ export function ListingCard({ listing }: { listing: ListingCardData }) {
   );
 }
 
-function CameraPlaceholder() {
+/**
+ * A listing without a photo shows the neutral «No image» artwork — never a
+ * borrowed stock car. The seller can add a cover later and the card updates.
+ * The SVG is unoptimised on purpose: it is already a tiny vector.
+ */
+function NoImagePlaceholder() {
   return (
-    <div className="flex h-full w-full flex-col items-center justify-center gap-1 text-faint">
-      <svg
-        aria-hidden="true"
-        width="32"
-        height="32"
-        viewBox="0 0 24 24"
-        fill="none"
-        stroke="currentColor"
-        strokeWidth="1.5"
-        strokeLinecap="round"
-        strokeLinejoin="round"
-      >
-        <path d="M4 8h3l1.5-2h7L17 8h3v11H4z" />
-        <circle cx="12" cy="13" r="3.5" />
-      </svg>
-      <span className="text-xs">بدون عکس</span>
-    </div>
+    <Image
+      src="/placeholders/no-image.svg"
+      alt="No image"
+      fill
+      sizes="(min-width: 1280px) 25vw, (min-width: 1024px) 33vw, (min-width: 640px) 50vw, 50vw"
+      unoptimized
+      className="object-cover"
+    />
   );
 }

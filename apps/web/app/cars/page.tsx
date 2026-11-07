@@ -36,14 +36,8 @@ export default async function CarsPage({
 
   return (
     <div className="space-y-4">
-      <div className="flex flex-wrap items-end justify-between gap-2">
-        <div>
-          <h1 className="text-xl font-extrabold sm:text-2xl">خودروها</h1>
-          <p className="mt-1 text-sm text-muted">
-            {body ? body.label : 'خودروهای کیش و سراسر ایران، وارداتی و پلاک‌دار'} ·{' '}
-            {visible.length.toLocaleString('en-US')} آگهی
-          </p>
-        </div>
+      <div className="flex flex-wrap items-center justify-between gap-2">
+        <h1 className="text-xl font-extrabold sm:text-2xl">خودروها</h1>
         <Link
           href="/parts"
           className="text-sm font-bold text-muted transition hover:text-ink"
