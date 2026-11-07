@@ -181,12 +181,21 @@ export function Header({
             </button>
             <ThemeToggle />
             {authed ? (
-              <Link
-                href="/profile"
-                className="max-w-24 truncate rounded-[var(--radius-pill)] border border-line bg-card px-3 py-1.5 text-xs font-bold text-ink sm:max-w-none"
-              >
-                {displayName ?? 'پروفایل'}
-              </Link>
+              <>
+                <Link
+                  href="/profile"
+                  aria-label={displayName ?? 'پروفایل'}
+                  className="flex h-11 w-11 shrink-0 items-center justify-center rounded-full border border-line bg-card text-ink transition hover:border-line-strong sm:hidden"
+                >
+                  <Icon name="user" size={19} />
+                </Link>
+                <Link
+                  href="/profile"
+                  className="hidden max-w-40 truncate rounded-[var(--radius-pill)] border border-line bg-card px-3 py-1.5 text-xs font-bold text-ink sm:block"
+                >
+                  {displayName ?? 'پروفایل'}
+                </Link>
+              </>
             ) : (
               <Link href="/login" className="btn-ghost whitespace-nowrap px-3 py-1.5 text-sm">
                 ورود
@@ -213,7 +222,7 @@ export function Header({
             <Link
               href="/"
               aria-label="Ali Sales — صفحه اصلی"
-              className="flex h-9 min-w-0 max-w-[38vw] shrink items-center overflow-hidden sm:max-w-none [&>svg]:h-9 [&>svg]:w-auto"
+              className="flex h-9 shrink-0 items-center overflow-hidden [&>svg]:h-9 [&>svg]:w-auto"
               dangerouslySetInnerHTML={{ __html: logoSvgDocument(LOCKUP, 'Ali Sales') }}
             />
           </div>
