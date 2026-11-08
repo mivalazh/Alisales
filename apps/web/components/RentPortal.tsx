@@ -41,6 +41,7 @@ interface CopyShape {
   insuranceIncluded: string;
   calcTitle: string;
   days: string;
+  dayUnit: string;
   plan: string;
   planFull: string;
   planBasic: string;
@@ -89,6 +90,7 @@ const COPY: Record<Lang, CopyShape> = {
     insuranceIncluded: 'بیمه بدنه',
     calcTitle: 'رزرو آنلاین و محاسبه هزینه',
     days: 'مدت اجاره (روز)',
+    dayUnit: 'روز',
     plan: 'طرح بیمه',
     planFull: 'بیمه کامل (+۱۲٪)',
     planBasic: 'بیمه پایه',
@@ -135,6 +137,7 @@ const COPY: Record<Lang, CopyShape> = {
     insuranceIncluded: 'Insurance',
     calcTitle: 'Online reservation & price calculator',
     days: 'Rental days',
+    dayUnit: 'days',
     plan: 'Insurance plan',
     planFull: 'Full insurance (+12%)',
     planBasic: 'Basic insurance',
@@ -181,6 +184,7 @@ const COPY: Record<Lang, CopyShape> = {
     insuranceIncluded: 'تأمين',
     calcTitle: 'حجز إلكتروني وحاسبة السعر',
     days: 'عدد الأيام',
+    dayUnit: 'أيام',
     plan: 'خطة التأمين',
     planFull: 'تأمين شامل (+١٢٪)',
     planBasic: 'تأمين أساسي',
@@ -226,6 +230,7 @@ const COPY: Record<Lang, CopyShape> = {
     insuranceIncluded: '保险',
     calcTitle: '在线预订与价格计算',
     days: '租期（天）',
+    dayUnit: '天',
     plan: '保险方案',
     planFull: '全险（+12%）',
     planBasic: '基本保险',
@@ -357,7 +362,7 @@ export function RentPortal({ rentals }: { rentals: RentalPosting[] }) {
 
       <div className="mx-auto max-w-6xl px-4 sm:px-6">
         {/* Hero booking filter table (IMG_2415 / Turo style). */}
-        <section className="-mt-7 rounded-3xl border border-[#0F7FC4]/15 bg-white p-4 shadow-xl dark:border-white/10 dark:bg-[#1b1b4f] sm:p-5">
+        <section className="relative z-10 -mt-7 rounded-3xl border border-[#0F7FC4]/15 bg-white p-4 shadow-xl dark:border-white/10 dark:bg-[#1b1b4f] sm:p-5">
           <h2 className="mb-3 flex items-center gap-2 text-xs font-extrabold text-[#111144] dark:text-white">
             <Icon name="sliders" size={15} className="text-[#0F7FC4]" />
             {copy.filterTitle}
@@ -451,7 +456,7 @@ export function RentPortal({ rentals }: { rentals: RentalPosting[] }) {
             </label>
             <div className="flex items-end sm:col-span-2 lg:col-span-3">
               <p className="w-full rounded-xl bg-[#0F7FC4]/10 px-3 py-2 text-xs font-extrabold text-[#0F7FC4]">
-                {filtered.length} {copy.results} · {days} {copy.days}
+                {filtered.length} {copy.results} · {days} {copy.dayUnit}
               </p>
             </div>
           </div>
