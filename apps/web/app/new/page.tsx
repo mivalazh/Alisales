@@ -31,9 +31,6 @@ export default async function NewListingPage() {
     <div className="space-y-4">
       <div>
         <h1 className="text-xl font-extrabold">ثبت آگهی</h1>
-        <p className="mt-1 text-xs text-muted">
-          آگهی شما پس از ثبت بلافاصله در فهرست منتشر می‌شود. شهر در این مرحله فقط کیش است.
-        </p>
       </div>
       {atCap ? <PlanPreview /> : <ListingForm />}
     </div>

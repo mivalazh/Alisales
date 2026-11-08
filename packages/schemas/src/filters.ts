@@ -1,5 +1,14 @@
 import { z } from 'zod';
-import { bodyTypes, conditions, fuelTypes, gearboxTypes, plateTypes } from './enums';
+import {
+  bodyTypes,
+  chassisConditions,
+  conditions,
+  fuelTypes,
+  gearboxTypes,
+  insuranceKinds,
+  paintConditions,
+  plateTypes,
+} from './enums';
 import { BRAND_NAME, CITIES, MAX_VEHICLE_YEAR, MIN_VEHICLE_YEAR, brandSlugs } from './vehicle';
 import { bikeTypeKeys, heavyTypeKeys } from './categories';
 
@@ -24,7 +33,16 @@ export const searchFiltersSchema = z.object({
   yearTo: z.number().int().min(MIN_VEHICLE_YEAR).max(MAX_VEHICLE_YEAR).optional(),
   priceFrom: z.number().int().min(0).max(10 ** 15).optional(),
   priceTo: z.number().int().min(0).max(10 ** 15).optional(),
+  mileageMin: z.number().int().min(0).max(2_000_000).optional(),
   mileageMax: z.number().int().min(0).max(2_000_000).optional(),
+  /** Which insurance policies the car must have («دارد»). */
+  insurance: z.array(z.enum(insuranceKinds)).default([]),
+  /** Declared paint/body condition. */
+  paintCondition: z.array(z.enum(paintConditions)).default([]),
+  /** Declared chassis condition («شاسی پلمپ» / ضربه‌خورده). */
+  chassisCondition: z.array(z.enum(chassisConditions)).default([]),
+  /** Technical inspection ticket: yes / no / any. */
+  technicalInspection: z.enum(['yes', 'no']).optional(),
   gearbox: z.array(z.enum(gearboxTypes)).default([]),
   fuel: z.array(z.enum(fuelTypes)).default([]),
   plateType: z.array(z.enum(plateTypes)).default([]),
@@ -93,6 +111,9 @@ export function parseFiltersFromSearchParams(params: Record<string, QueryValue>)
     city: csv(params.city),
     bikeType: csv(params.bikeType),
     heavyType: csv(params.heavyType),
+    insurance: csv(params.insurance),
+    paintCondition: csv(params.paintCondition),
+    chassisCondition: csv(params.chassisCondition),
     hasReport: boolOrNull(params.hasReport) ?? false,
     kishOnly: boolOrNull(params.kishOnly) ?? false,
   };
@@ -106,11 +127,15 @@ export function parseFiltersFromSearchParams(params: Record<string, QueryValue>)
   const q = first(params.q)?.trim();
   if (q) raw.q = toAsciiDigits(q);
 
+  const inspection = first(params.technicalInspection);
+  if (inspection === 'yes' || inspection === 'no') raw.technicalInspection = inspection;
+
   for (const key of [
     'yearFrom',
     'yearTo',
     'priceFrom',
     'priceTo',
+    'mileageMin',
     'mileageMax',
     'engineCcMin',
     'engineCcMax',
@@ -136,7 +161,12 @@ export function filtersToSearchParams(filters: SearchFilters): Record<string, st
   if (filters.yearTo !== undefined) out.yearTo = String(filters.yearTo);
   if (filters.priceFrom !== undefined) out.priceFrom = String(filters.priceFrom);
   if (filters.priceTo !== undefined) out.priceTo = String(filters.priceTo);
+  if (filters.mileageMin !== undefined) out.mileageMin = String(filters.mileageMin);
   if (filters.mileageMax !== undefined) out.mileageMax = String(filters.mileageMax);
+  if (filters.insurance.length) out.insurance = filters.insurance.join(',');
+  if (filters.paintCondition.length) out.paintCondition = filters.paintCondition.join(',');
+  if (filters.chassisCondition.length) out.chassisCondition = filters.chassisCondition.join(',');
+  if (filters.technicalInspection) out.technicalInspection = filters.technicalInspection;
   if (filters.gearbox.length) out.gearbox = filters.gearbox.join(',');
   if (filters.fuel.length) out.fuel = filters.fuel.join(',');
   if (filters.plateType.length) out.plateType = filters.plateType.join(',');
@@ -185,7 +215,11 @@ export function activeFilterCount(filters: SearchFilters): number {
     (filters.trim ? 1 : 0) +
     (filters.yearFrom !== undefined || filters.yearTo !== undefined ? 1 : 0) +
     (filters.priceFrom !== undefined || filters.priceTo !== undefined ? 1 : 0) +
-    (filters.mileageMax !== undefined ? 1 : 0) +
+    (filters.mileageMin !== undefined || filters.mileageMax !== undefined ? 1 : 0) +
+    (filters.insurance.length ? 1 : 0) +
+    (filters.paintCondition.length ? 1 : 0) +
+    (filters.chassisCondition.length ? 1 : 0) +
+    (filters.technicalInspection !== undefined ? 1 : 0) +
     (filters.engineCcMin !== undefined || filters.engineCcMax !== undefined ? 1 : 0) +
     (filters.workingHoursMax !== undefined ? 1 : 0) +
     (filters.hasReport ? 1 : 0) +

@@ -1,10 +1,12 @@
 import { z } from 'zod';
 import {
   bodyTypes,
+  chassisConditions,
   colorSlugs,
   conditions,
   fuelTypes,
   gearboxTypes,
+  paintConditions,
   type BodyType,
 } from './enums';
 import {
@@ -13,6 +15,7 @@ import {
   vehicleCategories,
   type CategoryBrand,
 } from './categories';
+import { CAR_BRANDS } from './car-brands';
 
 /**
  * Market brands — the Kish free-zone import catalogue.
@@ -27,262 +30,7 @@ import {
  * mixed RTL/LTR title never reorders. `models` are Latin too and stay a
  * suggestion list — model (and a custom brand) remain free text.
  */
-export const BRANDS = [
-  {
-    slug: 'toyota',
-    label: 'تویوتا',
-    latin: 'Toyota',
-    models: [
-      'Land Cruiser',
-      'Land Cruiser Prado',
-      'Land Cruiser VXR',
-      'Prado',
-      'Hilux',
-      'Fortuner',
-      'Camry',
-      'Corolla',
-      'RAV4',
-      'C-HR',
-      'Supra',
-      'Sequoia',
-    ],
-  },
-  {
-    slug: 'nissan',
-    label: 'نیسان',
-    latin: 'Nissan',
-    models: ['Patrol', 'Patrol Platinum', 'X-Trail', 'Qashqai', 'Altima', 'Maxima', 'Juke', '370Z', 'GT-R'],
-  },
-  {
-    slug: 'honda',
-    label: 'هوندا',
-    latin: 'Honda',
-    models: ['Accord', 'Civic', 'CR-V', 'Pilot', 'HR-V', 'Odyssey'],
-  },
-  {
-    slug: 'mazda',
-    label: 'مزدا',
-    latin: 'Mazda',
-    models: ['Mazda 3', 'Mazda 6', 'CX-5', 'CX-9', 'MX-5'],
-  },
-  {
-    slug: 'mitsubishi',
-    label: 'میتسوبیشی',
-    latin: 'Mitsubishi',
-    models: ['Pajero', 'Pajero Sport', 'L200', 'Outlander', 'Eclipse Cross', 'ASX'],
-  },
-  {
-    slug: 'subaru',
-    label: 'سوبارو',
-    latin: 'Subaru',
-    models: ['Forester', 'Outback', 'Impreza', 'XV', 'WRX'],
-  },
-  {
-    slug: 'lexus',
-    label: 'لکسوس',
-    latin: 'Lexus',
-    models: ['LX 570', 'LX 600', 'RX', 'ES', 'NX', 'GX', 'IS', 'LS'],
-  },
-  {
-    slug: 'infiniti',
-    label: 'اینفینیتی',
-    latin: 'Infiniti',
-    models: ['Q50', 'Q60', 'QX50', 'QX60', 'QX80'],
-  },
-  {
-    slug: 'mercedes-benz',
-    label: 'مرسدس‌بنز',
-    latin: 'Mercedes-Benz',
-    models: [
-      'S-Class',
-      'E-Class',
-      'C-Class',
-      'G-Class',
-      'GLE',
-      'GLS',
-      'GLC',
-      'S 500',
-      'S 580',
-      'AMG GT',
-      'V-Class',
-    ],
-  },
-  {
-    slug: 'bmw',
-    label: 'بی‌ام‌و',
-    latin: 'BMW',
-    models: [
-      '3 Series',
-      '5 Series',
-      '7 Series',
-      'X1',
-      'X3',
-      'X5',
-      'X6',
-      'X7',
-      'M3',
-      'M5',
-      'iX',
-    ],
-  },
-  {
-    slug: 'audi',
-    label: 'آئودی',
-    latin: 'Audi',
-    models: ['A4', 'A6', 'A8', 'Q5', 'Q7', 'Q8', 'RS7', 'e-tron'],
-  },
-  {
-    slug: 'porsche',
-    label: 'پورشه',
-    latin: 'Porsche',
-    models: ['Cayenne', 'Macan', 'Panamera', '911', 'Boxster', 'Taycan'],
-  },
-  {
-    slug: 'volkswagen',
-    label: 'فولکس‌واگن',
-    latin: 'Volkswagen',
-    models: ['Golf', 'Tiguan', 'Passat', 'Touareg', 'Arteon', 'ID.4'],
-  },
-  {
-    slug: 'mini',
-    label: 'مینی',
-    latin: 'MINI',
-    models: ['Cooper', 'Countryman', 'Clubman', 'John Cooper Works'],
-  },
-  {
-    slug: 'volvo',
-    label: 'ولوو',
-    latin: 'Volvo',
-    models: ['XC40', 'XC60', 'XC90', 'S60', 'S90'],
-  },
-  {
-    slug: 'jaguar',
-    label: 'جگوار',
-    latin: 'Jaguar',
-    models: ['XE', 'XF', 'F-Pace', 'E-Pace', 'F-Type'],
-  },
-  {
-    slug: 'land-rover',
-    label: 'لندروور',
-    latin: 'Land Rover',
-    models: ['Range Rover', 'Range Rover Sport', 'Range Rover Velar', 'Defender', 'Discovery', 'Evoque'],
-  },
-  {
-    slug: 'range-rover',
-    label: 'رنج‌روور',
-    latin: 'Range Rover',
-    models: ['Vogue', 'Sport', 'Velar', 'Evoque', 'Autobiography'],
-  },
-  {
-    slug: 'maserati',
-    label: 'مازراتی',
-    latin: 'Maserati',
-    models: ['Ghibli', 'Levante', 'Quattroporte', 'GranTurismo', 'MC20'],
-  },
-  {
-    slug: 'cadillac',
-    label: 'کادیلاک',
-    latin: 'Cadillac',
-    models: ['Escalade', 'CT4', 'CT5', 'XT5', 'XT6'],
-  },
-  {
-    slug: 'ford',
-    label: 'فورد',
-    latin: 'Ford',
-    models: ['Mustang', 'Explorer', 'F-150', 'Edge', 'Expedition', 'Bronco'],
-  },
-  {
-    slug: 'chevrolet',
-    label: 'شورولت',
-    latin: 'Chevrolet',
-    models: ['Camaro', 'Corvette', 'Tahoe', 'Silverado', 'Malibu', 'Traverse'],
-  },
-  {
-    slug: 'dodge',
-    label: 'دوج',
-    latin: 'Dodge',
-    models: ['Challenger', 'Charger', 'Durango', 'Ram 1500'],
-  },
-  {
-    slug: 'jeep',
-    label: 'جیپ',
-    latin: 'Jeep',
-    models: ['Wrangler', 'Grand Cherokee', 'Compass', 'Cherokee', 'Gladiator'],
-  },
-  {
-    slug: 'tesla',
-    label: 'تسلا',
-    latin: 'Tesla',
-    models: ['Model 3', 'Model Y', 'Model S', 'Model X'],
-  },
-  {
-    slug: 'hyundai',
-    label: 'هیوندای',
-    latin: 'Hyundai',
-    models: ['Accent', 'Elantra', 'Sonata', 'Tucson', 'Santa Fe', 'Palisade', 'Kona'],
-  },
-  {
-    slug: 'kia',
-    label: 'کیا',
-    latin: 'Kia',
-    models: ['Cerato', 'Optima', 'K5', 'Sportage', 'Sorento', 'Telluride', 'Picanto', 'Stinger'],
-  },
-  {
-    slug: 'genesis',
-    label: 'جنسیس',
-    latin: 'Genesis',
-    models: ['G70', 'G80', 'G90', 'GV70', 'GV80'],
-  },
-  { slug: 'mg', label: 'ام‌جی', latin: 'MG', models: ['MG5', 'MG6', 'ZS', 'HS', 'RX5'] },
-  { slug: 'chery', label: 'چری', latin: 'Chery', models: ['Arrizo 6', 'Arrizo 8', 'Tiggo 7 Pro', 'Tiggo 8 Pro'] },
-  { slug: 'geely', label: 'جیلی', latin: 'Geely', models: ['Emgrand 7', 'Coolray', 'Tugella', 'Okavango', 'Atlas'] },
-  { slug: 'byd', label: 'بی‌وای‌دی', latin: 'BYD', models: ['Song Plus', 'Seal', 'Atto 3', 'Han', 'Tang'] },
-  { slug: 'haval', label: 'هاول', latin: 'Haval', models: ['H6', 'H9', 'Jolion', 'Dargo', 'H6 GT'] },
-  { slug: 'jac', label: 'جک', latin: 'JAC', models: ['S3', 'S5', 'J4', 'T8', 'Sehol X4'] },
-  { slug: 'changan', label: 'چانگان', latin: 'Changan', models: ['CS35', 'CS55', 'CS75', 'Eado', 'UNI-T'] },
-  { slug: 'lifan', label: 'لیفان', latin: 'Lifan', models: ['X50', 'X60', 'X70', '820', '620'] },
-  { slug: 'fiat', label: 'فیات', latin: 'Fiat', models: ['500', 'Tipo', 'Panda', 'Doblo'] },
-  { slug: 'opel', label: 'اپل', latin: 'Opel', models: ['Astra', 'Corsa', 'Insignia', 'Mokka', 'Grandland'] },
-  {
-    slug: 'lamborghini',
-    label: 'لامبورگینی',
-    latin: 'Lamborghini',
-    models: ['Huracán', 'Huracán EVO', 'Aventador', 'Urus', 'Revuelto'],
-  },
-  {
-    slug: 'mclaren',
-    label: 'مک‌لارن',
-    latin: 'McLaren',
-    models: ['720S', '570S', 'Artura', 'GT', '765LT'],
-  },
-  {
-    slug: 'ferrari',
-    label: 'فراری',
-    latin: 'Ferrari',
-    models: ['488 GTB', 'F8 Tributo', 'Roma', 'Portofino', 'SF90'],
-  },
-  {
-    slug: 'bentley',
-    label: 'بنتلی',
-    latin: 'Bentley',
-    models: ['Continental GT', 'Bentayga', 'Flying Spur', 'Mulsanne'],
-  },
-  {
-    slug: 'rolls-royce',
-    label: 'رولز-رویس',
-    latin: 'Rolls-Royce',
-    models: ['Ghost', 'Phantom', 'Cullinan', 'Wraith', 'Dawn'],
-  },
-  {
-    slug: 'aston-martin',
-    label: 'استون مارتین',
-    latin: 'Aston Martin',
-    models: ['DB11', 'Vantage', 'DBX', 'DBS', 'Rapide'],
-  },
-  { slug: 'other', label: 'سایر', latin: 'Other', models: [] },
-  ...MOTORCYCLE_BRANDS,
-  ...HEAVY_BRANDS,
-] as const satisfies readonly CategoryBrand[];
+export const BRANDS = CAR_BRANDS as readonly CategoryBrand[];
 
 /**
  * Marques retired from the browse catalogue.
@@ -325,57 +73,11 @@ export const BRAND_NAME: Record<string, string> = Object.fromEntries(
  * Brand order in the vehicles brand box — luxury/import first (what the Kish
  * free zone actually sells), the budget import set after it. `سایر` closes it.
  */
-export const CAR_UI_BRAND_SLUGS = [
-  'toyota',
-  'nissan',
-  'lexus',
-  'infiniti',
-  'mercedes-benz',
-  'bmw',
-  'audi',
-  'porsche',
-  'volkswagen',
-  'mini',
-  'volvo',
-  'jaguar',
-  'land-rover',
-  'range-rover',
-  'lamborghini',
-  'mclaren',
-  'ferrari',
-  'bentley',
-  'rolls-royce',
-  'aston-martin',
-  'maserati',
-  'cadillac',
-  'ford',
-  'chevrolet',
-  'dodge',
-  'jeep',
-  'tesla',
-  'hyundai',
-  'kia',
-  'genesis',
-  'honda',
-  'mazda',
-  'mitsubishi',
-  'subaru',
-  'mg',
-  'chery',
-  'geely',
-  'byd',
-  'haval',
-  'jac',
-  'changan',
-  'lifan',
-  'fiat',
-  'opel',
-  'other',
-] as const;
+export const CAR_UI_BRAND_SLUGS = CAR_BRANDS.map((brand) => brand.slug) as readonly string[];
 
 /** Cars only, in brand-box order. */
 export const carBrands: readonly CategoryBrand[] = CAR_UI_BRAND_SLUGS.map(
-  (slug: (typeof CAR_UI_BRAND_SLUGS)[number]) => ALL_BRANDS.find((b) => b.slug === slug)!,
+  (slug) => ALL_BRANDS.find((b) => b.slug === slug)!,
 ).filter(Boolean);
 
 /** Legacy alias kept for the pages that already import it. */
@@ -384,9 +86,11 @@ export const kishUiBrands = carBrands;
 
 /** Brand list for a category — cars, motorcycles or heavy machinery. */
 export function brandsForCategory(category: 'car' | 'motorcycle' | 'heavy'): readonly CategoryBrand[] {
-  if (category === 'motorcycle') return MOTORCYCLE_BRANDS;
-  if (category === 'heavy') return HEAVY_BRANDS;
-  return carBrands;
+  const list =
+    category === 'motorcycle' ? MOTORCYCLE_BRANDS : category === 'heavy' ? HEAVY_BRANDS : carBrands;
+  // Petrol bikes and the old HOWO truck stay in the schema for existing rows,
+  // but the new Kish catalog offers only the exact electric/heavy list.
+  return list.filter((brand) => !brand.legacy);
 }
 
 /** Suggestion models for one brand slug (empty when the brand is «سایر»). */
@@ -479,6 +183,23 @@ export const vehicleSchema = z.object({
   bodyType: z.enum(bodyTypes).nullable().default(null),
   condition: z.enum(conditions),
   plateType: z.enum(['standard', 'kish', 'temporary_transit', 'unplated'] as const),
+  /** Third-party insurance: yes/no + remaining months (1–12). */
+  thirdPartyInsurance: z.boolean().nullable().default(null),
+  thirdPartyMonths: z.number().int().min(1).max(12).nullable().default(null),
+  /** Body insurance: yes/no + remaining months (1–12). */
+  bodyInsurance: z.boolean().nullable().default(null),
+  bodyMonths: z.number().int().min(1).max(12).nullable().default(null),
+  /** Seller-declared paint / body condition. */
+  paintCondition: z.enum(paintConditions).nullable().default(null),
+  /** Seller-declared chassis condition. */
+  chassisCondition: z.enum(chassisConditions).nullable().default(null),
+  /** Current technical inspection (معاینه فنی) on/off. */
+  technicalInspection: z.boolean().nullable().default(null),
+  /** «عکس ژورنال» — the cover is a catalogue/internet photo, not the car. */
+  isJournalPhoto: z.boolean().default(false),
+  /** Optional uploaded inspection sheet + the seller's summary line. */
+  inspectionSheetUrl: z.string().trim().max(500).nullable().default(null),
+  inspectionNote: z.string().trim().max(300).nullable().default(null),
   vin: z
     .string()
     .trim()

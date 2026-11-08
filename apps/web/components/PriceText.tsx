@@ -12,7 +12,7 @@ const SECONDARY_INK = '#64748B';
  * Price block for cards, rows and the detail page.
  *
  * The stored price is always IRR. The rate comes from the one stored value
- * (`RateProvider` → `/admin/settings`), so every AED figure on the site matches.
+ * (`RateProvider` → the externally managed settings row), so every AED figure matches.
  *
  * The headline is bold brand orange (#F98513) text on a transparent background;
  * the reference «≈ … AED» sits directly underneath in muted slate, right-aligned

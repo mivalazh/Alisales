@@ -39,8 +39,12 @@ export function PhotoUploader({
   error,
   label = 'عکس‌های خودرو',
 }: Props) {
-  const inputRef = useRef<HTMLInputElement>(null);
+  const galleryRef = useRef<HTMLInputElement>(null);
+  const cameraRef = useRef<HTMLInputElement>(null);
+  const filesRef = useRef<HTMLInputElement>(null);
+  const videoRef = useRef<HTMLInputElement>(null);
   const [busy, setBusy] = useState(false);
+  const [chooserOpen, setChooserOpen] = useState(false);
   const [localError, setLocalError] = useState<string | null>(null);
 
   const remaining = MAX_PHOTOS - photos.length;
@@ -87,7 +91,9 @@ export function PhotoUploader({
     } finally {
       setBusy(false);
       onBusyChange?.(false);
-      if (inputRef.current) inputRef.current.value = '';
+      for (const ref of [galleryRef, cameraRef, filesRef, videoRef]) {
+        if (ref.current) ref.current.value = '';
+      }
     }
   }
 
@@ -180,22 +186,96 @@ export function PhotoUploader({
         <li>
           <button
             type="button"
-            onClick={() => inputRef.current?.click()}
+            onClick={() => setChooserOpen(true)}
             disabled={remaining === 0 || busy}
             className="flex aspect-[var(--photo-aspect)] w-full flex-col items-center justify-center gap-1 rounded-field border border-dashed border-line-strong bg-card text-muted transition hover:border-cta hover:text-ink disabled:cursor-not-allowed disabled:opacity-50"
           >
             <span className="text-2xl leading-none">+</span>
             <span className="text-xs font-bold">
-              {remaining === 0 ? 'سقف عکس تکمیل' : 'افزودن عکس'}
+              {remaining === 0 ? 'سقف عکس تکمیل' : 'افزودن عکس یا ویدیو'}
             </span>
           </button>
         </li>
       </ul>
 
+      {/* Device-compatible source chooser: gallery, camera, files or video. */}
+      {chooserOpen && (
+        <div
+          role="dialog"
+          aria-modal="true"
+          aria-label="افزودن عکس یا ویدیو"
+          className="fixed inset-0 z-[60] flex items-end justify-center bg-black/50 p-0 sm:items-center sm:p-4"
+          onClick={() => setChooserOpen(false)}
+        >
+          <div
+            className="w-full max-w-sm rounded-t-2xl border border-line bg-card p-3 shadow-2xl sm:rounded-2xl"
+            onClick={(event) => event.stopPropagation()}
+          >
+            <p className="px-1 pb-2 text-xs font-extrabold text-muted">افزودن از</p>
+            {[
+              { key: 'gallery', label: '۱. انتخاب از گالری تصاویر', ref: galleryRef },
+              { key: 'camera', label: '۲. گرفتن عکس با دوربین', ref: cameraRef },
+              { key: 'files', label: '۳. انتخاب از فایل‌ها', ref: filesRef },
+              { key: 'video', label: '۴. افزودن ویدیو (اسلات ۲ به بعد)', ref: videoRef },
+            ].map((source) => (
+              <button
+                key={source.key}
+                type="button"
+                onClick={() => {
+                  setChooserOpen(false);
+                  source.ref.current?.click();
+                }}
+                className="flex w-full items-center justify-between rounded-field px-3 py-3 text-start text-sm font-bold text-ink transition hover:bg-cta-soft"
+              >
+                {source.label}
+                <span aria-hidden className="text-faint">
+                  ‹
+                </span>
+              </button>
+            ))}
+            <button
+              type="button"
+              onClick={() => setChooserOpen(false)}
+              className="mt-1 w-full rounded-field border border-line py-2 text-xs font-bold text-muted"
+            >
+              انصراف
+            </button>
+          </div>
+        </div>
+      )}
+
+      {/* Gallery */}
       <input
-        ref={inputRef}
+        ref={galleryRef}
+        type="file"
+        accept="image/jpeg,image/png,image/webp"
+        multiple
+        hidden
+        onChange={(e) => void handleFiles(e.target.files)}
+      />
+      {/* Camera (rear lens on a phone) */}
+      <input
+        ref={cameraRef}
+        type="file"
+        accept="image/*"
+        capture="environment"
+        hidden
+        onChange={(e) => void handleFiles(e.target.files)}
+      />
+      {/* Files (images and clips) */}
+      <input
+        ref={filesRef}
         type="file"
         accept="image/jpeg,image/png,image/webp,video/mp4,video/webm,video/quicktime"
+        multiple
+        hidden
+        onChange={(e) => void handleFiles(e.target.files)}
+      />
+      {/* Video only — slots 2+ (the cover must stay a still image) */}
+      <input
+        ref={videoRef}
+        type="file"
+        accept="video/mp4,video/webm,video/quicktime"
         multiple
         hidden
         onChange={(e) => void handleFiles(e.target.files)}

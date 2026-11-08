@@ -1,4 +1,14 @@
-import { fuzzySearchMatch, inferBodyType, type SearchFilters } from '@alisales/schemas';
+import {
+  BIKE_TYPE_LABELS,
+  CHASSIS_CONDITION_LABELS,
+  HEAVY_TYPE_LABELS,
+  PAINT_CONDITION_LABELS,
+  BODY_TYPE_LABELS,
+  fuzzySearchMatch,
+  inferBodyType,
+  type BodyType,
+  type SearchFilters,
+} from '@alisales/schemas';
 
 /**
  * Pure filter predicate shared by the server search and the client filter
@@ -24,7 +34,7 @@ export interface FilterableListing {
   fuel?: string;
   plateType: string;
   condition: string;
-  bodyType?: string | null;
+  bodyType?: BodyType | null;
   hasReport: boolean;
   /** Category-specific specs — absent on cars and parts. */
   category?: 'car' | 'motorcycle' | 'heavy';
@@ -32,6 +42,13 @@ export interface FilterableListing {
   bikeType?: string | null;
   heavyType?: string | null;
   workingHours?: number | null;
+  /** Seller-declared condition columns (vehicles only). */
+  thirdPartyInsurance?: boolean | null;
+  bodyInsurance?: boolean | null;
+  paintCondition?: string | null;
+  chassisCondition?: string | null;
+  technicalInspection?: boolean | null;
+  color?: string | null;
 }
 
 export function matchesFilters(listing: FilterableListing, f: SearchFilters): boolean {
@@ -50,6 +67,7 @@ export function matchesFilters(listing: FilterableListing, f: SearchFilters): bo
   if (f.yearTo !== undefined && listing.year > f.yearTo) return false;
   if (f.priceFrom !== undefined && listing.priceIRR < f.priceFrom) return false;
   if (f.priceTo !== undefined && listing.priceIRR > f.priceTo) return false;
+  if (f.mileageMin !== undefined && listing.mileageKm < f.mileageMin) return false;
   if (f.mileageMax !== undefined && listing.mileageKm > f.mileageMax) return false;
   if (f.gearbox.length && !(f.gearbox as readonly string[]).includes(listing.gearbox)) return false;
   if (f.fuel.length && !(f.fuel as readonly string[]).includes(listing.fuel ?? '')) return false;
@@ -78,10 +96,52 @@ export function matchesFilters(listing: FilterableListing, f: SearchFilters): bo
     if ((listing.workingHours ?? 0) > f.workingHoursMax) return false;
   }
   if (f.hasReport && !listing.hasReport) return false;
+
+  // Insurance + inspection declarations. Rows that never asked the question
+  // (null) are excluded when the buyer explicitly filters for an answer.
+  if (f.insurance.includes('third_party') && listing.thirdPartyInsurance !== true) return false;
+  if (f.insurance.includes('body') && listing.bodyInsurance !== true) return false;
+  if (
+    f.paintCondition.length &&
+    !(f.paintCondition as readonly string[]).includes(listing.paintCondition ?? '')
+  ) {
+    return false;
+  }
+  if (
+    f.chassisCondition.length &&
+    !(f.chassisCondition as readonly string[]).includes(listing.chassisCondition ?? '')
+  ) {
+    return false;
+  }
+  if (f.technicalInspection === 'yes' && listing.technicalInspection !== true) return false;
+  if (f.technicalInspection === 'no' && listing.technicalInspection !== false) return false;
+
   // Free-text query is fuzzy and bilingual: «لندکروز» / «landcruiser» with a
   // typo both hit a «Land Cruiser VXR» row (see @alisales/schemas/search).
-  if (f.q && !fuzzySearchMatch(`${listing.brand} ${listing.model} ${listing.trim ?? ''}`, f.q)) {
-    return false;
+  if (f.q) {
+    const haystack = [
+      listing.brand,
+      listing.model,
+      listing.trim ?? '',
+      listing.color ?? '',
+      listing.bodyType ? BODY_TYPE_LABELS[listing.bodyType] : '',
+      listing.paintCondition ? PAINT_CONDITION_LABELS[listing.paintCondition as keyof typeof PAINT_CONDITION_LABELS] : '',
+      listing.chassisCondition
+        ? `شاسی ${CHASSIS_CONDITION_LABELS[listing.chassisCondition as keyof typeof CHASSIS_CONDITION_LABELS]}`
+        : '',
+      listing.thirdPartyInsurance ? 'بیمه شخص ثالث دارد' : '',
+      listing.technicalInspection ? 'معاینه فنی دارد' : '',
+      // Category words, so «اسکوتر» / «موتور برقی» / «ماشین سنگین» find the
+      // fleet even when the seller only wrote the model name.
+      listing.category === 'motorcycle'
+        ? `موتور سیکلت اسکوتر برقی electric motorcycle scooter ${listing.bikeType ? (BIKE_TYPE_LABELS[listing.bikeType] ?? '') : ''}`
+        : '',
+      listing.category === 'heavy'
+        ? `ماشین آلات سنگین راهسازی کامیون heavy machinery ${listing.heavyType ? (HEAVY_TYPE_LABELS[listing.heavyType] ?? '') : ''}`
+        : '',
+      listing.category === 'car' ? 'خودرو ماشین car vehicle' : '',
+    ].join(' ');
+    if (!fuzzySearchMatch(haystack, f.q)) return false;
   }
   return true;
 }

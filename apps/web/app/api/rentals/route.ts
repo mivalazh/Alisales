@@ -37,7 +37,8 @@ export async function POST(request: Request): Promise<NextResponse> {
 
   const body = (raw ?? {}) as Record<string, unknown>;
   const title = text(body.title, 100);
-  const kind = body.kind === 'scooter' ? 'scooter' : 'car';
+  const kind =
+    body.kind === 'scooter' ? 'scooter' : body.kind === 'yacht' ? 'yacht' : 'car';
   const brand = text(body.brand, 40);
   const model = text(body.model, 60);
   const agency = text(body.agency, 80);
@@ -67,7 +68,9 @@ export async function POST(request: Request): Promise<NextResponse> {
     brand,
     model,
     year,
-    imageUrl: text(body.imageUrl, 300) || '/covers/photos/land-cruiser-kish.webp',
+    imageUrl:
+      text(body.imageUrl, 300) ||
+      (kind === 'yacht' ? '/covers/yachts/azimut.svg' : '/covers/photos/land-cruiser-kish.webp'),
     agency,
     city: 'kish',
     dailyIRR,
@@ -76,6 +79,9 @@ export async function POST(request: Request): Promise<NextResponse> {
     depositNote,
     delivery,
     minAge,
+    capacity: Math.min(40, Math.max(1, Number(body.capacity) || (kind === 'yacht' ? 10 : 4))),
+    captainIncluded: kind === 'yacht' ? true : body.captainIncluded === true,
+    ...(kind === 'yacht' ? { lengthFt: Math.max(10, Number(body.lengthFt) || 40) } : {}),
   });
 
   return NextResponse.json({ ok: true, slug: posting.slug }, { status: 201 });

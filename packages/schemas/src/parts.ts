@@ -121,7 +121,7 @@ export const partListingPublishSchema = z
     city: z.enum(citySlugs as [string, ...string[]]),
     /** Optional, like vehicles: no minimum length. */
     description: z.string().trim().max(3000),
-    photos: z.array(listingPhotoSchema).max(MAX_PHOTOS),
+    photos: z.array(listingPhotoSchema).min(1, 'حداقل یک عکس برای انتشار آگهی لازم است').max(MAX_PHOTOS),
     showroomId: z.string().uuid().nullable().default(null),
     allowPhoneReveal: z.boolean().default(true),
     /** Hide the «≈ … AED» reference line on this listing (Toman-only). */

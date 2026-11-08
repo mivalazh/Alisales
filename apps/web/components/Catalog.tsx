@@ -20,6 +20,7 @@ import { SearchBar } from './SearchBar';
 import { SortControl, ViewModeToggle, type ViewMode } from './SortControl';
 import { Stories, type StoryItem } from './Stories';
 import { Icon } from './Icon';
+import { useI18n } from '@/lib/i18n';
 
 const VIEW_KEY = 'alisales-view';
 
@@ -101,6 +102,7 @@ export function Catalog({
   sortBar?: 'top' | 'bottom';
 }) {
   const router = useRouter();
+  const { t } = useI18n();
   const [panelOpen, setPanelOpen] = useState(false);
   const [sheetOpen, setSheetOpen] = useState(false);
   const [view, setView] = useState<ViewMode>('grid');
@@ -155,7 +157,7 @@ export function Catalog({
       className="flex shrink-0 items-center gap-1.5 rounded-[var(--radius-pill)] border border-line bg-card px-3 py-2 text-xs font-extrabold text-ink transition hover:border-line-strong"
     >
       <Icon name="sliders" size={15} />
-      فیلترها
+      {t('فیلترها', 'Filters')}
       {filterCount > 0 && (
         <span className="flex h-4 min-w-4 items-center justify-center rounded-full bg-cta px-1 text-[10px] font-extrabold text-[color:var(--color-text-on-accent)]">
           {filterCount}
@@ -198,18 +200,23 @@ export function Catalog({
         )}
         {!category && !filterStrip && genericFilterButton}
 
-        <div className="min-w-0 flex-1 overflow-x-auto [scrollbar-width:none] [&::-webkit-scrollbar]:hidden">
-          <FilterChips filters={filters} onChange={(f) => commit(f)} />
-        </div>
-
         <div className="ms-auto flex shrink-0 items-center gap-2">
           <p className="text-xs font-bold text-muted" aria-live="polite">
-            {listings.length} آگهی
+            {listings.length} {t('آگهی', 'ads')}
           </p>
           <SortControl value={sort} onChange={(key) => commit(filters, key)} />
           <ViewModeToggle value={view} onChange={changeView} />
         </div>
       </div>
+
+      {/* Active filter chips get their own wrapping row below the control bar.
+          Keeping them out of the sort box means a long chip list can never
+          squeeze «حذف همه» / the count into clipped vertical text. */}
+      {filterCount > 0 && (
+        <div className="flex flex-wrap items-center gap-2 rounded-card border border-line bg-card px-2.5 py-2">
+          <FilterChips filters={filters} onChange={(f) => commit(f)} />
+        </div>
+      )}
 
       {panelOpen && (
         <FilterPanel

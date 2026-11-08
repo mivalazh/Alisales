@@ -2,8 +2,14 @@
 
 import { useEffect, useMemo, useRef, useState, type FormEvent } from 'react';
 import {
+  CHASSIS_CONDITION_LABELS,
+  MOTORCYCLE_BRANDS,
+  HEAVY_BRANDS,
+  PAINT_CONDITION_LABELS,
   carBrands,
+  chassisConditions,
   fuzzySuggestions,
+  paintConditions,
   type SearchFilters,
 } from '@alisales/schemas';
 import { Icon } from './Icon';
@@ -33,9 +39,21 @@ const TRENDING: ReadonlyArray<{ label: string; patch: Partial<SearchFilters> }> 
 
 /** Every searchable word (marque, Latin name, model) — the fuzzy pool. */
 const SUGGESTION_POOL: readonly string[] = Array.from(
-  new Set(
-    carBrands.flatMap((brand) => [brand.label, brand.latin, ...brand.models.map((m) => m)]),
-  ),
+  new Set([
+    ...[...carBrands, ...MOTORCYCLE_BRANDS, ...HEAVY_BRANDS].flatMap((brand) => [
+      brand.label,
+      brand.latin,
+      ...brand.models,
+    ]),
+    ...paintConditions.map((paint) => PAINT_CONDITION_LABELS[paint]),
+    ...chassisConditions.map((chassis) => `شاسی ${CHASSIS_CONDITION_LABELS[chassis]}`),
+    'بیمه شخص ثالث',
+    'بیمه بدنه',
+    'معاینه فنی',
+    'اسکوتر برقی',
+    'لنت ترمز',
+    'یات و قایق تفریحی',
+  ]),
 );
 
 const BRAND_PILLS: ReadonlyArray<{ slug: BrandSlug; label: string }> = [

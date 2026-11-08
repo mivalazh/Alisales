@@ -141,11 +141,10 @@ describe('category brand catalogues', () => {
     }
   });
 
-  it('offers «سایر» as the last entry in every category', () => {
-    for (const category of ['car', 'motorcycle', 'heavy'] as const) {
-      const brands = brandsForCategory(category);
-      expect(brands[brands.length - 1]?.label).toBe('سایر');
-    }
+  it('offers an Other option as the last entry in every category', () => {
+    expect(brandsForCategory('car').at(-1)?.label).toBe('سایر');
+    expect(brandsForCategory('motorcycle').at(-1)?.label).toBe('سایر برندهای موتور برقی');
+    expect(brandsForCategory('heavy').at(-1)?.label).toBe('سایر');
   });
 
   it('lists Gregorian model years newest first', () => {

@@ -4,6 +4,7 @@ import Link from 'next/link';
 import { usePathname } from 'next/navigation';
 import { useEffect, useState, type ReactNode } from 'react';
 import { LOCKUP, logoSvgDocument, type IconName } from '@studio/design';
+import { useI18n } from '@/lib/i18n';
 import { NAV_ITEMS, type NavItem } from '@/lib/nav';
 import { CitySelect } from './CitySelect';
 import { Icon } from './Icon';
@@ -12,25 +13,29 @@ import { ThemeToggle } from './ThemeToggle';
 import { useActivePath } from './useActivePath';
 
 /**
- * App header (C8) + the standard drawer.
+ * App header + the standard drawer.
  *
  * Start edge (right in RTL): hamburger, theme toggle and the account action,
  * grouped together. End edge: the full «A ALI SALES» lockup as the home link.
  * The city lives in the sub-bar's `CitySelect`, not in this row.
  *
- * The drawer is the product menu, not a copy of the bottom bar: it carries the
- * actions that have no tab (post a listing, my listings, saved listings), the
- * viewer's preferences (city, price unit, theme) and the information pages,
- * each row with one icon, one label and a chevron, in headed sections. Home,
- * chats and profile stay in the navigation bars only.
+ * There is no rental pill in the header any more: the rental portal has its
+ * own bridge inside the drawer, so the lockup keeps its full size on a phone.
  *
- * The header itself is opaque (no `backdrop-filter`): a filtered ancestor would
- * become the containing block for the pinned drawer and clip it to the header's
- * own box. The drawer therefore renders as a sibling of `<header>`, so its
- * `fixed inset-0` always resolves against the viewport.
+ * The drawer follows one exact order (my ads → categories → city → support →
+ * about → spacer → rental portal → language circle → logout). Saved ads and the
+ * theme switch were duplicates of the bottom bar/header and were removed.
  */
 const DESTINATIONS: readonly NavItem[] = NAV_ITEMS.filter((item) => !item.primary);
 const POST_ITEM = NAV_ITEMS.find((item) => item.primary);
+
+const EN_NAV: Record<string, string> = {
+  home: 'Home',
+  chats: 'Chats',
+  post: 'Post ad',
+  favorites: 'Saved',
+  profile: 'Profile',
+};
 
 function DrawerLink({
   href,
@@ -122,15 +127,8 @@ function DrawerAccordion({
   );
 }
 
-function DrawerSection({ title, children }: { title: string; children: ReactNode }) {
-  return (
-    <section className="mt-3 first:mt-0">
-      <h2 className="px-3 pb-1 text-[11px] font-extrabold uppercase tracking-wide text-faint">
-        {title}
-      </h2>
-      <ul className="space-y-0.5">{children}</ul>
-    </section>
-  );
+function DrawerSection({ children }: { children: ReactNode }) {
+  return <ul className="space-y-0.5">{children}</ul>;
 }
 
 export function Header({
@@ -143,6 +141,7 @@ export function Header({
   const [menuOpen, setMenuOpen] = useState(false);
   const pathname = usePathname();
   const isActive = useActivePath();
+  const { lang, t, toggleLanguage } = useI18n();
   const rentMode = Boolean(pathname?.startsWith('/rent'));
 
   useEffect(() => {
@@ -174,7 +173,7 @@ export function Header({
               onClick={() => setMenuOpen((v) => !v)}
               aria-expanded={menuOpen}
               aria-controls="site-menu"
-              aria-label={menuOpen ? 'بستن منو' : 'باز کردن منو'}
+              aria-label={menuOpen ? t('بستن منو', 'Close menu') : t('باز کردن منو', 'Open menu')}
               className="flex h-11 w-11 shrink-0 items-center justify-center rounded-full border border-line bg-card text-ink transition hover:border-line-strong"
             >
               <Icon name={menuOpen ? 'close' : 'menu'} size={22} />
@@ -184,7 +183,7 @@ export function Header({
               <>
                 <Link
                   href="/profile"
-                  aria-label={displayName ?? 'پروفایل'}
+                  aria-label={displayName ?? t('پروفایل', 'Profile')}
                   className="flex h-11 w-11 shrink-0 items-center justify-center rounded-full border border-line bg-card text-ink transition hover:border-line-strong sm:hidden"
                 >
                   <Icon name="user" size={19} />
@@ -193,29 +192,17 @@ export function Header({
                   href="/profile"
                   className="hidden max-w-40 truncate rounded-[var(--radius-pill)] border border-line bg-card px-3 py-1.5 text-xs font-bold text-ink sm:block"
                 >
-                  {displayName ?? 'پروفایل'}
+                  {displayName ?? t('پروفایل', 'Profile')}
                 </Link>
               </>
             ) : (
               <Link href="/login" className="btn-ghost whitespace-nowrap px-3 py-1.5 text-sm">
-                ورود
+                {t('ورود', 'Sign in')}
               </Link>
             )}
           </div>
 
           <div className="ms-auto flex min-w-0 items-center gap-2">
-            {/* Bridge between the classifieds and the rental sister site — one
-                compact pill, never mixed feeds. */}
-            <Link
-              href={rentMode ? '/' : '/rent'}
-              aria-label={rentMode ? 'بازگشت به خرید و فروش' : 'ورود به رنت خودرو و موتور'}
-              className="inline-flex shrink-0 items-center gap-1 whitespace-nowrap rounded-[var(--radius-pill)] border border-[#064E3B]/25 bg-[#ECFDF5] px-2.5 py-1.5 text-[10px] font-extrabold text-[#064E3B] transition hover:border-[#064E3B]/50 sm:text-xs dark:border-[#047857]/50 dark:bg-[#064E3B]/30 dark:text-[#A7F3D0]"
-            >
-              <span className="sm:hidden">{rentMode ? '🚗 خرید و فروش' : '🔑 رنت'}</span>
-              <span className="hidden sm:inline">
-                {rentMode ? '🚗 بازگشت به خرید و فروش (Ali Sales)' : '🔑 رنت خودرو و موتور'}
-              </span>
-            </Link>
             {/* The lockup ships fixed 460×180 attributes; this box clips it to
                 the 36px header mark so a stylesheet hiccup can never let the
                 mark spill over the buttons on a narrow phone. */}
@@ -229,7 +216,7 @@ export function Header({
         </div>
 
         {/* Tablet/desktop: destinations on the start edge, city + CTA on the end edge. */}
-        <nav aria-label="ناوبری اصلی" className="hidden border-t border-line md:block">
+        <nav aria-label={t('ناوبری اصلی', 'Main navigation')} className="hidden border-t border-line md:block">
           <ul className="mx-auto flex w-full max-w-[var(--content-max)] items-center gap-1 px-6 py-1.5">
             {DESTINATIONS.map((item) => {
               const active = isActive(item.href);
@@ -242,7 +229,7 @@ export function Header({
                       active ? 'bg-cta-soft text-ink font-extrabold' : 'text-muted hover:text-ink'
                     }`}
                   >
-                    {item.label}
+                    {t(item.label, EN_NAV[item.key] ?? item.label)}
                   </Link>
                 </li>
               );
@@ -252,7 +239,7 @@ export function Header({
               {POST_ITEM && (
                 <Link href={POST_ITEM.href} className="btn-cta text-sm">
                   <Icon name="plus" size={18} />
-                  {POST_ITEM.label}
+                  {t(POST_ITEM.label, 'Post ad')}
                 </Link>
               )}
             </li>
@@ -264,143 +251,168 @@ export function Header({
         <div id="site-menu" className="fixed inset-0 z-50">
           <button
             type="button"
-            aria-label="بستن منو"
+            aria-label={t('بستن منو', 'Close menu')}
             onClick={() => setMenuOpen(false)}
             className="absolute inset-0 h-full w-full cursor-default bg-[#111144]/45"
           />
           <div
             role="dialog"
             aria-modal="true"
-            aria-label="منوی اصلی"
+            aria-label={t('منوی اصلی', 'Main menu')}
             className="absolute inset-y-0 start-0 flex w-80 max-w-[85vw] flex-col border-e border-line bg-card shadow-2xl"
           >
-            <div className="flex items-center justify-between border-b border-line px-4 py-3">
-              <span className="text-sm font-extrabold text-ink">منو</span>
+            {/* No «منو» title — just the close control, as the reference asks. */}
+            <div className="flex items-center justify-end border-b border-line px-4 py-3">
               <button
                 type="button"
                 onClick={() => setMenuOpen(false)}
-                aria-label="بستن منو"
+                aria-label={t('بستن منو', 'Close menu')}
                 className="flex h-9 w-9 items-center justify-center rounded-full border border-line text-ink transition hover:border-line-strong"
               >
                 <Icon name="close" size={18} />
               </button>
             </div>
 
-            <div className="flex-1 overflow-y-auto p-3">
-              {/* «ثبت آگهی» already lives in the desktop sub-bar and the mobile
-                  bottom bar, so the drawer stays a navigation list. */}
-              <DrawerSection title="آگهی‌ها">
+            <div className="flex flex-1 flex-col overflow-y-auto p-3">
+              <DrawerSection>
                 <DrawerLink
                   href="/profile/listings"
-                  label="آگهی‌های من"
+                  label={t('آگهی‌های من', 'My ads')}
                   icon="tag"
                   active={pathname === '/profile/listings'}
                 />
-                <DrawerLink
-                  href="/favorites"
-                  label="ذخیره‌شده‌ها"
-                  icon="heart"
-                  active={pathname === '/favorites'}
-                />
               </DrawerSection>
 
-              <DrawerSection title="دسته‌بندی‌ها">
-                <DrawerAccordion
-                  href="/cars"
-                  label="خودرو"
-                  icon="car"
-                  active={pathname === '/cars'}
-                  allLabel="همه خودروها"
-                  links={[
-                    { href: '/cars?bodyType=suv', label: 'شاسی‌بلند (SUV)' },
-                    { href: '/cars?bodyType=sedan', label: 'سدان (سواری)' },
-                    { href: '/cars?bodyType=coupe', label: 'کوپه و اسپرت' },
-                    { href: '/cars?plateType=kish', label: 'پلاک منطقه آزاد' },
-                    { href: '/cars?plateType=temporary_transit', label: 'گذر موقت' },
-                  ]}
-                />
-                <DrawerAccordion
-                  href="/motorcycles"
-                  label="موتور و اسکوتر برقی"
-                  icon="plate"
-                  active={pathname === '/motorcycles'}
-                  allLabel="همه موتورها"
-                  links={[
-                    { href: '/motorcycles?bikeType=scooter', label: 'اسکوتر برقی' },
-                    { href: '/motorcycles?bikeType=electric', label: 'موتور برقی' },
-                    { href: '/motorcycles?bikeType=sport', label: 'موتور اسپرت / ریس' },
-                    { href: '/motorcycles?bikeType=cross', label: 'کراس و آفرود' },
-                    { href: '/motorcycles?bikeType=classic', label: 'کلاسیک' },
-                  ]}
-                />
-                <DrawerAccordion
-                  href="/heavy"
-                  label="ماشین‌آلات سنگین"
-                  icon="gear"
-                  active={pathname === '/heavy'}
-                  allLabel="همه ماشین‌آلات"
-                  links={[
-                    { href: '/heavy?heavyType=truck', label: 'کامیون' },
-                    { href: '/heavy?heavyType=tractor', label: 'کشنده' },
-                    { href: '/heavy?heavyType=excavator', label: 'بیل مکانیکی' },
-                    { href: '/heavy?heavyType=loader', label: 'لودر' },
-                    { href: '/heavy?heavyType=crane', label: 'جرثقیل' },
-                  ]}
-                />
-                <DrawerAccordion
-                  href="/parts"
-                  label="قطعات"
-                  icon="tag"
-                  active={pathname === '/parts'}
-                  allLabel="همه قطعات"
-                  links={[
-                    { href: '/parts?category=engine_battery', label: 'موتور و باتری' },
-                    { href: '/parts?category=brake', label: 'ترمز و تعلیق' },
-                    { href: '/parts?category=body', label: 'بدنه و چراغ' },
-                    { href: '/parts?category=engine', label: 'گیربکس و کلاچ' },
-                  ]}
-                />
-              </DrawerSection>
+              <div className="mt-3">
+                <DrawerSection>
+                  <DrawerAccordion
+                    href="/cars"
+                    label={t('خودرو', 'Cars')}
+                    icon="car"
+                    active={pathname === '/cars'}
+                    allLabel={t('همه خودروها', 'All cars')}
+                    links={[
+                      { href: '/cars?bodyType=suv', label: t('شاسی‌بلند (SUV)', 'SUV') },
+                      { href: '/cars?bodyType=sedan', label: t('سدان (سواری)', 'Sedan') },
+                      { href: '/cars?bodyType=coupe', label: t('کوپه و اسپرت', 'Coupe & sport') },
+                      { href: '/cars?plateType=kish', label: t('پلاک منطقه آزاد', 'Free-zone plate') },
+                      {
+                        href: '/cars?plateType=temporary_transit',
+                        label: t('گذر موقت', 'Temporary transit'),
+                      },
+                    ]}
+                  />
+                  <DrawerAccordion
+                    href="/motorcycles"
+                    label={t('موتور و اسکوتر برقی', 'Electric bikes & scooters')}
+                    icon="plate"
+                    active={pathname === '/motorcycles'}
+                    allLabel={t('همه موتورها', 'All bikes')}
+                    links={[
+                      { href: '/motorcycles?bikeType=scooter', label: t('اسکوتر برقی', 'Electric scooter') },
+                      { href: '/motorcycles?bikeType=electric', label: t('موتور برقی', 'Electric bike') },
+                      { href: '/motorcycles?bikeType=sport', label: t('موتور اسپرت / ریس', 'Sport bike') },
+                      { href: '/motorcycles?bikeType=cross', label: t('کراس و آفرود', 'Cross & off-road') },
+                      { href: '/motorcycles?bikeType=classic', label: t('کلاسیک', 'Classic') },
+                    ]}
+                  />
+                  <DrawerAccordion
+                    href="/heavy"
+                    label={t('ماشین‌آلات سنگین', 'Heavy machinery')}
+                    icon="gear"
+                    active={pathname === '/heavy'}
+                    allLabel={t('همه ماشین‌آلات', 'All machinery')}
+                    links={[
+                      { href: '/heavy?heavyType=truck', label: t('کامیون', 'Truck') },
+                      { href: '/heavy?heavyType=tractor', label: t('کشنده', 'Tractor unit') },
+                      { href: '/heavy?heavyType=excavator', label: t('بیل مکانیکی', 'Excavator') },
+                      { href: '/heavy?heavyType=loader', label: t('لودر', 'Loader') },
+                      { href: '/heavy?heavyType=crane', label: t('جرثقیل', 'Crane') },
+                    ]}
+                  />
+                  <DrawerAccordion
+                    href="/parts"
+                    label={t('قطعات و لوازم یدکی', 'Spare parts')}
+                    icon="tag"
+                    active={pathname === '/parts'}
+                    allLabel={t('همه قطعات', 'All parts')}
+                    links={[
+                      { href: '/parts?category=engine_battery', label: t('موتور و باتری', 'Engine & battery') },
+                      { href: '/parts?category=brake', label: t('ترمز و تعلیق', 'Brakes & suspension') },
+                      { href: '/parts?category=body', label: t('بدنه و چراغ', 'Body & lights') },
+                      { href: '/parts?category=engine', label: t('گیربکس و کلاچ', 'Gearbox & clutch') },
+                    ]}
+                  />
+                </DrawerSection>
+              </div>
 
-              {/* Display lives here as two plain rows. Price unit, legal text and
-                  the owner's moderation tools deliberately do not: they belong
-                  to the header, the footer and /profile respectively. */}
-              <DrawerSection title="نمایش">
+              <ul className="space-y-0.5">
                 <li className="px-1 py-1">
                   <div className="flex items-center gap-2 rounded-field border border-line bg-page px-3 py-2">
                     <Icon name="pin" size={18} className="shrink-0 text-cta" />
-                    <span className="flex-1 text-sm font-semibold text-muted">شهر</span>
+                    <span className="flex-1 text-sm font-semibold text-muted">
+                      {t('شهر', 'City')}
+                    </span>
                     <CitySelect />
                   </div>
                 </li>
-                <li className="flex items-center gap-3 px-3 py-2">
-                  <Icon name="moon" size={18} className="shrink-0 text-cta" />
-                  <span className="flex-1 text-sm font-semibold text-muted">تم روشن / تیره</span>
-                  <ThemeToggle />
-                </li>
-              </DrawerSection>
+              </ul>
 
-              <DrawerSection title="اطلاعات">
-                <DrawerLink
-                  href="/support"
-                  label="پشتیبانی و سوالات متداول"
-                  icon="message"
-                  active={pathname === '/support'}
-                />
-                <DrawerLink
-                  href="/about"
-                  label="درباره ما"
-                  icon="sparkle"
-                  active={pathname === '/about'}
-                />
-              </DrawerSection>
+              <div className="mt-3">
+                <DrawerSection>
+                  <DrawerLink
+                    href="/support"
+                    label={t('پشتیبانی و سوالات متداول', 'Support & FAQ')}
+                    icon="message"
+                    active={pathname === '/support'}
+                  />
+                  <DrawerLink
+                    href="/about"
+                    label={t('درباره ما', 'About us')}
+                    icon="sparkle"
+                    active={pathname === '/about'}
+                  />
+                </DrawerSection>
+              </div>
 
-              <div className="mt-4 border-t border-line pt-3">
+              <div className="my-5 flex-1" />
+
+              <div className="space-y-3 border-t border-line pt-3">
+                <Link
+                  href={rentMode ? '/' : '/rent'}
+                  className="flex items-center gap-2 rounded-field border border-[#0F7FC4]/30 bg-[#0F7FC4]/10 px-3 py-2.5 text-sm font-extrabold text-[#0F7FC4] transition hover:border-[#0F7FC4]/60"
+                >
+                  <span aria-hidden className="text-base">
+                    {rentMode ? '🚗' : '⛵'}
+                  </span>
+                  <span className="flex-1">
+                    {rentMode
+                      ? t('پورتال خرید و فروش', 'Buy & sell portal')
+                      : t('پورتال رنت', 'Rental portal')}
+                  </span>
+                  <Icon name="chevronLeft" size={14} />
+                </Link>
+
+                <div className="flex justify-end">
+                  <button
+                    type="button"
+                    onClick={toggleLanguage}
+                    aria-label={
+                      lang === 'fa'
+                        ? 'Switch to English'
+                        : 'تغییر به زبان فارسی'
+                    }
+                    title={lang === 'fa' ? 'English' : 'فارسی'}
+                    className="flex h-9 w-9 items-center justify-center rounded-full border border-line bg-page text-[11px] font-extrabold tracking-wide text-ink transition hover:border-cta hover:text-cta"
+                  >
+                    {lang === 'fa' ? 'EN' : 'PR'}
+                  </button>
+                </div>
                 {authed ? (
                   <LogoutButton />
                 ) : (
-                  <Link href="/login" className="btn-cta w-full text-sm">
-                    ورود به حساب
+                  <Link href="/login" className="btn-cta flex w-full text-sm">
+                    {t('ورود به حساب', 'Sign in')}
                   </Link>
                 )}
               </div>

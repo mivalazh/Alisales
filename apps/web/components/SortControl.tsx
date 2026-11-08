@@ -3,6 +3,14 @@
 import { useEffect, useRef, useState } from 'react';
 import { SORT_LABELS, SORT_OPTION_KEYS, type SortKey } from '@/lib/sort';
 import { Icon } from './Icon';
+import { useI18n } from '@/lib/i18n';
+
+const EN_SORT: Record<string, string> = {
+  newest: 'Newest',
+  priceAsc: 'Lowest price',
+  priceDesc: 'Highest price',
+  mostViewed: 'Most viewed',
+};
 
 /**
  * Sort control — one compact trigger that opens a menu with the four standard
@@ -19,6 +27,7 @@ export function SortControl({
   onChange: (key: SortKey) => void;
 }) {
   const [open, setOpen] = useState(false);
+  const { t } = useI18n();
   const root = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
@@ -46,8 +55,8 @@ export function SortControl({
         onClick={() => setOpen((v) => !v)}
         className="flex items-center gap-1.5 whitespace-nowrap rounded-[var(--radius-pill)] border border-line bg-card px-3 py-2 text-xs font-extrabold text-ink transition hover:border-line-strong"
       >
-        <span className="text-muted">مرتب‌سازی:</span>
-        <span>{SORT_LABELS[value]}</span>
+        <span className="text-muted">{t('مرتب‌سازی:', 'Sort:')}</span>
+        <span>{t(SORT_LABELS[value], EN_SORT[value] ?? SORT_LABELS[value])}</span>
         <Icon
           name="chevronDown"
           size={16}
@@ -58,7 +67,7 @@ export function SortControl({
       {open && (
         <ul
           role="listbox"
-          aria-label="مرتب‌سازی آگهی‌ها"
+          aria-label={t('مرتب‌سازی آگهی‌ها', 'Sort listings')}
           className="absolute end-0 top-full z-40 mt-2 w-48 overflow-hidden rounded-2xl border border-line bg-card p-1 shadow-xl"
         >
           {SORT_OPTION_KEYS.map((key) => {
@@ -75,7 +84,7 @@ export function SortControl({
                     active ? 'bg-cta-soft text-ink' : 'text-muted hover:bg-sunken hover:text-ink'
                   }`}
                 >
-                  <span>{SORT_LABELS[key]}</span>
+                  <span>{t(SORT_LABELS[key], EN_SORT[key] ?? SORT_LABELS[key])}</span>
                   {active && <Icon name="check" size={16} />}
                 </button>
               </li>

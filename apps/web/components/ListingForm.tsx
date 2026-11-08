@@ -9,6 +9,8 @@ import {
   VEHICLE_CATEGORY_LABELS,
   brandsForCategory,
   BODY_TYPE_LABELS,
+  CHASSIS_CONDITION_LABELS,
+  PAINT_CONDITION_LABELS,
   FUEL_LABELS,
   LISTING_FIELD_LABELS,
   PART_CATEGORY_LABELS,
@@ -19,8 +21,10 @@ import {
   PLATE_TYPE_LABELS,
   aedToIRR,
   bodyTypes,
+  chassisConditions,
   conditions,
   fuelTypes,
+  paintConditions,
   formatAmountLatin,
   irrToAED,
   irrToToman,
@@ -50,7 +54,11 @@ import { PhotoUploader } from './PhotoUploader';
 import { PriceText } from './PriceText';
 import { RateLine } from './RateLine';
 import { useAedRate } from './RateProvider';
-import type { ProcessedPhoto } from '@/lib/photos';
+import {
+  processListingMedia,
+  uploadProcessedPhoto,
+  type ProcessedPhoto,
+} from '@/lib/photos';
 
 /** Human labels for schema paths — shared with the mobile form. */
 const FIELD_LABELS: Record<string, string> = { ...LISTING_FIELD_LABELS, ...PART_FIELD_LABELS };
@@ -81,6 +89,18 @@ const INITIAL_DRAFT = {
   bikeType: '',
   heavyType: '',
   workingHours: '',
+  /** Insurance / paint / chassis / inspection declarations (details only). */
+  thirdPartyInsurance: '',
+  thirdPartyMonths: '',
+  bodyInsurance: '',
+  bodyMonths: '',
+  paintCondition: '',
+  chassisCondition: '',
+  technicalInspection: '',
+  inspectionSheetUrl: '',
+  inspectionNote: '',
+  /** Cover is a catalogue/internet photo, not the actual car. */
+  isJournalPhoto: false,
 };
 
 type PriceUnit = 'toman' | 'aed';
@@ -404,6 +424,88 @@ function ModelPicker({
   );
 }
 
+/** Optional upload of an existing inspection sheet (image) + summary. */
+function InspectionSheetField({
+  value,
+  onChange,
+  error,
+}: {
+  value: string;
+  onChange: (next: string) => void;
+  error?: string;
+}) {
+  const input = useRef<HTMLInputElement>(null);
+  const [busy, setBusy] = useState(false);
+  const [localError, setLocalError] = useState<string | null>(null);
+
+  return (
+    <div>
+      <label className="label">برگه کارشناسی سلامت خودرو (اختیاری)</label>
+      <div className="flex flex-wrap items-center gap-2">
+        <button
+          type="button"
+          onClick={() => input.current?.click()}
+          disabled={busy}
+          className="rounded-field border border-line bg-page px-3 py-2 text-xs font-bold text-ink transition hover:border-line-strong disabled:opacity-60"
+        >
+          {busy ? 'در حال بارگذاری…' : value ? 'تغییر برگه کارشناسی' : 'بارگذاری عکس برگه کارشناسی'}
+        </button>
+        {value && (
+          <>
+            <a
+              href={value}
+              target="_blank"
+              rel="noreferrer"
+              className="text-xs font-bold text-cta underline"
+            >
+              مشاهده برگه
+            </a>
+            <button
+              type="button"
+              onClick={() => onChange('')}
+              className="text-xs font-bold text-muted underline"
+            >
+              حذف
+            </button>
+          </>
+        )}
+      </div>
+      <input
+        ref={input}
+        type="file"
+        accept="image/jpeg,image/png,image/webp"
+        hidden
+        onChange={async (event) => {
+          const file = event.target.files?.[0];
+          if (!file) return;
+          setBusy(true);
+          setLocalError(null);
+          try {
+            const processed = await processListingMedia(file);
+            const uploaded = await uploadProcessedPhoto(processed);
+            onChange(uploaded.url ?? '');
+          } catch {
+            setLocalError('بارگذاری برگه کارشناسی ناموفق بود.');
+          } finally {
+            setBusy(false);
+            if (input.current) input.current.value = '';
+          }
+        }}
+      />
+      {localError && (
+        <p className="error-text" role="alert">
+          {localError}
+        </p>
+      )}
+      {error && (
+        <p className="error-text" role="alert">
+          {error}
+        </p>
+      )}
+    </div>
+  );
+}
+
 export function ListingForm() {
   const rate = useAedRate();
   const perAed = rate?.aedToIrr ?? DEFAULT_AED_TO_IRR;
@@ -462,6 +564,22 @@ export function ListingForm() {
   const cityOptions: SelectOption[] = selectableCities().map((c) => ({
     value: c.slug,
     label: c.label,
+  }));
+  const yesNoOptions: SelectOption[] = [
+    { value: 'yes', label: 'دارد' },
+    { value: 'no', label: 'ندارد' },
+  ];
+  const monthOptions: SelectOption[] = Array.from({ length: 12 }, (_, i) => ({
+    value: String(i + 1),
+    label: `${i + 1} ماه`,
+  }));
+  const paintOptions: SelectOption[] = paintConditions.map((paint) => ({
+    value: paint,
+    label: PAINT_CONDITION_LABELS[paint],
+  }));
+  const chassisOptions: SelectOption[] = chassisConditions.map((chassis) => ({
+    value: chassis,
+    label: CHASSIS_CONDITION_LABELS[chassis],
   }));
 
   const photosRef = useRef<ProcessedPhoto[]>([]);
@@ -682,6 +800,25 @@ export function ListingForm() {
         color: draft.color.trim(),
         condition: draft.condition as VehicleInput['condition'],
         plateType: draft.plateType as PlateType,
+        thirdPartyInsurance:
+          draft.thirdPartyInsurance === '' ? null : draft.thirdPartyInsurance === 'yes',
+        thirdPartyMonths:
+          draft.thirdPartyInsurance === 'yes' && draft.thirdPartyMonths
+            ? parseIntLoose(draft.thirdPartyMonths)
+            : null,
+        bodyInsurance:
+          draft.bodyInsurance === '' ? null : draft.bodyInsurance === 'yes',
+        bodyMonths:
+          draft.bodyInsurance === 'yes' && draft.bodyMonths
+            ? parseIntLoose(draft.bodyMonths)
+            : null,
+        paintCondition: draft.paintCondition || null,
+        chassisCondition: draft.chassisCondition || null,
+        technicalInspection:
+          draft.technicalInspection === '' ? null : draft.technicalInspection === 'yes',
+        isJournalPhoto: draft.isJournalPhoto,
+        inspectionSheetUrl: draft.inspectionSheetUrl.trim() || null,
+        inspectionNote: draft.inspectionNote.trim() || null,
         vin: draft.vin.trim() ? draft.vin.trim().toUpperCase() : null,
       },
       priceIRR: Math.round(priceIRR()),
@@ -725,15 +862,31 @@ export function ListingForm() {
       return;
     }
 
-    // Two picks the form asks for but the schema keeps optional (old rows).
-    if (mode === 'vehicle' && !draft.bodyType) {
-      setFieldErrors({ 'vehicle.bodyType': 'تیپ / کلاس بدنه — یک گزینه را انتخاب کنید.' });
-      setFormError('لطفاً خطاهای مشخص‌شده را برطرف کنید.');
-      return;
+    // Every required pick is checked together so the seller sees ALL empty
+    // boxes outlined in red at once, not one error at a time.
+    const missing: Record<string, string> = {};
+    if (photos.length === 0) {
+      missing.photos = 'عکس‌ها — حداقل یک عکس برای انتشار آگهی لازم است.';
     }
-    if (mode === 'vehicle' && !draft.color.trim()) {
-      setFieldErrors({ 'vehicle.color': 'رنگ — رنگ خودرو را بنویسید.' });
-      setFormError('لطفاً خطاهای مشخص‌شده را برطرف کنید.');
+    if (mode === 'vehicle') {
+      if (!draft.model.trim()) missing['vehicle.model'] = 'مدل — مدل خودرو را بنویسید.';
+      if (!draft.bodyType) missing['vehicle.bodyType'] = 'تیپ / کلاس بدنه — یک گزینه انتخاب کنید.';
+      if (!draft.year) missing['vehicle.year'] = 'سال ساخت — سال را انتخاب کنید.';
+      if (!draft.mileageKm.trim()) missing['vehicle.mileageKm'] = 'کارکرد — کارکرد را بنویسید.';
+      if (!draft.condition) missing['vehicle.condition'] = 'وضعیت خودرو — یک گزینه انتخاب کنید.';
+      if (!draft.color.trim()) missing['vehicle.color'] = 'رنگ — رنگ خودرو را بنویسید.';
+      if (!draft.plateType) missing['vehicle.plateType'] = 'وضعیت پلاک — یک گزینه انتخاب کنید.';
+    } else {
+      if (!partDraft.category) missing.category = 'دسته‌بندی — یک گزینه انتخاب کنید.';
+      if (!partDraft.title.trim()) missing.title = 'عنوان — عنوان قطعه را بنویسید.';
+      if (!partDraft.condition) missing.condition = 'وضعیت قطعه — یک گزینه انتخاب کنید.';
+      if (!partDraft.origin) missing.origin = 'اصالت قطعه — یک گزینه انتخاب کنید.';
+    }
+    if (Object.keys(missing).length > 0) {
+      applyIssues(
+        Object.entries(missing).map(([path, message]) => ({ path, message })),
+      );
+      setFormError('لطفاً همه‌ی فیلدهای الزامی مشخص‌شده را تکمیل کنید.');
       return;
     }
 
@@ -812,18 +965,16 @@ export function ListingForm() {
             <Icon name="checkCircle" size={26} />
           </span>
           <p className="mt-3 text-lg font-extrabold">آگهی شما منتشر شد</p>
-          <p className="mt-1 text-sm text-muted">
-            همین حالا در فهرست دیده می‌شود؛ از همین صفحه ویرایش یا حذفش کنید.
-          </p>
         </div>
 
         {publishedCard && (
-          <div className="grid gap-4 sm:grid-cols-[minmax(0,260px)_minmax(0,1fr)]">
-            {/* A real card, not a mock: same component as the catalogue. */}
-            <div className="[&>article]:h-full">
+          <div className="flex flex-col gap-4 sm:grid sm:grid-cols-[minmax(0,260px)_minmax(0,1fr)]">
+            {/* Phone: details first, preview card under it. Desktop keeps the
+                card on the start edge and the details beside it. */}
+            <div className="order-2 [&>article]:h-full sm:order-1">
               <ListingCard listing={publishedCard} />
             </div>
-            <div className="rounded-card border border-line bg-card p-4 sm:p-5">
+            <div className="order-1 rounded-card border border-line bg-card p-4 sm:order-2 sm:p-5">
               <h2 className="text-sm font-extrabold text-ink">جزئیات آگهی</h2>
               <dl className="mt-3 grid grid-cols-2 gap-2 text-xs">
                 <div className="rounded-field border border-line bg-page p-2.5">
@@ -845,26 +996,39 @@ export function ListingForm() {
                   </dd>
                 </div>
                 <div className="rounded-field border border-line bg-page p-2.5">
-                  <dt className="font-bold text-muted">شماره تماس</dt>
+                  <dt className="font-bold text-muted">ارتباط با فروشنده</dt>
                   <dd className="mt-1 font-extrabold text-ink">
-                    {publishedCard.allowPhoneReveal ? 'نمایش داده می‌شود' : 'فقط چت داخلی'}
+                    {publishedCard.allowPhoneReveal ? 'شماره تماس نمایش داده می‌شود' : 'فقط چت داخلی'}
                   </dd>
                 </div>
               </dl>
-              <div className="mt-4 flex flex-wrap items-center gap-2">
-                <a href={`/edit/${publishedCard.id}`} className="btn-ghost text-sm">
+              <div className="mt-4 grid grid-cols-2 gap-2">
+                <a
+                  href={`/listing/${successSlug}`}
+                  className="btn-cta flex items-center justify-center gap-1.5 text-sm"
+                >
+                  <Icon name="share" size={16} />
+                  مشاهده در سایت
+                </a>
+                <a
+                  href={`/edit/${publishedCard.id}`}
+                  className="btn-ghost flex items-center justify-center gap-1.5 text-sm"
+                >
                   <Icon name="pencil" size={16} />
                   ویرایش آگهی
                 </a>
-                <DeleteListingButton
-                  id={publishedCard.id}
-                  redirectTo="/profile/listings"
-                  compact
-                />
-                <a href={`/listing/${successSlug}`} className="btn-cta text-sm">
-                  مشاهده در سایت
-                </a>
-                <button type="button" onClick={resetForm} className="btn-ghost text-sm">
+                <div className="flex [&>button]:w-full [&>button]:justify-center">
+                  <DeleteListingButton
+                    id={publishedCard.id}
+                    redirectTo="/profile/listings"
+                    compact
+                  />
+                </div>
+                <button
+                  type="button"
+                  onClick={resetForm}
+                  className="btn-ghost flex items-center justify-center gap-1.5 text-sm"
+                >
                   <Icon name="plus" size={16} />
                   ثبت آگهی دیگر
                 </button>
@@ -957,7 +1121,8 @@ export function ListingForm() {
                   value={draft.brand}
                   custom={draft.customBrand}
                   onPick={(slug, custom) =>
-                    setDraft((d) => ({ ...d, brand: slug, customBrand: custom, model: d.model }))
+                    // A new marque invalidates the previously picked model.
+                    setDraft((d) => ({ ...d, brand: slug, customBrand: custom, model: '' }))
                   }
                 />
               </Field>
@@ -1229,6 +1394,100 @@ export function ListingForm() {
                 </div>
               )}
             </Section>
+
+            {/* Declared insurance / paint / chassis / inspection. These are
+                detail-page facts only — the grid card stays uncluttered. */}
+            <Section title="بیمه، رنگ، شاسی و معاینه فنی">
+              <Field htmlFor="thirdPartyInsurance" label="بیمه شخص ثالث">
+                <CustomSelect
+                  id="thirdPartyInsurance"
+                  value={draft.thirdPartyInsurance}
+                  onChange={(next) => set('thirdPartyInsurance', next)}
+                  options={yesNoOptions}
+                  placeholder="وضعیت بیمه…"
+                />
+              </Field>
+              {draft.thirdPartyInsurance === 'yes' && (
+                <Field htmlFor="thirdPartyMonths" label="باقی‌مانده بیمه شخص ثالث">
+                  <CustomSelect
+                    id="thirdPartyMonths"
+                    value={draft.thirdPartyMonths}
+                    onChange={(next) => set('thirdPartyMonths', next)}
+                    options={monthOptions}
+                    placeholder="۱ تا ۱۲ ماه"
+                  />
+                </Field>
+              )}
+
+              <Field htmlFor="bodyInsurance" label="بیمه بدنه">
+                <CustomSelect
+                  id="bodyInsurance"
+                  value={draft.bodyInsurance}
+                  onChange={(next) => set('bodyInsurance', next)}
+                  options={yesNoOptions}
+                  placeholder="وضعیت بیمه بدنه…"
+                />
+              </Field>
+              {draft.bodyInsurance === 'yes' && (
+                <Field htmlFor="bodyMonths" label="باقی‌مانده بیمه بدنه">
+                  <CustomSelect
+                    id="bodyMonths"
+                    value={draft.bodyMonths}
+                    onChange={(next) => set('bodyMonths', next)}
+                    options={monthOptions}
+                    placeholder="۱ تا ۱۲ ماه"
+                  />
+                </Field>
+              )}
+
+              <Field htmlFor="paintCondition" label="وضعیت رنگ و بدنه">
+                <CustomSelect
+                  id="paintCondition"
+                  value={draft.paintCondition}
+                  onChange={(next) => set('paintCondition', next)}
+                  options={paintOptions}
+                  placeholder="وضعیت رنگ…"
+                />
+              </Field>
+
+              <Field htmlFor="chassisCondition" label="وضعیت شاسی">
+                <CustomSelect
+                  id="chassisCondition"
+                  value={draft.chassisCondition}
+                  onChange={(next) => set('chassisCondition', next)}
+                  options={chassisOptions}
+                  placeholder="وضعیت شاسی…"
+                />
+              </Field>
+
+              <Field htmlFor="technicalInspection" label="معاینه فنی">
+                <CustomSelect
+                  id="technicalInspection"
+                  value={draft.technicalInspection}
+                  onChange={(next) => set('technicalInspection', next)}
+                  options={yesNoOptions}
+                  placeholder="معاینه فنی دارد؟"
+                />
+              </Field>
+
+              <div className="col-span-full grid gap-3 sm:grid-cols-2">
+                <InspectionSheetField
+                  value={draft.inspectionSheetUrl}
+                  onChange={(next) => set('inspectionSheetUrl', next)}
+                  error={fieldErrors.inspectionSheetUrl}
+                />
+                <Field htmlFor="inspectionNote" label="خلاصه برگه کارشناسی (اختیاری)">
+                  <textarea
+                    id="inspectionNote"
+                    rows={3}
+                    className="field resize-y"
+                    value={draft.inspectionNote}
+                    onChange={(e) => set('inspectionNote', e.target.value)}
+                    placeholder="مثلاً: موتور و گیربکس سالم، شاسی پلمپ، بدون رنگ…"
+                  />
+                </Field>
+              </div>
+            </Section>
           </>
         )}
 
@@ -1455,10 +1714,17 @@ export function ListingForm() {
           </Field>
         </Section>
 
-        <Section title="عکس‌های آگهی">
-          <div className="col-span-full">
+        <Section title="عکس‌های آگهی *">
+          <div
+            className={`col-span-full rounded-field ${
+              fieldErrors['photos']
+                ? 'border-2 border-red-500 bg-red-50/40 p-2 dark:bg-red-950/30'
+                : ''
+            }`}
+          >
             <p className="mb-2 text-xs font-bold text-muted">
-              عکس اختیاری است؛ اگر عکسی انتخاب نکنید یک تصویر پیش‌فرض برای آگهی استفاده می‌شود.
+              بارگذاری حداقل یک عکس الزامی است؛ عکس اول کاور آگهی است و در اسلات‌های
+              بعدی می‌توانید ویدیو هم اضافه کنید.
             </p>
             <PhotoUploader
               photos={photos}
@@ -1466,6 +1732,21 @@ export function ListingForm() {
               onBusyChange={setPhotosBusy}
               error={fieldErrors['photos']}
             />
+            <label className="mt-3 flex cursor-pointer items-start gap-2 text-sm font-semibold">
+              <input
+                type="checkbox"
+                checked={draft.isJournalPhoto}
+                onChange={(e) => set('isJournalPhoto', e.target.checked)}
+                className="mt-1 accent-[var(--color-accent)]"
+              />
+              <span>
+                عکس ژورنال است (تصویر اینترنتی/کاتالوگ)
+                <span className="hint mt-0 block">
+                  با فعال بودن این گزینه، برچسب «عکس ژورنال» در مشخصات تکمیلی آگهی نمایش
+                  داده می‌شود تا خریدار بداند تصویر کاتالوگی است.
+                </span>
+              </span>
+            </label>
           </div>
         </Section>
       </StepCard>

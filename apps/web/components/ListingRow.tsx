@@ -84,18 +84,6 @@ export function ListingRow({
                 {badgeFor(STATE_BADGE[listing.state]).label}
               </span>
             )}
-            {listing.hasReport && (
-              <span
-                className="rounded-[var(--radius-pill)] border px-2 py-0.5 text-xs font-bold"
-                style={{
-                  background: badgeFor('verified_report').background,
-                  color: badgeFor('verified_report').foreground,
-                  borderColor: badgeFor('verified_report').border,
-                }}
-              >
-                {badgeFor('verified_report').label}
-              </span>
-            )}
             {listing.showroomVerified && (
               <VerifiedPill label={part ? 'تعمیرگاه معتبر' : 'نمایشگاه معتبر'} />
             )}

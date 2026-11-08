@@ -10,6 +10,9 @@ import {
   GEARBOX_LABELS,
   HEAVY_TYPE_LABELS,
   PLATE_TYPE_LABELS,
+  PAINT_CONDITION_LABELS,
+  CHASSIS_CONDITION_LABELS,
+  INSURANCE_KIND_LABELS,
   activeFilterCount,
   groupDigits,
   toPersianDigits,
@@ -78,12 +81,46 @@ export function FilterChips({
       clear: (f) => ({ ...f, priceFrom: undefined, priceTo: undefined }),
     });
   }
-  if (filters.mileageMax !== undefined) {
+  if (filters.mileageMin !== undefined || filters.mileageMax !== undefined) {
+    const from = filters.mileageMin;
     const max = filters.mileageMax;
     chips.push({
       id: 'mileage',
-      label: `کارکرد تا ${groupDigits(max)} کیلومتر`,
-      clear: (f) => ({ ...f, mileageMax: undefined }),
+      label:
+        from !== undefined && max !== undefined
+          ? `کارکرد ${groupDigits(from)} تا ${groupDigits(max)} کیلومتر`
+          : from !== undefined
+            ? `کارکرد از ${groupDigits(from)} کیلومتر`
+            : `کارکرد تا ${groupDigits(max!)} کیلومتر`,
+      clear: (f) => ({ ...f, mileageMin: undefined, mileageMax: undefined }),
+    });
+  }
+  for (const kind of filters.insurance) {
+    chips.push({
+      id: `insurance-${kind}`,
+      label: `${INSURANCE_KIND_LABELS[kind]} دارد`,
+      clear: (f) => ({ ...f, insurance: f.insurance.filter((v) => v !== kind) }),
+    });
+  }
+  for (const paint of filters.paintCondition) {
+    chips.push({
+      id: `paint-${paint}`,
+      label: PAINT_CONDITION_LABELS[paint],
+      clear: (f) => ({ ...f, paintCondition: f.paintCondition.filter((v) => v !== paint) }),
+    });
+  }
+  for (const chassis of filters.chassisCondition) {
+    chips.push({
+      id: `chassis-${chassis}`,
+      label: CHASSIS_CONDITION_LABELS[chassis],
+      clear: (f) => ({ ...f, chassisCondition: f.chassisCondition.filter((v) => v !== chassis) }),
+    });
+  }
+  if (filters.technicalInspection) {
+    chips.push({
+      id: 'technicalInspection',
+      label: `معاینه فنی: ${filters.technicalInspection === 'yes' ? 'دارد' : 'ندارد'}`,
+      clear: (f) => ({ ...f, technicalInspection: undefined }),
     });
   }
   for (const gearbox of filters.gearbox) {
@@ -187,7 +224,12 @@ export function FilterChips({
             yearTo: undefined,
             priceFrom: undefined,
             priceTo: undefined,
+            mileageMin: undefined,
             mileageMax: undefined,
+            insurance: [],
+            paintCondition: [],
+            chassisCondition: [],
+            technicalInspection: undefined,
             gearbox: [],
             fuel: [],
             plateType: [],

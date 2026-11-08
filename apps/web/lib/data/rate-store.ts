@@ -16,7 +16,7 @@ import { readJson, writeJson } from '../storage/demo-store';
  * provider, so a rate edit can never leave one screen behind.
  *
  * Sources, in order:
- *  1. `settings.rate` — whatever the owner last saved from /admin/settings.
+ *  1. `settings.rate` — whatever the owner last saved from the external admin tool.
  *  2. The optional daily feed (`AED_RATE_FEED_URL`), cached for 24h. No public
  *     source quotes IRR reliably, so this is opt-in: without the env var the
  *     stored/admin value — or the launch reference — is what the site shows.

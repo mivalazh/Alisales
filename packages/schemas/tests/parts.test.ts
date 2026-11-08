@@ -101,8 +101,8 @@ describe('partListingPublishSchema', () => {
     expect(partListingPublishSchema.safeParse({ ...base, title: 'دی' }).success).toBe(false);
   });
 
-  it('publishes without photos (the API assigns a default cover)', () => {
-    expect(partListingPublishSchema.safeParse({ ...base, photos: [] }).success).toBe(true);
+  it('rejects a publish with no cover photo', () => {
+    expect(partListingPublishSchema.safeParse({ ...base, photos: [] }).success).toBe(false);
   });
 
   it('accepts a short or empty description', () => {

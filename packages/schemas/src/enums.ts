@@ -124,6 +124,59 @@ export const BODY_TYPE_LABELS: Record<BodyType, string> = {
   van: 'ون',
 };
 
+/**
+ * Paint / body condition — what the seller declares about the finish.
+ * Kept separate from the new/used condition so a spotless used car can still
+ * say «بی‌رنگ (فابریک)».
+ */
+export const paintConditions = [
+  'factory',
+  'minor_scratches',
+  'one_spot',
+  'few_spots',
+  'partial_repaint',
+  'full_repaint',
+  'stock_replaced',
+  'accident',
+] as const;
+export type PaintCondition = (typeof paintConditions)[number];
+
+export const PAINT_CONDITION_LABELS: Record<PaintCondition, string> = {
+  factory: 'بی‌رنگ (فابریک)',
+  minor_scratches: 'خط و خش جزئی / لیسه',
+  one_spot: 'یک لکه رنگ',
+  few_spots: 'چند لکه رنگ',
+  partial_repaint: 'دوررنگ',
+  full_repaint: 'تمام رنگ',
+  stock_replaced: 'تعویض استوک',
+  accident: 'تصادفی / ضربه‌خورده',
+};
+
+/** Chassis declaration — front/rear/neither, sealed or repaired. */
+export const chassisConditions = [
+  'sealed',
+  'front_damaged',
+  'rear_damaged',
+  'both_damaged',
+] as const;
+export type ChassisCondition = (typeof chassisConditions)[number];
+
+export const CHASSIS_CONDITION_LABELS: Record<ChassisCondition, string> = {
+  sealed: 'سالم و پلمپ (جلو و عقب)',
+  front_damaged: 'شاسی جلو ضربه/رنگ',
+  rear_damaged: 'شاسی عقب ضربه/رنگ',
+  both_damaged: 'دو شاسی ضربه/رنگ',
+};
+
+/** Insurance groups the filter can ask about. */
+export const insuranceKinds = ['third_party', 'body'] as const;
+export type InsuranceKind = (typeof insuranceKinds)[number];
+
+export const INSURANCE_KIND_LABELS: Record<InsuranceKind, string> = {
+  third_party: 'بیمه شخص ثالث',
+  body: 'بیمه بدنه',
+};
+
 /** account-level roles (showroom membership lives in showroom_staff) */
 export const userRoles = ['individual', 'inspector', 'admin'] as const;
 export type UserRole = (typeof userRoles)[number];

@@ -15,7 +15,7 @@ const DELIVERY_OPTIONS = ['تحویل در فرودگاه', 'تحویل در ه�
  */
 export function RentForm() {
   const router = useRouter();
-  const [kind, setKind] = useState<'car' | 'scooter'>('car');
+  const [kind, setKind] = useState<'car' | 'scooter' | 'yacht'>('car');
   const [form, setForm] = useState({
     title: '',
     brand: '',
@@ -27,6 +27,8 @@ export function RentForm() {
     monthlyToman: '',
     depositNote: '',
     minAge: '23',
+    capacity: '10',
+    lengthFt: '45',
   });
   const [delivery, setDelivery] = useState<string[]>([DELIVERY_OPTIONS[0], DELIVERY_OPTIONS[1]]);
   const [busy, setBusy] = useState(false);
@@ -79,6 +81,7 @@ export function RentForm() {
             [
               { key: 'car', label: 'خودرو' },
               { key: 'scooter', label: 'اسکوتر / موتور برقی' },
+              { key: 'yacht', label: 'یات / قایق تفریحی' },
             ] as const
           ).map((option) => (
             <button
@@ -118,6 +121,34 @@ export function RentForm() {
           onChange={(event) => set('model', event.target.value)}
         />
       </div>
+      {kind === 'yacht' && (
+        <div className="grid gap-2 sm:grid-cols-2">
+          <label className="block">
+            <span className="mb-1 block text-[11px] font-extrabold text-[#064E3B]/70 dark:text-white/60">
+              ظرفیت نفرات
+            </span>
+            <input
+              className="field"
+              inputMode="numeric"
+              dir="ltr"
+              value={form.capacity}
+              onChange={(event) => set('capacity', event.target.value)}
+            />
+          </label>
+          <label className="block">
+            <span className="mb-1 block text-[11px] font-extrabold text-[#064E3B]/70 dark:text-white/60">
+              طول قایق (فوت)
+            </span>
+            <input
+              className="field"
+              inputMode="numeric"
+              dir="ltr"
+              value={form.lengthFt}
+              onChange={(event) => set('lengthFt', event.target.value)}
+            />
+          </label>
+        </div>
+      )}
       <div className="grid gap-2 sm:grid-cols-2">
         <YearGridSelect value={form.year} onChange={(next) => set('year', next)} ariaLabel="سال ساخت" />
         <input

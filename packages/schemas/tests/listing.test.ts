@@ -90,10 +90,10 @@ describe('listing draft schema', () => {
 });
 
 describe('listing publish schema', () => {
-  it('publishes without photos (the API assigns a default cover)', () => {
+  it('rejects a publish with no cover photo', () => {
     const parsed = listingPublishSchema.safeParse({ ...baseDraft, photos: [] });
-    expect(parsed.success).toBe(true);
-    expect(parsed.success && parsed.data.hideAed).toBe(false);
+    expect(parsed.success).toBe(false);
+    expect(parsed.success === false && parsed.error.issues[0]?.path).toEqual(['photos']);
   });
 
   it('carries the Toman-only option', () => {

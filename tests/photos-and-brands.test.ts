@@ -84,12 +84,12 @@ describe('luxury / Kish brand catalog (schema validation)', () => {
   it('offers the key models as form suggestions', () => {
     const models = (slug: string) =>
       BRANDS.find((b) => b.slug === slug)?.models as readonly string[] | undefined;
-    expect(models('toyota')).toEqual(expect.arrayContaining(['Land Cruiser', 'Prado', 'RAV4']));
-    expect(models('mercedes-benz')).toEqual(expect.arrayContaining(['S-Class', 'E-Class']));
-    expect(models('bmw')).toEqual(expect.arrayContaining(['X5', '5 Series']));
+    expect(models('toyota')).toEqual(expect.arrayContaining(['Land Cruiser VXR', 'Land Cruiser GXR', 'Land Cruiser Prado', 'RAV4']));
+    expect(models('mercedes-benz')).toEqual(expect.arrayContaining(['S500', 'E200']));
+    expect(models('bmw')).toEqual(expect.arrayContaining(['X5', '528i']));
     expect(models('kia')).toEqual(expect.arrayContaining(['Sportage', 'Optima']));
-    expect(models('nissan')).toEqual(expect.arrayContaining(['Patrol']));
-    expect(models('land-rover')).toEqual(expect.arrayContaining(['Range Rover']));
+    expect(models('nissan')).toEqual(expect.arrayContaining(['Patrol Platinum']));
+    expect(models('land-rover')).toEqual(expect.arrayContaining(['Range Rover Vogue', 'Defender']));
   });
 
   it('still rejects a brand that is not in the catalog', () => {

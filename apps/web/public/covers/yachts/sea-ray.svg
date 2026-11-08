@@ -1,0 +1,16 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1200 750">
+  <defs>
+    <linearGradient id="s2" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#1b1c4a"/><stop offset=".6" stop-color="#3f5f9e"/><stop offset="1" stop-color="#f2b45e"/></linearGradient>
+    <linearGradient id="w2" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#123f63"/><stop offset="1" stop-color="#081a2b"/></linearGradient>
+  </defs>
+  <rect width="1200" height="460" fill="url(#s2)"/>
+  <circle cx="280" cy="190" r="70" fill="#f4f1ec" opacity=".85"/>
+  <rect y="440" width="1200" height="310" fill="url(#w2)"/>
+  <path d="M240 460h760l-110 110H350z" fill="#f4f1ec"/>
+  <path d="M360 460h520l-50 48H400z" fill="#111144"/>
+  <rect x="520" y="340" width="240" height="118" rx="12" fill="#e8eef3"/>
+  <rect x="548" y="366" width="80" height="44" rx="5" fill="#0f7fc4" opacity=".5"/>
+  <rect x="646" y="366" width="80" height="44" rx="5" fill="#0f7fc4" opacity=".5"/>
+  <path d="M600 340v-60h70v60" fill="#f4f1ec"/>
+  <path d="M260 580c110 20 230 20 340 0s240-20 350 0" stroke="#8fb8d8" stroke-width="7" fill="none" opacity=".55"/>
+</svg>

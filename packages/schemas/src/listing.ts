@@ -135,8 +135,8 @@ export type ListingDraft = z.infer<typeof listingDraftSchema>;
 /**
  * Everything that must hold before a listing can go to pending_review.
  *
- * Photos are optional: a seller can publish text-only and the API assigns a
- * default cover, so a submission without a local file still succeeds.
+ * Photos are required: a listing without a cover is not publishable. Legacy
+ * rows stay readable and show the neutral «No image» artwork.
  */
 export const listingPublishSchema = listingBaseSchema
   .extend({
@@ -146,6 +146,8 @@ export const listingPublishSchema = listingBaseSchema
      * empty block, so nothing here needs a minimum length.
      */
     description: z.string().trim().max(3000),
+    /** A new ad must carry at least one real photo (legacy rows exempt). */
+    photos: z.array(listingPhotoSchema).min(1, 'حداقل یک عکس برای انتشار آگهی لازم است').max(MAX_PHOTOS),
   })
   .superRefine(checkUniquePhotoPositions)
   .superRefine(checkMediaSize)

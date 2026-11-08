@@ -28,15 +28,12 @@ const SWIPE_THRESHOLD = 36;
 
 function Badge({ badgeKey }: { badgeKey: BadgeKey }) {
   const b = badgeFor(badgeKey);
-  // The report badge speaks with the workshop's voice everywhere it renders.
-  const label =
-    badgeKey === 'verified_report' ? '✓ کارشناسی‌شده تعمیرگاه شمس‌اله' : b.label;
   return (
     <span
       className="rounded-[var(--radius-pill)] border px-2 py-0.5 text-xs font-bold"
       style={{ background: b.background, color: b.foreground, borderColor: b.border }}
     >
-      {label}
+      {b.label}
     </span>
   );
 }
@@ -67,7 +64,6 @@ function cardBadges(listing: ListingCardData): BadgeKey[] {
   if (!listing.part) badges.push(listing.condition === 'new' ? 'new' : 'used');
   const plate = listing.part ? null : plateBadgeKey(listing.plateType);
   if (plate) badges.push(plate);
-  if (listing.hasReport) badges.push('verified_report');
   return badges;
 }
 

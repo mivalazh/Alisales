@@ -91,6 +91,17 @@ export interface ListingCardData {
   heavyType?: string | null;
   /** Heavy machinery working hours. */
   workingHours?: number | null;
+  /** Seller-declared insurance, paint, chassis and inspection facts. */
+  thirdPartyInsurance?: boolean | null;
+  thirdPartyMonths?: number | null;
+  bodyInsurance?: boolean | null;
+  bodyMonths?: number | null;
+  paintCondition?: string | null;
+  chassisCondition?: string | null;
+  technicalInspection?: boolean | null;
+  isJournalPhoto?: boolean;
+  inspectionSheetUrl?: string | null;
+  inspectionNote?: string | null;
   /** Present only for parts listings. */
   part?: PartInfo | null;
   /** Seller text — carried by fixture cards so the editor can prefill it. */
@@ -144,6 +155,16 @@ interface ListingCardRow {
   part_number?: string | null;
   part_compatibility?: string | null;
   part_warranty?: string | null;
+  third_party_insurance?: boolean | null;
+  third_party_months?: number | null;
+  body_insurance?: boolean | null;
+  body_months?: number | null;
+  paint_condition?: string | null;
+  chassis_condition?: string | null;
+  technical_inspection?: boolean | null;
+  is_journal_photo?: boolean | null;
+  inspection_sheet_url?: string | null;
+  inspection_note?: string | null;
 }
 
 const STORAGE_BUCKET = 'listing-photos';
@@ -188,6 +209,16 @@ function mapRow(r: ListingCardRow): ListingDetailData {
     bikeType: r.bike_type ?? null,
     heavyType: r.heavy_type ?? null,
     workingHours: r.working_hours ?? null,
+    thirdPartyInsurance: r.third_party_insurance ?? null,
+    thirdPartyMonths: r.third_party_months ?? null,
+    bodyInsurance: r.body_insurance ?? null,
+    bodyMonths: r.body_months ?? null,
+    paintCondition: r.paint_condition ?? null,
+    chassisCondition: r.chassis_condition ?? null,
+    technicalInspection: r.technical_inspection ?? null,
+    isJournalPhoto: r.is_journal_photo ?? false,
+    inspectionSheetUrl: r.inspection_sheet_url ?? null,
+    inspectionNote: r.inspection_note ?? null,
     part: r.part_title
       ? {
           title: r.part_title,
@@ -275,8 +306,11 @@ export function rankSearch(
       listing.brand,
       listing.model,
       listing.trim,
+      listing.color,
       listing.part?.title,
       listing.part?.compatibility,
+      listing.paintCondition,
+      listing.chassisCondition,
     ]),
   }));
   scored.sort(

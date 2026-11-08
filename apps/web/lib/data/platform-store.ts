@@ -43,7 +43,13 @@ export interface RentalPosting {
   id: string;
   slug: string;
   title: string;
-  kind: 'car' | 'scooter';
+  kind: 'car' | 'scooter' | 'yacht';
+  /** Passenger capacity (yachts and larger cars). */
+  capacity?: number;
+  /** Skipper/captain included in the charter price. */
+  captainIncluded?: boolean;
+  /** Yacht length in feet. */
+  lengthFt?: number;
   brand: string;
   model: string;
   year: number;
@@ -60,6 +66,21 @@ export interface RentalPosting {
   createdAt: string;
 }
 
+export interface RentalBooking {
+  id: string;
+  rentalSlug: string;
+  rentalTitle: string;
+  name: string;
+  phone: string;
+  from: string;
+  to: string;
+  days: number;
+  plan: 'basic' | 'full';
+  totalIRR: number;
+  status: 'pending' | 'confirmed' | 'cancelled';
+  createdAt: string;
+}
+
 export interface AdminSettings {
   /** false = free launch stories; true = subscription/paywall guard. */
   storyPaidGuard: boolean;
@@ -69,6 +90,7 @@ interface PlatformData {
   stories: StorySubmission[];
   inspections: InspectionBooking[];
   rentals: RentalPosting[];
+  rentalBookings: RentalBooking[];
   settings: AdminSettings;
   faqs: Record<string, number>;
 }
@@ -79,6 +101,7 @@ const DEFAULTS: PlatformData = {
   stories: [],
   inspections: [],
   rentals: [],
+  rentalBookings: [],
   settings: { storyPaidGuard: false },
   faqs: {},
 };
@@ -205,6 +228,28 @@ export function addRental(
   data.rentals = [...data.rentals, posting].slice(-200);
   write(data);
   return posting;
+}
+
+export function listRentalBookings(): RentalBooking[] {
+  return [...(read().rentalBookings ?? [])].sort((a, b) =>
+    b.createdAt.localeCompare(a.createdAt),
+  );
+}
+
+export function addRentalBooking(
+  input: Omit<RentalBooking, 'id' | 'createdAt' | 'status'>,
+): RentalBooking {
+  const data = read();
+  const id = `rb-${Date.now().toString(36)}-${Math.random().toString(36).slice(2, 6)}`;
+  const booking: RentalBooking = {
+    ...input,
+    id,
+    status: 'pending',
+    createdAt: new Date().toISOString(),
+  };
+  data.rentalBookings = [...(data.rentalBookings ?? []), booking].slice(-500);
+  write(data);
+  return booking;
 }
 
 // ── Assistant FAQ counters ──────────────────────────────────────────────────

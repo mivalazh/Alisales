@@ -3,7 +3,9 @@ import { notFound } from 'next/navigation';
 import { badgeFor, type BadgeKey } from '@studio/design';
 import {
   BODY_TYPE_LABELS,
+  CHASSIS_CONDITION_LABELS,
   CITY_LABELS,
+  PAINT_CONDITION_LABELS,
   FUEL_LABELS,
   GEARBOX_LABELS,
   PART_CATEGORY_LABELS,
@@ -82,7 +84,6 @@ export default async function ListingDetailPage({
       badges.push('temporary_transit');
     }
   }
-  if (listing.hasReport) badges.push('verified_report');
 
   type DetailSpec = {
     icon: 'mileage' | 'gear' | 'fuel' | 'plate' | 'car' | 'shieldCheck';
@@ -141,6 +142,44 @@ export default async function ListingDetailPage({
     pushSpec('تیپ / کلاس بدنه', listing.bodyType ? BODY_TYPE_LABELS[listing.bodyType] : null);
     if (listing.engineCc) pushSpec('توان / حجم موتور', `${listing.engineCc} cc`);
     if (listing.workingHours) pushSpec('ساعت کارکرد', `${listing.workingHours} ساعت`);
+    // Seller-declared condition facts — detailed here, never on the grid card.
+    if (listing.thirdPartyInsurance !== null && listing.thirdPartyInsurance !== undefined) {
+      pushSpec(
+        'بیمه شخص ثالث',
+        listing.thirdPartyInsurance
+          ? `دارد${listing.thirdPartyMonths ? ` · ${listing.thirdPartyMonths} ماه` : ''}`
+          : 'ندارد',
+      );
+    }
+    if (listing.bodyInsurance !== null && listing.bodyInsurance !== undefined) {
+      pushSpec(
+        'بیمه بدنه',
+        listing.bodyInsurance
+          ? `دارد${listing.bodyMonths ? ` · ${listing.bodyMonths} ماه` : ''}`
+          : 'ندارد',
+      );
+    }
+    if (listing.paintCondition) {
+      pushSpec(
+        'وضعیت رنگ و بدنه',
+        PAINT_CONDITION_LABELS[
+          listing.paintCondition as keyof typeof PAINT_CONDITION_LABELS
+        ] ?? listing.paintCondition,
+      );
+    }
+    if (listing.chassisCondition) {
+      pushSpec(
+        'وضعیت شاسی',
+        CHASSIS_CONDITION_LABELS[
+          listing.chassisCondition as keyof typeof CHASSIS_CONDITION_LABELS
+        ] ?? listing.chassisCondition,
+      );
+    }
+    if (listing.technicalInspection !== null && listing.technicalInspection !== undefined) {
+      pushSpec('معاینه فنی', listing.technicalInspection ? 'دارد' : 'ندارد');
+    }
+    if (listing.isJournalPhoto) pushSpec('عکس ژورنال', 'عکس ژورنال');
+    if (listing.inspectionNote) pushSpec('خلاصه برگه کارشناسی', listing.inspectionNote);
   }
 
   /** «توضیحات آگهی» + its extra-spec tags. Rendered once: on phones it sits
@@ -170,6 +209,18 @@ export default async function ListingDetailPage({
           </ul>
         </div>
       )}
+
+      {listing.inspectionSheetUrl && (
+        <a
+          href={listing.inspectionSheetUrl}
+          target="_blank"
+          rel="noreferrer"
+          className="mt-3 inline-flex items-center gap-1.5 rounded-[var(--radius-pill)] border border-line bg-page px-3 py-1.5 text-[11px] font-extrabold text-ink transition hover:border-line-strong"
+        >
+          <Icon name="shieldCheck" size={14} />
+          مشاهده برگه کارشناسی بارگذاری‌شده
+        </a>
+      )}
     </section>
   );
 
@@ -194,14 +245,6 @@ export default async function ListingDetailPage({
 
           <div className="hidden lg:block">{descriptionCard}</div>
 
-          {listing.hasReport && (
-            <div className="rounded-card border border-line bg-card p-4">
-              <p className="flex items-center gap-2 text-sm font-extrabold text-note">
-                <Icon name="shieldCheck" size={18} />
-                دارای گزارش بازرسی معتبر کارگاه
-              </p>
-            </div>
-          )}
         </div>
 
         {/* Left column in RTL: the decision block, sticky on desktop. */}
@@ -222,9 +265,7 @@ export default async function ListingDetailPage({
                         borderColor: token.border,
                       }}
                     >
-                      {b === 'verified_report'
-                        ? '✓ کارشناسی‌شده تعمیرگاه شمس‌اله'
-                        : token.label}
+                      {token.label}
                     </span>
                   );
                 })}

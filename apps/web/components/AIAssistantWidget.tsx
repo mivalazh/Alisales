@@ -26,6 +26,8 @@ const SEED_FAQS = [
   'کارشناسی تعمیرگاه شمس‌اله',
   'قطعات استوک اصل',
   'اجاره خودرو در کیش',
+  'اجاره یات و قایق تفریحی',
+  'چک‌لیست خرید خودرو',
 ];
 
 /**
@@ -44,7 +46,7 @@ export function AIAssistantWidget() {
   const [messages, setMessages] = useState<Message[]>([
     {
       role: 'assistant',
-      text: 'سلام! من دستیار Ali Sales هستم. بودجه‌تان را بگویید، درباره‌ی پلاک کیش بپرسید یا سراغ قطعه و کارشناسی بروید.',
+      text: 'سلام! من دستیار Ali Sales هستم؛ خودرو، اسکوتر، ماشین‌آلات، قطعات، پلاک کیش، اجاره و یات. بودجه یا سؤال فنی‌تان را بگویید تا دقیق راهنمایی کنم.',
     },
   ]);
   const scroller = useRef<HTMLDivElement>(null);
@@ -250,7 +252,7 @@ export function AIAssistantWidget() {
         onClick={() => setOpen((v) => !v)}
         aria-expanded={open}
         aria-label={open ? 'بستن دستیار هوشمند' : 'باز کردن دستیار هوشمند'}
-        className="fixed bottom-20 right-4 z-40 flex h-14 w-14 items-center justify-center rounded-full border-2 border-[#F98513]/70 bg-[#111144] text-[#F98513] shadow-xl transition hover:scale-105 sm:bottom-6 sm:right-6"
+        className="ai-fab fixed bottom-20 right-4 z-40 flex h-14 w-14 items-center justify-center rounded-full border-2 border-[#F98513]/70 bg-[#111144] text-[#F98513] shadow-xl transition hover:scale-105 sm:bottom-6 sm:right-6"
       >
         <Icon name={open ? 'close' : 'sparkle'} size={24} />
       </button>

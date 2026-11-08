@@ -261,3 +261,42 @@ html.dark {
   --nav-active: #f98513;
   --nav-inactive: #b8c0d0;
 }
+
+/*
+ * Ultra-thin scrollbars everywhere (brand grids, filter strips, drawers).
+ * The track is invisible; the translucent thumb is 2px so horizontal strips
+ * never grow the thick OS scrollbar that used to sit under every carousel.
+ */
+@layer base {
+  * {
+    scrollbar-width: thin;
+    scrollbar-color: rgba(100, 116, 139, 0.45) transparent;
+  }
+  *::-webkit-scrollbar {
+    width: 2px;
+    height: 2px;
+  }
+  *::-webkit-scrollbar-track {
+    background: transparent;
+  }
+  *::-webkit-scrollbar-thumb {
+    background: rgba(100, 116, 139, 0.45);
+    border-radius: 9999px;
+  }
+  [data-theme='dark'] * {
+    scrollbar-color: rgba(255, 255, 255, 0.22) transparent;
+  }
+  [data-theme='dark'] *::-webkit-scrollbar-thumb {
+    background: rgba(255, 255, 255, 0.22);
+  }
+}
+
+/* AI assistant: cream medallion in dark mode, navy/orange mark on cream. */
+[data-theme='dark'] .ai-fab {
+  background-color: #f4f1ec;
+  color: #f98513;
+  border-color: #111144;
+}
+[data-theme='dark'] .ai-fab:hover {
+  background-color: #ffffff;
+}

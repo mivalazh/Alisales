@@ -8,13 +8,20 @@ import {
   FUEL_LABELS,
   GEARBOX_LABELS,
   HEAVY_TYPES,
+  CHASSIS_CONDITION_LABELS,
+  INSURANCE_KIND_LABELS,
+  PAINT_CONDITION_LABELS,
   PLATE_TYPE_LABELS,
+  LATEST_VEHICLE_YEAR,
   VEHICLE_YEARS,
   brandsForCategory,
   modelsForBrand,
   conditions,
+  chassisConditions,
   fuelTypes,
   gearboxTypes,
+  insuranceKinds,
+  paintConditions,
   irrToToman,
   plateTypes,
   selectableCities,
@@ -27,6 +34,7 @@ import { countMatches, matchesFilters, type FilterableListing } from '@/lib/filt
 import { RateLine } from './RateLine';
 import { Icon } from './Icon';
 import { CustomSelect } from './CustomSelect';
+import { useI18n } from '@/lib/i18n';
 
 /**
  * The filter system for the vehicle pages.
@@ -126,11 +134,15 @@ function YearGrid({
 }) {
   const [open, setOpen] = useState(false);
   const active = from !== undefined || to !== undefined;
+  // «تا سال» defaults to the current latest model year. It is a display
+  // default until the buyer actually picks a second year, so the URL is not
+  // rewritten with a yearTo=2026 filter on every page load.
+  const toDisplay = to ?? LATEST_VEHICLE_YEAR;
 
   const pick = (year: number) => {
     // No range yet (or the previous range is complete) → start a new one.
     if (from === undefined || (from !== undefined && to !== undefined)) {
-      onChange({ yearFrom: year, yearTo: undefined });
+      onChange({ yearFrom: year, yearTo: LATEST_VEHICLE_YEAR });
       return;
     }
     if (year < from) {
@@ -160,11 +172,9 @@ function YearGrid({
           <Icon name="clock" size={14} />
           {from === undefined && to === undefined
             ? 'انتخاب سال ساخت'
-            : from !== undefined && to !== undefined
-              ? `${from} تا ${to}`
-              : from !== undefined
-                ? `از ${from}`
-                : `تا ${to}`}
+            : from !== undefined
+              ? `${from} تا ${toDisplay}`
+              : `از 1995 تا ${toDisplay}`}
         </span>
         <Icon name="chevronDown" size={14} className={open ? 'rotate-180' : undefined} />
       </button>
@@ -181,7 +191,7 @@ function YearGrid({
               <b className="text-ink">{from !== undefined ? from : '—'}</b>
             </span>
             <span className="text-muted">
-              تا سال: <b className="text-ink">{to !== undefined ? to : '—'}</b>
+              تا سال: <b className="text-ink">{toDisplay}</b>
             </span>
             {active && (
               <button
@@ -317,6 +327,7 @@ export function FilterGroups({
   onChange: (next: SearchFilters) => void;
   pool: readonly FilterableListing[];
 }) {
+  const { t } = useI18n();
   const brands = brandsForCategory(category);
   const [brandQuery, setBrandQuery] = useState('');
   const [showAllBrands, setShowAllBrands] = useState(false);
@@ -331,7 +342,7 @@ export function FilterGroups({
 
   return (
     <div className="space-y-0">
-      <Group title="قیمت (تومان)" open>
+      <Group title={t('قیمت (تومان)', 'Price (Toman)')} open>
         <div className="grid grid-cols-2 gap-2">
           <input
             className="field h-9 text-xs"
@@ -361,7 +372,7 @@ export function FilterGroups({
         </div>
       </Group>
 
-      <Group title="سال ساخت (میلادی)" open>
+      <Group title={t('سال ساخت (میلادی)', 'Model year (Gregorian)')} open>
         <YearGrid
           from={filters.yearFrom}
           to={filters.yearTo}
@@ -369,19 +380,32 @@ export function FilterGroups({
         />
       </Group>
 
-      <Group title={category === 'heavy' ? 'کارکرد (کیلومتر)' : 'حداکثر کارکرد'} open>
-        <input
-          className="field h-9 text-xs"
-          inputMode="numeric"
-          value={filters.mileageMax ?? ''}
-          onChange={(e) => set({ mileageMax: intOrUndefined(e.target.value) })}
-          placeholder="مثلاً ۱۰۰٬۰۰۰ کیلومتر"
-          aria-label="حداکثر کارکرد"
-        />
+      <Group title={t('کارکرد (کیلومتر)', 'Mileage (km)')} open>
+        <div className="grid grid-cols-2 gap-2">
+          <input
+            className="field h-9 text-xs"
+            inputMode="numeric"
+            value={filters.mileageMin !== undefined ? filters.mileageMin.toLocaleString('en-US') : ''}
+            onChange={(e) => set({ mileageMin: intOrUndefined(e.target.value) })}
+            placeholder="از … کیلومتر"
+            aria-label="کارکرد از"
+          />
+          <input
+            className="field h-9 text-xs"
+            inputMode="numeric"
+            value={filters.mileageMax !== undefined ? filters.mileageMax.toLocaleString('en-US') : ''}
+            onChange={(e) => set({ mileageMax: intOrUndefined(e.target.value) })}
+            placeholder="تا … کیلومتر"
+            aria-label="کارکرد تا"
+          />
+        </div>
+        <p className="mt-1 text-[10px] font-bold text-faint">
+          مثلاً از ۰ تا ۵۰۰,۰۰۰ کیلومتر؛ ارقام فارسی هم قبول است.
+        </p>
       </Group>
 
       {category === 'motorcycle' && (
-        <Group title="حجم موتور (cc)" open>
+        <Group title={t('حجم موتور (cc)', 'Engine size (cc)')} open>
           <RangePair
             label="بازه‌ی حجم"
             from={filters.engineCcMin}
@@ -393,7 +417,7 @@ export function FilterGroups({
       )}
 
       {category === 'heavy' && (
-        <Group title="ساعت کارکرد" open>
+        <Group title={t('ساعت کارکرد', 'Working hours')} open>
           <input
             className="field h-9 text-xs"
             inputMode="numeric"
@@ -405,7 +429,7 @@ export function FilterGroups({
         </Group>
       )}
 
-      <Group title="برند" open>
+      <Group title={t('برند', 'Brand')} open>
         <input
           className="field h-9 text-xs"
           value={brandQuery}
@@ -445,7 +469,7 @@ export function FilterGroups({
       {/* Dependent model group: it appears as soon as a brand is picked and is
           populated from that marque's suggestion list. */}
       {filters.brand.length > 0 && (
-        <Group title="مدل" open>
+        <Group title={t('مدل', 'Model')} open>
           <BrandModelPicker
             brandSlug={filters.brand[0] ?? ''}
             value={filters.model ?? ''}
@@ -455,7 +479,7 @@ export function FilterGroups({
       )}
 
       {category === 'motorcycle' && (
-        <Group title="نوع موتور" open>
+        <Group title={t('نوع موتور', 'Bike type')} open>
           {BIKE_TYPES.map((type) => (
             <CheckOption
               key={type.key}
@@ -476,7 +500,7 @@ export function FilterGroups({
       )}
 
       {category === 'heavy' && (
-        <Group title="نوع ماشین‌آلات" open>
+        <Group title={t('نوع ماشین‌آلات', 'Machinery type')} open>
           {HEAVY_TYPES.map((type) => (
             <CheckOption
               key={type.key}
@@ -499,7 +523,7 @@ export function FilterGroups({
         </Group>
       )}
 
-      <Group title="وضعیت خودرو" open>
+      <Group title={t('وضعیت خودرو', 'Vehicle condition')} open>
         {conditions.map((condition) => (
           <CheckOption
             key={condition}
@@ -511,7 +535,65 @@ export function FilterGroups({
         ))}
       </Group>
 
-      <Group title="گیربکس">
+      {/* Declared condition groups — the same values the seller fills on /new. */}
+      <Group title={t('بیمه شخص ثالث و بدنه', 'Insurance')}>
+        {insuranceKinds.map((kind) => (
+          <CheckOption
+            key={kind}
+            checked={filters.insurance.includes(kind)}
+            label={`${INSURANCE_KIND_LABELS[kind]} دارد`}
+            count={countFor(pool, { ...filters, insurance: [kind] })}
+            onToggle={() => set({ insurance: toggle(filters.insurance, kind) })}
+          />
+        ))}
+      </Group>
+
+      <Group title={t('وضعیت رنگ و بدنه', 'Paint & body')}>
+        {paintConditions.map((paint) => (
+          <CheckOption
+            key={paint}
+            checked={filters.paintCondition.includes(paint)}
+            label={PAINT_CONDITION_LABELS[paint]}
+            count={countFor(pool, { ...filters, paintCondition: [paint] })}
+            onToggle={() => set({ paintCondition: toggle(filters.paintCondition, paint) })}
+          />
+        ))}
+      </Group>
+
+      <Group title={t('وضعیت شاسی', 'Chassis condition')}>
+        {chassisConditions.map((chassis) => (
+          <CheckOption
+            key={chassis}
+            checked={filters.chassisCondition.includes(chassis)}
+            label={CHASSIS_CONDITION_LABELS[chassis]}
+            count={countFor(pool, { ...filters, chassisCondition: [chassis] })}
+            onToggle={() => set({ chassisCondition: toggle(filters.chassisCondition, chassis) })}
+          />
+        ))}
+      </Group>
+
+      <Group title={t('معاینه فنی / برگه کارشناسی', 'Technical inspection')}>
+        {(
+          [
+            { key: 'yes' as const, label: 'دارد' },
+            { key: 'no' as const, label: 'ندارد' },
+          ]
+        ).map((option) => (
+          <CheckOption
+            key={option.key}
+            checked={filters.technicalInspection === option.key}
+            label={option.label}
+            onToggle={() =>
+              set({
+                technicalInspection:
+                  filters.technicalInspection === option.key ? undefined : option.key,
+              })
+            }
+          />
+        ))}
+      </Group>
+
+      <Group title={t('گیربکس', 'Gearbox')}>
         {gearboxTypes.map((gearbox) => (
           <CheckOption
             key={gearbox}
@@ -523,7 +605,7 @@ export function FilterGroups({
         ))}
       </Group>
 
-      <Group title="سوخت">
+      <Group title={t('سوخت', 'Fuel')}>
         {fuelTypes.map((fuel) => (
           <CheckOption
             key={fuel}
@@ -535,7 +617,7 @@ export function FilterGroups({
         ))}
       </Group>
 
-      <Group title="وضعیت پلاک">
+      <Group title={t('وضعیت پلاک', 'Plate status')}>
         {plateTypes.map((plate) => (
           <CheckOption
             key={plate}
@@ -547,7 +629,7 @@ export function FilterGroups({
         ))}
       </Group>
 
-      <Group title="شهر">
+      <Group title={t('شهر', 'City')}>
         {selectableCities().map((city) => (
           <CheckOption
             key={city.slug}
@@ -560,15 +642,15 @@ export function FilterGroups({
         ))}
       </Group>
 
-      <Group title="سایر">
+      <Group title={t('سایر', 'Other')}>
         <CheckOption
           checked={filters.hasReport}
-          label="دارای گزارش بازرسی"
+          label={t('دارای گزارش بازرسی', 'Has inspection report')}
           onToggle={() => set({ hasReport: !filters.hasReport })}
         />
         <CheckOption
           checked={filters.kishOnly}
-          label="فقط پلاک منطقه آزاد"
+          label={t('فقط پلاک منطقه آزاد', 'Free-zone plate only')}
           onToggle={() => set({ kishOnly: !filters.kishOnly })}
         />
       </Group>
@@ -590,6 +672,7 @@ export function FilterSidebar({
   onClear: () => void;
   pool: readonly FilterableListing[];
 }) {
+  const { t } = useI18n();
   const count = countMatches(pool, filters);
   return (
     <aside className="hidden lg:block">
@@ -597,10 +680,10 @@ export function FilterSidebar({
         <div className="flex items-center justify-between gap-2 border-b border-line pb-2">
           <h2 className="flex items-center gap-1.5 text-sm font-extrabold">
             <Icon name="sliders" size={16} className="text-cta" />
-            فیلترها
+            {t('فیلترها', 'Filters')}
           </h2>
           <span className="rounded-[var(--radius-pill)] bg-cta-soft px-2 py-0.5 text-[11px] font-extrabold text-ink">
-            {count} آگهی
+            {count} {t('آگهی', 'ads')}
           </span>
         </div>
         <FilterGroups category={category} filters={filters} onChange={onChange} pool={pool} />
@@ -609,7 +692,7 @@ export function FilterSidebar({
           onClick={onClear}
           className="mt-2 w-full rounded-field border border-line py-2 text-xs font-bold text-muted transition hover:border-line-strong hover:text-ink"
         >
-          پاک کردن همه
+          {t('پاک کردن همه', 'Clear all')}
         </button>
       </div>
     </aside>
@@ -634,6 +717,7 @@ export function FilterSheet({
   onClear: () => void;
   onClose: () => void;
 }) {
+  const { t } = useI18n();
   const [draft, setDraft] = useState<SearchFilters>(filters);
 
   useEffect(() => {
@@ -670,7 +754,7 @@ export function FilterSheet({
         onClick={(e) => e.stopPropagation()}
       >
         <div className="flex items-center justify-between border-b border-line px-4 py-3">
-          <h2 className="text-sm font-extrabold">فیلترها</h2>
+          <h2 className="text-sm font-extrabold">{t('فیلترها', 'Filters')}</h2>
           <button
             type="button"
             onClick={onClose}
@@ -706,7 +790,12 @@ export function FilterSheet({
                 yearTo: undefined,
                 priceFrom: undefined,
                 priceTo: undefined,
+                mileageMin: undefined,
                 mileageMax: undefined,
+                insurance: [],
+                paintCondition: [],
+                chassisCondition: [],
+                technicalInspection: undefined,
                 gearbox: [],
                 fuel: [],
                 plateType: [],
@@ -724,14 +813,14 @@ export function FilterSheet({
             }}
             className="text-xs font-bold text-muted underline"
           >
-            پاک کردن همه
+            {t('پاک کردن همه', 'Clear all')}
           </button>
           <button
             type="button"
             onClick={() => onApply(draft)}
             className="btn-cta ms-auto text-sm"
           >
-            نمایش {count} آگهی
+            {t(`نمایش ${count} آگهی`, `Show ${count} ads`)}
           </button>
         </div>
       </div>
@@ -755,6 +844,7 @@ export function FilterBar({
   onOpen: () => void;
   onChange: (next: SearchFilters) => void;
 }) {
+  const { t } = useI18n();
   const active =
     filters.brand.length +
     filters.gearbox.length +
@@ -768,7 +858,11 @@ export function FilterBar({
     (filters.trim ? 1 : 0) +
     (filters.yearFrom !== undefined || filters.yearTo !== undefined ? 1 : 0) +
     (filters.priceFrom !== undefined || filters.priceTo !== undefined ? 1 : 0) +
-    (filters.mileageMax !== undefined ? 1 : 0) +
+    (filters.mileageMin !== undefined || filters.mileageMax !== undefined ? 1 : 0) +
+    (filters.insurance.length ? 1 : 0) +
+    (filters.paintCondition.length ? 1 : 0) +
+    (filters.chassisCondition.length ? 1 : 0) +
+    (filters.technicalInspection !== undefined ? 1 : 0) +
     (filters.engineCcMin !== undefined || filters.engineCcMax !== undefined ? 1 : 0) +
     (filters.workingHoursMax !== undefined ? 1 : 0);
 
@@ -780,7 +874,7 @@ export function FilterBar({
         className="flex shrink-0 items-center gap-1.5 rounded-[var(--radius-pill)] border border-line bg-card px-3 py-2 text-xs font-extrabold text-ink transition hover:border-line-strong"
       >
         <Icon name="sliders" size={15} />
-        فیلترها
+        {t('فیلترها', 'Filters')}
         {active > 0 && (
           <span className="flex h-4 min-w-4 items-center justify-center rounded-full bg-cta px-1 text-[10px] font-extrabold text-[color:var(--color-text-on-accent)]">
             {active}

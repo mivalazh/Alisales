@@ -8,6 +8,7 @@ import { BottomNav } from '@/components/BottomNav';
 import { AIAssistantWidget } from '@/components/AIAssistantWidget';
 import { themeBootstrapScript } from '@/components/ThemeToggle';
 import { PriceUnitProvider } from '@/components/PriceUnitProvider';
+import { LocaleProvider } from '@/lib/i18n';
 import { RateProvider } from '@/components/RateProvider';
 import { getSession } from '@/lib/auth/session';
 import { getAedRate } from '@/lib/data/rate-store';
@@ -54,6 +55,7 @@ export default async function RootLayout({ children }: { children: ReactNode }) 
         <script dangerouslySetInnerHTML={{ __html: themeBootstrapScript }} />
       </head>
       <body className="flex min-h-screen flex-col bg-page font-sans text-ink antialiased">
+        <LocaleProvider>
         <RateProvider rate={aedRate}>
           <PriceUnitProvider>
             <Header authed={Boolean(session)} displayName={session?.displayName ?? null} />
@@ -65,6 +67,7 @@ export default async function RootLayout({ children }: { children: ReactNode }) 
             <AIAssistantWidget />
           </PriceUnitProvider>
         </RateProvider>
+        </LocaleProvider>
       </body>
     </html>
   );

@@ -83,6 +83,16 @@ function toDevCard(data: ListingPublish, sellerId: string): ListingCardData {
     bikeType: data.bikeType,
     heavyType: data.heavyType,
     workingHours: data.workingHours,
+    thirdPartyInsurance: data.vehicle.thirdPartyInsurance,
+    thirdPartyMonths: data.vehicle.thirdPartyMonths,
+    bodyInsurance: data.vehicle.bodyInsurance,
+    bodyMonths: data.vehicle.bodyMonths,
+    paintCondition: data.vehicle.paintCondition,
+    chassisCondition: data.vehicle.chassisCondition,
+    technicalInspection: data.vehicle.technicalInspection,
+    isJournalPhoto: data.vehicle.isJournalPhoto,
+    inspectionSheetUrl: data.vehicle.inspectionSheetUrl,
+    inspectionNote: data.vehicle.inspectionNote,
     part: null,
   };
 }
