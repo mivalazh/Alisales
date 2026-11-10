@@ -1,11 +1,12 @@
 import { NextResponse } from 'next/server';
-import { isValidMobile, normalizePhone } from '@alisales/schemas';
+import { isValidMobile, normalizePhone, otpRequestSchema } from '@alisales/schemas';
 import { authSecret } from '@/lib/auth/session';
 import { deleteOtp, generateOtp, resendWaitSeconds, saveOtp } from '@/lib/auth/otp-store';
 import { setDemoOtpCookie } from '@/lib/auth/otp-cookie';
 import { sendOtpSms } from '@/lib/auth/sms';
 import { demoAuthMode, demoOtpHintEnabled } from '@/lib/config/mode';
 import { findUserByPhone } from '@/lib/data/s2-store';
+import { rateLimit } from '@/lib/security/rate-limit';
 
 /**
  * POST /api/auth/otp — { phone }
@@ -23,6 +24,19 @@ import { findUserByPhone } from '@/lib/data/s2-store';
  * whenever the deployment has hosted data or an SMS provider.
  */
 export async function POST(request: Request): Promise<NextResponse> {
+  const limited = rateLimit({
+    request,
+    bucket: 'auth-otp',
+    limit: 5,
+    windowMs: 10 * 60_000,
+  });
+  if (!limited.ok) {
+    return NextResponse.json(
+      { error: 'درخواست‌های ورود بیش از حد مجاز است؛ چند دقیقه بعد تلاش کنید.' },
+      { status: 429, headers: { 'Retry-After': String(limited.retryAfterSeconds) } },
+    );
+  }
+
   if (!authSecret()) {
     return NextResponse.json(
       { error: 'ورود در حال حاضر در دسترس نیست؛ بعداً تلاش کنید.' },
@@ -37,13 +51,14 @@ export async function POST(request: Request): Promise<NextResponse> {
     return NextResponse.json({ error: 'بدنه درخواست نامعتبر است.' }, { status: 400 });
   }
 
-  const phoneRaw = typeof (raw as { phone?: unknown })?.phone === 'string'
-    ? (raw as { phone: string }).phone
-    : '';
-  if (!isValidMobile(phoneRaw)) {
+  const parsed = otpRequestSchema.safeParse(raw);
+  if (!parsed.success) {
     return NextResponse.json({ error: 'شماره موبایل معتبر نیست.' }, { status: 400 });
   }
-  const phone = normalizePhone(phoneRaw);
+  if (!isValidMobile(parsed.data.phone)) {
+    return NextResponse.json({ error: 'شماره موبایل معتبر نیست.' }, { status: 400 });
+  }
+  const phone = normalizePhone(parsed.data.phone);
 
   const wait = resendWaitSeconds(phone);
   if (wait > 0) {

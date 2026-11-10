@@ -52,6 +52,8 @@ export function ListingRow({
               fill
               sizes="128px"
               unoptimized={isPreSizedSource(listing.coverUrl)}
+              loading="lazy"
+              decoding="async"
               className={`object-cover ${sold ? 'opacity-60 grayscale' : ''}`}
             />
           ) : (

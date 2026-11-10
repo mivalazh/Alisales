@@ -1,3 +1,4 @@
+import { z } from 'zod';
 import { toLatinDigits } from './digits';
 
 /**
@@ -12,6 +13,11 @@ import { toLatinDigits } from './digits';
  *  - Comparison is timing-safe: never short-circuit on the first mismatch.
  *  - The code is NEVER part of an API response in any environment.
  */
+
+/** Strict shape for POST /api/auth/otp before phone normalisation. */
+export const otpRequestSchema = z.object({
+  phone: z.string().trim().min(1).max(20),
+});
 
 export const OTP_LENGTH = 6;
 export const OTP_TTL_MS = 2 * 60 * 1000;

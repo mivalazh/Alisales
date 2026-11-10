@@ -207,6 +207,7 @@ export {
   OTP_TTL_MS,
   OTP_MAX_ATTEMPTS,
   OTP_RESEND_COOLDOWN_MS,
+  otpRequestSchema,
   isOtpCode,
   otpStatus,
   otpEquals,
@@ -234,12 +235,17 @@ export {
   visitSlotSchema,
   isValidVisitDate,
   messageKinds,
+  messagePostSchema,
   MESSAGE_KIND_LABELS,
   isVisitKind,
   visitSlotLabel,
   visitMessageBody,
 } from './visit';
-export type { VisitSlot, MessageKind } from './visit';
+export type { VisitSlot, MessageKind, MessagePostInput } from './visit';
+
+// Two-way model-year range selection (filter popover)
+export { pickYearRange } from './year-range';
+export type { YearRange, YearRangeBound, YearRangePick } from './year-range';
 
 // Parts & accessories listings (parts_listings)
 export {

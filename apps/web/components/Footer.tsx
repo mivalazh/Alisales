@@ -2,6 +2,7 @@
 
 import Link from 'next/link';
 import { useI18n } from '@/lib/i18n';
+import { Icon } from './Icon';
 
 /**
  * Site footer — the home of everything that is information rather than action.
@@ -73,6 +74,37 @@ function FooterColumn({
   );
 }
 
+/**
+ * eNamad slot. The owner can replace the inner anchor with the official
+ * verification snippet once their licence is issued; the container id and
+ * dimensions stay stable so the seal never shifts the footer.
+ */
+function EnamadSeal() {
+  const { t } = useI18n();
+  return (
+    <div id="enamad-seal-slot" className="shrink-0">
+      <a
+        href="https://www.enamad.ir/"
+        target="_blank"
+        referrerPolicy="origin"
+        rel="noreferrer"
+        aria-label={t(
+          'نماد اعتماد الکترونیکی (ای‌نماد)',
+          'Electronic trust seal (eNamad)',
+        )}
+        className="flex h-24 w-20 flex-col items-center justify-center rounded-xl border border-slate-200/80 bg-white p-2 shadow-xs transition hover:border-slate-300 dark:border-white/10 dark:bg-[#161A38] dark:hover:border-white/20"
+      >
+        <span className="flex h-9 w-9 items-center justify-center rounded-full bg-[#DEF434] text-[#111144]">
+          <Icon name="shieldCheck" size={20} />
+        </span>
+        <span className="mt-1.5 text-center text-[8px] font-extrabold leading-3 text-[#111144] dark:text-[#F4F1EC]">
+          {t('نماد اعتماد الکترونیکی (ای‌نماد)', 'eNamad trust seal')}
+        </span>
+      </a>
+    </div>
+  );
+}
+
 /** Phone footer: three collapsed rows instead of one long column list. */
 function FooterAccordion() {
   const { t } = useI18n();
@@ -140,14 +172,17 @@ export function SiteFooter() {
           </div>
         </div>
 
-        <div className="mt-8 flex flex-col items-center justify-between gap-3 border-t border-line pt-6 sm:mt-10 sm:flex-row">
-          <p className="text-center text-xs text-faint sm:text-start">
-            © {new Date().getFullYear()} Ali Sales —{' '}
-            {t(
-              'تمامی حقوق محفوظ است. مسئولیت اعلام وضعیت پلاک و صحت اطلاعات آگهی بر عهده فروشنده است.',
-              'All rights reserved. The seller is responsible for plate status and ad accuracy.',
-            )}
-          </p>
+        <div className="mt-8 flex flex-col items-center justify-between gap-4 border-t border-line pt-6 sm:mt-10 sm:flex-row sm:items-end">
+          <div className="flex flex-col items-center gap-3 sm:flex-row sm:items-center">
+            <EnamadSeal />
+            <p className="max-w-md text-center text-xs leading-6 text-faint sm:text-start">
+              © {new Date().getFullYear()} Ali Sales —{' '}
+              {t(
+                'تمامی حقوق محفوظ است. مسئولیت اعلام وضعیت پلاک و صحت اطلاعات آگهی بر عهده فروشنده است.',
+                'All rights reserved. The seller is responsible for plate status and ad accuracy.',
+              )}
+            </p>
+          </div>
           <p
             dir="ltr"
             className="shrink-0 rounded-[var(--radius-pill)] border border-line bg-page px-3 py-1 text-xs font-semibold tracking-wide text-muted"

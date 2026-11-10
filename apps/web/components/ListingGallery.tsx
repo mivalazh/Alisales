@@ -130,6 +130,8 @@ export function ListingGallery({
                     fill
                     sizes="(min-width: 1024px) 14vw, 25vw"
                     unoptimized={isPreSizedSource(url)}
+                    loading="lazy"
+                    decoding="async"
                     className="object-cover"
                   />
                 )}

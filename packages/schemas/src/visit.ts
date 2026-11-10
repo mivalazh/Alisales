@@ -36,6 +36,46 @@ export function isValidVisitDate(date: string): boolean {
 export const messageKinds = ['text', 'visit_request', 'visit_accept', 'visit_counter'] as const;
 export type MessageKind = (typeof messageKinds)[number];
 
+/**
+ * Strict POST /api/messages payload.
+ *
+ * The sender always comes from the session; the body can only choose a
+ * conversation, a known message kind, the text and an optional visit slot.
+ * Visit accepts/counters require a slot, and plain text requires 1–2000
+ * characters, so malformed requests never reach the data layer.
+ */
+export const messagePostSchema = z
+  .object({
+    conversationId: z.string().trim().min(1).max(128),
+    kind: z.enum(messageKinds).default('text'),
+    body: z.string().trim().max(2000).optional(),
+    visit: visitSlotSchema.nullable().optional(),
+  })
+  .superRefine((value, ctx) => {
+    if (value.kind === 'text') {
+      if (!value.body) {
+        ctx.addIssue({
+          code: 'custom',
+          path: ['body'],
+          message: 'متن پیام را بنویسید.',
+        });
+      }
+      return;
+    }
+    if (
+      (value.kind === 'visit_accept' || value.kind === 'visit_counter') &&
+      !value.visit
+    ) {
+      ctx.addIssue({
+        code: 'custom',
+        path: ['visit'],
+        message: 'زمان بازدید را انتخاب کنید.',
+      });
+    }
+  });
+
+export type MessagePostInput = z.infer<typeof messagePostSchema>;
+
 export const MESSAGE_KIND_LABELS: Record<MessageKind, string> = {
   text: '',
   visit_request: 'درخواست بازدید',

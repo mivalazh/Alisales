@@ -102,6 +102,34 @@
   }
 }
 
+@keyframes skeleton-shimmer {
+  from {
+    background-position: 100% 0;
+  }
+  to {
+    background-position: -100% 0;
+  }
+}
+
+@layer utilities {
+  .skeleton {
+    background-image: linear-gradient(
+      90deg,
+      var(--color-surface-sunken) 25%,
+      var(--color-border-subtle) 37%,
+      var(--color-surface-sunken) 63%
+    );
+    background-size: 200% 100%;
+    animation: skeleton-shimmer 1.4s ease-in-out infinite;
+  }
+
+  @media (prefers-reduced-motion: reduce) {
+    .skeleton {
+      animation: none;
+    }
+  }
+}
+
 @layer components {
   /* Shared form control — RTL-safe, 44px touch target (design --touch-min). */
   .field {

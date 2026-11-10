@@ -10,6 +10,7 @@ import {
   messagesForConversation,
 } from '@/lib/data/s2-store';
 import { Icon } from '@/components/Icon';
+import { ListEmptyState } from '@/components/ListEmptyState';
 import { vehicleTitle } from '@/lib/listing-text';
 import { getLanguage } from '@/lib/i18n/server';
 import { serverT } from '@/lib/i18n/server';
@@ -62,24 +63,17 @@ export default async function ChatsPage() {
   });
 
   return (
-    <div className="mx-auto max-w-2xl space-y-4">
+    <div className="mx-auto max-w-2xl space-y-4 bg-[#F4F1EC] dark:bg-[#111144]">
       <h1 className="text-xl font-extrabold">{t('چت‌ها')}</h1>
 
       {rows.length === 0 ? (
-        /* Same warm surface + white inner card as /favorites, so the two empty
-           screens read as one product rather than two templates. */
-        <div className="rounded-card border border-line bg-[var(--color-page)] p-2">
-          <div className="rounded-card border border-dashed border-line-strong bg-card px-6 py-16 text-center">
-            <Icon name="message" size={40} className="mx-auto text-faint" />
-            <p className="mt-4 font-extrabold">{t('هنوز گفتگویی ندارید')}</p>
-            <p className="mt-1 text-sm text-muted">
-              {t('برای شروع، از صفحه‌ی هر آگهی با فروشنده چت کنید.')}
-            </p>
-            <Link href="/" className="btn-cta mt-6 inline-flex text-sm">
-              {t('مشاهده آگهی‌ها')}
-            </Link>
-          </div>
-        </div>
+        <ListEmptyState
+          icon="message"
+          title={t('هنوز گفتگویی ندارید')}
+          description={t('برای شروع، از صفحه‌ی هر آگهی با فروشنده چت کنید.')}
+          actionHref="/"
+          actionLabel={t('مشاهده آگهی‌ها')}
+        />
       ) : (
         <ul className="flex flex-col gap-2">
           {rows.map(({ conversation, listing, last, name, initials }) => (

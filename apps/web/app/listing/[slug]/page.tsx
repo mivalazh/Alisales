@@ -131,10 +131,14 @@ export default async function ListingDetailPage({
    * pill tags under the description. Colour, body class, engine size, part
    * number, warranty and compatibility all land here instead of being lost.
    */
-  const extraSpecs: { label: string; value: string }[] = [];
-  const pushSpec = (label: string, value: string | null | undefined) => {
+  const extraSpecs: { label: string; value: string; positive?: boolean }[] = [];
+  const pushSpec = (
+    label: string,
+    value: string | null | undefined,
+    positive = false,
+  ) => {
     const text = (value ?? '').trim();
-    if (text) extraSpecs.push({ label, value: text });
+    if (text) extraSpecs.push({ label, value: text, ...(positive ? { positive } : {}) });
   };
   if (part) {
     pushSpec(t('کشور سازنده'), part.originCountry ?? null);
@@ -160,6 +164,7 @@ export default async function ListingDetailPage({
             ? `Yes${listing.thirdPartyMonths ? ` · ${listing.thirdPartyMonths} months remaining` : ''}`
             : `${t('دارد')}${listing.thirdPartyMonths ? ` · ${listing.thirdPartyMonths} ${t('ماه اعتبار')}` : ''}`
           : t('ندارد'),
+        listing.thirdPartyInsurance,
       );
     }
     if (listing.bodyInsurance !== null && listing.bodyInsurance !== undefined) {
@@ -170,6 +175,7 @@ export default async function ListingDetailPage({
             ? `Yes${listing.bodyMonths ? ` · ${listing.bodyMonths} months remaining` : ''}`
             : `${t('دارد')}${listing.bodyMonths ? ` · ${listing.bodyMonths} ${t('ماه اعتبار')}` : ''}`
           : t('ندارد'),
+        listing.bodyInsurance,
       );
     }
     if (listing.paintCondition) {
@@ -180,6 +186,7 @@ export default async function ListingDetailPage({
             listing.paintCondition as keyof typeof PAINT_CONDITION_LABELS
           ] ?? listing.paintCondition,
         ),
+        listing.paintCondition === 'factory',
       );
     }
     if (listing.chassisCondition) {
@@ -190,16 +197,18 @@ export default async function ListingDetailPage({
             listing.chassisCondition as keyof typeof CHASSIS_CONDITION_LABELS
           ] ?? listing.chassisCondition,
         ),
+        listing.chassisCondition === 'sealed',
       );
     }
     if (listing.technicalInspection !== null && listing.technicalInspection !== undefined) {
-      pushSpec(t('معاینه فنی'), listing.technicalInspection ? t('دارد') : t('ندارد'));
+      pushSpec(
+        t('معاینه فنی'),
+        listing.technicalInspection ? t('دارد') : t('ندارد'),
+        listing.technicalInspection,
+      );
     }
-    if (listing.isJournalPhoto) pushSpec(t('عکس ژورنالی'), t('دارد'));
-    if (listing.inspectionSheetUrl) pushSpec(t('برگه کارشناسی'), t('دارد'));
-    if (listing.inspectionNote) {
-      pushSpec(t('خلاصه برگه کارشناسی'), t(listing.inspectionNote));
-    }
+    if (listing.isJournalPhoto) pushSpec(t('عکس ژورنالی'), t('دارد'), true);
+    if (listing.inspectionSheetUrl) pushSpec(t('برگه کارشناسی'), t('دارد'), true);
   }
 
   /** «توضیحات آگهی» + its extra-spec tags. Rendered once: on phones it sits
@@ -217,30 +226,55 @@ export default async function ListingDetailPage({
       {extraSpecs.length > 0 && (
         <div className="mt-5 border-t border-line pt-4">
           <h3 className="mb-3 text-sm font-extrabold text-ink">{t('مشخصات تکمیلی')}</h3>
-          <dl className="grid grid-cols-1 gap-x-5 gap-y-0 sm:grid-cols-2">
+          <dl className="grid grid-cols-2 gap-2.5 sm:grid-cols-3">
             {extraSpecs.map((spec) => (
               <div
                 key={`${spec.label}-${spec.value}`}
-                className="flex items-start justify-between gap-3 border-b border-line/70 py-2 text-xs"
+                className="flex flex-col gap-1 rounded-xl border border-slate-200/70 bg-[#F4F1EC]/60 p-3 dark:border-white/10 dark:bg-white/[0.04]"
               >
-                <dt className="shrink-0 font-bold text-muted">{spec.label}</dt>
-                <dd className="text-end font-extrabold text-ink">{spec.value}</dd>
+                <dt className="text-xs text-slate-500 dark:text-slate-400">{spec.label}</dt>
+                <dd className="flex items-center gap-1.5 text-sm font-bold text-[#111144] dark:text-[#F4F1EC]">
+                  {spec.positive && (
+                    <span
+                      aria-hidden
+                      className="h-2 w-2 shrink-0 rounded-full bg-emerald-500"
+                    />
+                  )}
+                  <span className="min-w-0 break-words">{spec.value}</span>
+                </dd>
               </div>
             ))}
           </dl>
         </div>
       )}
 
-      {listing.inspectionSheetUrl && (
-        <a
-          href={listing.inspectionSheetUrl}
-          target="_blank"
-          rel="noreferrer"
-          className="mt-3 inline-flex items-center gap-1.5 rounded-[var(--radius-pill)] border border-line bg-page px-3 py-1.5 text-[11px] font-extrabold text-ink transition hover:border-line-strong"
-        >
-          <Icon name="shieldCheck" size={14} />
-          {t('مشاهده برگه کارشناسی بارگذاری‌شده')}
-        </a>
+      {(listing.inspectionNote || listing.inspectionSheetUrl) && (
+        <div className="mt-4 rounded-xl border border-emerald-200/80 bg-emerald-50/60 p-3.5 dark:border-emerald-400/20 dark:bg-emerald-400/[0.07]">
+          <div className="flex items-start gap-2">
+            <span className="mt-0.5 flex h-7 w-7 shrink-0 items-center justify-center rounded-full bg-emerald-500/15 text-emerald-700 dark:text-emerald-300">
+              <Icon name="shieldCheck" size={15} />
+            </span>
+            <div className="min-w-0 flex-1">
+              <p className="text-xs font-extrabold text-ink">{t('خلاصه برگه کارشناسی')}</p>
+              {listing.inspectionNote && (
+                <p className="mt-1 text-xs leading-6 text-muted">
+                  {t(listing.inspectionNote)}
+                </p>
+              )}
+              {listing.inspectionSheetUrl && (
+                <a
+                  href={listing.inspectionSheetUrl}
+                  target="_blank"
+                  rel="noreferrer"
+                  className="mt-2.5 inline-flex items-center gap-1.5 rounded-lg bg-[#111144] px-3 py-2 text-[11px] font-extrabold text-white transition hover:bg-[#1b1b57] active:scale-[0.98] dark:bg-[#F4F1EC] dark:text-[#111144] dark:hover:bg-white"
+                >
+                  <Icon name="shieldCheck" size={14} />
+                  {t('مشاهده برگه کارشناسی')}
+                </a>
+              )}
+            </div>
+          </div>
+        </div>
       )}
     </section>
   );

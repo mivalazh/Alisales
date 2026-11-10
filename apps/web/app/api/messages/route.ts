@@ -1,14 +1,9 @@
 import { NextResponse } from 'next/server';
-import {
-  messageKinds,
-  visitMessageBody,
-  visitSlotSchema,
-  type MessageKind,
-  type VisitSlot,
-} from '@alisales/schemas';
+import { messagePostSchema, visitMessageBody, type VisitSlot } from '@alisales/schemas';
 import { getSession } from '@/lib/auth/session';
 import { addMessage, conversationById, messagesForConversation } from '@/lib/data/s2-store';
 import { markRead, readAt, typingUsers } from '@/lib/data/chat-presence';
+import { rateLimit } from '@/lib/security/rate-limit';
 
 const MAX_BODY = 2000;
 
@@ -23,6 +18,20 @@ export async function GET(request: Request): Promise<NextResponse> {
   const session = await getSession();
   if (!session) {
     return NextResponse.json({ error: 'برای دیدن گفتگو وارد حساب خود شوید.' }, { status: 401 });
+  }
+
+  const limited = rateLimit({
+    request,
+    bucket: 'messages-read',
+    key: session.sub,
+    limit: 120,
+    windowMs: 60_000,
+  });
+  if (!limited.ok) {
+    return NextResponse.json(
+      { error: 'درخواست‌های گفتگو بیش از حد مجاز است.' },
+      { status: 429, headers: { 'Retry-After': String(limited.retryAfterSeconds) } },
+    );
   }
 
   const url = new URL(request.url);
@@ -75,37 +84,37 @@ export async function POST(request: Request): Promise<NextResponse> {
     return NextResponse.json({ error: 'برای ارسال پیام وارد حساب خود شوید.' }, { status: 401 });
   }
 
+  const limited = rateLimit({
+    request,
+    bucket: 'messages-write',
+    key: session.sub,
+    limit: 30,
+    windowMs: 60_000,
+  });
+  if (!limited.ok) {
+    return NextResponse.json(
+      { error: 'ارسال پیام بیش از حد مجاز است؛ چند لحظه صبر کنید.' },
+      { status: 429, headers: { 'Retry-After': String(limited.retryAfterSeconds) } },
+    );
+  }
+
   let raw: unknown;
   try {
     raw = await request.json();
   } catch {
     return NextResponse.json({ error: 'بدنه درخواست نامعتبر است.' }, { status: 400 });
   }
-  const payload = raw as {
-    conversationId?: unknown;
-    body?: unknown;
-    kind?: unknown;
-    visit?: unknown;
-  };
-  const conversationId = typeof payload.conversationId === 'string' ? payload.conversationId : '';
-
-  if (!conversationId) {
-    return NextResponse.json({ error: 'شناسه گفتگو لازم است.' }, { status: 400 });
+  const parsed = messagePostSchema.safeParse(raw);
+  if (!parsed.success) {
+    return NextResponse.json(
+      { error: parsed.error.issues[0]?.message ?? 'درخواست پیام نامعتبر است.' },
+      { status: 400 },
+    );
   }
-
-  if (payload.kind !== undefined && !messageKinds.includes(payload.kind as MessageKind)) {
-    return NextResponse.json({ error: 'نوع پیام نامعتبر است.' }, { status: 400 });
-  }
-  const kind: MessageKind = (payload.kind as MessageKind | undefined) ?? 'text';
-
-  let visit: VisitSlot | null = null;
-  if (payload.visit !== undefined && payload.visit !== null) {
-    const parsedVisit = visitSlotSchema.safeParse(payload.visit);
-    if (!parsedVisit.success) {
-      return NextResponse.json({ error: 'زمان بازدید معتبر نیست.' }, { status: 400 });
-    }
-    visit = parsedVisit.data;
-  }
+  const payload = parsed.data;
+  const conversationId = payload.conversationId;
+  const kind = payload.kind;
+  const visit: VisitSlot | null = payload.visit ?? null;
 
   const conversation = await conversationById(conversationId);
   if (!conversation) {

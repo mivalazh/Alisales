@@ -2,6 +2,7 @@ import { NextResponse } from 'next/server';
 import { abuseReportSchema } from '@alisales/schemas';
 import { getSession } from '@/lib/auth/session';
 import { admin, listingById, recordAbuseReport } from '@/lib/data/s2-store';
+import { rateLimit } from '@/lib/security/rate-limit';
 
 /**
  * POST /api/reports — «گزارش آگهی» (owner of the report: any signed-in user).
@@ -15,6 +16,20 @@ export async function POST(request: Request): Promise<NextResponse> {
   const session = await getSession();
   if (!session) {
     return NextResponse.json({ error: 'برای گزارش آگهی وارد حساب خود شوید.' }, { status: 401 });
+  }
+
+  const limited = rateLimit({
+    request,
+    bucket: 'abuse-reports',
+    key: session.sub,
+    limit: 5,
+    windowMs: 60 * 60_000,
+  });
+  if (!limited.ok) {
+    return NextResponse.json(
+      { error: 'تعداد گزارش‌ها بیش از حد مجاز است؛ بعداً تلاش کنید.' },
+      { status: 429, headers: { 'Retry-After': String(limited.retryAfterSeconds) } },
+    );
   }
 
   let raw: unknown;

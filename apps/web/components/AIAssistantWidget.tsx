@@ -2,6 +2,7 @@
 
 import Image from 'next/image';
 import Link from 'next/link';
+import { usePathname } from 'next/navigation';
 import { useEffect, useRef, useState } from 'react';
 import { useI18n } from '@/lib/i18n';
 import { Icon } from './Icon';
@@ -41,6 +42,7 @@ const SEED_FAQS = [
  */
 export function AIAssistantWidget() {
   const { t, lang } = useI18n();
+  const pathname = usePathname();
   const [open, setOpen] = useState(false);
   const [input, setInput] = useState('');
   const [busy, setBusy] = useState(false);
@@ -69,6 +71,10 @@ export function AIAssistantWidget() {
     if (!open) return;
     scroller.current?.scrollTo({ top: scroller.current.scrollHeight, behavior: 'smooth' });
   }, [messages, open, busy]);
+
+  // A focused conversation owns the composer edge; the catalogue assistant
+  // would otherwise float over the message input on a phone.
+  if (/^\/chats\/[^/]+/.test(pathname ?? '')) return null;
 
   const ask = async (question: string) => {
     const q = question.trim();

@@ -27,6 +27,7 @@ import {
   selectableCities,
   toAsciiDigits,
   tomanToIRR,
+  pickYearRange,
   type SearchFilters,
   type VehicleCategory,
 } from '@alisales/schemas';
@@ -134,27 +135,38 @@ function YearGrid({
 }) {
   const { t } = useI18n();
   const [open, setOpen] = useState(false);
+  const [activeBound, setActiveBound] = useState<'from' | 'to'>('from');
   const active = from !== undefined || to !== undefined;
   // «تا سال» defaults to the current latest model year. It is a display
   // default until the buyer actually picks a second year, so the URL is not
   // rewritten with a yearTo=2026 filter on every page load.
   const toDisplay = to ?? LATEST_VEHICLE_YEAR;
+  const earliest = GRID_YEARS[GRID_YEARS.length - 1] ?? 1995;
+
+  useEffect(() => {
+    if (!open) return;
+    const onKey = (event: KeyboardEvent) => {
+      if (event.key === 'Escape') setOpen(false);
+    };
+    document.addEventListener('keydown', onKey);
+    return () => document.removeEventListener('keydown', onKey);
+  }, [open]);
 
   const pick = (year: number) => {
-    // No range yet (or the previous range is complete) → start a new one.
-    if (from === undefined || (from !== undefined && to !== undefined)) {
-      onChange({ yearFrom: year, yearTo: LATEST_VEHICLE_YEAR });
-      return;
-    }
-    if (year < from) {
-      onChange({ yearFrom: year, yearTo: from });
-      return;
-    }
-    onChange({ yearFrom: from, yearTo: year });
+    const next = pickYearRange(
+      { yearFrom: from, yearTo: to },
+      year,
+      activeBound,
+      { earliest, latest: LATEST_VEHICLE_YEAR },
+    );
+    onChange(next.range);
+    setActiveBound(next.activeBound);
   };
 
-  const inRange = (year: number) =>
-    from !== undefined && to !== undefined && year >= Math.min(from, to) && year <= Math.max(from, to);
+  const reset = () => {
+    onChange({ yearFrom: undefined, yearTo: undefined });
+    setActiveBound('from');
+  };
 
   return (
     <div className="relative">
@@ -186,21 +198,46 @@ function YearGrid({
           aria-label={t('انتخاب سال ساخت', 'Choose model year')}
           className="absolute inset-x-0 top-full z-30 mt-2 rounded-card border border-line bg-card p-3 shadow-xl"
         >
-          <div className="mb-2 flex items-center justify-between gap-2 text-[11px] font-extrabold">
-            <span className="text-muted">
-              از سال:{' '}
-              <b className="text-ink">{from !== undefined ? from : '—'}</b>
-            </span>
-            <span className="text-muted">
-              تا سال: <b className="text-ink">{toDisplay}</b>
-            </span>
+          <div className="mb-2 flex items-center gap-1.5">
+            <button
+              type="button"
+              onClick={() => setActiveBound('from')}
+              aria-pressed={activeBound === 'from'}
+              className={`min-w-0 flex-1 rounded-field border px-2 py-1.5 text-start transition ${
+                activeBound === 'from'
+                  ? 'border-[#F98513]/50 bg-[#F98513]/10 text-ink'
+                  : 'border-line bg-page text-muted hover:border-line-strong'
+              }`}
+            >
+              <span className="block text-[9px] font-bold text-muted">
+                {t('از سال', 'From year')}
+              </span>
+              <b className="block text-xs font-extrabold text-ink">
+                {from !== undefined ? from : t('انتخاب', 'Select')}
+              </b>
+            </button>
+            <button
+              type="button"
+              onClick={() => setActiveBound('to')}
+              aria-pressed={activeBound === 'to'}
+              className={`min-w-0 flex-1 rounded-field border px-2 py-1.5 text-start transition ${
+                activeBound === 'to'
+                  ? 'border-[#F98513]/50 bg-[#F98513]/10 text-ink'
+                  : 'border-line bg-page text-muted hover:border-line-strong'
+              }`}
+            >
+              <span className="block text-[9px] font-bold text-muted">
+                {t('تا سال', 'To year')}
+              </span>
+              <b className="block text-xs font-extrabold text-ink">{toDisplay}</b>
+            </button>
             {active && (
               <button
                 type="button"
-                onClick={() => onChange({ yearFrom: undefined, yearTo: undefined })}
-                className="text-cta underline"
+                onClick={reset}
+                className="shrink-0 px-1 text-[10px] font-bold text-cta underline"
               >
-                پاک کردن
+                {t('پاک کردن', 'Clear')}
               </button>
             )}
           </div>
@@ -209,17 +246,23 @@ function YearGrid({
             {GRID_YEARS.map((year) => {
               const isFrom = year === from;
               const isTo = year === to;
-              const selected = inRange(year) || isFrom || isTo;
+              const between =
+                from !== undefined &&
+                to !== undefined &&
+                year > Math.min(from, to) &&
+                year < Math.max(from, to);
               return (
                 <button
                   key={year}
                   type="button"
                   onClick={() => pick(year)}
-                  aria-pressed={selected}
+                  aria-pressed={isFrom || isTo}
                   className={`rounded-field border py-1.5 text-xs font-extrabold tabular-nums transition ${
-                    selected
+                    isFrom || isTo
                       ? 'border-[#F98513] bg-[#F98513] text-white'
-                      : 'border-line bg-page text-muted hover:border-cta hover:text-ink'
+                      : between
+                        ? 'border-[#F98513]/25 bg-[#F98513]/15 text-[#111144] hover:border-[#F98513]/50 dark:text-white'
+                        : 'border-line bg-page text-muted hover:border-cta hover:text-ink'
                   }`}
                 >
                   {year}

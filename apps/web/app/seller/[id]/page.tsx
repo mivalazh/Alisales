@@ -283,6 +283,8 @@ export default async function SellerPage({
                         fill
                         sizes="(min-width: 640px) 30vw, 33vw"
                         unoptimized={isPreSizedSource(listing.coverUrl)}
+                        loading="lazy"
+                        decoding="async"
                         className="object-cover transition group-hover:scale-105"
                       />
                     ) : (

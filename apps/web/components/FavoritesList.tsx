@@ -7,6 +7,7 @@ import { FAVORITES_KEY, readFavorites, writeFavorites, type FavoriteSnapshot } f
 import { Icon } from './Icon';
 import { PriceText } from './PriceText';
 import { ViewModeToggle, type ViewMode } from './SortControl';
+import { ListEmptyState } from './ListEmptyState';
 import { isPreSizedSource } from '@/lib/images';
 import { useI18n } from '@/lib/i18n';
 
@@ -51,21 +52,16 @@ export function FavoritesList() {
 
   if (items.length === 0) {
     return (
-      <div className="rounded-card border border-dashed border-line-strong bg-card px-6 py-16 text-center">
-        <Icon name="heart" size={40} className="mx-auto text-faint" />
-        <p className="mt-4 font-extrabold">
-          {t('هنوز آگهی‌ای ذخیره نکرده‌اید.', 'You have not saved any listings yet.')}
-        </p>
-        <p className="mt-1 text-sm text-muted">
-          {t(
-            'با نشان کردن آگهی‌ها، اینجا لیست شخصی خود را می‌سازید.',
-            'Save listings with the heart and they will appear here.',
-          )}
-        </p>
-        <Link href="/" className="btn-cta mt-6 inline-flex text-sm">
-          {t('مرور آگهی‌ها', 'Browse listings')}
-        </Link>
-      </div>
+      <ListEmptyState
+        icon="heart"
+        title={t('هنوز آگهی‌ای ذخیره نکرده‌اید.', 'You have not saved any listings yet.')}
+        description={t(
+          'با نشان کردن آگهی‌ها، اینجا لیست شخصی خود را می‌سازید.',
+          'Save listings with the heart and they will appear here.',
+        )}
+        actionHref="/"
+        actionLabel={t('مرور آگهی‌ها', 'Browse listings')}
+      />
     );
   }
 
@@ -120,6 +116,8 @@ export function FavoritesList() {
                     fill
                     sizes="(min-width: 1024px) 25vw, 50vw"
                     unoptimized={isPreSizedSource(item.coverUrl)}
+                    loading="lazy"
+                    decoding="async"
                     className="object-cover"
                   />
                 ) : (

@@ -12,6 +12,8 @@ import {
   type KeyboardEvent,
 } from 'react';
 import { formatJalaliDate, postingAgeLabel } from '@alisales/schemas';
+import { useI18n } from '@/lib/i18n';
+import { postingAgeEnglish } from '@/lib/i18n/dictionary';
 import { Icon } from './Icon';
 import { PriceText } from './PriceText';
 import { isPreSizedSource } from '@/lib/images';
@@ -42,9 +44,9 @@ export interface ChatListingContext {
 
 /** Quick replies for the questions buyers actually open a chat with. */
 const QUICK_REPLIES = [
-  'قیمت قابل مذاکره است؟',
-  'هنوز موجود است؟',
-  'امکان بازدید هست؟',
+  { fa: 'قیمت قابل مذاکره است؟', en: 'Is the price negotiable?' },
+  { fa: 'هنوز موجود است؟', en: 'Is it still available?' },
+  { fa: 'امکان بازدید هست؟', en: 'Can I see it in person?' },
 ] as const;
 
 const POLL_MS = 6_000;
@@ -52,21 +54,38 @@ const TYPING_THROTTLE_MS = 2_500;
 /** Distance from the bottom that still counts as «at the newest message». */
 const STICK_THRESHOLD = 48;
 
-function clock(iso: string): string {
+function clock(iso: string, lang: 'fa' | 'en'): string {
   const date = new Date(iso);
   if (Number.isNaN(date.getTime())) return '';
-  return date.toLocaleTimeString('fa-IR', { hour: '2-digit', minute: '2-digit' });
+  return date.toLocaleTimeString(lang === 'en' ? 'en-US' : 'fa-IR', {
+    hour: '2-digit',
+    minute: '2-digit',
+  });
 }
 
 function dayKey(iso: string): string {
   const date = new Date(iso);
-  return Number.isNaN(date.getTime()) ? '' : formatJalaliDate(date);
+  return Number.isNaN(date.getTime()) ? '' : date.toISOString().slice(0, 10);
 }
 
-function relativeSeen(iso: string | null): string {
-  if (!iso) return 'آخرین بازدید نامشخص';
+function dayLabel(iso: string, lang: 'fa' | 'en'): string {
+  const date = new Date(iso);
+  if (Number.isNaN(date.getTime())) return '';
+  return lang === 'en'
+    ? date.toLocaleDateString('en-US', { weekday: 'short', month: 'short', day: 'numeric' })
+    : formatJalaliDate(date);
+}
+
+function relativeSeen(iso: string | null, lang: 'fa' | 'en'): string {
+  if (!iso) return lang === 'en' ? 'Last seen unavailable' : 'آخرین بازدید نامشخص';
   const minutes = Math.max(0, Math.round((Date.now() - Date.parse(iso)) / 60_000));
-  if (minutes < 2) return 'آنلاین';
+  if (minutes < 2) return lang === 'en' ? 'Online' : 'آنلاین';
+  if (lang === 'en') {
+    if (minutes < 60) return `Last seen ${minutes} min ago`;
+    const hours = Math.round(minutes / 60);
+    if (hours < 24) return `Last seen ${hours} hr ago`;
+    return `Last seen ${postingAgeEnglish(iso).toLowerCase()}`;
+  }
   return `آخرین بازدید ${postingAgeLabel(iso)}`;
 }
 
@@ -77,8 +96,9 @@ function relativeSeen(iso: string | null): string {
  * date-separated, sender-grouped bubbles with timestamps and read ticks →
  * typing indicator → sticky composer with quick replies and safe-area padding.
  *
- * Direction: like Telegram/WhatsApp in RTL, my own messages sit on the left
- * edge and the other party's on the right, each with its own bubble tail.
+ * Direction: my own messages sit on the start edge (right in RTL, right in
+ * LTR too, like a standard messenger), navy with white text; incoming messages
+ * sit on the opposite edge in a white/slate card.
  *
  * New messages and presence come from `GET /api/messages` (polling); sending is
  * the existing `POST /api/messages` so role rules and validation stay
@@ -99,6 +119,7 @@ export function ChatThread({
   initialMessages: ThreadMessage[];
   initialOtherReadAt: string | null;
 }) {
+  const { t, lang } = useI18n();
   const [messages, setMessages] = useState<ThreadMessage[]>(initialMessages);
   const [text, setText] = useState('');
   const [busy, setBusy] = useState(false);
@@ -207,8 +228,21 @@ export function ChatThread({
   async function send(bodyOverride?: string): Promise<void> {
     const body = (bodyOverride ?? text).trim();
     if (!body || busy) return;
+    const optimisticId = `optimistic-${Date.now()}-${Math.random().toString(36).slice(2, 7)}`;
+    const optimistic: ThreadMessage = {
+      id: optimisticId,
+      senderId: currentUserId,
+      body,
+      createdAt: new Date().toISOString(),
+    };
+
+    // The bubble appears immediately; the server message replaces it in place.
+    setMessages((current) => [...current, optimistic]);
+    if (!bodyOverride) setText('');
     setBusy(true);
     setError(null);
+    scrollToBottom(true);
+
     try {
       const res = await fetch('/api/messages', {
         method: 'POST',
@@ -220,18 +254,21 @@ export function ChatThread({
         error?: string;
       };
       if (res.ok && data.message) {
-        setMessages((current) =>
-          current.some((m) => m.id === data.message!.id)
-            ? current
-            : [...current, data.message as ThreadMessage],
-        );
-        if (!bodyOverride) setText('');
+        const confirmed = data.message;
+        setMessages((current) => [
+          ...current.filter((m) => m.id !== optimisticId && m.id !== confirmed.id),
+          confirmed,
+        ]);
         scrollToBottom(true);
         return;
       }
-      setError(data.error ?? 'ارسال پیام ناموفق بود.');
+      setMessages((current) => current.filter((m) => m.id !== optimisticId));
+      if (!bodyOverride) setText(body);
+      setError(data.error ?? t('ارسال پیام ناموفق بود.', 'Could not send the message.'));
     } catch {
-      setError('ارتباط با سرور برقرار نشد.');
+      setMessages((current) => current.filter((m) => m.id !== optimisticId));
+      if (!bodyOverride) setText(body);
+      setError(t('ارتباط با سرور برقرار نشد.', 'Could not reach the server.'));
     } finally {
       setBusy(false);
     }
@@ -246,16 +283,16 @@ export function ChatThread({
   }
 
   // Group + date-separate once per render rather than per bubble.
-  const blocks = useMemo(() => buildBlocks(messages, currentUserId), [messages, currentUserId]);
+  const blocks = useMemo(() => buildBlocks(messages, lang), [messages, lang]);
 
   return (
-    <div className="mx-auto flex max-w-2xl flex-col">
-      {/* Sticky header */}
-      <header className="sticky top-16 z-30 flex items-center gap-2 rounded-card border border-line bg-card/95 px-2 py-2 backdrop-blur sm:top-20">
+    <div className="mx-auto flex h-[calc(100dvh-10rem)] max-w-2xl flex-col sm:h-[calc(100dvh-9rem)]">
+      {/* Messenger header: back, peer identity, presence. Nothing else. */}
+      <header className="sticky top-16 z-30 flex items-center gap-2 border-b border-line bg-card/95 px-2 py-2 backdrop-blur sm:top-20">
         <Link
           href="/chats"
-          aria-label="بازگشت به چت‌ها"
-          className="flex h-9 w-9 shrink-0 items-center justify-center rounded-full text-muted transition hover:bg-cta-soft hover:text-ink"
+          aria-label={t('بازگشت به چت‌ها', 'Back to chats')}
+          className="flex h-9 w-9 shrink-0 items-center justify-center rounded-full text-muted transition hover:bg-cta-soft hover:text-ink active:scale-95"
         >
           <Icon name="chevronRight" size={18} />
         </Link>
@@ -269,7 +306,7 @@ export function ChatThread({
           <p className="truncate text-sm font-extrabold text-ink">{peer.name}</p>
           <p className="flex items-center gap-1 text-[11px] font-bold text-muted">
             {peerTyping ? (
-              <span className="text-cta">در حال نوشتن…</span>
+              <span className="text-cta">{t('در حال نوشتن…', 'Typing…')}</span>
             ) : (
               <>
                 <span
@@ -282,25 +319,23 @@ export function ChatThread({
                         : '#94A3B8',
                   }}
                 />
-                {mounted ? relativeSeen(peer.lastActiveAt) : 'آخرین بازدید'}
+                {mounted
+                  ? relativeSeen(peer.lastActiveAt, lang)
+                  : t('آخرین بازدید', 'Last seen')}
               </>
             )}
           </p>
         </div>
-        {listing && (
-          <Link
-            href={`/listing/${listing.slug}`}
-            className="hidden shrink-0 rounded-[var(--radius-pill)] border border-line px-3 py-1.5 text-[11px] font-extrabold text-muted transition hover:border-line-strong hover:text-ink sm:block"
-          >
-            مشاهده آگهی
-          </Link>
-        )}
       </header>
 
-      {/* Pinned listing context */}
+      {/* Pinned listing: one compact strip, the whole row opens the listing. */}
       {listing && (
-        <div className="mt-2 flex items-center gap-2 rounded-card border border-line bg-cta-soft/40 p-2">
-          <div className="relative h-12 w-16 shrink-0 overflow-hidden rounded-field bg-sunken">
+        <Link
+          href={`/listing/${listing.slug}`}
+          aria-label={t('مشاهده آگهی', 'View listing')}
+          className="mt-2 flex items-center gap-2.5 rounded-xl border border-line bg-card p-2 transition hover:border-line-strong active:scale-[0.99]"
+        >
+          <div className="relative h-12 w-16 shrink-0 overflow-hidden rounded-lg bg-sunken">
             {listing.coverUrl && (
               <Image
                 src={listing.coverUrl}
@@ -308,6 +343,8 @@ export function ChatThread({
                 fill
                 sizes="64px"
                 unoptimized={isPreSizedSource(listing.coverUrl)}
+                loading="lazy"
+                decoding="async"
                 className="object-cover"
               />
             )}
@@ -316,31 +353,31 @@ export function ChatThread({
             <p className="truncate text-xs font-extrabold text-ink">{listing.title}</p>
             <PriceText irr={listing.priceIRR} sold={listing.sold} />
           </div>
-          <Link
-            href={`/listing/${listing.slug}`}
-            className="shrink-0 text-[11px] font-extrabold text-cta underline"
-          >
-            مشاهده آگهی
-          </Link>
-        </div>
+          <Icon name="chevronLeft" size={15} className="shrink-0 text-faint" />
+        </Link>
       )}
 
       {/* Messages */}
-      <div className="relative mt-2">
+      <div className="relative flex min-h-0 flex-1 flex-col">
         <div
           ref={listRef}
           onScroll={onScroll}
           role="log"
-          aria-label="پیام‌ها"
+          aria-label={t('پیام‌ها', 'Messages')}
           aria-live="polite"
-          className="flex h-[58vh] min-h-[280px] flex-col gap-1 overflow-y-auto rounded-card border border-line bg-page px-2 py-3"
+          className="flex min-h-0 flex-1 flex-col gap-1 overflow-y-auto px-1 py-3"
         >
           {messages.length === 0 && (
-            <div className="m-auto max-w-xs text-center">
+            <div className="m-auto max-w-xs px-4 text-center">
               <Icon name="message" size={36} className="mx-auto text-faint" />
-              <p className="mt-3 text-sm font-extrabold text-ink">هنوز پیامی رد و بدل نشده است</p>
-              <p className="mt-1 text-xs text-muted">
-                با یکی از پاسخ‌های آماده شروع کنید؛ فروشنده سریع‌تر جواب می‌دهد.
+              <p className="mt-3 text-sm font-extrabold text-ink">
+                {t('هنوز پیامی رد و بدل نشده است', 'No messages yet')}
+              </p>
+              <p className="mt-1 text-xs leading-6 text-muted">
+                {t(
+                  'با یکی از پاسخ‌های آماده شروع کنید؛ فروشنده سریع‌تر جواب می‌دهد.',
+                  'Start with a quick reply; sellers usually answer faster.',
+                )}
               </p>
             </div>
           )}
@@ -349,7 +386,7 @@ export function ChatThread({
             <div key={block.key}>
               {mounted && block.dateLabel && (
                 <div className="my-2 flex items-center justify-center">
-                  <span className="rounded-[var(--radius-pill)] bg-card px-3 py-0.5 text-[10px] font-extrabold text-faint shadow-sm">
+                  <span className="rounded-[var(--radius-pill)] bg-card/90 px-3 py-0.5 text-[10px] font-extrabold text-faint shadow-sm backdrop-blur">
                     {block.dateLabel}
                   </span>
                 </div>
@@ -364,32 +401,43 @@ export function ChatThread({
                 return (
                   <div
                     key={message.id}
-                    className={`flex ${mine ? 'justify-end' : 'justify-start'} ${
-                      grouped ? 'mt-0.5' : 'mt-1.5'
-                    }`}
+                    className={`flex ${
+                      mine
+                        ? lang === 'fa'
+                          ? 'justify-start'
+                          : 'justify-end'
+                        : lang === 'fa'
+                          ? 'justify-end'
+                          : 'justify-start'
+                    } ${grouped ? 'mt-0.5' : 'mt-1.5'}`}
                   >
                     <div
-                      dir="rtl"
-                      className={`max-w-[82%] px-3 py-1.5 text-sm leading-6 shadow-sm ${
+                      dir="auto"
+                      className={`max-w-[82%] rounded-2xl px-3 py-2 text-start text-sm leading-6 shadow-sm ${
                         mine
-                          ? 'bg-cta-soft text-ink'
-                          : 'border border-line bg-card text-ink'
-                      } ${
-                        mine
-                          ? grouped
-                            ? 'rounded-2xl rounded-tl-md'
-                            : 'rounded-2xl rounded-tl-md rounded-bl-md'
-                          : grouped
-                            ? 'rounded-2xl rounded-tr-md'
-                            : 'rounded-2xl rounded-tr-md rounded-br-md'
+                          ? 'rounded-br-sm bg-[#111144] text-white'
+                          : 'rounded-bl-sm border border-line bg-white text-ink dark:bg-[#161A38]'
                       }`}
                     >
                       <p className="whitespace-pre-wrap break-words">{message.body}</p>
                       {last && (
-                        <span className="mt-0.5 flex items-center justify-end gap-1 text-[10px] font-semibold text-faint">
-                          <time dateTime={message.createdAt}>{mounted ? clock(message.createdAt) : ''}</time>
+                        <span
+                          className={`mt-0.5 flex items-center justify-end gap-1 text-[10px] font-semibold ${
+                            mine ? 'text-white/60' : 'text-faint'
+                          }`}
+                        >
+                          <time dateTime={message.createdAt}>
+                            {mounted ? clock(message.createdAt, lang) : ''}
+                          </time>
                           {mine && (
-                            <span aria-label={read ? 'خوانده شد' : 'ارسال شد'} className="tracking-tighter">
+                            <span
+                              aria-label={
+                                read
+                                  ? t('خوانده شد', 'Read')
+                                  : t('ارسال شد', 'Sent')
+                              }
+                              className="tracking-tighter"
+                            >
                               {read ? (
                                 <span style={{ color: '#F98513' }}>✓✓</span>
                               ) : (
@@ -407,7 +455,7 @@ export function ChatThread({
           ))}
 
           {peerTyping && (
-            <div className="mt-1 flex justify-start">
+            <div className="mt-1 flex justify-end">
               <div className="flex items-center gap-1 rounded-2xl rounded-tr-md border border-line bg-card px-3 py-2">
                 {[0, 150, 300].map((delay) => (
                   <span
@@ -428,62 +476,69 @@ export function ChatThread({
           <button
             type="button"
             onClick={() => scrollToBottom(true)}
-            className="absolute bottom-3 left-1/2 z-10 -translate-x-1/2 rounded-[var(--radius-pill)] bg-ink px-3 py-1.5 text-[11px] font-extrabold text-page shadow-lg"
+            className="absolute bottom-3 left-1/2 z-10 -translate-x-1/2 rounded-[var(--radius-pill)] bg-[#111144] px-3 py-1.5 text-[11px] font-extrabold text-white shadow-lg"
           >
-            {unread > 0 ? `${unread} پیام جدید ↓` : 'آخرین پیام‌ها ↓'}
+            {unread > 0
+              ? t(
+                  `${unread} پیام جدید ↓`,
+                  `${unread} new ${unread === 1 ? 'message' : 'messages'} ↓`,
+                )
+              : t('آخرین پیام‌ها ↓', 'Latest messages ↓')}
           </button>
         )}
       </div>
 
       {/* Quick replies */}
-      <div className="mt-2 flex gap-1.5 overflow-x-auto pb-1">
-        {QUICK_REPLIES.map((reply) => (
-          <button
-            key={reply}
-            type="button"
-            onClick={() => void send(reply)}
-            disabled={busy}
-            className="shrink-0 whitespace-nowrap rounded-[var(--radius-pill)] border border-line bg-card px-3 py-1.5 text-[11px] font-bold text-muted transition hover:border-cta hover:text-ink disabled:opacity-50"
-          >
-            {reply}
-          </button>
-        ))}
+      <div className="mt-2 flex gap-1.5 overflow-x-auto px-1 pb-1">
+        {QUICK_REPLIES.map((reply) => {
+          const label = t(reply.fa, reply.en);
+          return (
+            <button
+              key={reply.fa}
+              type="button"
+              onClick={() => void send(label)}
+              disabled={busy}
+              className="shrink-0 whitespace-nowrap rounded-[var(--radius-pill)] border border-line bg-card px-3 py-1.5 text-[11px] font-bold text-muted transition hover:border-cta hover:text-ink active:scale-95 disabled:opacity-50"
+            >
+              {label}
+            </button>
+          );
+        })}
       </div>
 
-      {/* Sticky composer */}
+      {/* Composer — one pill anchored above the phone tab bar. */}
       <form
         onSubmit={(e) => {
           e.preventDefault();
           void send(text);
         }}
-        className="sticky bottom-16 z-20 mt-2 flex items-end gap-2 rounded-card border border-line bg-card p-2 sm:bottom-0"
-        style={{ paddingBottom: 'calc(0.5rem + env(safe-area-inset-bottom))' }}
+        className="mt-2 flex items-end gap-2 rounded-full border border-line bg-card p-1.5 shadow-sm"
       >
         <label htmlFor="message" className="sr-only">
-          متن پیام
+          {t('متن پیام', 'Message text')}
         </label>
         <textarea
           id="message"
-          className="field max-h-32 min-h-11 flex-1 resize-none py-2"
+          className="max-h-32 min-h-11 flex-1 resize-none rounded-full bg-transparent px-3 py-2 text-sm text-ink outline-none placeholder:text-faint"
           rows={1}
           maxLength={2000}
           value={text}
           onChange={(e) => announceTyping(e.target.value)}
           onKeyDown={onKeyDown}
-          placeholder="پیام خود را بنویسید…"
+          placeholder={t('پیام خود را بنویسید…', 'Write a message…')}
         />
         <button
           type="submit"
           disabled={busy || text.trim().length === 0}
-          aria-label="ارسال پیام"
-          className="btn-cta h-11 w-11 shrink-0 p-0 disabled:opacity-50"
+          aria-label={t('ارسال پیام', 'Send message')}
+          className="flex h-11 w-11 shrink-0 items-center justify-center rounded-full bg-[#F98513] text-white transition active:scale-95 disabled:opacity-50"
         >
           <Icon name="send" size={18} />
         </button>
       </form>
 
       {error && (
-        <p className="error-text mt-1" role="alert">
+        <p className="error-text mt-1 px-2" role="alert">
           {error}
         </p>
       )}
@@ -501,7 +556,7 @@ interface Block {
  * Splits the thread into date blocks, and each block into runs by sender so
  * consecutive bubbles from one person read as one group.
  */
-function buildBlocks(messages: ThreadMessage[], _viewerId: string): Block[] {
+function buildBlocks(messages: ThreadMessage[], lang: 'fa' | 'en'): Block[] {
   const blocks: Block[] = [];
   let currentDay = '';
   let groupKey = '';
@@ -511,7 +566,11 @@ function buildBlocks(messages: ThreadMessage[], _viewerId: string): Block[] {
     if (day !== currentDay) {
       currentDay = day;
       groupKey = '';
-      blocks.push({ key: `day-${day}-${message.id}`, dateLabel: day, messages: [message] });
+      blocks.push({
+        key: `day-${day}-${message.id}`,
+        dateLabel: dayLabel(message.createdAt, lang),
+        messages: [message],
+      });
       groupKey = `${blocks.length}-${message.senderId}`;
       continue;
     }
@@ -534,22 +593,23 @@ function buildBlocks(messages: ThreadMessage[], _viewerId: string): Block[] {
 /** Loading state for the chat route: skeleton header, context card and bubbles. */
 export function ChatThreadSkeleton() {
   return (
-    <div className="mx-auto flex max-w-2xl animate-pulse flex-col">
-      <div className="flex items-center gap-2 rounded-card border border-line bg-card p-2">
-        <span className="h-9 w-9 rounded-full bg-line" />
-        <span className="h-10 w-10 rounded-full bg-line" />
+    <div className="mx-auto flex h-[calc(100dvh-10rem)] max-w-2xl flex-col sm:h-[calc(100dvh-9rem)]">
+      <div className="flex items-center gap-2 border-b border-line bg-card p-2">
+        <span className="skeleton h-9 w-9 rounded-full" />
+        <span className="skeleton h-10 w-10 rounded-full" />
         <div className="flex-1 space-y-1.5">
-          <span className="block h-3 w-28 rounded bg-line" />
-          <span className="block h-2.5 w-20 rounded bg-line" />
+          <span className="skeleton block h-3 w-28" />
+          <span className="skeleton block h-2.5 w-20" />
         </div>
       </div>
-      <div className="mt-2 h-14 rounded-card bg-line/60" />
-      <div className="mt-2 flex h-[58vh] flex-col gap-2 rounded-card border border-line bg-page p-3">
-        <span className="h-8 w-2/3 self-start rounded-2xl bg-line" />
-        <span className="h-10 w-1/2 self-end rounded-2xl bg-line" />
-        <span className="h-8 w-3/5 self-start rounded-2xl bg-line" />
-        <span className="h-12 w-2/3 self-end rounded-2xl bg-line" />
+      <div className="skeleton mt-2 h-16 rounded-xl" />
+      <div className="mt-2 flex flex-1 flex-col gap-2 p-2">
+        <span className="skeleton h-8 w-2/3 self-end rounded-2xl" />
+        <span className="skeleton h-10 w-1/2 self-start rounded-2xl" />
+        <span className="skeleton h-8 w-3/5 self-end rounded-2xl" />
+        <span className="skeleton h-12 w-2/3 self-start rounded-2xl" />
       </div>
+      <div className="skeleton mt-2 h-12 rounded-full" />
     </div>
   );
 }

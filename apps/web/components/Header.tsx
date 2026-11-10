@@ -142,17 +142,15 @@ export function Header({
   const pathname = usePathname();
   const isActive = useActivePath();
   const { lang, t, toggleLanguage } = useI18n();
-  const [soonNotice, setSoonNotice] = useState(false);
+  const [rentalSoon, setRentalSoon] = useState(false);
 
   useEffect(() => {
     setMenuOpen(false);
   }, [pathname]);
 
   useEffect(() => {
-    if (!soonNotice) return;
-    const timer = window.setTimeout(() => setSoonNotice(false), 3600);
-    return () => window.clearTimeout(timer);
-  }, [soonNotice]);
+    if (!menuOpen) setRentalSoon(false);
+  }, [menuOpen]);
 
   // Escape closes the drawer, and the page behind it must not scroll.
   useEffect(() => {
@@ -379,16 +377,17 @@ export function Header({
               <div className="space-y-3 border-t border-line pt-3">
                 <button
                   type="button"
-                  aria-disabled="true"
-                  onClick={() => setSoonNotice(true)}
-                  className="flex w-full items-center gap-2 rounded-field border border-emerald-600/30 bg-emerald-950/10 px-3 py-2.5 text-start text-sm font-extrabold text-emerald-800 transition hover:border-emerald-600/50 dark:bg-emerald-500/15 dark:text-emerald-300"
+                  aria-label={t(
+                    'پورتال رنت — به‌زودی',
+                    'Rental portal — coming soon',
+                  )}
+                  onClick={() => setRentalSoon(true)}
+                  className="flex w-full items-center justify-center rounded-xl border border-[#c5dc1e] bg-[#DEF434] px-4 py-3 text-center text-sm font-extrabold text-[#111144] transition hover:bg-[#d4eb28] active:scale-[0.98]"
                 >
-                  <span aria-hidden className="text-base">
-                    ⛵
-                  </span>
-                  <span className="flex-1">{t('پورتال رنت', 'Rental portal')}</span>
-                  <span className="rounded-[var(--radius-pill)] border border-emerald-600/30 px-1.5 py-0.5 text-[10px] font-extrabold">
-                    {t('بزودی', 'Coming soon')}
+                  <span aria-live="polite">
+                    {rentalSoon
+                      ? t('به‌زودی', 'Coming soon')
+                      : t('پورتال رنت (به‌زودی)', 'Rental portal (coming soon)')}
                   </span>
                 </button>
 
@@ -418,17 +417,6 @@ export function Header({
         </div>
       )}
 
-      {soonNotice && (
-        <div
-          role="status"
-          className="fixed bottom-24 left-1/2 z-[60] w-[min(92vw,420px)] -translate-x-1/2 rounded-xl border border-emerald-600/30 bg-emerald-950 px-4 py-3 text-center text-sm font-bold leading-6 text-emerald-50 shadow-2xl sm:bottom-8"
-        >
-          {t(
-            'پورتال اختصاصی رنت به‌زودی در دامنه مجزا فعال می‌شود',
-            'The dedicated rental portal will launch soon on its own domain.',
-          )}
-        </div>
-      )}
     </>
   );
 }

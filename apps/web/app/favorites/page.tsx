@@ -7,6 +7,7 @@ import { ListingCard } from '@/components/ListingCard';
 import { ListingRow } from '@/components/ListingRow';
 import { FavoritesList } from '@/components/FavoritesList';
 import { Icon } from '@/components/Icon';
+import { ListEmptyState } from '@/components/ListEmptyState';
 import { getLanguage, serverT } from '@/lib/i18n/server';
 
 export const generateMetadata = localizedMetadata(
@@ -32,7 +33,7 @@ export default async function FavoritesPage({
 
   if (!session) {
     return (
-      <div className="space-y-4">
+      <div className="mx-auto max-w-2xl space-y-4 bg-[#F4F1EC] dark:bg-[#111144]">
         <h1 className="text-xl font-extrabold">{t('علاقه‌مندی‌ها', 'Saved')}</h1>
         <p className="text-xs text-muted">
           {t('این فهرست روی همین دستگاه ذخیره شده است.', 'This list is stored on this device.')}{' '}
@@ -54,22 +55,23 @@ export default async function FavoritesPage({
   const items = resolved.filter((listing): listing is ListingCardData => listing !== null);
 
   return (
-    <div className="space-y-4">
+    <div className="mx-auto max-w-2xl space-y-4 bg-[#F4F1EC] dark:bg-[#111144]">
       <h1 className="text-xl font-extrabold">{t('علاقه‌مندی‌ها', 'Saved')}</h1>
       <p className="text-xs text-muted">
         {t('ذخیره‌شده روی حساب شما.', 'Saved to your account.')}
       </p>
 
       {items.length === 0 ? (
-        <div className="rounded-card border border-dashed border-line-strong bg-card px-6 py-16 text-center">
-          <Icon name="heart" size={40} className="mx-auto text-faint" />
-          <p className="mt-4 font-extrabold">
-            {t('هنوز آگهی‌ای ذخیره نکرده‌اید.', 'You have not saved any listings yet.')}
-          </p>
-          <Link href="/" className="btn-cta mt-6 inline-flex text-sm">
-            {t('مرور آگهی‌ها', 'Browse listings')}
-          </Link>
-        </div>
+        <ListEmptyState
+          icon="heart"
+          title={t('هنوز آگهی‌ای ذخیره نکرده‌اید.', 'You have not saved any listings yet.')}
+          description={t(
+            'با نشان کردن آگهی‌ها، اینجا لیست شخصی خود را می‌سازید.',
+            'Save listings with the heart and they will appear here.',
+          )}
+          actionHref="/"
+          actionLabel={t('مرور آگهی‌ها', 'Browse listings')}
+        />
       ) : (
         <>
           <div className="flex items-center justify-between gap-2">
