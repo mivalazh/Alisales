@@ -78,7 +78,12 @@ export default async function HomePage({
   const groupLabel = body ? t(body.label) : category ? t(PART_CATEGORY_LABELS[category]) : null;
   const vehicleCount = base.filter((l) => l.kind !== 'part').length;
   const partCount = base.filter((l) => l.kind === 'part').length;
-  const kindLabel = kind === 'vehicle' ? 'خودرو' : kind === 'part' ? 'قطعات و لوازم یدکی' : null;
+  const kindLabel =
+    kind === 'vehicle'
+      ? t('خودرو', 'Vehicles')
+      : kind === 'part'
+        ? t('قطعات و لوازم یدکی', 'Spare Parts & Accessories')
+        : null;
 
   return (
     <>

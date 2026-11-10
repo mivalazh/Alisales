@@ -4,6 +4,7 @@ import { notFound, redirect } from 'next/navigation';
 import { requireUser } from '@/lib/auth/require-user';
 import { getOwnerListing, getOwnerPhotos } from '@/lib/data/listings';
 import { EditListingForm } from '@/components/EditListingForm';
+import { getLanguage, serverT } from '@/lib/i18n/server';
 
 export const generateMetadata = localizedMetadata(
   { title: 'ویرایش آگهی' },
@@ -22,7 +23,8 @@ export default async function EditListingPage({
   params: Promise<{ id: string }>;
 }) {
   const { id } = await params;
-  const session = await requireUser(`/edit/${id}`);
+  const [session, lang] = await Promise.all([requireUser(`/edit/${id}`), getLanguage()]);
+  const t = (fa: string, en: string) => serverT(lang, fa, en);
 
   const listing = await getOwnerListing(id);
   if (!listing) notFound();
@@ -37,13 +39,16 @@ export default async function EditListingPage({
     <div className="space-y-4">
       <div className="flex flex-wrap items-center justify-between gap-2">
         <div>
-          <h1 className="text-xl font-extrabold">ویرایش آگهی</h1>
+          <h1 className="text-xl font-extrabold">{t('ویرایش آگهی', 'Edit listing')}</h1>
           <p className="mt-1 text-xs text-muted">
-            تاریخ انتشار و سن آگهی با ویرایش تغییر نمی‌کند.
+            {t(
+              'تاریخ انتشار و سن آگهی با ویرایش تغییر نمی‌کند.',
+              'Editing does not change the publish date or the age of the listing.',
+            )}
           </p>
         </div>
         <Link href={`/listing/${listing.slug}`} className="text-xs font-bold text-muted underline">
-          مشاهده آگهی
+          {t('مشاهده آگهی', 'View listing')}
         </Link>
       </div>
 

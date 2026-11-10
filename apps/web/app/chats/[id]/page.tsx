@@ -10,6 +10,7 @@ import {
 import { markRead, readAt } from '@/lib/data/chat-presence';
 import { ChatThread, type ChatListingContext } from '@/components/ChatThread';
 import { vehicleTitle } from '@/lib/listing-text';
+import { getLanguage, serverT } from '@/lib/i18n/server';
 
 export const generateMetadata = localizedMetadata(
   { title: 'گفتگو' },
@@ -46,9 +47,10 @@ export default async function ChatPage({ params }: { params: Promise<{ id: strin
     redirect('/chats');
   }
 
-  const [messages, listing] = await Promise.all([
+  const [messages, listing, lang] = await Promise.all([
     messagesForConversation(conversation.id),
     listingById(conversation.listingId),
+    getLanguage(),
   ]);
 
   const otherId =
@@ -60,7 +62,10 @@ export default async function ChatPage({ params }: { params: Promise<{ id: strin
   markRead(conversation.id, session.sub);
   const otherReadAt = readAt(conversation.id, otherId);
 
-  const peerName = peerAccount?.displayName?.trim() || (listing?.showroomName ?? 'کاربر آلی‌سیلز');
+  const peerName =
+    peerAccount?.displayName?.trim() ||
+    listing?.showroomName ||
+    serverT(lang, 'کاربر آلی‌سیلز', 'Ali Sales user');
   const initials = peerName.trim().charAt(0) || '؟';
 
   const context: ChatListingContext | null = listing
