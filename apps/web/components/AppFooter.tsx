@@ -1,6 +1,7 @@
 'use client';
 
 import { usePathname } from 'next/navigation';
+import { useStandalone } from '@/lib/useStandalone';
 import { SiteFooter } from './Footer';
 
 /**
@@ -15,6 +16,10 @@ const APP_ROUTES = ['/chats', '/favorites', '/new', '/edit', '/login'];
 
 export function AppFooter() {
   const pathname = usePathname() ?? '/';
+  const standalone = useStandalone();
+  // Installed app: no marketing footer. The bottom navigation is the only
+  // persistent chrome, exactly like a native marketplace app.
+  if (standalone) return null;
   const isAppScreen = APP_ROUTES.some(
     (route) => pathname === route || pathname.startsWith(`${route}/`),
   );

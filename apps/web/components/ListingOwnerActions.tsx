@@ -5,13 +5,14 @@ import { useRouter } from 'next/navigation';
 import { useState } from 'react';
 import { FREE_THIRD_LISTING_MESSAGE, type ListingState } from '@alisales/schemas';
 import { DeleteListingButton } from './DeleteListingButton';
+import { useI18n } from '@/lib/i18n';
 
 type Target = 'active' | 'paused' | 'sold';
 
-const ACTION_LABELS: Record<Target, string> = {
-  active: 'فعال‌سازی مجدد',
-  paused: 'بایگانی',
-  sold: 'فروخته شد',
+const ACTION_LABELS: Record<Target, { fa: string; en: string }> = {
+  active: { fa: 'فعال‌سازی مجدد', en: 'Reactivate' },
+  paused: { fa: 'بایگانی', en: 'Archive' },
+  sold: { fa: 'فروخته شد', en: 'Mark sold' },
 };
 
 /**
@@ -21,6 +22,7 @@ const ACTION_LABELS: Record<Target, string> = {
  */
 export function ListingOwnerActions({ id, state }: { id: string; state: ListingState }) {
   const router = useRouter();
+  const { t } = useI18n();
   const [busy, setBusy] = useState<Target | null>(null);
   const [error, setError] = useState<string | null>(null);
 
@@ -43,12 +45,14 @@ export function ListingOwnerActions({ id, state }: { id: string; state: ListingS
         return;
       }
       if (!res.ok) {
-        setError(body?.error ?? 'تغییر وضعیت انجام نشد.');
+        setError(
+          body?.error ?? t('تغییر وضعیت انجام نشد.', 'Could not change the listing status.'),
+        );
         return;
       }
       router.refresh();
     } catch {
-      setError('ارتباط با سرور برقرار نشد.');
+      setError(t('ارتباط با سرور برقرار نشد.', 'Could not connect to the server.'));
     } finally {
       setBusy(null);
     }
@@ -60,7 +64,7 @@ export function ListingOwnerActions({ id, state }: { id: string; state: ListingS
         href={`/edit/${id}`}
         className="rounded-[var(--radius-pill)] border border-line bg-card px-3 py-1.5 text-xs font-bold text-ink transition hover:border-line-strong"
       >
-        ویرایش
+        {t('ویرایش', 'Edit')}
       </Link>
       {targets.map((target) => (
         <button
@@ -70,16 +74,20 @@ export function ListingOwnerActions({ id, state }: { id: string; state: ListingS
           disabled={busy !== null}
           className="rounded-[var(--radius-pill)] border border-line bg-card px-3 py-1.5 text-xs font-bold text-muted transition hover:border-line-strong hover:text-ink disabled:opacity-60"
         >
-          {busy === target ? 'در حال اعمال…' : ACTION_LABELS[target]}
+          {busy === target
+            ? t('در حال اعمال…', 'Applying…')
+            : t(ACTION_LABELS[target].fa, ACTION_LABELS[target].en)}
         </button>
       ))}
       <DeleteListingButton id={id} compact />
       {error && (
         <span className="text-xs font-bold text-bad" role="alert">
-          {error}
+          {error === FREE_THIRD_LISTING_MESSAGE
+            ? t(FREE_THIRD_LISTING_MESSAGE, 'Choose a plan to publish a third listing.')
+            : error}
           {error === FREE_THIRD_LISTING_MESSAGE && (
             <Link href="/new" className="ms-1 underline">
-              دیدن پلن‌ها
+              {t('دیدن پلن‌ها', 'See plans')}
             </Link>
           )}
         </span>

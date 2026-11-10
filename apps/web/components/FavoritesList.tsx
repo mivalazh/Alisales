@@ -8,6 +8,7 @@ import { Icon } from './Icon';
 import { PriceText } from './PriceText';
 import { ViewModeToggle, type ViewMode } from './SortControl';
 import { isPreSizedSource } from '@/lib/images';
+import { useI18n } from '@/lib/i18n';
 
 const VIEW_KEY = 'alisales-favorites-view';
 
@@ -17,6 +18,7 @@ const VIEW_KEY = 'alisales-favorites-view';
  * the card heart uses, so both stay in step.
  */
 export function FavoritesList() {
+  const { t } = useI18n();
   const [items, setItems] = useState<FavoriteSnapshot[] | null>(null);
   const [view, setView] = useState<ViewMode>('grid');
 
@@ -51,12 +53,17 @@ export function FavoritesList() {
     return (
       <div className="rounded-card border border-dashed border-line-strong bg-card px-6 py-16 text-center">
         <Icon name="heart" size={40} className="mx-auto text-faint" />
-        <p className="mt-4 font-extrabold">هنوز آگهی‌ای ذخیره نکرده‌اید.</p>
+        <p className="mt-4 font-extrabold">
+          {t('هنوز آگهی‌ای ذخیره نکرده‌اید.', 'You have not saved any listings yet.')}
+        </p>
         <p className="mt-1 text-sm text-muted">
-          با نشان کردن آگهی‌ها، اینجا لیست شخصی خود را می‌سازید.
+          {t(
+            'با نشان کردن آگهی‌ها، اینجا لیست شخصی خود را می‌سازید.',
+            'Save listings with the heart and they will appear here.',
+          )}
         </p>
         <Link href="/" className="btn-cta mt-6 inline-flex text-sm">
-          مرور آگهی‌ها
+          {t('مرور آگهی‌ها', 'Browse listings')}
         </Link>
       </div>
     );
@@ -66,7 +73,9 @@ export function FavoritesList() {
     return (
       <div className="space-y-3">
         <div className="flex items-center justify-between gap-2">
-          <p className="text-sm font-bold text-muted">{items.length} آگهی</p>
+          <p className="text-sm font-bold text-muted">
+            {t(`${items.length} آگهی`, `${items.length} listings`)}
+          </p>
           <ViewModeToggle value={view} onChange={changeView} />
         </div>
         <ul className="flex flex-col gap-3">
@@ -136,10 +145,11 @@ export function FavoritesList() {
 }
 
 function RemoveButton({ onClick }: { onClick: () => void }) {
+  const { t } = useI18n();
   return (
     <button
       type="button"
-      aria-label="حذف از علاقه‌مندی‌ها"
+      aria-label={t('حذف از علاقه‌مندی‌ها', 'Remove from saved')}
       onClick={onClick}
       className="flex h-9 w-9 shrink-0 items-center justify-center rounded-full shadow-md backdrop-blur transition hover:opacity-90"
       style={{ backgroundColor: 'rgba(255, 255, 255, 0.88)', color: '#111144' }}

@@ -1,11 +1,18 @@
 'use client';
 
 import Image from 'next/image';
+import dynamic from 'next/dynamic';
 import { useCallback, useEffect, useRef, useState } from 'react';
 import { emblemInk } from './BrandEmblem';
 import { CustomSelect } from './CustomSelect';
 import { Icon } from './Icon';
 import { isPreSizedSource } from '@/lib/images';
+import { useI18n } from '@/lib/i18n';
+
+const StoryViewer = dynamic(
+  () => import('./StoryViewer').then((module) => module.StoryViewer),
+  { ssr: false },
+);
 
 export interface StoryItem {
   slug: string;
@@ -17,8 +24,6 @@ export interface StoryItem {
   /** Optional clip: when present the viewer plays it instead of the still. */
   videoUrl?: string;
 }
-
-const STORY_MS = 5200;
 
 /**
  * Story rail — circular highlights above the catalogue, plus the seller's own
@@ -32,6 +37,7 @@ const STORY_MS = 5200;
  * subscription gets the purchase modal instead of an uploader.
  */
 export function Stories({ stories, label = 'داستان‌های آگهی' }: { stories: StoryItem[]; label?: string }) {
+  const { t } = useI18n();
   const [openIndex, setOpenIndex] = useState<number | null>(null);
   const [planOpen, setPlanOpen] = useState(false);
   const [composerOpen, setComposerOpen] = useState(false);
@@ -93,9 +99,9 @@ export function Stories({ stories, label = 'داستان‌های آگهی' }: {
   };
 
   return (
-    <section aria-label={label} className="rounded-card border border-line bg-card p-3 sm:p-4">
+    <section aria-label={t(label)} className="rounded-card border border-line bg-card p-3 sm:p-4">
       <ul
-        aria-label={label}
+        aria-label={t(label)}
         className="flex snap-x snap-mandatory items-start gap-3 overflow-x-auto px-0.5 pb-1 [scrollbar-width:none] [&::-webkit-scrollbar]:hidden"
       >
         <AddStoryTile displayName={displayName} onClick={openAdd} />
@@ -143,6 +149,7 @@ function AddStoryTile({
   displayName: string | null;
   onClick: () => void;
 }) {
+  const { t } = useI18n();
   const initial = displayName?.trim().charAt(0) || null;
   return (
     <li className="shrink-0 snap-start">
@@ -164,7 +171,7 @@ function AddStoryTile({
           </span>
         </span>
         <span className="w-full truncate text-center text-[11px] font-extrabold leading-tight text-ink">
-          افزودن استوری
+          {t('افزودن استوری', 'Add Story')}
         </span>
       </button>
     </li>
@@ -173,6 +180,7 @@ function AddStoryTile({
 
 /** Story package guard for accounts without the plan. */
 function PlanModal({ onClose }: { onClose: () => void }) {
+  const { t } = useI18n();
   useEffect(() => {
     const onKey = (event: KeyboardEvent) => {
       if (event.key === 'Escape') onClose();
@@ -190,7 +198,7 @@ function PlanModal({ onClose }: { onClose: () => void }) {
     <div
       role="dialog"
       aria-modal="true"
-      aria-label="بسته استوری"
+      aria-label={t('بسته استوری', 'Story package')}
       className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 p-4"
       onClick={onClose}
     >
@@ -202,26 +210,30 @@ function PlanModal({ onClose }: { onClose: () => void }) {
           <span className="flex h-10 w-10 items-center justify-center rounded-full bg-cta-soft text-cta">
             <Icon name="sparkle" size={20} />
           </span>
-          <h2 className="text-sm font-extrabold text-ink">ثبت استوری ویدیویی</h2>
+          <h2 className="text-sm font-extrabold text-ink">
+            {t('ثبت استوری ویدیویی', 'Publish a video story')}
+          </h2>
           <button
             type="button"
             onClick={onClose}
-            aria-label="بستن"
+            aria-label={t('بستن', 'Close')}
             className="ms-auto flex h-8 w-8 items-center justify-center rounded-full text-muted hover:bg-cta-soft hover:text-ink"
           >
             <Icon name="close" size={16} />
           </button>
         </div>
         <p className="mt-3 text-xs leading-6 text-muted">
-          برای ثبت استوری ویدیویی در بالای صفحه، نیاز به تهیه بسته استوری یا اشتراک نمایشگاهی
-          دارید.
+          {t(
+            'برای ثبت استوری ویدیویی در بالای صفحه، نیاز به تهیه بسته استوری یا اشتراک نمایشگاهی دارید.',
+            'To publish a video story at the top of the page, you need a story package or a showroom subscription.',
+          )}
         </p>
         <div className="mt-4 flex flex-wrap gap-2">
           <a href="/support?topic=stories" className="btn-cta text-sm">
-            مشاهده پلن‌ها
+            {t('مشاهده پلن‌ها', 'View plans')}
           </a>
           <a href="/support" className="btn-ghost text-sm">
-            تماس با پشتیبانی
+            {t('تماس با پشتیبانی', 'Contact support')}
           </a>
         </div>
       </div>
@@ -248,6 +260,7 @@ function StoryComposer({
   onClose: () => void;
   onPublished: () => void;
 }) {
+  const { t } = useI18n();
   const [listingSlug, setListingSlug] = useState('');
   const [mediaUrl, setMediaUrl] = useState<string | null>(null);
   const [mediaKind, setMediaKind] = useState<'image' | 'video'>('image');
@@ -273,11 +286,11 @@ function StoryComposer({
   const chooseFile = (file: File | undefined) => {
     if (!file) return;
     if (!file.type.startsWith('image/') && !file.type.startsWith('video/')) {
-      setError('فقط عکس یا ویدیو قابل انتخاب است.');
+      setError(t('فقط عکس یا ویدیو قابل انتخاب است.', 'Please choose an image or a video.'));
       return;
     }
     if (file.size > 8 * 1024 * 1024) {
-      setError('حجم فایل باید کمتر از ۸ مگابایت باشد.');
+      setError(t('حجم فایل باید کمتر از ۸ مگابایت باشد.', 'The file must be smaller than 8 MB.'));
       return;
     }
     setError(null);
@@ -294,7 +307,12 @@ function StoryComposer({
     if (busy) return;
     const cover = mediaUrl ?? picked?.coverUrl ?? null;
     if (!cover) {
-      setError('یک عکس/ویدیو عمودی یا یکی از آگهی‌هایتان را انتخاب کنید.');
+      setError(
+        t(
+          'یک عکس/ویدیو عمودی یا یکی از آگهی‌هایتان را انتخاب کنید.',
+          'Choose a vertical photo/video or one of your listings.',
+        ),
+      );
       return;
     }
     setBusy(true);
@@ -312,12 +330,12 @@ function StoryComposer({
       });
       const body = (await res.json().catch(() => ({}))) as { ok?: boolean; error?: string };
       if (!res.ok) {
-        setError(body.error ?? 'ثبت استوری انجام نشد.');
+        setError(body.error ?? t('ثبت استوری انجام نشد.', 'Could not publish the story.'));
         return;
       }
       onPublished();
     } catch {
-      setError('ارتباط با سرور برقرار نشد.');
+      setError(t('ارتباط با سرور برقرار نشد.', 'Could not connect to the server.'));
     } finally {
       setBusy(false);
     }
@@ -327,7 +345,7 @@ function StoryComposer({
     <div
       role="dialog"
       aria-modal="true"
-      aria-label="ثبت استوری"
+      aria-label={t('ثبت استوری', 'Publish a story')}
       className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 p-4"
       onClick={onClose}
     >
@@ -339,11 +357,13 @@ function StoryComposer({
           <span className="flex h-10 w-10 items-center justify-center rounded-full bg-cta-soft text-cta">
             <Icon name="camera" size={20} />
           </span>
-          <h2 className="text-sm font-extrabold text-ink">ثبت استوری رایگان</h2>
+          <h2 className="text-sm font-extrabold text-ink">
+            {t('ثبت استوری رایگان', 'Publish a free story')}
+          </h2>
           <button
             type="button"
             onClick={onClose}
-            aria-label="بستن"
+            aria-label={t('بستن', 'Close')}
             className="ms-auto flex h-8 w-8 items-center justify-center rounded-full text-muted hover:bg-cta-soft hover:text-ink"
           >
             <Icon name="close" size={16} />
@@ -351,27 +371,36 @@ function StoryComposer({
         </div>
 
         <p className="mt-2 text-xs leading-6 text-muted">
-          در طرح افتتاحیه، استوری برای همه‌ی کاربران رایگان است. یک عکس/ویدیو عمودی
-          بگذارید یا استوری یکی از آگهی‌هایتان را بسازید.
+          {t(
+            'در طرح افتتاحیه، استوری برای همه‌ی کاربران رایگان است. یک عکس/ویدیو عمودی بگذارید یا استوری یکی از آگهی‌هایتان را بسازید.',
+            'During the launch period, stories are free for every member. Upload a vertical photo or clip, or create a story for one of your listings.',
+          )}
         </p>
 
         <div className="mt-3 space-y-3">
           <div>
-            <span className="label mb-0">آگهی مرتبط (اختیاری)</span>
+            <span className="label mb-0">
+              {t('آگهی مرتبط (اختیاری)', 'Related listing (optional)')}
+            </span>
             <CustomSelect
               value={listingSlug}
               onChange={setListingSlug}
-              ariaLabel="آگهی مرتبط"
-              placeholder="بدون آگهی — استوری آزاد"
+              ariaLabel={t('آگهی مرتبط', 'Related listing')}
+              placeholder={t('بدون آگهی — استوری آزاد', 'No listing — standalone story')}
               options={[
-                { value: '', label: 'بدون آگهی — استوری آزاد' },
+                {
+                  value: '',
+                  label: t('بدون آگهی — استوری آزاد', 'No listing — standalone story'),
+                },
                 ...listings.map((item) => ({ value: item.slug, label: item.title })),
               ]}
             />
           </div>
 
           <div>
-            <span className="label mb-0">عکس یا ویدیو عمودی</span>
+            <span className="label mb-0">
+              {t('عکس یا ویدیو عمودی', 'Vertical photo or video')}
+            </span>
             <button
               type="button"
               onClick={() => fileRef.current?.click()}
@@ -382,12 +411,16 @@ function StoryComposer({
                   <video src={mediaUrl} muted loop autoPlay playsInline className="h-full w-full object-cover" />
                 ) : (
                   // eslint-disable-next-line @next/next/no-img-element
-                  <img src={mediaUrl} alt="پیش‌نمایش استوری" className="h-full w-full object-cover" />
+                  <img
+                    src={mediaUrl}
+                    alt={t('پیش‌نمایش استوری', 'Story preview')}
+                    className="h-full w-full object-cover"
+                  />
                 )
               ) : (
                 <>
                   <Icon name="plus" size={22} />
-                  انتخاب فایل
+                  {t('انتخاب فایل', 'Choose file')}
                 </>
               )}
             </button>
@@ -413,7 +446,9 @@ function StoryComposer({
           disabled={busy}
           className="btn-cta mt-4 w-full text-sm disabled:opacity-60"
         >
-          {busy ? 'در حال ثبت…' : 'انتشار استوری'}
+          {busy
+            ? t('در حال ثبت…', 'Publishing...')
+            : t('انتشار استوری', 'Publish story')}
         </button>
       </div>
     </div>
@@ -464,165 +499,6 @@ function StoryTile({ story, onOpen }: { story: StoryItem; onOpen: () => void }) 
         </span>
       </button>
     </li>
-  );
-}
-
-/**
- * Full-screen vertical story theatre (9:16) with segmented progress at the top,
- * auto-advance, tap zones, mute toggle, seller header and the listing CTA.
- */
-function StoryViewer({
-  stories,
-  startIndex,
-  onClose,
-}: {
-  stories: StoryItem[];
-  startIndex: number;
-  onClose: () => void;
-}) {
-  const [index, setIndex] = useState(startIndex);
-  const [progress, setProgress] = useState(0);
-  const [muted, setMuted] = useState(true);
-  const timer = useRef<number | null>(null);
-  const active = stories[index];
-
-  const next = useCallback(() => {
-    setIndex((current) => {
-      if (current + 1 >= stories.length) {
-        onClose();
-        return current;
-      }
-      return current + 1;
-    });
-  }, [onClose, stories.length]);
-
-  const prev = () => setIndex((current) => Math.max(0, current - 1));
-
-  // Auto-advance: one tick per 50ms, reset per story.
-  useEffect(() => {
-    setProgress(0);
-    const started = Date.now();
-    if (timer.current) window.clearInterval(timer.current);
-    timer.current = window.setInterval(() => {
-      const ratio = Math.min(1, (Date.now() - started) / STORY_MS);
-      setProgress(ratio);
-      if (ratio >= 1) next();
-    }, 50);
-    return () => {
-      if (timer.current) window.clearInterval(timer.current);
-    };
-  }, [index, next]);
-
-  useEffect(() => {
-    const onKey = (event: KeyboardEvent) => {
-      if (event.key === 'Escape') onClose();
-      if (event.key === 'ArrowLeft') next();
-      if (event.key === 'ArrowRight') prev();
-    };
-    document.addEventListener('keydown', onKey);
-    const previous = document.body.style.overflow;
-    document.body.style.overflow = 'hidden';
-    return () => {
-      document.removeEventListener('keydown', onKey);
-      document.body.style.overflow = previous;
-    };
-  }, [next, onClose]);
-
-  if (!active) return null;
-
-  return (
-    <div
-      role="dialog"
-      aria-modal="true"
-      aria-label={active.title}
-      className="fixed inset-0 z-[60] flex items-center justify-center bg-black/90 p-3"
-      onClick={onClose}
-    >
-      <div
-        className="relative flex w-[min(92vw,420px,calc(92vh*9/16))] flex-col overflow-hidden rounded-2xl bg-black"
-        style={{ aspectRatio: '9 / 16' }}
-        onClick={(event) => event.stopPropagation()}
-      >
-        {/* Progress segments — one per story. */}
-        <div className="absolute inset-x-2 top-2 z-20 flex gap-1">
-          {stories.map((story, i) => (
-            <span key={story.slug} className="h-1 flex-1 overflow-hidden rounded-full bg-white/30">
-              <span
-                className="block h-full bg-white transition-[width] duration-100 ease-linear"
-                style={{ width: i < index ? '100%' : i === index ? `${progress * 100}%` : '0%' }}
-              />
-            </span>
-          ))}
-        </div>
-
-        <div className="absolute inset-x-2 top-5 z-20 flex items-center gap-2">
-          <span className="flex h-8 w-8 items-center justify-center rounded-full bg-white/15 text-xs font-extrabold text-white">
-            {active.title.charAt(0)}
-          </span>
-          <div className="min-w-0 flex-1">
-            <p className="truncate text-xs font-extrabold text-white">{active.title}</p>
-            <p className="text-[10px] font-bold text-white/60">استوری آگهی</p>
-          </div>
-          <button
-            type="button"
-            onClick={() => setMuted((v) => !v)}
-            aria-label={muted ? 'صدا را روشن کن' : 'صدا را قطع کن'}
-            className="flex h-8 items-center justify-center rounded-full bg-white/15 px-2 text-[10px] font-extrabold text-white"
-          >
-            {muted ? 'صدا قطع' : 'صدا روشن'}
-          </button>
-          <button
-            type="button"
-            onClick={onClose}
-            aria-label="بستن استوری"
-            className="flex h-8 w-8 items-center justify-center rounded-full bg-white/15 text-white"
-          >
-            <Icon name="close" size={16} />
-          </button>
-        </div>
-
-        {/* Media: a clip plays; otherwise the still fills the frame. */}
-        {active.videoUrl ? (
-          <video
-            key={active.videoUrl}
-            src={active.videoUrl}
-            autoPlay
-            playsInline
-            muted={muted}
-            className="h-full w-full object-cover"
-          />
-        ) : (
-          <Image
-            src={active.coverUrl}
-            alt={active.title}
-            fill
-            sizes="420px"
-            unoptimized={isPreSizedSource(active.coverUrl)}
-            className="object-cover"
-          />
-        )}
-
-        {/* Tap zones: right half = next (RTL), left = previous. */}
-        <button
-          type="button"
-          aria-label="استوری بعدی"
-          onClick={next}
-          className="absolute inset-y-16 end-0 w-1/2"
-        />
-        <button
-          type="button"
-          aria-label="استوری قبلی"
-          onClick={prev}
-          className="absolute inset-y-16 start-0 w-1/2"
-        />
-
-        <div className="absolute inset-x-3 bottom-3 z-20">
-          <a href={active.href} className="btn-cta w-full text-sm">
-            مشاهده آگهی
-          </a>
-        </div>
-      </div>
-    </div>
   );
 }
 

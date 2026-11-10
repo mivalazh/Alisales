@@ -8,9 +8,7 @@ import {
   uploadProcessedPhoto,
   type ProcessedPhoto,
 } from '@/lib/photos';
-
-const COVER_RULE_MESSAGE =
-  'تصویر اول (کاور آگهی) باید عکس باشد؛ در اسلات‌های بعدی می‌توانید ویدیو هم اضافه کنید';
+import { useI18n } from '@/lib/i18n';
 
 function isVideoFile(file: File): boolean {
   return file.type.startsWith('video/');
@@ -37,8 +35,14 @@ export function PhotoUploader({
   onChange,
   onBusyChange,
   error,
-  label = 'عکس‌های خودرو',
+  label,
 }: Props) {
+  const { t, lang } = useI18n();
+  const coverRuleMessage = t(
+    'تصویر اول (کاور آگهی) باید عکس باشد؛ در اسلات‌های بعدی می‌توانید ویدیو هم اضافه کنید',
+    'The first slot (listing cover) must be an image; later slots can also include video.',
+  );
+  const resolvedLabel = label ?? t('عکس‌های خودرو', 'Vehicle photos');
   const galleryRef = useRef<HTMLInputElement>(null);
   const cameraRef = useRef<HTMLInputElement>(null);
   const filesRef = useRef<HTMLInputElement>(null);
@@ -59,11 +63,16 @@ export function PhotoUploader({
     const ordered = photos.length === 0 ? [...list].sort((a, b) => rank(a) - rank(b)) : list;
     const accepted = ordered.slice(0, Math.max(0, remaining));
     if (photos.length === 0 && accepted[0] && isVideoFile(accepted[0])) {
-      setLocalError(COVER_RULE_MESSAGE);
+      setLocalError(coverRuleMessage);
       return;
     }
     if (accepted.length < list.length) {
-      setLocalError(`حداکثر ${toPersianDigits(MAX_PHOTOS)} عکس برای هر آگهی مجاز است.`);
+      setLocalError(
+        t(
+          `حداکثر ${toPersianDigits(MAX_PHOTOS)} عکس برای هر آگهی مجاز است.`,
+          `A listing can have at most ${MAX_PHOTOS} photos.`,
+        ),
+      );
     }
     if (accepted.length === 0) return;
 
@@ -83,7 +92,10 @@ export function PhotoUploader({
           setLocalError(
             e instanceof PhotoPipelineError
               ? e.message
-              : 'پردازش یا بارگذاری عکس ناموفق بود؛ دوباره تلاش کنید.',
+              : t(
+                  'پردازش یا بارگذاری عکس ناموفق بود؛ دوباره تلاش کنید.',
+                  'Could not process or upload the photo; please try again.',
+                ),
           );
         }
       }
@@ -108,7 +120,7 @@ export function PhotoUploader({
     const target = photos[index];
     if (!target) return;
     if (target.kind === 'video') {
-      setLocalError(COVER_RULE_MESSAGE);
+      setLocalError(coverRuleMessage);
       return;
     }
     const next = [...photos];
@@ -120,16 +132,19 @@ export function PhotoUploader({
   return (
     <div>
       <div className="flex items-baseline justify-between gap-2">
-        <span className="label mb-0">{label}</span>
+        <span className="label mb-0">{resolvedLabel}</span>
         <span className="text-xs font-bold text-muted">
-          {toPersianDigits(photos.length)} از {toPersianDigits(MAX_PHOTOS)}
+          {lang === 'en'
+            ? `${photos.length} of ${MAX_PHOTOS}`
+            : `${toPersianDigits(photos.length)} از ${toPersianDigits(MAX_PHOTOS)}`}
         </span>
       </div>
 
       <p className="hint mb-2">
-        تصویر اول (کاور آگهی) باید عکس باشد؛ در اسلات‌های بعدی می‌توانید ویدیو (MP4،
-        WebM یا MOV تا ۴۰ مگابایت) هم اضافه کنید. اطلاعات مخفی عکس (EXIF) حذف و همه
-        عکس‌ها به WebP تبدیل می‌شوند.
+        {t(
+          'تصویر اول (کاور آگهی) باید عکس باشد؛ در اسلات‌های بعدی می‌توانید ویدیو (MP4، WebM یا MOV تا ۴۰ مگابایت) هم اضافه کنید. اطلاعات مخفی عکس (EXIF) حذف و همه عکس‌ها به WebP تبدیل می‌شوند.',
+          'The first slot (listing cover) must be an image; later slots can also include video (MP4, WebM or MOV up to 40 MB). Hidden EXIF data is removed and images are converted to WebP.',
+        )}
       </p>
 
       <ul className="grid grid-cols-3 gap-2 sm:grid-cols-4">
@@ -151,17 +166,20 @@ export function PhotoUploader({
               // eslint-disable-next-line @next/next/no-img-element
               <img
                 src={photo.previewUrl}
-                alt={`پیش‌نمایش عکس ${toPersianDigits(index + 1)}`}
+                alt={t(
+                  `پیش‌نمایش عکس ${toPersianDigits(index + 1)}`,
+                  `Photo preview ${index + 1}`,
+                )}
                 className="h-full w-full object-cover"
               />
             )}
             {photo.kind === 'video' ? (
               <span className="absolute top-1 start-1 rounded-[var(--radius-pill)] bg-inverse/80 px-2 py-0.5 text-[11px] font-extrabold text-white">
-                ویدیو
+                {t('ویدیو', 'Video')}
               </span>
             ) : index === 0 ? (
               <span className="absolute top-1 start-1 rounded-[var(--radius-pill)] bg-cta px-2 py-0.5 text-[11px] font-extrabold text-ink">
-                کاور
+                {t('کاور', 'Cover')}
               </span>
             ) : (
               <button
@@ -169,13 +187,16 @@ export function PhotoUploader({
                 onClick={() => makeCover(index)}
                 className="absolute top-1 start-1 rounded-[var(--radius-pill)] border border-line bg-card/90 px-2 py-0.5 text-[11px] font-bold text-ink backdrop-blur hover:bg-card"
               >
-                کاور شود
+                {t('کاور شود', 'Make cover')}
               </button>
             )}
             <button
               type="button"
               onClick={() => removeAt(index)}
-              aria-label={`حذف عکس ${toPersianDigits(index + 1)}`}
+              aria-label={t(
+                `حذف عکس ${toPersianDigits(index + 1)}`,
+                `Remove photo ${index + 1}`,
+              )}
               className="absolute bottom-1 end-1 flex h-7 w-7 items-center justify-center rounded-full bg-inverse/80 text-sm font-bold text-white backdrop-blur hover:bg-inverse"
             >
               ✕
@@ -192,7 +213,9 @@ export function PhotoUploader({
           >
             <span className="text-2xl leading-none">+</span>
             <span className="text-xs font-bold">
-              {remaining === 0 ? 'سقف عکس تکمیل' : 'افزودن عکس یا ویدیو'}
+              {remaining === 0
+                ? t('سقف عکس تکمیل', 'Photo limit reached')
+                : t('افزودن عکس یا ویدیو', 'Add photo or video')}
             </span>
           </button>
         </li>
@@ -203,7 +226,7 @@ export function PhotoUploader({
         <div
           role="dialog"
           aria-modal="true"
-          aria-label="افزودن عکس یا ویدیو"
+          aria-label={t('افزودن عکس یا ویدیو', 'Add photo or video')}
           className="fixed inset-0 z-[60] flex items-end justify-center bg-black/50 p-0 sm:items-center sm:p-4"
           onClick={() => setChooserOpen(false)}
         >
@@ -211,12 +234,30 @@ export function PhotoUploader({
             className="w-full max-w-sm rounded-t-2xl border border-line bg-card p-3 shadow-2xl sm:rounded-2xl"
             onClick={(event) => event.stopPropagation()}
           >
-            <p className="px-1 pb-2 text-xs font-extrabold text-muted">افزودن از</p>
+            <p className="px-1 pb-2 text-xs font-extrabold text-muted">
+              {t('افزودن از', 'Add from')}
+            </p>
             {[
-              { key: 'gallery', label: '۱. انتخاب از گالری تصاویر', ref: galleryRef },
-              { key: 'camera', label: '۲. گرفتن عکس با دوربین', ref: cameraRef },
-              { key: 'files', label: '۳. انتخاب از فایل‌ها', ref: filesRef },
-              { key: 'video', label: '۴. افزودن ویدیو (اسلات ۲ به بعد)', ref: videoRef },
+              {
+                key: 'gallery',
+                label: t('۱. انتخاب از گالری تصاویر', '1. Choose from photo library'),
+                ref: galleryRef,
+              },
+              {
+                key: 'camera',
+                label: t('۲. گرفتن عکس با دوربین', '2. Take a photo with the camera'),
+                ref: cameraRef,
+              },
+              {
+                key: 'files',
+                label: t('۳. انتخاب از فایل‌ها', '3. Choose from files'),
+                ref: filesRef,
+              },
+              {
+                key: 'video',
+                label: t('۴. افزودن ویدیو (اسلات ۲ به بعد)', '4. Add video (slot 2 onwards)'),
+                ref: videoRef,
+              },
             ].map((source) => (
               <button
                 key={source.key}
@@ -238,7 +279,7 @@ export function PhotoUploader({
               onClick={() => setChooserOpen(false)}
               className="mt-1 w-full rounded-field border border-line py-2 text-xs font-bold text-muted"
             >
-              انصراف
+              {t('انصراف', 'Cancel')}
             </button>
           </div>
         </div>
@@ -283,7 +324,7 @@ export function PhotoUploader({
 
       {busy && (
         <p className="hint" role="status">
-          در حال پردازش و بارگذاری عکس‌ها…
+          {t('در حال پردازش و بارگذاری عکس‌ها…', 'Processing and uploading photos…')}
         </p>
       )}
       {localError && (

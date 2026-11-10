@@ -1,4 +1,4 @@
-import type { Metadata } from 'next';
+import { localizedMetadata } from '@/lib/i18n/metadata';
 import Link from 'next/link';
 import { redirect } from 'next/navigation';
 import {
@@ -11,8 +11,12 @@ import {
 } from '@alisales/schemas';
 import { getSession } from '@/lib/auth/session';
 import { listingsBySeller, ownerStats } from '@/lib/data/s2-store';
+import { getLanguage, serverT } from '@/lib/i18n/server';
 
-export const metadata: Metadata = { title: 'آمار آگهی‌ها' };
+export const generateMetadata = localizedMetadata(
+  { title: 'آمار آگهی‌ها' },
+  { title: 'Listing statistics' },
+);
 
 /**
  * Owner statistics (C2). Reads only the signed-in account's listings; the
@@ -27,8 +31,14 @@ export default async function OwnerStatsPage({
 }: {
   searchParams: Promise<{ sort?: string }>;
 }) {
-  const session = await getSession();
+  const [session, lang] = await Promise.all([getSession(), getLanguage()]);
   if (!session) redirect('/login?next=/profile/stats');
+  const t = (fa: string, en: string) => serverT(lang, fa, en);
+  const sortEn: Record<string, string> = {
+    newest: 'Newest',
+    views: 'Most viewed',
+    contacts: 'Most contacted',
+  };
 
   const { sort: sortParam } = await searchParams;
   const sort = parseOwnerStatsSort(sortParam);
@@ -45,18 +55,18 @@ export default async function OwnerStatsPage({
   return (
     <div className="space-y-4">
       <div className="flex flex-wrap items-center justify-between gap-2">
-        <h1 className="text-xl font-extrabold">آمار آگهی‌ها</h1>
+        <h1 className="text-xl font-extrabold">{t('آمار آگهی‌ها', 'Listing analytics')}</h1>
         <Link href="/profile" className="text-xs font-bold text-muted underline">
-          بازگشت به پروفایل
+          {t('بازگشت به پروفایل', 'Back to profile')}
         </Link>
       </div>
 
       <div className="grid grid-cols-2 gap-2 sm:grid-cols-4">
         {[
-          { label: 'بازدید', value: totals.views },
-          { label: 'گفتگوی جدید', value: totals.chatStarts },
-          { label: 'نمایش شماره', value: totals.phoneReveals },
-          { label: 'علاقه‌مندی', value: totals.favorites },
+          { label: t('بازدید', 'Views'), value: totals.views },
+          { label: t('گفتگوی جدید', 'New chats'), value: totals.chatStarts },
+          { label: t('نمایش شماره', 'Phone reveals'), value: totals.phoneReveals },
+          { label: t('علاقه‌مندی', 'Saved'), value: totals.favorites },
         ].map((tile) => (
           <div key={tile.label} className="rounded-card border border-line bg-card p-3 text-center">
             <p className="text-2xl font-extrabold">{tile.value}</p>
@@ -65,7 +75,7 @@ export default async function OwnerStatsPage({
         ))}
       </div>
 
-      <nav aria-label="ترتیب آمار" className="flex flex-wrap gap-2">
+      <nav aria-label={t('ترتیب آمار', 'Sort analytics')} className="flex flex-wrap gap-2">
         {OWNER_STATS_SORTS.map((key) => (
           <Link
             key={key}
@@ -77,16 +87,18 @@ export default async function OwnerStatsPage({
                 : 'border-line bg-card text-muted hover:border-line-strong'
             }`}
           >
-            {OWNER_STATS_SORT_LABELS[key]}
+            {t(OWNER_STATS_SORT_LABELS[key], sortEn[key] ?? OWNER_STATS_SORT_LABELS[key])}
           </Link>
         ))}
       </nav>
 
       {listings.length === 0 ? (
         <div className="rounded-card border border-dashed border-line-strong bg-card px-6 py-12 text-center">
-          <p className="font-extrabold">هنوز آگهی‌ای ثبت نکرده‌اید.</p>
+          <p className="font-extrabold">
+            {t('هنوز آگهی‌ای ثبت نکرده‌اید.', 'You have not published any listings yet.')}
+          </p>
           <Link href="/new" className="btn-cta mt-4 inline-flex text-sm">
-            ثبت آگهی
+            {t('ثبت آگهی', 'Post ad')}
           </Link>
         </div>
       ) : (
@@ -94,11 +106,11 @@ export default async function OwnerStatsPage({
           <table className="w-full min-w-[560px] text-right text-sm">
             <thead className="border-b border-line text-xs text-muted">
               <tr>
-                <th className="p-3 font-bold">آگهی</th>
-                <th className="p-3 font-bold">بازدید</th>
-                <th className="p-3 font-bold">گفتگوی جدید</th>
-                <th className="p-3 font-bold">نمایش شماره</th>
-                <th className="p-3 font-bold">علاقه‌مندی</th>
+                <th className="p-3 font-bold">{t('آگهی', 'Listing')}</th>
+                <th className="p-3 font-bold">{t('بازدید', 'Views')}</th>
+                <th className="p-3 font-bold">{t('گفتگوی جدید', 'New chats')}</th>
+                <th className="p-3 font-bold">{t('نمایش شماره', 'Phone reveals')}</th>
+                <th className="p-3 font-bold">{t('علاقه‌مندی', 'Saved')}</th>
               </tr>
             </thead>
             <tbody>
@@ -133,8 +145,10 @@ export default async function OwnerStatsPage({
       )}
 
       <p className="text-xs text-faint">
-        «بازدید» هر کاربر را یک بار می‌شمارد. «گفتگوی جدید» و «نمایش شماره» هرگز با هم جمع
-        نمی‌شوند و هویت بازدیدکنندگان به مالک نمایش داده نمی‌شود.
+        {t(
+          '«بازدید» هر کاربر را یک بار می‌شمارد. «گفتگوی جدید» و «نمایش شماره» هرگز با هم جمع نمی‌شوند و هویت بازدیدکنندگان به مالک نمایش داده نمی‌شود.',
+          '“Views” counts each visitor once. “New chats” and “Phone reveals” are never added together, and visitor identities are not shown to the owner.',
+        )}
       </p>
     </div>
   );

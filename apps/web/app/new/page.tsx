@@ -1,4 +1,4 @@
-import type { Metadata } from 'next';
+import { localizedMetadata } from '@/lib/i18n/metadata';
 import { redirect } from 'next/navigation';
 import { FREE_LISTING_LIMIT } from '@alisales/schemas';
 import { getSession } from '@/lib/auth/session';
@@ -6,8 +6,12 @@ import { demoAuthMode } from '@/lib/config/mode';
 import { activeListingsCount } from '@/lib/data/s2-store';
 import { ListingForm } from '@/components/ListingForm';
 import { PlanPreview } from '@/components/PlanPreview';
+import { getLanguage, serverT } from '@/lib/i18n/server';
 
-export const metadata: Metadata = { title: 'ثبت آگهی' };
+export const generateMetadata = localizedMetadata(
+  { title: 'ثبت آگهی' },
+  { title: 'Post an ad' },
+);
 
 /**
  * Listing creation (S2): signed-in only, publishes immediately (C6).
@@ -16,6 +20,8 @@ export const metadata: Metadata = { title: 'ثبت آگهی' };
  * «بزودی» plan preview: no publish attempt, no payment call.
  */
 export default async function NewListingPage() {
+  const lang = await getLanguage();
+  const t = (fa: string, en: string) => serverT(lang, fa, en);
   const session = await getSession();
   if (!session) {
     // Demo deployments have no SMS channel, so «ثبت آگهی» would stop at the
@@ -30,7 +36,7 @@ export default async function NewListingPage() {
   return (
     <div className="space-y-4">
       <div>
-        <h1 className="text-xl font-extrabold">ثبت آگهی</h1>
+        <h1 className="text-xl font-extrabold">{t('ثبت آگهی', 'Post ad')}</h1>
       </div>
       {atCap ? <PlanPreview /> : <ListingForm />}
     </div>

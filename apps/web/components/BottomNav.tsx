@@ -37,7 +37,7 @@ export function BottomNav() {
   return (
     <nav
       aria-label={t('ناوبری اصلی', 'Main navigation')}
-      className="fixed inset-x-0 bottom-0 z-40 border-t border-line bg-card/95 backdrop-blur sm:hidden"
+      className="app-bottom-nav fixed inset-x-0 bottom-0 z-40 border-t border-line bg-card/80 backdrop-blur-2xl backdrop-saturate-150 sm:hidden"
       style={{ paddingBottom: 'env(safe-area-inset-bottom)' }}
     >
       <ul dir="ltr" className="mx-auto flex h-16 w-full max-w-lg items-stretch">
@@ -50,7 +50,7 @@ export function BottomNav() {
                 <Link
                   href={item.href}
                   aria-label={label}
-                  className="-mt-5 flex h-14 w-14 items-center justify-center rounded-full text-white shadow-lg ring-4 ring-card transition active:translate-y-0.5"
+                  className="-mt-5 flex h-14 w-14 touch-manipulation items-center justify-center rounded-full text-white shadow-lg ring-4 ring-card transition active:scale-[0.97] active:translate-y-0.5"
                   style={{ background: '#F98513' }}
                 >
                   <Icon name={item.icon} size={26} />
@@ -63,7 +63,7 @@ export function BottomNav() {
               <Link
                 href={item.href}
                 aria-current={active ? 'page' : undefined}
-                className={`flex w-full flex-col items-center justify-center gap-1 text-[11px] transition ${
+                className={`flex w-full touch-manipulation flex-col items-center justify-center gap-1 text-[11px] transition active:scale-[0.96] ${
                   active ? 'font-extrabold' : 'font-bold'
                 }`}
                 style={{ color: active ? '#F98513' : '#64748B' }}

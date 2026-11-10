@@ -1,6 +1,7 @@
 'use client';
 
 import { DEFAULT_AED_TO_IRR, aedToIRR, formatAmountLatin, irrToToman } from '@alisales/schemas';
+import { useI18n } from '@/lib/i18n';
 import { useAedRate } from './RateProvider';
 import { usePriceUnit } from './PriceUnitProvider';
 
@@ -43,24 +44,30 @@ export function PriceText({
   const rate = useAedRate();
   const perAed = rate?.aedToIrr ?? DEFAULT_AED_TO_IRR;
   const { unit } = usePriceUnit();
+  const { t, lang } = useI18n();
 
   const toman = formatAmountLatin(irrToToman(irr));
   const aed = formatAmountLatin(Math.round(irr / perAed));
 
   const effective = hideAed ? 'toman' : unit;
   const main = effective === 'aed' ? aed : toman;
-  const unitLabel = effective === 'aed' ? 'AED' : 'تومان';
+  const tomanLabel = t('تومان', 'Toman');
+  const unitLabel = effective === 'aed' ? 'AED' : tomanLabel;
   const secondary =
-    effective === 'aed' ? `${toman} تومان` : effective === 'both' ? `≈ ${aed} AED` : null;
+    effective === 'aed'
+      ? `${toman} ${tomanLabel}`
+      : effective === 'both'
+        ? `≈ ${aed} AED`
+        : null;
 
   return (
-    <span className="flex min-w-0 flex-col items-start gap-0.5 text-right">
+    <span className="flex w-full min-w-0 flex-col items-start gap-0.5 overflow-hidden text-right">
       <span
-        dir="ltr"
-        className={`whitespace-nowrap font-extrabold tabular-nums tracking-tight ${
-          // Cards scale with the column: 15px on a phone, 17px on a tablet and
-          // lg on desktop — crisp enough to be the first thing read.
-          size === 'lg' ? 'text-xl sm:text-2xl' : 'text-[15px] sm:text-[17px] lg:text-lg'
+        dir={lang === 'en' ? 'ltr' : 'rtl'}
+        className={`max-w-full overflow-hidden whitespace-nowrap font-extrabold tabular-nums tracking-tight ${
+          size === 'lg'
+            ? 'text-xl sm:text-2xl'
+            : 'text-[14px] md:text-[13.5px] xl:text-[15px]'
         }`}
         style={{ color: sold ? SECONDARY_INK : PRICE_INK }}
       >
@@ -70,8 +77,8 @@ export function PriceText({
       {/* Fixed slot: an absent reference line keeps the same vertical rhythm,
           so cards in a row stay equal height with or without AED. */}
       <span
-        dir="ltr"
-        className={`flex items-center whitespace-nowrap text-xs font-semibold ${
+        dir={lang === 'en' ? 'ltr' : 'rtl'}
+        className={`flex max-w-full items-center overflow-hidden whitespace-nowrap text-xs font-semibold ${
           size === 'lg' ? 'h-4' : 'h-3.5'
         }`}
         style={{ color: SECONDARY_INK }}

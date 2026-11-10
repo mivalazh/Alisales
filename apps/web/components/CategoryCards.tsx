@@ -2,6 +2,7 @@
 
 import Image from 'next/image';
 import Link from 'next/link';
+import { useI18n } from '@/lib/i18n';
 
 /** Catalog scope shared with the home page (`?kind=` in the URL). */
 export type CatalogKind = 'vehicle' | 'part' | null;
@@ -21,6 +22,7 @@ export function CategoryCards({
   vehicleCount: number;
   partCount: number;
 }) {
+  const { t } = useI18n();
   const cards = [
     {
       key: 'vehicle' as const,
@@ -60,11 +62,11 @@ export function CategoryCards({
           />
           <span className="relative z-10 flex w-full flex-col items-start gap-2 p-3">
             <span className="text-sm font-extrabold leading-tight text-white drop-shadow-[0_1px_2px_rgba(17,17,68,0.6)] sm:text-base">
-              {card.label}
+              {t(card.label)}
             </span>
             <span className="inline-flex items-center gap-1 rounded-full bg-[#F98513] px-2.5 py-1 text-[11px] font-extrabold text-[#111144] shadow-sm sm:text-xs">
               <span>{card.count.toLocaleString('en-US')}</span>
-              <span>آگهی</span>
+              <span>{t('آگهی', 'Listings')}</span>
             </span>
           </span>
         </Link>

@@ -3,6 +3,7 @@
 import { usePathname, useRouter } from 'next/navigation';
 import { useRef, useState, type MouseEvent } from 'react';
 import { Icon } from './Icon';
+import { useI18n } from '@/lib/i18n';
 
 /**
  * Detail-page contact actions (C8 / C2):
@@ -31,6 +32,7 @@ export function ContactButtons({
 }) {
   const router = useRouter();
   const pathname = usePathname();
+  const { t } = useI18n();
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [shownPhone, setShownPhone] = useState<string | null>(phone);
@@ -55,9 +57,9 @@ export function ContactButtons({
         router.push(`/chats/${body.id}`);
         return;
       }
-      setError(body.error ?? 'شروع گفتگو ناموفق بود.');
+      setError(body.error ?? t('شروع گفتگو ناموفق بود.', 'Could not start the conversation.'));
     } catch {
-      setError('ارتباط با سرور برقرار نشد.');
+      setError(t('ارتباط با سرور برقرار نشد.', 'Could not connect to the server.'));
     } finally {
       setBusy(false);
     }
@@ -80,12 +82,12 @@ export function ContactButtons({
         error?: string;
       } | null;
       if (!res.ok) {
-        setError(body?.error ?? 'نمایش شماره ممکن نشد.');
+        setError(body?.error ?? t('نمایش شماره ممکن نشد.', 'Could not display the number.'));
         return null;
       }
       return body?.phone ?? null;
     } catch {
-      setError('ارتباط با سرور برقرار نشد.');
+      setError(t('ارتباط با سرور برقرار نشد.', 'Could not connect to the server.'));
       return null;
     }
   }
@@ -122,7 +124,7 @@ export function ContactButtons({
       <div className="space-y-2">
         <button type="button" disabled className="btn-cta w-full cursor-not-allowed text-sm opacity-60">
           <Icon name="message" size={18} />
-          این آگهی فروخته شده است
+          {t('این آگهی فروخته شده است', 'This listing has been sold')}
         </button>
       </div>
     );
@@ -137,13 +139,15 @@ export function ContactButtons({
         className="btn-cta w-full text-sm disabled:opacity-60"
       >
         <Icon name="message" size={18} />
-        {busy ? 'در حال باز کردن گفتگو…' : 'چت با آگهی‌دهنده'}
+        {busy
+          ? t('در حال باز کردن گفتگو…', 'Opening chat...')
+          : t('چت با آگهی‌دهنده', 'Chat with seller')}
       </button>
 
       {shownPhone ? (
         <a href={`tel:${shownPhone}`} onClick={recordCall} className="btn-ghost w-full text-sm">
           <Icon name="phone" size={18} />
-          تماس تلفنی
+          {t('تماس تلفنی', 'Call')}
         </a>
       ) : revealable ? (
         <button
@@ -153,7 +157,9 @@ export function ContactButtons({
           className="btn-ghost w-full text-sm disabled:opacity-60"
         >
           <Icon name="phone" size={18} />
-          {busy ? 'در حال نمایش شماره…' : 'نمایش شماره تماس'}
+          {busy
+            ? t('در حال نمایش شماره…', 'Showing number...')
+            : t('نمایش شماره تماس', 'Show phone number')}
         </button>
       ) : null}
 

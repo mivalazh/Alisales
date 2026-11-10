@@ -28,9 +28,20 @@ function flagOn(value: string | undefined): boolean {
   return ['1', 'true', 'yes', 'on'].includes(String(value ?? '').trim().toLowerCase());
 }
 
+/**
+ * Server-side Supabase project URL.
+ *
+ * `NEXT_PUBLIC_SUPABASE_URL` is the one variable every deployment already has;
+ * `SUPABASE_URL` remains accepted as an explicit server override. Reading both
+ * keeps the browser reads and the service-role writes pointed at one project.
+ */
+export function serverSupabaseUrl(): string | undefined {
+  return process.env.SUPABASE_URL ?? process.env.NEXT_PUBLIC_SUPABASE_URL;
+}
+
 /** Supabase URL + service role key: the app can read AND write real rows. */
 export function hostedDataConfigured(): boolean {
-  return Boolean(process.env.SUPABASE_URL && process.env.SUPABASE_SERVICE_ROLE_KEY);
+  return Boolean(serverSupabaseUrl() && process.env.SUPABASE_SERVICE_ROLE_KEY);
 }
 
 /** Public Supabase credentials: browse/search reads the hosted RPC. */

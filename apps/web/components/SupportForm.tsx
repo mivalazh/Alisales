@@ -1,6 +1,7 @@
 'use client';
 
 import { useState } from 'react';
+import { useI18n } from '@/lib/i18n';
 
 type Kind = 'brand' | 'ticket';
 
@@ -10,6 +11,7 @@ type Kind = 'brand' | 'ticket';
  * server-side so support can follow up.
  */
 export function SupportForm({ kind }: { kind: Kind }) {
+  const { t } = useI18n();
   const [status, setStatus] = useState<'idle' | 'sending' | 'done' | 'error'>('idle');
   const [error, setError] = useState('');
 
@@ -36,14 +38,18 @@ export function SupportForm({ kind }: { kind: Kind }) {
       });
       const data = (await res.json().catch(() => ({}))) as { error?: string };
       if (!res.ok) {
-        setError(data.error ?? 'ارسال درخواست انجام نشد. دوباره تلاش کنید.');
+        setError(
+          data.error ?? t('ارسال درخواست انجام نشد. دوباره تلاش کنید.', 'Could not submit the request. Please try again.'),
+        );
         setStatus('error');
         return;
       }
       setStatus('done');
       event.currentTarget.reset();
     } catch {
-      setError('ارتباط برقرار نشد. اتصال خود را بررسی کنید.');
+      setError(
+        t('ارتباط برقرار نشد. اتصال خود را بررسی کنید.', 'Could not connect. Please check your connection.'),
+      );
       setStatus('error');
     }
   }
@@ -51,12 +57,15 @@ export function SupportForm({ kind }: { kind: Kind }) {
   if (status === 'done') {
     return (
       <div className="rounded-card border border-line bg-card p-6 text-center">
-        <p className="font-extrabold">درخواست شما ثبت شد.</p>
+        <p className="font-extrabold">{t('درخواست شما ثبت شد.', 'Your request has been submitted.')}</p>
         <p className="mt-2 text-sm text-muted">
-          شماره پیگیری برای شما نگه داشته شد؛ کارشناسان ما در ساعات کاری پاسخ می‌دهند.
+          {t(
+            'شماره پیگیری برای شما نگه داشته شد؛ کارشناسان ما در ساعات کاری پاسخ می‌دهند.',
+            'A reference number has been saved for you; our team will reply during support hours.',
+          )}
         </p>
         <button type="button" onClick={() => setStatus('idle')} className="btn-ghost mt-4 text-sm">
-          ثبت درخواست دیگر
+          {t('ثبت درخواست دیگر', 'Submit another request')}
         </button>
       </div>
     );
@@ -66,14 +75,14 @@ export function SupportForm({ kind }: { kind: Kind }) {
     <form onSubmit={onSubmit} className="space-y-4 rounded-card border border-line bg-card p-4 sm:p-6">
       <div>
         <label className="label" htmlFor="support-name">
-          نام و نام خانوادگی
+          {t('نام و نام خانوادگی', 'Full name')}
         </label>
         <input id="support-name" name="name" required minLength={2} maxLength={80} className="field" />
       </div>
 
       <div>
         <label className="label" htmlFor="support-contact">
-          شماره موبایل یا ایمیل
+          {t('شماره موبایل یا ایمیل', 'Mobile number or email')}
         </label>
         <input
           id="support-contact"
@@ -89,14 +98,14 @@ export function SupportForm({ kind }: { kind: Kind }) {
       {kind === 'brand' ? (
         <div>
           <label className="label" htmlFor="support-model">
-            خودرو یا برند مورد نظر
+            {t('خودرو یا برند مورد نظر', 'Vehicle or brand')}
           </label>
           <input
             id="support-model"
             name="model"
             required
             maxLength={80}
-            placeholder="مثلاً لکسوس LX 600"
+            placeholder={t('مثلاً لکسوس LX 600', 'e.g. Lexus LX 600')}
             className="field"
           />
         </div>
@@ -104,7 +113,9 @@ export function SupportForm({ kind }: { kind: Kind }) {
 
       <div>
         <label className="label" htmlFor="support-message">
-          {kind === 'brand' ? 'توضیح درخواست' : 'متن تیکت'}
+          {kind === 'brand'
+            ? t('توضیح درخواست', 'Request details')
+            : t('متن تیکت', 'Ticket message')}
         </label>
         <textarea
           id="support-message"
@@ -124,7 +135,9 @@ export function SupportForm({ kind }: { kind: Kind }) {
       )}
 
       <button type="submit" className="btn-cta w-full text-sm" disabled={status === 'sending'}>
-        {status === 'sending' ? 'در حال ارسال…' : 'ارسال درخواست'}
+        {status === 'sending'
+          ? t('در حال ارسال…', 'Sending...')
+          : t('ارسال درخواست', 'Submit request')}
       </button>
     </form>
   );

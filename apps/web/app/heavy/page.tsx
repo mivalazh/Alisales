@@ -1,12 +1,14 @@
-import type { Metadata } from 'next';
+import { localizedMetadata } from '@/lib/i18n/metadata';
 import { CategoryCatalog } from '@/components/CategoryCatalog';
 import { CategorySwitch } from '@/components/CategorySwitch';
 import { loadCategoryPage } from '@/lib/category-page';
+import { getLanguage } from '@/lib/i18n/server';
+import { serverT } from '@/lib/i18n/server';
 
-export const metadata: Metadata = {
-  title: 'ماشین‌آلات سنگین',
-  description: 'کامیون، کشنده، تریلی و ماشین‌آلات راه‌سازی — فیلتر برند، نوع، سال و ساعت کارکرد.',
-};
+export const generateMetadata = localizedMetadata(
+  { title: 'ماشین‌آلات سنگین', description: 'کامیون، کشنده، تریلی و ماشین‌آلات راه‌سازی — فیلتر برند، نوع، سال و ساعت کارکرد.' },
+  { title: 'Heavy Machinery', description: 'Trucks, tractor units, trailers and road-building machinery — filter by brand, type, year and operating hours.' },
+);
 
 type SearchParams = Record<string, string | string[] | undefined>;
 
@@ -17,14 +19,21 @@ export default async function HeavyPage({
   searchParams: Promise<SearchParams>;
 }) {
   const params = await searchParams;
-  const { listings, ...data } = await loadCategoryPage(params, 'heavy');
+  const [{ listings, ...data }, lang] = await Promise.all([
+    loadCategoryPage(params, 'heavy'),
+    getLanguage(),
+  ]);
+  const t = (fa: string, en?: string) => serverT(lang, fa, en);
 
   return (
     <div className="space-y-4">
       <div>
-        <h1 className="text-xl font-extrabold sm:text-2xl">ماشین‌آلات سنگین</h1>
+        <h1 className="text-xl font-extrabold sm:text-2xl">{t('ماشین‌آلات سنگین')}</h1>
         <p className="mt-1 text-sm text-muted">
-          کامیون، کشنده، تریلی و ماشین‌آلات راه‌سازی · {listings.length.toLocaleString('en-US')} آگهی
+          {t(
+            `کامیون، کشنده، تریلی و ماشین‌آلات راه‌سازی · ${listings.length.toLocaleString('en-US')} آگهی`,
+            `Trucks, tractor units, trailers and road machinery · ${listings.length.toLocaleString('en-US')} listings`,
+          )}
         </p>
       </div>
 
@@ -37,9 +46,9 @@ export default async function HeavyPage({
         filters={data.filters}
         sort={data.sort}
         stories={data.stories}
-        storiesLabel="داستان‌های ماشین‌آلات"
-        searchPlaceholder="جستجوی برند، مدل یا نوع ماشین‌آلات..."
-        heading="ماشین‌آلات"
+        storiesLabel={t('داستان‌های ماشین‌آلات', 'Machinery stories')}
+        searchPlaceholder={t('جستجوی برند، مدل یا نوع ماشین‌آلات...', 'Search brands, models or machinery type...')}
+        heading={t('ماشین‌آلات')}
       />
     </div>
   );

@@ -2,6 +2,7 @@
 
 import Link from 'next/link';
 import { usePathname } from 'next/navigation';
+import { useI18n } from '@/lib/i18n';
 
 /**
  * Top-level category switch: خودرو | موتور و اسکوتر برقی | ماشین‌آلات سنگین |
@@ -21,9 +22,10 @@ const CATEGORIES: ReadonlyArray<{ href: string; label: string; short: string }> 
 
 export function CategorySwitch() {
   const pathname = usePathname();
+  const { t } = useI18n();
 
   return (
-    <nav aria-label="دسته‌بندی‌ها" className="border-y border-line">
+    <nav aria-label={t('دسته‌بندی‌ها', 'Categories')} className="border-y border-line">
       <ul className="flex items-stretch overflow-x-auto [scrollbar-width:none] [&::-webkit-scrollbar]:hidden">
         {CATEGORIES.map((item, index) => {
           const active = pathname === item.href || pathname.startsWith(`${item.href}/`);
@@ -39,8 +41,8 @@ export function CategorySwitch() {
                   active ? 'text-ink' : 'text-muted hover:text-ink'
                 }`}
               >
-                <span className="sm:hidden">{item.short}</span>
-                <span className="hidden sm:inline">{item.label}</span>
+                <span className="sm:hidden">{t(item.short)}</span>
+                <span className="hidden sm:inline">{t(item.label)}</span>
                 {active && (
                   <span
                     aria-hidden

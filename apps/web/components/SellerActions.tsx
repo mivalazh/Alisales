@@ -3,6 +3,7 @@
 import { useRouter } from 'next/navigation';
 import { useState } from 'react';
 import { Icon } from './Icon';
+import { useI18n } from '@/lib/i18n';
 
 /**
  * The three actions on a public seller profile.
@@ -27,6 +28,7 @@ export function SellerActions({
   canCall: boolean;
 }) {
   const router = useRouter();
+  const { t } = useI18n();
   const [busy, setBusy] = useState<'chat' | 'call' | 'share' | null>(null);
   const [phone, setPhone] = useState<string | null>(null);
   const [note, setNote] = useState<string | null>(null);
@@ -46,9 +48,9 @@ export function SellerActions({
         router.push(`/chats/${data.id}`);
         return;
       }
-      setNote(data.error ?? 'شروع گفتگو ممکن نشد.');
+      setNote(data.error ?? t('شروع گفتگو ممکن نشد.', 'Could not start the conversation.'));
     } catch {
-      setNote('ارتباط با سرور برقرار نشد.');
+      setNote(t('ارتباط با سرور برقرار نشد.', 'Could not connect to the server.'));
     } finally {
       setBusy(null);
     }
@@ -70,9 +72,14 @@ export function SellerActions({
         window.location.href = `tel:${data.phone}`;
         return;
       }
-      setNote('فروشنده شماره‌ی تماس را برای این آگهی نمایش نداده است.');
+      setNote(
+        t(
+          'فروشنده شماره‌ی تماس را برای این آگهی نمایش نداده است.',
+          'The seller has not shared a phone number for this listing.',
+        ),
+      );
     } catch {
-      setNote('ارتباط با سرور برقرار نشد.');
+      setNote(t('ارتباط با سرور برقرار نشد.', 'Could not connect to the server.'));
     } finally {
       setBusy(null);
     }
@@ -87,7 +94,7 @@ export function SellerActions({
         await navigator.share({ title: name, url });
       } else {
         await navigator.clipboard.writeText(url);
-        setNote('نشانی پروفایل کپی شد.');
+        setNote(t('نشانی پروفایل کپی شد.', 'Profile link copied.'));
       }
     } catch {
       // The user dismissed the sheet — not an error worth reporting.
@@ -102,7 +109,7 @@ export function SellerActions({
         {isOwner ? (
           <a href="/profile" className="btn-ghost text-sm">
             <Icon name="pencil" size={16} />
-            ویرایش پروفایل
+            {t('ویرایش پروفایل', 'Edit profile')}
           </a>
         ) : (
           <button
@@ -112,7 +119,9 @@ export function SellerActions({
             className="btn-cta text-sm disabled:opacity-50"
           >
             <Icon name="message" size={16} />
-            {busy === 'chat' ? 'در حال باز کردن…' : 'پیام دادن'}
+            {busy === 'chat'
+              ? t('در حال باز کردن…', 'Opening…')
+              : t('پیام دادن', 'Message')}
           </button>
         )}
 
@@ -121,10 +130,17 @@ export function SellerActions({
           onClick={() => void call()}
           disabled={busy !== null || !canCall || isOwner}
           className="btn-ghost text-sm disabled:opacity-50"
-          title={canCall ? undefined : 'شماره‌ی تماس برای این فروشنده در دسترس نیست'}
+          title={
+            canCall
+              ? undefined
+              : t(
+                  'شماره‌ی تماس برای این فروشنده در دسترس نیست',
+                  'A phone number is not available for this seller',
+                )
+          }
         >
           <Icon name="phone" size={16} />
-          {phone ? <bdi>{phone}</bdi> : 'تماس'}
+          {phone ? <bdi>{phone}</bdi> : t('تماس', 'Call')}
         </button>
 
         <button
@@ -134,7 +150,7 @@ export function SellerActions({
           className="btn-ghost text-sm disabled:opacity-50"
         >
           <Icon name="share" size={16} />
-          اشتراک‌گذاری
+          {t('اشتراک‌گذاری', 'Share')}
         </button>
       </div>
 
@@ -143,7 +159,9 @@ export function SellerActions({
           {note}
         </p>
       )}
-      <span className="sr-only">شناسه فروشنده {sellerId}</span>
+      <span className="sr-only">
+        {t('شناسه فروشنده', 'Seller ID')} {sellerId}
+      </span>
     </div>
   );
 }

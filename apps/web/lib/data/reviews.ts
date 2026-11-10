@@ -1,4 +1,5 @@
 import { readJson } from '../storage/demo-store';
+import { hostedDataConfigured } from '../config/mode';
 
 /**
  * Seller reviews.
@@ -75,7 +76,7 @@ const SEEDED: SellerReview[] = [
 
 /** Reviews for a seller: seeded demo rows, or [] on a hosted deployment. */
 export async function reviewsFor(sellerId: string): Promise<SellerReview[]> {
-  if (process.env.SUPABASE_URL && process.env.SUPABASE_SERVICE_ROLE_KEY) return [];
+  if (hostedDataConfigured()) return [];
   const extra = readJson<SellerReview[]>('reviews.json', () => []);
   return [...extra, ...SEEDED]
     .filter((review) => review.sellerId === sellerId)

@@ -3,6 +3,7 @@
 import { useRouter } from 'next/navigation';
 import { useEffect, useRef, useState } from 'react';
 import { Icon } from './Icon';
+import { useI18n } from '@/lib/i18n';
 
 /**
  * «حذف آگهی» — a destructive action that always asks first.
@@ -26,6 +27,7 @@ export function DeleteListingButton({
   compact?: boolean;
 }) {
   const router = useRouter();
+  const { t } = useI18n();
   const [open, setOpen] = useState(false);
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -53,14 +55,14 @@ export function DeleteListingButton({
         return;
       }
       if (!res.ok) {
-        setError(body.error ?? 'حذف آگهی انجام نشد.');
+        setError(body.error ?? t('حذف آگهی انجام نشد.', 'Could not delete the listing.'));
         return;
       }
       setOpen(false);
       if (redirectTo) router.push(redirectTo);
       router.refresh();
     } catch {
-      setError('ارتباط با سرور برقرار نشد.');
+      setError(t('ارتباط با سرور برقرار نشد.', 'Could not connect to the server.'));
     } finally {
       setBusy(false);
     }
@@ -78,7 +80,7 @@ export function DeleteListingButton({
         }
       >
         <Icon name="trash" size={compact ? 13 : 16} />
-        {label}
+        {t(label)}
       </button>
 
       {open && (
@@ -98,11 +100,17 @@ export function DeleteListingButton({
                 <Icon name="trash" size={18} />
               </span>
               <h2 id={`delete-${id}`} className="text-sm font-extrabold">
-                آیا از حذف دائمی این آگهی مطمئن هستید؟
+                {t(
+                  'آیا از حذف دائمی این آگهی مطمئن هستید؟',
+                  'Delete this listing permanently?',
+                )}
               </h2>
             </div>
             <p className="mt-3 text-xs leading-6 text-muted">
-              این آگهی و عکس‌هایش برای همیشه پاک می‌شود؛ امکان بازگردانی وجود ندارد.
+              {t(
+                'این آگهی و عکس‌هایش برای همیشه پاک می‌شود؛ امکان بازگردانی وجود ندارد.',
+                'This listing and its photos will be removed for good; this cannot be undone.',
+              )}
             </p>
             {error && <p className="mt-2 text-xs font-bold text-red-600">{error}</p>}
             <div className="mt-4 flex gap-2">
@@ -113,7 +121,7 @@ export function DeleteListingButton({
                 disabled={busy}
                 className="btn-ghost h-10 flex-1 text-sm disabled:opacity-60"
               >
-                انصراف
+                {t('انصراف', 'Cancel')}
               </button>
               <button
                 type="button"
@@ -122,7 +130,7 @@ export function DeleteListingButton({
                 className="inline-flex h-10 flex-1 items-center justify-center gap-1.5 rounded-[var(--radius-pill)] bg-red-600 px-4 text-sm font-extrabold text-white transition hover:bg-red-700 disabled:opacity-60"
               >
                 <Icon name="trash" size={15} />
-                {busy ? 'در حال حذف…' : 'حذف دائمی'}
+                {busy ? t('در حال حذف…', 'Deleting...') : t('حذف دائمی', 'Delete permanently')}
               </button>
             </div>
           </div>

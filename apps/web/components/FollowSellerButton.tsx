@@ -4,6 +4,7 @@ import Link from 'next/link';
 import { useRouter } from 'next/navigation';
 import { useEffect, useState } from 'react';
 import { Icon } from './Icon';
+import { useI18n } from '@/lib/i18n';
 
 const CACHE_KEY = 'alisales.following';
 
@@ -49,6 +50,7 @@ export function FollowSellerButton({
   isOwner?: boolean;
 }) {
   const router = useRouter();
+  const { t } = useI18n();
   const [following, setFollowing] = useState(initialFollowing);
   const [busy, setBusy] = useState(false);
   const [note, setNote] = useState<string | null>(null);
@@ -78,7 +80,7 @@ export function FollowSellerButton({
         className="inline-flex h-10 items-center gap-1.5 rounded-[var(--radius-pill)] border border-cta bg-cta-soft px-4 text-sm font-extrabold text-ink transition hover:border-cta"
       >
         <Icon name="plus" size={16} />
-        دنبال کردن
+        {t('دنبال کردن', 'Follow')}
       </Link>
     );
   }
@@ -98,7 +100,7 @@ export function FollowSellerButton({
       const data = (await res.json().catch(() => ({}))) as { following?: boolean; error?: string };
       if (!res.ok) {
         setFollowing(!next);
-        setNote(data.error ?? 'ثبت دنبال کردن ممکن نشد.');
+        setNote(data.error ?? t('ثبت دنبال کردن ممکن نشد.', 'Could not update follow status.'));
         return;
       }
       setFollowing(Boolean(data.following));
@@ -107,7 +109,7 @@ export function FollowSellerButton({
       router.refresh();
     } catch {
       setFollowing(!next);
-      setNote('ارتباط با سرور برقرار نشد.');
+      setNote(t('ارتباط با سرور برقرار نشد.', 'Could not connect to the server.'));
     } finally {
       setBusy(false);
     }
@@ -127,7 +129,7 @@ export function FollowSellerButton({
         } disabled:opacity-60`}
       >
         <Icon name={following ? 'shieldCheck' : 'plus'} size={16} />
-        {following ? 'دنبال‌شده ✓' : 'دنبال کردن'}
+        {following ? t('دنبال‌شده ✓', 'Following ✓') : t('دنبال کردن', 'Follow')}
       </button>
       {note && <span className="text-[11px] font-bold text-red-600">{note}</span>}
     </div>

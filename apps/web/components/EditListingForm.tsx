@@ -14,6 +14,7 @@ import {
 import { PhotoUploader } from './PhotoUploader';
 import type { ProcessedPhoto } from '@/lib/photos';
 import type { OwnerPhotoMeta } from '@/lib/data/listings';
+import { useI18n } from '@/lib/i18n';
 
 type PriceUnit = 'toman' | 'aed';
 
@@ -50,6 +51,7 @@ export function EditListingForm({
   photos: OwnerPhotoMeta[];
 }) {
   const router = useRouter();
+  const { t } = useI18n();
   const [unit, setUnit] = useState<PriceUnit>('toman');
   const [price, setPrice] = useState<string>(String(irrToToman(priceIRR)));
   const [text, setText] = useState(description);
@@ -110,11 +112,13 @@ export function EditListingForm({
     setSaved(false);
 
     if (!Number.isFinite(parsedPrice) || parsedPrice < 0) {
-      setError('قیمت را به عدد وارد کنید.');
+      setError(t('قیمت را به عدد وارد کنید.', 'Enter the price as a number.'));
       return;
     }
     if (photos.some((p) => !p.path)) {
-      setError('عکس‌ها هنوز بارگذاری نشده‌اند؛ چند لحظه صبر کنید.');
+      setError(
+        t('عکس‌ها هنوز بارگذاری نشده‌اند؛ چند لحظه صبر کنید.', 'Photos are still uploading; please wait.'),
+      );
       return;
     }
 
@@ -148,14 +152,18 @@ export function EditListingForm({
         issues?: { message: string }[];
       } | null;
       if (!res.ok) {
-        setError(body?.error ?? body?.issues?.[0]?.message ?? 'ذخیره تغییرات انجام نشد.');
+        setError(
+          body?.error ??
+            body?.issues?.[0]?.message ??
+            t('ذخیره تغییرات انجام نشد.', 'Could not save your changes.'),
+        );
         return;
       }
       setSaved(true);
       router.refresh();
       router.push(`/listing/${slug}`);
     } catch {
-      setError('ارتباط با سرور برقرار نشد؛ دوباره تلاش کنید.');
+      setError(t('ارتباط با سرور برقرار نشد؛ دوباره تلاش کنید.', 'Could not reach the server; try again.'));
     } finally {
       setSaving(false);
     }
@@ -170,7 +178,10 @@ export function EditListingForm({
       <section className="rounded-card border border-line bg-card p-4 sm:p-5">
         <h2 className="mb-1 border-b border-line pb-2 text-md font-extrabold">{title}</h2>
         <p className="mt-2 text-xs text-muted">
-          برند، مدل، سال ساخت و وضعیت پلاک پس از ثبت قابل ویرایش نیستند.
+          {t(
+            'برند، مدل، سال ساخت و وضعیت پلاک پس از ثبت قابل ویرایش نیستند.',
+            'Brand, model, model year and plate status cannot be edited after publishing.',
+          )}
         </p>
       </section>
 
@@ -181,18 +192,24 @@ export function EditListingForm({
       )}
       {saved && (
         <p className="rounded-field border border-line bg-cta-soft px-4 py-3 text-sm font-bold" role="status">
-          تغییرات ذخیره شد.
+          {t('تغییرات ذخیره شد.', 'Changes saved.')}
         </p>
       )}
 
       <section className="rounded-card border border-line bg-card p-4 sm:p-5">
-        <h2 className="mb-4 border-b border-line pb-2 text-md font-extrabold">قیمت و تماس</h2>
+        <h2 className="mb-4 border-b border-line pb-2 text-md font-extrabold">
+          {t('قیمت و تماس', 'Price and contact')}
+        </h2>
 
-        <div className="mb-2 flex items-center gap-2" role="group" aria-label="واحد قیمت">
+        <div
+          className="mb-2 flex items-center gap-2"
+          role="group"
+          aria-label={t('واحد قیمت', 'Price currency')}
+        >
           {(
             [
-              { key: 'toman', label: 'تومان' },
-              { key: 'aed', label: 'درهم (AED)' },
+              { key: 'toman', label: t('تومان', 'Toman') },
+              { key: 'aed', label: t('درهم (AED)', 'AED') },
             ] as const
           ).map((option) => (
             <button
@@ -212,7 +229,10 @@ export function EditListingForm({
         </div>
 
         <label className="label" htmlFor="price">
-          قیمت ({unit === 'toman' ? 'تومان' : 'درهم'})
+          {t(
+            `قیمت (${unit === 'toman' ? 'تومان' : 'درهم'})`,
+            `Price (${unit === 'toman' ? 'Toman' : 'AED'})`,
+          )}
         </label>
         <input
           id="price"
@@ -220,12 +240,22 @@ export function EditListingForm({
           className="field"
           value={price}
           onChange={(e) => setPrice(e.target.value)}
-          placeholder={unit === 'toman' ? 'مثلاً ۱٬۱۰۰٬۰۰۰٬۰۰۰' : 'مثلاً ۴۰٬۰۰۰'}
+          placeholder={
+            unit === 'toman'
+              ? t('مثلاً ۱٬۱۰۰٬۰۰۰٬۰۰۰', 'e.g. 1,100,000,000')
+              : t('مثلاً ۴۰٬۰۰۰', 'e.g. 40,000')
+          }
         />
         <p className="hint">
           {irrPreview !== null
-            ? `معادل ${groupDigits(irrToToman(irrPreview))} تومان در فهرست`
-            : 'قیمت در فهرست به تومان نمایش داده می‌شود.'}
+            ? t(
+                `معادل ${groupDigits(irrToToman(irrPreview))} تومان در فهرست`,
+                `Equivalent to ${groupDigits(irrToToman(irrPreview))} Toman in listings`,
+              )
+            : t(
+                'قیمت در فهرست به تومان نمایش داده می‌شود.',
+                'The listing price is displayed in Toman.',
+              )}
         </p>
 
         <label className="mt-4 flex cursor-pointer items-start gap-2 text-sm font-semibold">
@@ -236,9 +266,15 @@ export function EditListingForm({
             className="mt-1 accent-[var(--color-accent)]"
           />
           <span>
-            عدم نمایش قیمت درهم در آگهی (فقط نمایش قیمت به تومان)
+            {t(
+              'عدم نمایش قیمت درهم در آگهی (فقط نمایش قیمت به تومان)',
+              'Hide the AED price on this listing (Toman only)',
+            )}
             <span className="hint mt-0 block">
-              خط «≈ … AED» روی کارت، فهرست و صفحه‌ی آگهی نمایش داده نمی‌شود.
+              {t(
+                'خط «≈ … AED» روی کارت، فهرست و صفحه‌ی آگهی نمایش داده نمی‌شود.',
+                'The “≈ … AED” line is hidden on cards, feeds and the listing page.',
+              )}
             </span>
           </span>
         </label>
@@ -251,18 +287,26 @@ export function EditListingForm({
             className="mt-1 accent-[var(--color-accent)]"
           />
           <span>
-            شماره تماس من در آگهی نمایش داده شود
+            {t(
+              'شماره تماس من در آگهی نمایش داده شود',
+              'Show my phone number on this listing',
+            )}
             <span className="hint mt-0 block">
-              در غیر این صورت خریداران فقط از طریق پیام‌رسان داخلی تماس می‌گیرند.
+              {t(
+                'در غیر این صورت خریداران فقط از طریق پیام‌رسان داخلی تماس می‌گیرند.',
+                'Otherwise buyers can only reach you through in-app chat.',
+              )}
             </span>
           </span>
         </label>
       </section>
 
       <section className="rounded-card border border-line bg-card p-4 sm:p-5">
-        <h2 className="mb-4 border-b border-line pb-2 text-md font-extrabold">توضیحات</h2>
+        <h2 className="mb-4 border-b border-line pb-2 text-md font-extrabold">
+          {t('توضیحات', 'Description')}
+        </h2>
         <label className="label" htmlFor="description">
-          توضیحات آگهی (اختیاری)
+          {t('توضیحات آگهی (اختیاری)', 'Listing description (optional)')}
         </label>
         <textarea
           id="description"
@@ -270,34 +314,51 @@ export function EditListingForm({
           className="field resize-y"
           value={text}
           onChange={(e) => setText(e.target.value)}
-          placeholder="وضعیت فنی، دلیل فروش، لوازم همراه…"
+          placeholder={t(
+            'وضعیت فنی، دلیل فروش، لوازم همراه…',
+            'Mechanical condition, reason for selling, included accessories…',
+          )}
         />
         <p className="hint">
-          اختیاری است و حداقل نویسه ندارد — اکنون {toPersianDigits(text.trim().length)} نویسه
+          {t(
+            `اختیاری است و حداقل نویسه ندارد — اکنون ${toPersianDigits(text.trim().length)} نویسه`,
+            `Optional with no minimum — currently ${text.trim().length} characters`,
+          )}
         </p>
       </section>
 
       <section className="rounded-card border border-line bg-card p-4 sm:p-5">
-        <h2 className="mb-4 border-b border-line pb-2 text-md font-extrabold">عکس‌های آگهی</h2>
+        <h2 className="mb-4 border-b border-line pb-2 text-md font-extrabold">
+          {t('عکس‌های آگهی', 'Listing photos')}
+        </h2>
         <PhotoUploader
           photos={photos}
           onChange={setPhotos}
           onBusyChange={setPhotosBusy}
-          label="عکس‌های آگهی"
+          label={t('عکس‌های آگهی', 'Listing photos')}
         />
-        <p className="hint mt-2">ترتیب عکس‌ها همان ترتیب نمایش است؛ عکس اول کاور آگهی می‌شود.</p>
+        <p className="hint mt-2">
+          {t(
+            'ترتیب عکس‌ها همان ترتیب نمایش است؛ عکس اول کاور آگهی می‌شود.',
+            'Photos appear in this order; the first photo is the listing cover.',
+          )}
+        </p>
       </section>
 
       <div className="flex flex-wrap items-center justify-between gap-3">
         <button type="button" onClick={() => router.back()} className="btn-ghost text-sm">
-          انصراف
+          {t('انصراف', 'Cancel')}
         </button>
         <button
           type="submit"
           disabled={saving || photosBusy}
           className="btn-cta text-sm disabled:opacity-60"
         >
-          {saving ? 'در حال ذخیره…' : photosBusy ? 'در حال بارگذاری عکس‌ها…' : 'ذخیره تغییرات'}
+          {saving
+            ? t('در حال ذخیره…', 'Saving…')
+            : photosBusy
+              ? t('در حال بارگذاری عکس‌ها…', 'Uploading photos…')
+              : t('ذخیره تغییرات', 'Save changes')}
         </button>
       </div>
     </form>

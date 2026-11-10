@@ -16,6 +16,8 @@ import { searchListings } from '@/lib/data/listings';
 import { approvedStories } from '@/lib/data/moderation';
 import { storiesFrom } from '@/lib/stories';
 import { parseSortKey } from '@/lib/sort';
+import { getLanguage } from '@/lib/i18n/server';
+import { serverT } from '@/lib/i18n/server';
 
 type SearchParams = Record<string, string | string[] | undefined>;
 
@@ -59,7 +61,8 @@ export default async function HomePage({
   const body = parseBodyType(first(params.body));
   const category = parsePartCategory(first(params.category));
 
-  const session = await getSession();
+  const [session, lang] = await Promise.all([getSession(), getLanguage()]);
+  const t = (fa: string, en?: string) => serverT(lang, fa, en);
   const followed = followedSellerIds(session?.sub);
   const [base, approved] = await Promise.all([searchListings(filters), approvedStories()]);
   let listings = base;
@@ -72,14 +75,16 @@ export default async function HomePage({
   // each group because the boost is a stable partition.
   listings = boostFollowed(listings, followed);
 
-  const groupLabel = body?.label ?? (category ? PART_CATEGORY_LABELS[category] : null);
+  const groupLabel = body ? t(body.label) : category ? t(PART_CATEGORY_LABELS[category]) : null;
   const vehicleCount = base.filter((l) => l.kind !== 'part').length;
   const partCount = base.filter((l) => l.kind === 'part').length;
   const kindLabel = kind === 'vehicle' ? 'خودرو' : kind === 'part' ? 'قطعات و لوازم یدکی' : null;
 
   return (
     <>
-      <h1 className="sr-only">آگهی‌های خودرو در کیش و سراسر ایران</h1>
+      <h1 className="sr-only">
+        {t('آگهی‌های خودرو در کیش و سراسر ایران', 'Vehicle listings in Kish and across Iran')}
+      </h1>
       <div className="mb-3">
         <CategorySwitch />
       </div>
@@ -89,7 +94,7 @@ export default async function HomePage({
             {groupLabel ?? kindLabel}
           </span>
           <Link href="/" className="text-xs font-bold text-muted underline">
-            حذف دسته‌بندی
+            {t('حذف دسته‌بندی', 'Clear category')}
           </Link>
         </div>
       )}

@@ -1,4 +1,4 @@
-import type { Metadata } from 'next';
+import { localizedMetadata } from '@/lib/i18n/metadata';
 import { DEFAULT_FILTERS, parseFiltersFromSearchParams } from '@alisales/schemas';
 import { PartsCatalog } from '@/components/PartsCatalog';
 import { CategorySwitch } from '@/components/CategorySwitch';
@@ -14,11 +14,13 @@ import { searchListings } from '@/lib/data/listings';
 import { approvedStories } from '@/lib/data/moderation';
 import { storiesFrom } from '@/lib/stories';
 import { parseSortKey } from '@/lib/sort';
+import { getLanguage } from '@/lib/i18n/server';
+import { serverT } from '@/lib/i18n/server';
 
-export const metadata: Metadata = {
-  title: 'قطعات و لوازم یدکی',
-  description: 'قطعات و لوازم یدکی خودروهای وارداتی در کیش — با فیلتر دسته‌بندی، منشأ و سازگاری.',
-};
+export const generateMetadata = localizedMetadata(
+  { title: 'قطعات و لوازم یدکی', description: 'قطعات و لوازم یدکی خودروهای وارداتی در کیش — با فیلتر دسته‌بندی، منشأ و سازگاری.' },
+  { title: 'Spare Parts & Accessories', description: 'Imported-car spare parts and accessories in Kish — filter by category, origin and compatibility.' },
+);
 
 type SearchParams = Record<string, string | string[] | undefined>;
 
@@ -64,7 +66,8 @@ export default async function PartsPage({
   // deliberately separate from the vehicle condition filter.
   const condition = first(params.pcond) ?? null;
 
-  const session = await getSession();
+  const [session, lang] = await Promise.all([getSession(), getLanguage()]);
+  const t = (fa: string, en?: string) => serverT(lang, fa, en);
   const followed = followedSellerIds(session?.sub);
   const [base, pool, approved] = await Promise.all([
     searchListings(filters),
@@ -87,7 +90,7 @@ export default async function PartsPage({
 
   return (
     <div className="space-y-4">
-      <h1 className="text-xl font-extrabold sm:text-2xl">قطعات و لوازم یدکی</h1>
+      <h1 className="text-xl font-extrabold sm:text-2xl">{t('قطعات و لوازم یدکی')}</h1>
 
       <CategorySwitch />
 

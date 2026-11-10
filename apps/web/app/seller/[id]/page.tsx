@@ -1,4 +1,4 @@
-import type { Metadata } from 'next';
+import { localizedMetadata } from '@/lib/i18n/metadata';
 import Image from 'next/image';
 import Link from 'next/link';
 import { notFound } from 'next/navigation';
@@ -12,15 +12,22 @@ import { FollowSellerButton } from '@/components/FollowSellerButton';
 import { SellerActions } from '@/components/SellerActions';
 import { Stories } from '@/components/Stories';
 import { VerifiedPill } from '@/components/SellerVerified';
+import { NativeBackHeader } from '@/components/NativeBackHeader';
 import { isPreSizedSource } from '@/lib/images';
+import { getLanguage } from '@/lib/i18n/server';
+import { serverT } from '@/lib/i18n/server';
+import { postingAgeEnglish } from '@/lib/i18n/dictionary';
 
-export const metadata: Metadata = { title: 'پروفایل فروشنده' };
+export const generateMetadata = localizedMetadata(
+  { title: 'پروفایل فروشنده' },
+  { title: 'Seller profile' },
+);
 
 type Tab = 'active' | 'stories' | 'reviews';
-const TABS: ReadonlyArray<{ key: Tab; label: string }> = [
-  { key: 'active', label: 'آگهی‌های فعال' },
-  { key: 'stories', label: 'استوری‌ها' },
-  { key: 'reviews', label: 'امتیاز و نظرات' },
+const TABS: ReadonlyArray<{ key: Tab; label: string; en: string }> = [
+  { key: 'active', label: 'آگهی‌های فعال', en: 'Active listings' },
+  { key: 'stories', label: 'استوری‌ها', en: 'Stories' },
+  { key: 'reviews', label: 'امتیاز و نظرات', en: 'Rating & reviews' },
 ];
 
 function parseTab(value: string | string[] | undefined): Tab {
@@ -46,8 +53,9 @@ export default async function SellerPage({
 }) {
   const { id } = await params;
   const query = await searchParams;
-  const profile = await loadSellerProfile(id);
+  const [profile, lang] = await Promise.all([loadSellerProfile(id), getLanguage()]);
   if (!profile) notFound();
+  const t = (fa: string, en?: string) => serverT(lang, fa, en);
 
   const session = await getSession();
   const isOwner = session?.sub === profile.id;
@@ -57,6 +65,7 @@ export default async function SellerPage({
 
   return (
     <div className="mx-auto max-w-4xl space-y-4">
+      <NativeBackHeader title={profile.name} fallbackHref="/" />
       {/* Cover + identity */}
       <section className="overflow-hidden rounded-card border border-line bg-card">
         <div
@@ -89,7 +98,7 @@ export default async function SellerPage({
             <div className="min-w-0 flex-1 pb-1">
               <h1 className="flex flex-wrap items-center gap-1.5 text-lg font-extrabold leading-tight">
                 <span className="truncate">{profile.name}</span>
-                {profile.verified && <VerifiedPill label="تأییدشده" />}
+                {profile.verified && <VerifiedPill label={t('تأییدشده', 'Verified')} />}
               </h1>
               <p className="mt-0.5 flex flex-wrap items-center gap-x-2 text-xs font-bold text-muted">
                 <span className="inline-flex items-center gap-1">
@@ -97,7 +106,14 @@ export default async function SellerPage({
                   {CITY_LABELS[profile.city] ?? profile.city}
                 </span>
                 {profile.memberSince && (
-                  <span>عضو از {formatJalaliDate(new Date(profile.memberSince))}</span>
+                  <span>
+                    {t('عضو از', 'Member since')}{' '}
+                    {lang === 'en'
+                      ? new Intl.DateTimeFormat('en-GB', { dateStyle: 'medium' }).format(
+                          new Date(profile.memberSince),
+                        )
+                      : formatJalaliDate(new Date(profile.memberSince))}
+                  </span>
                 )}
               </p>
             </div>
@@ -128,16 +144,22 @@ export default async function SellerPage({
           {/* Four numbers, nothing else. */}
           <dl className="mt-4 grid grid-cols-2 gap-2 sm:grid-cols-4">
             {[
-              { label: 'آگهی‌های فعال', value: formatAmountLatin(profile.stats.active) },
-              { label: 'استوری‌ها', value: formatAmountLatin(profile.stats.stories) },
               {
-                label: 'امتیاز و نظرات',
+                label: t('آگهی‌های فعال', 'Active listings'),
+                value: formatAmountLatin(profile.stats.active),
+              },
+              { label: t('استوری‌ها', 'Stories'), value: formatAmountLatin(profile.stats.stories) },
+              {
+                label: t('امتیاز و نظرات', 'Rating & reviews'),
                 value:
                   profile.stats.rating === null
                     ? '—'
                     : `${profile.stats.rating} / 5 (${profile.stats.reviewCount})`,
               },
-              { label: 'دنبال‌کننده', value: formatAmountLatin(profile.stats.followers) },
+              {
+                label: t('دنبال‌کننده', 'Followers'),
+                value: formatAmountLatin(profile.stats.followers),
+              },
             ].map((stat) => (
               <div
                 key={stat.label}
@@ -154,7 +176,7 @@ export default async function SellerPage({
       </section>
 
       {/* Tabs */}
-      <nav aria-label="بخش‌های پروفایل" className="flex gap-1 rounded-card border border-line bg-card p-1">
+      <nav aria-label={t('بخش‌های پروفایل', 'Profile sections')} className="flex gap-1 rounded-card border border-line bg-card p-1">
         {TABS.map((item) => {
           const active = tab === item.key;
           const count =
@@ -172,7 +194,7 @@ export default async function SellerPage({
                 active ? 'bg-cta-soft text-ink' : 'text-muted hover:text-ink'
               }`}
             >
-              {item.label}
+              {t(item.label, item.en)}
               <span className="ms-1 text-[10px] text-faint">{count}</span>
             </Link>
           );
@@ -183,19 +205,34 @@ export default async function SellerPage({
         profile.stories.length === 0 ? (
           <div className="rounded-card border border-dashed border-line-strong bg-card px-6 py-12 text-center">
             <Icon name="camera" size={32} className="mx-auto text-faint" />
-            <p className="mt-3 text-sm font-extrabold">هنوز استوری‌ای برای این نمایشگاه نیست.</p>
-            <p className="mt-1 text-xs text-muted">استوری‌ها از آگهی‌های فعال عکس‌دار ساخته می‌شوند.</p>
+            <p className="mt-3 text-sm font-extrabold">
+              {t('هنوز استوری‌ای برای این نمایشگاه نیست.', 'No stories from this showroom yet.')}
+            </p>
+            <p className="mt-1 text-xs text-muted">
+              {t(
+                'استوری‌ها از آگهی‌های فعال عکس‌دار ساخته می‌شوند.',
+                'Stories are created from active listings with photos.',
+              )}
+            </p>
           </div>
         ) : (
-          <Stories stories={profile.stories} label="استوری‌های این نمایشگاه" />
+          <Stories
+            stories={profile.stories}
+            label={t('استوری‌های این نمایشگاه', 'This showroom’s stories')}
+          />
         )
       ) : tab === 'reviews' ? (
         profile.reviews.length === 0 ? (
           <div className="rounded-card border border-dashed border-line-strong bg-card px-6 py-12 text-center">
             <Icon name="message" size={32} className="mx-auto text-faint" />
-            <p className="mt-3 text-sm font-extrabold">هنوز نظری ثبت نشده است.</p>
+            <p className="mt-3 text-sm font-extrabold">
+              {t('هنوز نظری ثبت نشده است.', 'No reviews yet.')}
+            </p>
             <p className="mt-1 text-xs text-muted">
-              نظرات پس از تکمیل معامله توسط خریداران ثبت می‌شود.
+              {t(
+                'نظرات پس از تکمیل معامله توسط خریداران ثبت می‌شود.',
+                'Reviews are added by buyers after a completed transaction.',
+              )}
             </p>
           </div>
         ) : (
@@ -212,7 +249,9 @@ export default async function SellerPage({
                 <p className="mt-2 text-sm leading-7 text-ink/85">{review.body}</p>
                 <p className="mt-2 text-[11px] font-bold text-faint">
                   {review.listingTitle ? `${review.listingTitle} · ` : ''}
-                  {postingAgeLabel(review.createdAt)}
+                  {lang === 'en'
+                    ? postingAgeEnglish(review.createdAt)
+                    : postingAgeLabel(review.createdAt)}
                 </p>
               </li>
             ))}
@@ -221,7 +260,9 @@ export default async function SellerPage({
       ) : profile.active.length === 0 ? (
         <div className="rounded-card border border-dashed border-line-strong bg-card px-6 py-12 text-center">
           <Icon name="tag" size={32} className="mx-auto text-faint" />
-          <p className="mt-3 text-sm font-extrabold">آگهی فعالی ندارد.</p>
+          <p className="mt-3 text-sm font-extrabold">
+            {t('آگهی فعالی ندارد.', 'No active listings.')}
+          </p>
         </div>
       ) : (
         <ul className="grid grid-cols-3 gap-1.5 sm:gap-2">
@@ -265,7 +306,8 @@ export default async function SellerPage({
                       style={{ color: '#F98513' }}
                       dir="rtl"
                     >
-                      {formatAmountLatin(irrToToman(listing.priceIRR))} تومان
+                      {formatAmountLatin(irrToToman(listing.priceIRR))}{' '}
+                      {t('تومان', 'Toman')}
                     </p>
                   </div>
                 </Link>

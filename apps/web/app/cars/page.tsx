@@ -1,14 +1,16 @@
-import type { Metadata } from 'next';
+import { localizedMetadata } from '@/lib/i18n/metadata';
 import Link from 'next/link';
 import { CategoryCatalog } from '@/components/CategoryCatalog';
 import { CategorySwitch } from '@/components/CategorySwitch';
 import { filterByBodyType, parseBodyType } from '@/lib/browse';
 import { loadCategoryPage } from '@/lib/category-page';
+import { getLanguage } from '@/lib/i18n/server';
+import { serverT } from '@/lib/i18n/server';
 
-export const metadata: Metadata = {
-  title: 'خودروها',
-  description: 'جستجوی خودروهای نو و کارکرده در کیش — با فیلتر برند، سال، قیمت و پلاک.',
-};
+export const generateMetadata = localizedMetadata(
+  { title: 'خودروها', description: 'جستجوی خودروهای نو و کارکرده در کیش — با فیلتر برند، سال، قیمت و پلاک.' },
+  { title: 'Vehicles', description: 'Search new and used cars in Kish — filter by brand, year, price and plate.' },
+);
 
 type SearchParams = Record<string, string | string[] | undefined>;
 
@@ -30,19 +32,23 @@ export default async function CarsPage({
   searchParams: Promise<SearchParams>;
 }) {
   const params = await searchParams;
-  const { listings, ...data } = await loadCategoryPage(params, 'car');
+  const [{ listings, ...data }, lang] = await Promise.all([
+    loadCategoryPage(params, 'car'),
+    getLanguage(),
+  ]);
+  const t = (fa: string, en?: string) => serverT(lang, fa, en);
   const body = parseBodyType(first(params.body));
   const visible = body ? filterByBodyType(listings, body) : listings;
 
   return (
     <div className="space-y-4">
       <div className="flex flex-wrap items-center justify-between gap-2">
-        <h1 className="text-xl font-extrabold sm:text-2xl">خودروها</h1>
+        <h1 className="text-xl font-extrabold sm:text-2xl">{t('خودروها', 'Vehicles')}</h1>
         <Link
           href="/parts"
           className="text-sm font-bold text-muted transition hover:text-ink"
         >
-          قطعات و لوازم یدکی
+          {t('قطعات و لوازم یدکی')}
         </Link>
       </div>
 
@@ -55,9 +61,9 @@ export default async function CarsPage({
         filters={data.filters}
         sort={data.sort}
         stories={data.stories}
-        storiesLabel="داستان‌های خودرو"
-        searchPlaceholder="جستجو در خودروها..."
-        heading="خودرو"
+        storiesLabel={t('داستان‌های خودرو', 'Vehicle stories')}
+        searchPlaceholder={t('جستجو در خودروها...', 'Search vehicles...')}
+        heading={t('خودرو')}
       />
     </div>
   );

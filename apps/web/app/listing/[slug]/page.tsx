@@ -17,6 +17,7 @@ import {
 import { ContactButtons } from '@/components/ContactButtons';
 import { InspectionOffer } from '@/components/InspectionOffer';
 import { ListingGallery } from '@/components/ListingGallery';
+import { NativeBackHeader } from '@/components/NativeBackHeader';
 import { FavoriteButton } from '@/components/FavoriteButton';
 import { Icon } from '@/components/Icon';
 import { ReportListingButton } from '@/components/ReportListingButton';
@@ -28,6 +29,8 @@ import { SoldBadge } from '@/components/SoldBadge';
 import { getListing, getSellerPhone } from '@/lib/data/listings';
 import { brandLatinFor, vehicleTitle } from '@/lib/listing-text';
 import { getSession } from '@/lib/auth/session';
+import { getLanguage } from '@/lib/i18n/server';
+import { serverT } from '@/lib/i18n/server';
 import { recordView } from '@/lib/data/s2-store';
 import { shouldRecordView } from '@/lib/data/stats-rules';
 
@@ -58,8 +61,9 @@ export default async function ListingDetailPage({
   params: Promise<{ slug: string }>;
 }) {
   const { slug } = await params;
-  const listing = await getListing(slug);
+  const [listing, lang] = await Promise.all([getListing(slug), getLanguage()]);
   if (!listing) notFound();
+  const t = (fa: string, en?: string) => serverT(lang, fa, en);
 
   // Server guarantees: null for sold / non-revealed phones.
   const phone = await getSellerPhone(listing.id);
@@ -95,30 +99,30 @@ export default async function ListingDetailPage({
   // age belongs to the browse cards and rows, never to this block.
   const specs: DetailSpec[] = part
     ? [
-        { icon: 'car', label: 'دسته‌بندی', value: PART_CATEGORY_LABELS[part.category] },
-        { icon: 'shieldCheck', label: 'اصالت', value: PART_ORIGIN_LABELS[part.origin] },
+        { icon: 'car', label: t('دسته‌بندی'), value: t(PART_CATEGORY_LABELS[part.category]) },
+        { icon: 'shieldCheck', label: t('اصالت'), value: t(PART_ORIGIN_LABELS[part.origin]) },
         ...(part.originCountry
-          ? [{ icon: 'plate' as const, label: 'کشور سازنده', value: part.originCountry }]
+          ? [{ icon: 'plate' as const, label: t('کشور سازنده'), value: part.originCountry }]
           : []),
-        { icon: 'car', label: 'سازگاری', value: compatibilityLabel(part.compatibility) },
+        { icon: 'car', label: t('سازگاری'), value: compatibilityLabel(part.compatibility) },
         ...(part.partNumber
-          ? [{ icon: 'gear' as const, label: 'شماره فنی', value: part.partNumber }]
+          ? [{ icon: 'gear' as const, label: t('شماره فنی'), value: part.partNumber }]
           : []),
         ...(part.warranty
-          ? [{ icon: 'shieldCheck' as const, label: 'گارانتی', value: part.warranty }]
+          ? [{ icon: 'shieldCheck' as const, label: t('گارانتی'), value: part.warranty }]
           : []),
-        { icon: 'car', label: 'وضعیت', value: PART_CONDITION_LABELS[part.condition] },
+        { icon: 'car', label: t('وضعیت'), value: t(PART_CONDITION_LABELS[part.condition]) },
       ]
     : [
-        { icon: 'car', label: 'سال ساخت', value: String(listing.year) },
-        { icon: 'mileage', label: 'کیلومتراژ', value: `${listing.mileageKm} کیلومتر` },
-        { icon: 'gear', label: 'گیربکس', value: GEARBOX_LABELS[listing.gearbox] },
+        { icon: 'car', label: t('سال ساخت'), value: String(listing.year) },
+        { icon: 'mileage', label: t('کیلومتراژ'), value: `${listing.mileageKm} ${t('کیلومتر')}` },
+        { icon: 'gear', label: t('گیربکس'), value: t(GEARBOX_LABELS[listing.gearbox]) },
         // The plate already has its own badge above the title, so the tile
         // carries the fuel only — no duplicated «پلاک کیش» in two places.
         {
           icon: 'fuel',
-          label: 'سوخت',
-          value: FUEL_LABELS[listing.fuel],
+          label: t('سوخت'),
+          value: t(FUEL_LABELS[listing.fuel]),
         },
       ];
 
@@ -133,53 +137,69 @@ export default async function ListingDetailPage({
     if (text) extraSpecs.push({ label, value: text });
   };
   if (part) {
-    pushSpec('کشور سازنده', part.originCountry ?? null);
-    pushSpec('شماره فنی', part.partNumber);
-    pushSpec('گارانتی', part.warranty);
-    if (part.compatibility) pushSpec('سازگاری خودرو', part.compatibility);
+    pushSpec(t('کشور سازنده'), part.originCountry ?? null);
+    pushSpec(t('شماره فنی'), part.partNumber);
+    pushSpec(t('گارانتی'), part.warranty);
+    if (part.compatibility) pushSpec(t('سازگاری خودرو'), part.compatibility);
   } else {
-    pushSpec('رنگ', colorLabel(listing.color));
-    pushSpec('تیپ / کلاس بدنه', listing.bodyType ? BODY_TYPE_LABELS[listing.bodyType] : null);
-    if (listing.engineCc) pushSpec('توان / حجم موتور', `${listing.engineCc} cc`);
-    if (listing.workingHours) pushSpec('ساعت کارکرد', `${listing.workingHours} ساعت`);
+    pushSpec(t('رنگ'), t(colorLabel(listing.color)));
+    pushSpec(
+      t('تیپ / کلاس بدنه'),
+      listing.bodyType ? t(BODY_TYPE_LABELS[listing.bodyType]) : null,
+    );
+    if (listing.engineCc) pushSpec(t('توان / حجم موتور'), `${listing.engineCc} cc`);
+    if (listing.workingHours) {
+      pushSpec(t('ساعت کارکرد'), `${listing.workingHours} ${t('ساعت')}`);
+    }
     // Seller-declared condition facts — detailed here, never on the grid card.
     if (listing.thirdPartyInsurance !== null && listing.thirdPartyInsurance !== undefined) {
       pushSpec(
-        'بیمه شخص ثالث',
+        t('بیمه شخص ثالث'),
         listing.thirdPartyInsurance
-          ? `دارد${listing.thirdPartyMonths ? ` · ${listing.thirdPartyMonths} ماه` : ''}`
-          : 'ندارد',
+          ? lang === 'en'
+            ? `Yes${listing.thirdPartyMonths ? ` · ${listing.thirdPartyMonths} months remaining` : ''}`
+            : `${t('دارد')}${listing.thirdPartyMonths ? ` · ${listing.thirdPartyMonths} ${t('ماه اعتبار')}` : ''}`
+          : t('ندارد'),
       );
     }
     if (listing.bodyInsurance !== null && listing.bodyInsurance !== undefined) {
       pushSpec(
-        'بیمه بدنه',
+        t('بیمه بدنه'),
         listing.bodyInsurance
-          ? `دارد${listing.bodyMonths ? ` · ${listing.bodyMonths} ماه` : ''}`
-          : 'ندارد',
+          ? lang === 'en'
+            ? `Yes${listing.bodyMonths ? ` · ${listing.bodyMonths} months remaining` : ''}`
+            : `${t('دارد')}${listing.bodyMonths ? ` · ${listing.bodyMonths} ${t('ماه اعتبار')}` : ''}`
+          : t('ندارد'),
       );
     }
     if (listing.paintCondition) {
       pushSpec(
-        'وضعیت رنگ و بدنه',
-        PAINT_CONDITION_LABELS[
-          listing.paintCondition as keyof typeof PAINT_CONDITION_LABELS
-        ] ?? listing.paintCondition,
+        t('وضعیت رنگ و بدنه'),
+        t(
+          PAINT_CONDITION_LABELS[
+            listing.paintCondition as keyof typeof PAINT_CONDITION_LABELS
+          ] ?? listing.paintCondition,
+        ),
       );
     }
     if (listing.chassisCondition) {
       pushSpec(
-        'وضعیت شاسی',
-        CHASSIS_CONDITION_LABELS[
-          listing.chassisCondition as keyof typeof CHASSIS_CONDITION_LABELS
-        ] ?? listing.chassisCondition,
+        t('وضعیت شاسی'),
+        t(
+          CHASSIS_CONDITION_LABELS[
+            listing.chassisCondition as keyof typeof CHASSIS_CONDITION_LABELS
+          ] ?? listing.chassisCondition,
+        ),
       );
     }
     if (listing.technicalInspection !== null && listing.technicalInspection !== undefined) {
-      pushSpec('معاینه فنی', listing.technicalInspection ? 'دارد' : 'ندارد');
+      pushSpec(t('معاینه فنی'), listing.technicalInspection ? t('دارد') : t('ندارد'));
     }
-    if (listing.isJournalPhoto) pushSpec('عکس ژورنال', 'عکس ژورنال');
-    if (listing.inspectionNote) pushSpec('خلاصه برگه کارشناسی', listing.inspectionNote);
+    if (listing.isJournalPhoto) pushSpec(t('عکس ژورنالی'), t('دارد'));
+    if (listing.inspectionSheetUrl) pushSpec(t('برگه کارشناسی'), t('دارد'));
+    if (listing.inspectionNote) {
+      pushSpec(t('خلاصه برگه کارشناسی'), t(listing.inspectionNote));
+    }
   }
 
   /** «توضیحات آگهی» + its extra-spec tags. Rendered once: on phones it sits
@@ -188,25 +208,26 @@ export default async function ListingDetailPage({
    * the evidence column under the gallery. */
   const descriptionCard = (
     <section className="rounded-card border border-line bg-card p-4 sm:p-5">
-      <h2 className="text-base font-extrabold text-ink">توضیحات آگهی</h2>
+      <h2 className="text-base font-extrabold text-ink">{t('توضیحات آگهی')}</h2>
       <p className="mt-3 whitespace-pre-line text-justify text-sm leading-8 text-ink/85">
-        {listing.description?.trim() || 'فروشنده برای این آگهی توضیحی ثبت نکرده است.'}
+        {listing.description?.trim() ||
+          t('فروشنده برای این آگهی توضیحی ثبت نکرده است.')}
       </p>
 
       {extraSpecs.length > 0 && (
-        <div className="mt-4 border-t border-line pt-3">
-          <p className="mb-2 text-[11px] font-extrabold text-muted">مشخصات تکمیلی</p>
-          <ul className="flex flex-wrap gap-2">
+        <div className="mt-5 border-t border-line pt-4">
+          <h3 className="mb-3 text-sm font-extrabold text-ink">{t('مشخصات تکمیلی')}</h3>
+          <dl className="grid grid-cols-1 gap-x-5 gap-y-0 sm:grid-cols-2">
             {extraSpecs.map((spec) => (
-              <li
+              <div
                 key={`${spec.label}-${spec.value}`}
-                className="inline-flex items-center gap-1 rounded-[var(--radius-pill)] border border-line bg-page px-3 py-1 text-[11px] font-bold text-muted"
+                className="flex items-start justify-between gap-3 border-b border-line/70 py-2 text-xs"
               >
-                <span className="text-faint">{spec.label}:</span>
-                <b className="font-extrabold text-ink">{spec.value}</b>
-              </li>
+                <dt className="shrink-0 font-bold text-muted">{spec.label}</dt>
+                <dd className="text-end font-extrabold text-ink">{spec.value}</dd>
+              </div>
             ))}
-          </ul>
+          </dl>
         </div>
       )}
 
@@ -218,7 +239,7 @@ export default async function ListingDetailPage({
           className="mt-3 inline-flex items-center gap-1.5 rounded-[var(--radius-pill)] border border-line bg-page px-3 py-1.5 text-[11px] font-extrabold text-ink transition hover:border-line-strong"
         >
           <Icon name="shieldCheck" size={14} />
-          مشاهده برگه کارشناسی بارگذاری‌شده
+          {t('مشاهده برگه کارشناسی بارگذاری‌شده')}
         </a>
       )}
     </section>
@@ -226,12 +247,16 @@ export default async function ListingDetailPage({
 
   return (
     <article className="mx-auto max-w-6xl space-y-5">
+      <NativeBackHeader
+        title={part ? part.title : vehicleTitle(listing)}
+        fallbackHref="/"
+      />
       <Link
         href="/"
         className="inline-flex items-center gap-1.5 text-sm font-bold text-muted transition hover:text-ink"
       >
         <Icon name="arrowLeft" size={18} />
-        بازگشت به آگهی‌ها
+        {t('بازگشت به آگهی‌ها')}
       </Link>
 
       <div className="grid items-start gap-6 lg:grid-cols-12 lg:gap-8">
@@ -265,7 +290,7 @@ export default async function ListingDetailPage({
                         borderColor: token.border,
                       }}
                     >
-                      {token.label}
+                      {t(token.label)}
                     </span>
                   );
                 })}
@@ -329,14 +354,14 @@ export default async function ListingDetailPage({
             <div className="flex items-center justify-between gap-3">
               <div className="min-w-0">
                 {listing.showroomVerified ? (
-                  <VerifiedPill label={part ? 'تعمیرگاه معتبر' : 'نمایشگاه معتبر'} />
+                  <VerifiedPill label={t(part ? 'تعمیرگاه معتبر' : 'نمایشگاه معتبر')} />
                 ) : (
                   <p className="truncate text-sm font-extrabold">
-                    {sellerDisplayName(listing.showroomName) ?? 'فروشنده حقیقی'}
+                    {sellerDisplayName(listing.showroomName) ?? t('فروشنده حقیقی', 'Private seller')}
                   </p>
                 )}
                 <p className="mt-1 text-xs font-bold text-muted">
-                  {CITY_LABELS[listing.city] ?? listing.city}
+                  {t(CITY_LABELS[listing.city] ?? listing.city)}
                 </p>
               </div>
             </div>
@@ -346,7 +371,7 @@ export default async function ListingDetailPage({
               className="mt-2 inline-flex items-center gap-1 text-xs font-bold text-muted underline transition hover:text-ink"
             >
               <Icon name="user" size={14} />
-              مشاهده‌ی پروفایل فروشنده
+              {t('مشاهده‌ی پروفایل فروشنده', 'View seller profile')}
             </Link>
 
             <div className="mt-4 border-t border-line pt-4">
@@ -366,7 +391,7 @@ export default async function ListingDetailPage({
                   className="inline-flex items-center gap-1 rounded-[var(--radius-pill)] border border-line bg-card px-3 py-1.5 text-xs font-extrabold text-ink transition hover:border-line-strong"
                 >
                   <Icon name="pencil" size={14} />
-                  ویرایش آگهی
+                  {t('ویرایش آگهی', 'Edit listing')}
                 </Link>
                 <DeleteListingButton
                   id={listing.id}

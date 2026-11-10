@@ -132,6 +132,7 @@ function YearGrid({
   to: number | undefined;
   onChange: (next: { yearFrom?: number; yearTo?: number }) => void;
 }) {
+  const { t } = useI18n();
   const [open, setOpen] = useState(false);
   const active = from !== undefined || to !== undefined;
   // «تا سال» defaults to the current latest model year. It is a display
@@ -182,7 +183,7 @@ function YearGrid({
       {open && (
         <div
           role="dialog"
-          aria-label="انتخاب سال ساخت"
+          aria-label={t('انتخاب سال ساخت', 'Choose model year')}
           className="absolute inset-x-0 top-full z-30 mt-2 rounded-card border border-line bg-card p-3 shadow-xl"
         >
           <div className="mb-2 flex items-center justify-between gap-2 text-[11px] font-extrabold">
@@ -284,6 +285,7 @@ function BrandModelPicker({
   value: string;
   onChange: (model: string) => void;
 }) {
+  const { t } = useI18n();
   const models = modelsForBrand(brandSlug);
   const known = models.includes(value);
   return (
@@ -293,7 +295,7 @@ function BrandModelPicker({
           value={known ? value : ''}
           onChange={onChange}
           ariaLabel="مدل خودرو"
-          placeholder="همه مدل‌ها"
+          placeholder={t('همه مدل‌ها')}
           options={[
             { value: '', label: 'همه مدل‌ها' },
             ...models.map((model) => ({ value: model, label: model })),
@@ -308,8 +310,8 @@ function BrandModelPicker({
         className="field h-9 text-xs"
         value={value}
         onChange={(e) => onChange(e.target.value)}
-        placeholder="یا نام مدل را بنویسید…"
-        aria-label="جستجوی مدل"
+        placeholder={t('یا نام مدل را بنویسید…', 'Or type the model name...')}
+        aria-label={t('جستجوی مدل', 'Search model')}
       />
     </div>
   );
@@ -352,8 +354,8 @@ export function FilterGroups({
               const n = intOrUndefined(e.target.value);
               set({ priceFrom: n === undefined ? undefined : tomanToIRR(n) });
             }}
-            placeholder="از"
-            aria-label="قیمت از"
+            placeholder={t('از', 'From')}
+            aria-label={t('قیمت از', 'Price from')}
           />
           <input
             className="field h-9 text-xs"
@@ -363,8 +365,8 @@ export function FilterGroups({
               const n = intOrUndefined(e.target.value);
               set({ priceTo: n === undefined ? undefined : tomanToIRR(n) });
             }}
-            placeholder="تا"
-            aria-label="قیمت تا"
+            placeholder={t('تا', 'To')}
+            aria-label={t('قیمت تا', 'Price to')}
           />
         </div>
         <div className="mt-1">
@@ -387,27 +389,30 @@ export function FilterGroups({
             inputMode="numeric"
             value={filters.mileageMin !== undefined ? filters.mileageMin.toLocaleString('en-US') : ''}
             onChange={(e) => set({ mileageMin: intOrUndefined(e.target.value) })}
-            placeholder="از … کیلومتر"
-            aria-label="کارکرد از"
+            placeholder={t('از … کیلومتر', 'From … km')}
+            aria-label={t('کارکرد از', 'Mileage from')}
           />
           <input
             className="field h-9 text-xs"
             inputMode="numeric"
             value={filters.mileageMax !== undefined ? filters.mileageMax.toLocaleString('en-US') : ''}
             onChange={(e) => set({ mileageMax: intOrUndefined(e.target.value) })}
-            placeholder="تا … کیلومتر"
-            aria-label="کارکرد تا"
+            placeholder={t('تا … کیلومتر', 'Up to … km')}
+            aria-label={t('کارکرد تا', 'Mileage up to')}
           />
         </div>
         <p className="mt-1 text-[10px] font-bold text-faint">
-          مثلاً از ۰ تا ۵۰۰,۰۰۰ کیلومتر؛ ارقام فارسی هم قبول است.
+          {t(
+            'مثلاً از ۰ تا ۵۰۰,۰۰۰ کیلومتر؛ ارقام فارسی هم قبول است.',
+            'For example 0 to 500,000 km; Persian digits are accepted too.',
+          )}
         </p>
       </Group>
 
       {category === 'motorcycle' && (
         <Group title={t('حجم موتور (cc)', 'Engine size (cc)')} open>
           <RangePair
-            label="بازه‌ی حجم"
+            label={t('بازه‌ی حجم', 'Displacement range')}
             from={filters.engineCcMin}
             to={filters.engineCcMax}
             onFrom={(v) => set({ engineCcMin: v })}
@@ -423,8 +428,8 @@ export function FilterGroups({
             inputMode="numeric"
             value={filters.workingHoursMax ?? ''}
             onChange={(e) => set({ workingHoursMax: intOrUndefined(e.target.value) })}
-            placeholder="حداکثر ساعت کارکرد"
-            aria-label="حداکثر ساعت کارکرد"
+            placeholder={t('حداکثر ساعت کارکرد', 'Maximum operating hours')}
+            aria-label={t('حداکثر ساعت کارکرد', 'Maximum operating hours')}
           />
         </Group>
       )}
@@ -434,15 +439,15 @@ export function FilterGroups({
           className="field h-9 text-xs"
           value={brandQuery}
           onChange={(e) => setBrandQuery(e.target.value)}
-          placeholder="جستجوی برند…"
-          aria-label="جستجوی برند در فیلتر"
+          placeholder={t('جستجوی برند…', 'Search brands...')}
+          aria-label={t('جستجوی برند در فیلتر', 'Search brands in filters')}
         />
         <div className="mt-1">
           {visibleBrands.map((brand) => (
             <CheckOption
               key={brand.slug}
               checked={filters.brand.includes(brand.slug as SearchFilters['brand'][number])}
-              label={brand.label}
+              label={t(brand.label)}
               count={countFor(pool, {
                 ...filters,
                 brand: [brand.slug as SearchFilters['brand'][number]],
@@ -461,7 +466,9 @@ export function FilterGroups({
             onClick={() => setShowAllBrands((v) => !v)}
             className="mt-1 text-[11px] font-bold text-cta underline"
           >
-            {showAllBrands ? 'نمایش کمتر' : `نمایش همه‌ی ${brands.length} برند`}
+            {showAllBrands
+              ? t('نمایش کمتر', 'Show less')
+              : t(`نمایش همه‌ی ${brands.length} برند`, `Show all ${brands.length} brands`)}
           </button>
         )}
       </Group>
@@ -484,7 +491,7 @@ export function FilterGroups({
             <CheckOption
               key={type.key}
               checked={filters.bikeType.includes(type.key as SearchFilters['bikeType'][number])}
-              label={type.label}
+              label={t(type.label)}
               count={countFor(pool, {
                 ...filters,
                 bikeType: [type.key as SearchFilters['bikeType'][number]],
@@ -505,7 +512,7 @@ export function FilterGroups({
             <CheckOption
               key={type.key}
               checked={filters.heavyType.includes(type.key as SearchFilters['heavyType'][number])}
-              label={type.label}
+              label={t(type.label)}
               count={countFor(pool, {
                 ...filters,
                 heavyType: [type.key as SearchFilters['heavyType'][number]],
@@ -528,7 +535,7 @@ export function FilterGroups({
           <CheckOption
             key={condition}
             checked={filters.condition.includes(condition)}
-            label={CONDITION_LABELS[condition]}
+            label={t(CONDITION_LABELS[condition])}
             count={countFor(pool, { ...filters, condition: [condition] })}
             onToggle={() => set({ condition: toggle(filters.condition, condition) })}
           />
@@ -541,7 +548,7 @@ export function FilterGroups({
           <CheckOption
             key={kind}
             checked={filters.insurance.includes(kind)}
-            label={`${INSURANCE_KIND_LABELS[kind]} دارد`}
+            label={t(`${INSURANCE_KIND_LABELS[kind]} دارد`, `${t(INSURANCE_KIND_LABELS[kind])} included`)}
             count={countFor(pool, { ...filters, insurance: [kind] })}
             onToggle={() => set({ insurance: toggle(filters.insurance, kind) })}
           />
@@ -553,7 +560,7 @@ export function FilterGroups({
           <CheckOption
             key={paint}
             checked={filters.paintCondition.includes(paint)}
-            label={PAINT_CONDITION_LABELS[paint]}
+            label={t(PAINT_CONDITION_LABELS[paint])}
             count={countFor(pool, { ...filters, paintCondition: [paint] })}
             onToggle={() => set({ paintCondition: toggle(filters.paintCondition, paint) })}
           />
@@ -565,7 +572,7 @@ export function FilterGroups({
           <CheckOption
             key={chassis}
             checked={filters.chassisCondition.includes(chassis)}
-            label={CHASSIS_CONDITION_LABELS[chassis]}
+            label={t(CHASSIS_CONDITION_LABELS[chassis])}
             count={countFor(pool, { ...filters, chassisCondition: [chassis] })}
             onToggle={() => set({ chassisCondition: toggle(filters.chassisCondition, chassis) })}
           />
@@ -582,7 +589,7 @@ export function FilterGroups({
           <CheckOption
             key={option.key}
             checked={filters.technicalInspection === option.key}
-            label={option.label}
+            label={t(option.label)}
             onToggle={() =>
               set({
                 technicalInspection:
@@ -598,7 +605,7 @@ export function FilterGroups({
           <CheckOption
             key={gearbox}
             checked={filters.gearbox.includes(gearbox)}
-            label={GEARBOX_LABELS[gearbox]}
+            label={t(GEARBOX_LABELS[gearbox])}
             count={countFor(pool, { ...filters, gearbox: [gearbox] })}
             onToggle={() => set({ gearbox: toggle(filters.gearbox, gearbox) })}
           />
@@ -610,7 +617,7 @@ export function FilterGroups({
           <CheckOption
             key={fuel}
             checked={filters.fuel.includes(fuel)}
-            label={FUEL_LABELS[fuel]}
+            label={t(FUEL_LABELS[fuel])}
             count={countFor(pool, { ...filters, fuel: [fuel] })}
             onToggle={() => set({ fuel: toggle(filters.fuel, fuel) })}
           />
@@ -622,7 +629,7 @@ export function FilterGroups({
           <CheckOption
             key={plate}
             checked={filters.plateType.includes(plate)}
-            label={PLATE_TYPE_LABELS[plate]}
+            label={t(PLATE_TYPE_LABELS[plate])}
             count={countFor(pool, { ...filters, plateType: [plate] })}
             onToggle={() => set({ plateType: toggle(filters.plateType, plate) })}
           />
@@ -634,7 +641,7 @@ export function FilterGroups({
           <CheckOption
             key={city.slug}
             checked={filters.city.includes(city.slug as SearchFilters['city'][number])}
-            label={CITY_LABELS[city.slug] ?? city.label}
+            label={t(CITY_LABELS[city.slug] ?? city.label)}
             onToggle={() =>
               set({ city: toggle(filters.city, city.slug as SearchFilters['city'][number]) })
             }
@@ -745,7 +752,7 @@ export function FilterSheet({
     <div
       role="dialog"
       aria-modal="true"
-      aria-label="فیلترها"
+      aria-label={t('فیلترها', 'Filters')}
       className="fixed inset-0 z-50 flex items-end justify-center bg-black/50 lg:hidden"
       onClick={onClose}
     >
@@ -758,7 +765,7 @@ export function FilterSheet({
           <button
             type="button"
             onClick={onClose}
-            aria-label="بستن فیلترها"
+            aria-label={t('بستن فیلترها', 'Close filters')}
             className="flex h-9 w-9 items-center justify-center rounded-full text-muted transition hover:bg-cta-soft hover:text-ink"
           >
             <Icon name="close" size={18} />

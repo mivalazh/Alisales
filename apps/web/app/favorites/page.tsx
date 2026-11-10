@@ -1,4 +1,4 @@
-import type { Metadata } from 'next';
+import { localizedMetadata } from '@/lib/i18n/metadata';
 import Link from 'next/link';
 import { getSession } from '@/lib/auth/session';
 import { listFavoriteIds, listingById } from '@/lib/data/s2-store';
@@ -7,8 +7,12 @@ import { ListingCard } from '@/components/ListingCard';
 import { ListingRow } from '@/components/ListingRow';
 import { FavoritesList } from '@/components/FavoritesList';
 import { Icon } from '@/components/Icon';
+import { getLanguage, serverT } from '@/lib/i18n/server';
 
-export const metadata: Metadata = { title: 'علاقه‌مندی‌ها' };
+export const generateMetadata = localizedMetadata(
+  { title: 'علاقه‌مندی‌ها' },
+  { title: 'Saved' },
+);
 
 /**
  * Favorites: an account list once signed in (source of truth for the owner
@@ -21,20 +25,24 @@ export default async function FavoritesPage({
 }: {
   searchParams: Promise<{ view?: string }>;
 }) {
-  const session = await getSession();
+  const [session, lang] = await Promise.all([getSession(), getLanguage()]);
+  const t = (fa: string, en: string) => serverT(lang, fa, en);
   const { view } = await searchParams;
   const rowView = view === 'row';
 
   if (!session) {
     return (
       <div className="space-y-4">
-        <h1 className="text-xl font-extrabold">علاقه‌مندی‌ها</h1>
+        <h1 className="text-xl font-extrabold">{t('علاقه‌مندی‌ها', 'Saved')}</h1>
         <p className="text-xs text-muted">
-          این فهرست روی همین دستگاه ذخیره شده است.{' '}
+          {t('این فهرست روی همین دستگاه ذخیره شده است.', 'This list is stored on this device.')}{' '}
           <Link href="/login?next=/favorites" className="font-bold underline">
-            وارد شوید
+            {t('وارد شوید', 'Sign in')}
           </Link>{' '}
-          تا علاقه‌مندی‌ها روی حساب شما بماند.
+          {t(
+            'تا علاقه‌مندی‌ها روی حساب شما بماند.',
+            'to keep your saved listings on your account.',
+          )}
         </p>
         <FavoritesList />
       </div>
@@ -47,30 +55,46 @@ export default async function FavoritesPage({
 
   return (
     <div className="space-y-4">
-      <h1 className="text-xl font-extrabold">علاقه‌مندی‌ها</h1>
-      <p className="text-xs text-muted">ذخیره‌شده روی حساب شما.</p>
+      <h1 className="text-xl font-extrabold">{t('علاقه‌مندی‌ها', 'Saved')}</h1>
+      <p className="text-xs text-muted">
+        {t('ذخیره‌شده روی حساب شما.', 'Saved to your account.')}
+      </p>
 
       {items.length === 0 ? (
         <div className="rounded-card border border-dashed border-line-strong bg-card px-6 py-16 text-center">
           <Icon name="heart" size={40} className="mx-auto text-faint" />
-          <p className="mt-4 font-extrabold">هنوز آگهی‌ای ذخیره نکرده‌اید.</p>
+          <p className="mt-4 font-extrabold">
+            {t('هنوز آگهی‌ای ذخیره نکرده‌اید.', 'You have not saved any listings yet.')}
+          </p>
           <Link href="/" className="btn-cta mt-6 inline-flex text-sm">
-            مرور آگهی‌ها
+            {t('مرور آگهی‌ها', 'Browse listings')}
           </Link>
         </div>
       ) : (
         <>
           <div className="flex items-center justify-between gap-2">
-            <p className="text-sm font-bold text-muted">{items.length} آگهی</p>
+            <p className="text-sm font-bold text-muted">
+              {t(`${items.length} آگهی`, `${items.length} listings`)}
+            </p>
             <div
               role="group"
-              aria-label="نحوه نمایش"
+              aria-label={t('نحوه نمایش', 'Display mode')}
               className="flex items-center rounded-[var(--radius-pill)] border border-line bg-card p-1"
             >
               {(
                 [
-                  { mode: 'grid', icon: 'grid', label: 'نمایش شبکه‌ای', href: '/favorites' },
-                  { mode: 'row', icon: 'list', label: 'نمایش فهرستی', href: '/favorites?view=row' },
+                  {
+                    mode: 'grid',
+                    icon: 'grid',
+                    label: t('نمایش شبکه‌ای', 'Grid view'),
+                    href: '/favorites',
+                  },
+                  {
+                    mode: 'row',
+                    icon: 'list',
+                    label: t('نمایش فهرستی', 'List view'),
+                    href: '/favorites?view=row',
+                  },
                 ] as const
               ).map((option) => {
                 const active = (option.mode === 'row') === rowView;

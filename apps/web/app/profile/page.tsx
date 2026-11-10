@@ -1,4 +1,4 @@
-import type { Metadata } from 'next';
+import { localizedMetadata } from '@/lib/i18n/metadata';
 import Link from 'next/link';
 import { redirect } from 'next/navigation';
 import { ACCOUNT_TYPE_LABELS, formatAmountLatin, maskPhone } from '@alisales/schemas';
@@ -15,8 +15,13 @@ import { storiesFrom } from '@/lib/stories';
 import { Icon, type IconName } from '@/components/Icon';
 import { LogoutButton } from '@/components/LogoutButton';
 import { ProfileCustomizer } from '@/components/ProfileCustomizer';
+import { getLanguage } from '@/lib/i18n/server';
+import { serverT } from '@/lib/i18n/server';
 
-export const metadata: Metadata = { title: 'پروفایل' };
+export const generateMetadata = localizedMetadata(
+  { title: 'پروفایل' },
+  { title: 'Profile' },
+);
 
 /**
  * Profile — identity at the top, then the four things a member actually uses:
@@ -25,8 +30,9 @@ export const metadata: Metadata = { title: 'پروفایل' };
  * are pushed to the front of the feeds.
  */
 export default async function ProfilePage() {
-  const session = await getSession();
+  const [session, lang] = await Promise.all([getSession(), getLanguage()]);
   if (!session) redirect('/login?next=/profile');
+  const t = (fa: string, en?: string) => serverT(lang, fa, en);
 
   const [listings, favoriteIds, conversations, reviews, custom] = await Promise.all([
     listingsBySeller(session.sub),
@@ -44,7 +50,7 @@ export default async function ProfilePage() {
   const followed = await Promise.all(
     followedIds.slice(0, 12).map(async (id) => {
       const account = await getUser(id);
-      return { id, name: account?.displayName?.trim() || 'نمایشگاه' };
+      return { id, name: account?.displayName?.trim() || t('نمایشگاه', 'Showroom') };
     }),
   );
 
@@ -56,50 +62,59 @@ export default async function ProfilePage() {
   }> = [
     {
       href: '/profile/listings',
-      label: 'آگهی‌های فعال',
-      hint: `${active.length} فعال از ${listings.length}`,
+      label: t('آگهی‌های فعال', 'Active listings'),
+      hint: t(
+        `${active.length} فعال از ${listings.length}`,
+        `${active.length} active of ${listings.length}`,
+      ),
       icon: 'tag',
     },
     {
       href: '/favorites',
-      label: 'ذخیره‌شده‌ها',
-      hint: `${favoriteIds.length} آگهی ذخیره‌شده`,
+      label: t('ذخیره‌شده‌ها', 'Saved'),
+      hint: t(
+        `${favoriteIds.length} آگهی ذخیره‌شده`,
+        `${favoriteIds.length} saved listings`,
+      ),
       icon: 'heart',
     },
     {
       href: `/seller/${session.sub}?tab=reviews`,
-      label: 'امتیاز و نظرات',
-      hint: rating === null ? 'هنوز امتیازی ثبت نشده' : `${rating} از ۵ · ${reviews.length} نظر`,
+      label: t('امتیاز و نظرات', 'Rating & reviews'),
+      hint:
+        rating === null
+          ? t('هنوز امتیازی ثبت نشده', 'No ratings yet')
+          : t(`${rating} از ۵ · ${reviews.length} نظر`, `${rating} of 5 · ${reviews.length} reviews`),
       icon: 'badgeCheck',
     },
     {
       href: `/seller/${session.sub}?tab=stories`,
-      label: 'استوری‌ها',
-      hint: `${stories.length} استوری از آگهی‌های شما`,
+      label: t('استوری‌ها', 'Stories'),
+      hint: t(
+        `${stories.length} استوری از آگهی‌های شما`,
+        `${stories.length} stories from your listings`,
+      ),
       icon: 'camera',
     },
     {
       href: '/chats',
-      label: 'پیام‌ها',
-      hint: `${conversations.length} گفتگو`,
+      label: t('پیام‌ها', 'Messages'),
+      hint: t(`${conversations.length} گفتگو`, `${conversations.length} conversations`),
       icon: 'message',
     },
     {
       href: '/inspection',
-      label: 'کارشناسی تعمیرگاه شمس‌اله',
-      hint: 'رزرو نوبت با ۲۰٪ تخفیف ویژه کاربران سایت',
+      label: t('کارشناسی تعمیرگاه شمس‌اله'),
+      hint: t(
+        'رزرو نوبت با ۲۰٪ تخفیف ویژه کاربران سایت',
+        'Book an inspection with 20% off for site members',
+      ),
       icon: 'shieldCheck',
     },
     {
-      href: '/rent',
-      label: 'رنت خودرو و موتور',
-      hint: 'اجاره خودرو و اسکوتر برقی در کیش',
-      icon: 'plate',
-    },
-    {
       href: '/profile/settings',
-      label: 'تنظیمات حساب',
-      hint: 'نام نمایشی، رمز عبور و شماره تماس',
+      label: t('تنظیمات حساب'),
+      hint: t('نام نمایشی، رمز عبور و شماره تماس', 'Display name, password and phone number'),
       icon: 'gear',
     },
   ];
@@ -112,7 +127,11 @@ export default async function ProfilePage() {
         <div className="relative h-32 bg-gradient-to-br from-[#111144] via-[#0F7FC4] to-[#57c7a3] sm:h-40">
           {custom?.coverUrl ? (
             // eslint-disable-next-line @next/next/no-img-element
-            <img src={custom.coverUrl} alt="کاور پروفایل" className="h-full w-full object-cover" />
+            <img
+              src={custom.coverUrl}
+              alt={t('کاور پروفایل', 'Profile cover')}
+              className="h-full w-full object-cover"
+            />
           ) : (
             <div className="absolute inset-0 opacity-40 [background-image:radial-gradient(circle_at_20%_20%,#DEF434_0,transparent_35%),radial-gradient(circle_at_80%_60%,#ffffff_0,transparent_30%)]" />
           )}
@@ -121,7 +140,7 @@ export default async function ProfilePage() {
           <div className="flex items-end gap-3">
             <a
               href="#profile-editor"
-              aria-label="ویرایش عکس پروفایل"
+              aria-label={t('ویرایش عکس پروفایل', 'Edit profile photo')}
               className="group relative -mt-9 flex h-20 w-20 shrink-0 items-center justify-center overflow-hidden rounded-full border-4 border-card bg-cta-soft text-2xl font-extrabold text-ink shadow-lg sm:-mt-11 sm:h-24 sm:w-24"
             >
               {custom?.avatarUrl ? (
@@ -139,45 +158,48 @@ export default async function ProfilePage() {
               <p className="mt-0.5 text-xs text-muted sm:text-sm">
                 <span dir="ltr">{maskPhone(session.phone)}</span>
                 <span className="mx-1.5 text-faint">·</span>
-                {ACCOUNT_TYPE_LABELS[session.accountType]}
+                {t(ACCOUNT_TYPE_LABELS[session.accountType])}
               </p>
             </div>
             <a
               href="#profile-editor"
               className="mb-1 hidden rounded-full border border-line px-3 py-1.5 text-[11px] font-extrabold text-ink transition hover:border-line-strong sm:inline-flex"
             >
-              ویرایش پروفایل
+              {t('ویرایش پروفایل', 'Edit profile')}
             </a>
           </div>
 
           <p className="mt-3 line-clamp-3 text-xs leading-6 text-muted sm:text-sm">
             {custom?.bio?.trim() ||
-              'بایو خود را اضافه کنید: چه خودروهایی می‌فروشید، کجای کیش هستید و چه چیزی شما را متفاوت می‌کند.'}
+              t(
+                'بایو خود را اضافه کنید: چه خودروهایی می‌فروشید، کجای کیش هستید و چه چیزی شما را متفاوت می‌کند.',
+                'Add a bio: what you sell, where you are in Kish and what sets you apart.',
+              )}
           </p>
         </div>
 
         <dl className="grid grid-cols-2 gap-2 border-t border-line bg-page/60 p-3 sm:grid-cols-4 sm:p-4">
           {[
             {
-              label: 'آگهی‌های فعال',
+              label: t('آگهی‌های فعال', 'Active listings'),
               value: formatAmountLatin(active.length),
               href: '/profile/listings',
               tone: 'text-[#0F7FC4]',
             },
             {
-              label: 'ذخیره‌شده‌ها',
+              label: t('ذخیره‌شده‌ها', 'Saved'),
               value: formatAmountLatin(favoriteIds.length),
               href: '/favorites',
               tone: 'text-rose-500',
             },
             {
-              label: 'استوری‌های من',
+              label: t('استوری‌های من', 'My stories'),
               value: formatAmountLatin(stories.length),
               href: `/seller/${session.sub}?tab=stories`,
               tone: 'text-amber-500',
             },
             {
-              label: 'نمایشگاه‌های دنبال‌شده',
+              label: t('نمایشگاه‌های دنبال‌شده', 'Followed showrooms'),
               value: formatAmountLatin(followedIds.length),
               href: '#followed-showrooms',
               tone: 'text-emerald-600',
@@ -190,8 +212,10 @@ export default async function ProfilePage() {
             >
               <dt className="text-[10px] font-bold text-muted">{stat.label}</dt>
               <dd className={`mt-1 text-lg font-extrabold ${stat.tone}`}>{stat.value}</dd>
-              {stat.label === 'نمایشگاه‌های دنبال‌شده' && rating !== null && (
-                <dd className="mt-0.5 text-[9px] font-bold text-faint">امتیاز شما {rating} از ۵</dd>
+              {stat.href === '#followed-showrooms' && rating !== null && (
+                <dd className="mt-0.5 text-[9px] font-bold text-faint">
+                  {t(`امتیاز شما ${rating} از ۵`, `Your rating: ${rating} of 5`)}
+                </dd>
               )}
             </Link>
           ))}
@@ -213,11 +237,13 @@ export default async function ProfilePage() {
       {followed.length > 0 && (
         <section
           id="followed-showrooms"
-          aria-label="نمایشگاه‌های دنبال‌شده"
+          aria-label={t('نمایشگاه‌های دنبال‌شده', 'Followed showrooms')}
           className="scroll-mt-24 rounded-card border border-line bg-card p-4"
         >
           <div className="flex items-center justify-between gap-2">
-            <h2 className="text-sm font-extrabold">نمایشگاه‌های دنبال‌شده</h2>
+            <h2 className="text-sm font-extrabold">
+              {t('نمایشگاه‌های دنبال‌شده', 'Followed showrooms')}
+            </h2>
             <span className="text-[11px] font-bold text-faint">{followedIds.length}</span>
           </div>
           <ul className="mt-2 flex flex-wrap gap-2">
@@ -234,12 +260,15 @@ export default async function ProfilePage() {
             ))}
           </ul>
           <p className="mt-2 text-[11px] text-muted">
-            آگهی‌ها و استوری‌های این نمایشگاه‌ها در ابتدای فیدها و ریل استوری نمایش داده می‌شود.
+            {t(
+              'آگهی‌ها و استوری‌های این نمایشگاه‌ها در ابتدای فیدها و ریل استوری نمایش داده می‌شود.',
+              'Their listings and stories appear first in your feeds and story rail.',
+            )}
           </p>
         </section>
       )}
 
-      <section aria-label="دسترسی سریع" className="grid gap-2 sm:grid-cols-2">
+      <section aria-label={t('دسترسی سریع')} className="grid gap-2 sm:grid-cols-2">
         {shortcuts.map((item) => (
           <Link
             key={item.href}
@@ -264,9 +293,9 @@ export default async function ProfilePage() {
 
       <section className="rounded-card border border-line bg-card p-4">
         <div className="flex items-center justify-between gap-2">
-          <h2 className="text-sm font-extrabold">حساب</h2>
+          <h2 className="text-sm font-extrabold">{t('حساب', 'Account')}</h2>
           <Link href="/guide" className="text-xs font-bold text-muted underline">
-            راهنمای ثبت آگهی
+            {t('راهنمای ثبت آگهی')}
           </Link>
         </div>
         <div className="mt-3">

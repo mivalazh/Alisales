@@ -2,6 +2,7 @@
 
 import { useRef, useState } from 'react';
 import { useRouter } from 'next/navigation';
+import { useI18n } from '@/lib/i18n';
 import { Icon } from './Icon';
 import { AVATAR_EDGE_PX, COVER_EDGE_PX, profileImageDataUrl } from '@/lib/profile-image';
 
@@ -33,6 +34,7 @@ export function ProfileCustomizer({
   initials: string;
 }) {
   const router = useRouter();
+  const { t } = useI18n();
   const [open, setOpen] = useState(false);
   const [values, setValues] = useState<Values>(initial);
   const [busy, setBusy] = useState<'avatar' | 'cover' | 'save' | null>(null);
@@ -50,7 +52,11 @@ export function ProfileCustomizer({
       setValues((v) => ({ ...v, [kind === 'avatar' ? 'avatarUrl' : 'coverUrl']: url }));
       setOpen(true);
     } catch (error) {
-      setNote(error instanceof Error ? error.message : 'خواندن تصویر ممکن نشد.');
+      setNote(
+        error instanceof Error
+          ? error.message
+          : t('خواندن تصویر ممکن نشد.', 'Could not read that image.'),
+      );
     } finally {
       setBusy(null);
     }
@@ -69,7 +75,7 @@ export function ProfileCustomizer({
       });
       const data = (await res.json().catch(() => ({}))) as { error?: string; profile?: Values };
       if (!res.ok) {
-        setNote(data.error ?? 'ذخیره پروفایل ناموفق بود.');
+        setNote(data.error ?? t('ذخیره پروفایل ناموفق بود.', 'Could not save the profile.'));
         return;
       }
       try {
@@ -81,7 +87,7 @@ export function ProfileCustomizer({
       setOpen(false);
       router.refresh();
     } catch {
-      setNote('ارتباط با سرور برقرار نشد.');
+      setNote(t('ارتباط با سرور برقرار نشد.', 'Could not reach the server.'));
     } finally {
       setBusy(null);
     }
@@ -92,33 +98,45 @@ export function ProfileCustomizer({
   }
 
   return (
-    <section aria-label="ویرایش پروفایل" className="rounded-card border border-line bg-card p-4 sm:p-5">
+    <section
+      aria-label={t('ویرایش پروفایل', 'Edit profile')}
+      className="rounded-card border border-line bg-card p-4 sm:p-5"
+    >
       <div className="flex flex-wrap items-center justify-between gap-2">
-        <h2 className="text-sm font-extrabold">پروفایل نمایشگاهی</h2>
+        <h2 className="text-sm font-extrabold">
+          {t('پروفایل نمایشگاهی', 'Showroom profile')}
+        </h2>
         <button
           type="button"
           onClick={() => setOpen((v) => !v)}
           aria-expanded={open}
           className="rounded-[var(--radius-pill)] border border-line px-3 py-1.5 text-xs font-extrabold text-ink transition hover:border-line-strong"
         >
-          {open ? 'بستن' : 'ویرایش پروفایل'}
+          {open ? t('بستن', 'Close') : t('ویرایش پروفایل', 'Edit profile')}
         </button>
       </div>
 
       <p className="mt-1 text-xs text-muted">
-        عکس پروفایل، کاور و بایو اختیاری است؛ اگر خالی بماند، نشان حرف اول نام و کاور پیش‌فرض نمایش داده می‌شود.
+        {t(
+          'عکس پروفایل، کاور و بایو اختیاری است؛ اگر خالی بماند، نشان حرف اول نام و کاور پیش‌فرض نمایش داده می‌شود.',
+          'Avatar, cover and bio are optional. If left empty, your initial and the default cover are shown.',
+        )}
       </p>
 
       {open && (
         <div className="mt-4 space-y-4">
           <div className="grid gap-3 sm:grid-cols-2">
             <div className="rounded-field border border-line bg-page p-3">
-              <p className="text-xs font-extrabold text-ink">عکس پروفایل</p>
+              <p className="text-xs font-extrabold text-ink">{t('عکس پروفایل', 'Avatar')}</p>
               <div className="mt-2 flex items-center gap-3">
                 <span className="flex h-14 w-14 shrink-0 items-center justify-center overflow-hidden rounded-full border border-line bg-card text-lg font-extrabold">
                   {values.avatarUrl ? (
                     // eslint-disable-next-line @next/next/no-img-element
-                    <img src={values.avatarUrl} alt="عکس پروفایل" className="h-full w-full object-cover" />
+                    <img
+                      src={values.avatarUrl}
+                      alt={t('عکس پروفایل', 'Avatar')}
+                      className="h-full w-full object-cover"
+                    />
                   ) : (
                     initials
                   )}
@@ -130,7 +148,9 @@ export function ProfileCustomizer({
                     disabled={busy !== null}
                     className="rounded-[var(--radius-pill)] border border-line bg-card px-3 py-1.5 text-xs font-extrabold text-ink transition hover:border-line-strong disabled:opacity-60"
                   >
-                    {busy === 'avatar' ? 'در حال آماده‌سازی…' : 'انتخاب عکس'}
+                    {busy === 'avatar'
+                      ? t('در حال آماده‌سازی…', 'Preparing...')
+                      : t('انتخاب عکس', 'Choose image')}
                   </button>
                   {values.avatarUrl && (
                     <button
@@ -138,7 +158,7 @@ export function ProfileCustomizer({
                       onClick={() => clear('avatar')}
                       className="text-[11px] font-bold text-muted underline"
                     >
-                      حذف عکس
+                      {t('حذف عکس', 'Remove image')}
                     </button>
                   )}
                 </div>
@@ -153,12 +173,16 @@ export function ProfileCustomizer({
             </div>
 
             <div className="rounded-field border border-line bg-page p-3">
-              <p className="text-xs font-extrabold text-ink">کاور پروفایل</p>
+              <p className="text-xs font-extrabold text-ink">{t('کاور پروفایل', 'Profile cover')}</p>
               <div className="mt-2 flex items-center gap-3">
                 <span className="flex h-14 w-24 shrink-0 items-center justify-center overflow-hidden rounded-field border border-line bg-card text-faint">
                   {values.coverUrl ? (
                     // eslint-disable-next-line @next/next/no-img-element
-                    <img src={values.coverUrl} alt="کاور پروفایل" className="h-full w-full object-cover" />
+                    <img
+                      src={values.coverUrl}
+                      alt={t('کاور پروفایل', 'Profile cover')}
+                      className="h-full w-full object-cover"
+                    />
                   ) : (
                     <Icon name="camera" size={18} />
                   )}
@@ -170,7 +194,9 @@ export function ProfileCustomizer({
                     disabled={busy !== null}
                     className="rounded-[var(--radius-pill)] border border-line bg-card px-3 py-1.5 text-xs font-extrabold text-ink transition hover:border-line-strong disabled:opacity-60"
                   >
-                    {busy === 'cover' ? 'در حال آماده‌سازی…' : 'انتخاب کاور'}
+                    {busy === 'cover'
+                      ? t('در حال آماده‌سازی…', 'Preparing...')
+                      : t('انتخاب کاور', 'Choose cover')}
                   </button>
                   {values.coverUrl && (
                     <button
@@ -178,7 +204,7 @@ export function ProfileCustomizer({
                       onClick={() => clear('cover')}
                       className="text-[11px] font-bold text-muted underline"
                     >
-                      حذف کاور
+                      {t('حذف کاور', 'Remove cover')}
                     </button>
                   )}
                 </div>
@@ -195,7 +221,7 @@ export function ProfileCustomizer({
 
           <div>
             <label htmlFor="bio" className="text-xs font-extrabold text-ink">
-              بایو / درباره من یا نمایشگاه
+              {t('بایو / درباره من یا نمایشگاه', 'Bio / about me or the showroom')}
             </label>
             <textarea
               id="bio"
@@ -203,10 +229,13 @@ export function ProfileCustomizer({
               maxLength={BIO_MAX}
               value={values.bio}
               onChange={(e) => setValues((v) => ({ ...v, bio: e.target.value }))}
-              placeholder={`${displayName} — چه خودروهایی می‌فروشید، کجا هستید و چه چیزی شما را متفاوت می‌کند؟`}
+              placeholder={`${displayName} — ${t(
+                'چه خودروهایی می‌فروشید، کجا هستید و چه چیزی شما را متفاوت می‌کند؟',
+                'what do you sell, where are you based and what sets you apart?',
+              )}`}
             />
             <p className="mt-1 text-[11px] font-bold text-faint">
-              {values.bio.length} از {BIO_MAX} نویسه
+              {t(`${values.bio.length} از ${BIO_MAX} نویسه`, `${values.bio.length} of ${BIO_MAX} characters`)}
             </p>
           </div>
         </div>
@@ -221,10 +250,14 @@ export function ProfileCustomizer({
               disabled={busy !== null}
               className="btn-cta h-10 px-4 text-sm disabled:opacity-60"
             >
-              {busy === 'save' ? 'در حال ذخیره…' : 'ذخیره پروفایل'}
+              {busy === 'save' ? t('در حال ذخیره…', 'Saving...') : t('ذخیره پروفایل', 'Save profile')}
             </button>
           )}
-          {saved && <span className="text-xs font-extrabold text-emerald-600">ذخیره شد.</span>}
+          {saved && (
+            <span className="text-xs font-extrabold text-emerald-600">
+              {t('ذخیره شد.', 'Saved.')}
+            </span>
+          )}
           {note && <span className="text-xs font-bold text-red-600">{note}</span>}
         </div>
       )}

@@ -1,4 +1,4 @@
-import type { Metadata } from 'next';
+import { localizedMetadata } from '@/lib/i18n/metadata';
 import { redirect } from 'next/navigation';
 import { getSession } from '@/lib/auth/session';
 import {
@@ -11,7 +11,10 @@ import { markRead, readAt } from '@/lib/data/chat-presence';
 import { ChatThread, type ChatListingContext } from '@/components/ChatThread';
 import { vehicleTitle } from '@/lib/listing-text';
 
-export const metadata: Metadata = { title: 'گفتگو' };
+export const generateMetadata = localizedMetadata(
+  { title: 'گفتگو' },
+  { title: 'Conversation' },
+);
 
 /** Activity we know about for the peer: their last message or read receipt. */
 function latest(iso: (string | null | undefined)[]): string | null {

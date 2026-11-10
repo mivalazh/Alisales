@@ -23,7 +23,6 @@ const QUICK_LINKS = [
 const GUIDE_LINKS = [
   { href: '/about', label: 'درباره‌ی ما', en: 'About us' },
   { href: '/inspection', label: 'کارشناسی تعمیرگاه شمس‌اله', en: 'Shamsollah workshop inspection' },
-  { href: '/rent', label: 'رنت خودرو و موتور', en: 'Rent a car & scooter' },
   { href: '/guide', label: 'راهنمای ثبت آگهی', en: 'Posting guide' },
   { href: '/terms', label: 'قوانین و حریم خصوصی', en: 'Terms & privacy' },
 ] as const;
@@ -31,6 +30,9 @@ const GUIDE_LINKS = [
 /** Official sub-brand credit — one line, repeated in the footer and /about. */
 export const WORKSHOP_CREDIT =
   'Ali Sales؛ زیرمجموعه رسمی تعمیرگاه تخصصی شمس‌اله — مرجع خرید، فروش و کارشناسی تخصصی خودرو در کیش';
+
+export const WORKSHOP_CREDIT_EN =
+  'Ali Sales — the official subsidiary of Shamsollah Specialist Workshop, Kish’s reference for vehicle sales and inspection.';
 
 const SUPPORT_LINKS = [
   { href: '/support', label: 'تماس با پشتیبانی', en: 'Contact support' },
@@ -105,19 +107,13 @@ function FooterAccordion() {
 export function SiteFooter() {
   const { t } = useI18n();
   return (
-    <footer className="mt-12 border-t border-line bg-card pb-20 sm:pb-0">
+    <footer className="site-footer mt-12 border-t border-line bg-card pb-20 sm:pb-0">
       <div className="mx-auto w-full max-w-[var(--content-max)] px-4 py-8 sm:px-6 sm:py-10">
         {/* Phone: compact identity + accordion */}
         <div className="sm:hidden">
           <p className="text-base font-extrabold text-ink">Ali Sales</p>
-          <p className="mt-2 text-sm leading-7 text-muted">
-            {t(
-              'بازار آگهی خودروهای لوکس و قطعات یدکی در منطقه آزاد کیش؛ واردات، پلاک کیش و گذر موقت، با کارشناسی تعمیرگاه تخصصی شمس‌اله.',
-              'Luxury cars and spare parts in Kish Free Zone; imports, Kish plates and temporary transit, with inspection by the Shamsollah workshop.',
-            )}
-          </p>
           <p className="mt-2 rounded-field border border-[#F98513]/40 bg-[#FFF7EC] px-3 py-2 text-[11px] font-bold leading-6 text-ink dark:bg-[#2a2418]">
-            {WORKSHOP_CREDIT}
+            {t(WORKSHOP_CREDIT, WORKSHOP_CREDIT_EN)}
           </p>
           <div className="mt-3">
             <FooterAccordion />
@@ -128,14 +124,8 @@ export function SiteFooter() {
         <div className="hidden gap-8 sm:grid lg:grid-cols-4">
           <div className="lg:col-span-1">
             <p className="text-base font-extrabold text-ink">Ali Sales</p>
-            <p className="mt-2 max-w-xs text-sm leading-7 text-muted">
-              {t(
-                'بازار آگهی خودروهای لوکس و قطعات یدکی در منطقه آزاد کیش؛ واردات، پلاک کیش و گذر موقت، با کارشناسی تعمیرگاه تخصصی شمس‌اله.',
-                'Luxury cars and spare parts in Kish Free Zone; imports, Kish plates and temporary transit, with inspection by the Shamsollah workshop.',
-              )}
-            </p>
             <p className="mt-3 max-w-xs rounded-field border border-[#F98513]/40 bg-[#FFF7EC] px-3 py-2 text-[11px] font-bold leading-6 text-ink dark:bg-[#2a2418]">
-              {WORKSHOP_CREDIT}
+              {t(WORKSHOP_CREDIT, WORKSHOP_CREDIT_EN)}
             </p>
           </div>
 

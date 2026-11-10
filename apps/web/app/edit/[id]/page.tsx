@@ -1,11 +1,14 @@
-import type { Metadata } from 'next';
+import { localizedMetadata } from '@/lib/i18n/metadata';
 import Link from 'next/link';
 import { notFound, redirect } from 'next/navigation';
 import { requireUser } from '@/lib/auth/require-user';
 import { getOwnerListing, getOwnerPhotos } from '@/lib/data/listings';
 import { EditListingForm } from '@/components/EditListingForm';
 
-export const metadata: Metadata = { title: 'ویرایش آگهی' };
+export const generateMetadata = localizedMetadata(
+  { title: 'ویرایش آگهی' },
+  { title: 'Edit listing' },
+);
 
 /**
  * Listing edit (owner only): `requireUser` guards the page, a missing row is a

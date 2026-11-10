@@ -2,6 +2,7 @@
 
 import { useEffect, useRef, useState } from 'react';
 import { CITY_LABELS, DEFAULT_CITY } from '@alisales/schemas';
+import { useI18n } from '@/lib/i18n';
 import { Icon } from './Icon';
 
 /**
@@ -30,6 +31,7 @@ const UPCOMING_CITIES: ReadonlyArray<{ slug: string; label: string }> = [
 
 export function CitySelect({ className = '' }: { className?: string }) {
   const [open, setOpen] = useState(false);
+  const { t } = useI18n();
   const root = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
@@ -60,7 +62,7 @@ export function CitySelect({ className = '' }: { className?: string }) {
         className="flex items-center gap-1.5 rounded-[var(--radius-pill)] border border-line bg-card px-3 py-1.5 text-sm font-extrabold text-ink transition hover:border-line-strong"
       >
         <Icon name="pin" size={16} className="text-cta" />
-        <span>{CITY_LABELS[DEFAULT_CITY]}</span>
+        <span>{t(CITY_LABELS[DEFAULT_CITY] ?? 'کیش')}</span>
         <span aria-hidden="true" className="text-[10px] text-muted">
           ▾
         </span>
@@ -69,7 +71,7 @@ export function CitySelect({ className = '' }: { className?: string }) {
       {open && (
         <div
           role="menu"
-          aria-label="انتخاب شهر"
+          aria-label={t('انتخاب شهر', 'Choose a city')}
           className="absolute end-0 top-full z-50 mt-2 w-56 overflow-hidden rounded-card border border-line bg-card p-1.5 shadow-xl"
         >
           <button
@@ -79,7 +81,7 @@ export function CitySelect({ className = '' }: { className?: string }) {
             onClick={() => setOpen(false)}
             className="flex w-full items-center justify-between gap-2 rounded-field px-2.5 py-2 text-sm font-extrabold text-ink transition hover:bg-cta-soft"
           >
-            <span>{CITY_LABELS[DEFAULT_CITY]}</span>
+            <span>{t(CITY_LABELS[DEFAULT_CITY] ?? 'کیش')}</span>
             <Icon name="check" size={16} className="text-cta" />
           </button>
 
@@ -95,9 +97,9 @@ export function CitySelect({ className = '' }: { className?: string }) {
               disabled
               className="flex w-full cursor-not-allowed items-center justify-between gap-2 rounded-field px-2.5 py-2 text-sm font-bold text-muted opacity-50"
             >
-              <span>{city.label}</span>
+              <span>{t(city.label)}</span>
               <span className="rounded-[var(--radius-pill)] border border-line px-1.5 py-0.5 text-[10px] font-extrabold">
-                بزودی
+                {t('بزودی', 'Coming soon')}
               </span>
             </button>
           ))}

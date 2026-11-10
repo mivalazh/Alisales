@@ -4,6 +4,7 @@ import Image from 'next/image';
 import { useRef, useState } from 'react';
 import { Icon } from './Icon';
 import { isPreSizedSource } from '@/lib/images';
+import { useI18n } from '@/lib/i18n';
 
 /** Clips are stored with their own extension; the gallery treats them as video. */
 function isVideoUrl(url: string): boolean {
@@ -25,6 +26,7 @@ export function ListingGallery({
   alt: string;
   sold?: boolean;
 }) {
+  const { t } = useI18n();
   const [index, setIndex] = useState(0);
   const startX = useRef<number | null>(null);
   const count = photos.length;
@@ -72,7 +74,7 @@ export function ListingGallery({
         ) : (
           <div className="flex h-full flex-col items-center justify-center gap-2 text-faint">
             <Icon name="camera" size={40} />
-            <span className="text-sm">بدون عکس</span>
+            <span className="text-sm">{t('بدون عکس', 'No photos')}</span>
           </div>
         )}
 
@@ -81,7 +83,7 @@ export function ListingGallery({
             <button
               type="button"
               onClick={() => go(-1)}
-              aria-label="عکس قبلی"
+              aria-label={t('عکس قبلی', 'Previous photo')}
               className="absolute start-2 top-1/2 flex h-9 w-9 -translate-y-1/2 items-center justify-center rounded-full bg-white/90 text-[#111144] shadow-md transition hover:bg-white"
             >
               <Icon name="chevronRight" size={18} />
@@ -89,7 +91,7 @@ export function ListingGallery({
             <button
               type="button"
               onClick={() => go(1)}
-              aria-label="عکس بعدی"
+              aria-label={t('عکس بعدی', 'Next photo')}
               className="absolute end-2 top-1/2 flex h-9 w-9 -translate-y-1/2 items-center justify-center rounded-full bg-white/90 text-[#111144] shadow-md transition hover:bg-white"
             >
               <Icon name="chevronLeft" size={18} />
@@ -108,7 +110,7 @@ export function ListingGallery({
               <button
                 type="button"
                 onClick={() => setIndex(i)}
-                aria-label={`نمایش عکس ${i + 1}`}
+                aria-label={`${t('نمایش عکس', 'View photo')} ${i + 1}`}
                 aria-pressed={i === index}
                 className={`relative block aspect-[4/3] w-full overflow-hidden rounded-xl border bg-sunken transition ${
                   i === index ? 'border-cta ring-1 ring-cta' : 'border-line hover:border-line-strong'
@@ -124,7 +126,7 @@ export function ListingGallery({
                 ) : (
                   <Image
                     src={url}
-                    alt={`${alt} — عکس ${i + 1}`}
+                    alt={`${alt} — ${t('عکس', 'photo')} ${i + 1}`}
                     fill
                     sizes="(min-width: 1024px) 14vw, 25vw"
                     unoptimized={isPreSizedSource(url)}

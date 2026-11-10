@@ -1,5 +1,6 @@
 import { createClient, type SupabaseClient } from '@supabase/supabase-js';
 import { readJson, writeJson } from '../storage/demo-store';
+import { serverSupabaseUrl } from '../config/mode';
 import type {
   AccountType,
   ListingOwnerStats,
@@ -107,7 +108,7 @@ function writeData(data: S2Data): void {
 
 /** Service-role client for hosted mode, or null in fixture mode. */
 export function admin(): SupabaseClient | null {
-  const url = process.env.SUPABASE_URL;
+  const url = serverSupabaseUrl();
   const key = process.env.SUPABASE_SERVICE_ROLE_KEY;
   if (!url || !key) return null;
   return createClient(url, key, { auth: { persistSession: false } });

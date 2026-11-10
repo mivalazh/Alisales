@@ -1,4 +1,4 @@
-import type { Metadata } from 'next';
+import { localizedMetadata } from '@/lib/i18n/metadata';
 import Link from 'next/link';
 import { redirect } from 'next/navigation';
 import { FREE_LISTING_LIMIT, FREE_THIRD_LISTING_MESSAGE } from '@alisales/schemas';
@@ -8,15 +8,19 @@ import { mergeMyListings, readMyListings } from '@/lib/data/my-listings-cookie';
 import { ListingRow } from '@/components/ListingRow';
 import { ListingOwnerActions } from '@/components/ListingOwnerActions';
 import { PlanPreview } from '@/components/PlanPreview';
+import { getLanguage, serverT } from '@/lib/i18n/server';
 
-export const metadata: Metadata = { title: 'آگهی‌های من' };
+export const generateMetadata = localizedMetadata(
+  { title: 'آگهی‌های من' },
+  { title: 'My listings' },
+);
 
 type Tab = 'active' | 'paused' | 'sold';
 
-const TABS: ReadonlyArray<{ key: Tab; label: string }> = [
-  { key: 'active', label: 'فعال' },
-  { key: 'paused', label: 'بایگانی‌شده' },
-  { key: 'sold', label: 'فروخته‌شده' },
+const TABS: ReadonlyArray<{ key: Tab; label: string; en: string }> = [
+  { key: 'active', label: 'فعال', en: 'Active' },
+  { key: 'paused', label: 'بایگانی‌شده', en: 'Archived' },
+  { key: 'sold', label: 'فروخته‌شده', en: 'Sold' },
 ];
 
 /**
@@ -30,8 +34,9 @@ export default async function MyListingsPage({
 }: {
   searchParams: Promise<{ tab?: string }>;
 }) {
-  const session = await getSession();
+  const [session, lang] = await Promise.all([getSession(), getLanguage()]);
   if (!session) redirect('/login?next=/profile/listings');
+  const t = (fa: string, en: string) => serverT(lang, fa, en);
 
   const { tab } = await searchParams;
   const activeTab: Tab = tab === 'paused' || tab === 'sold' ? tab : 'active';
@@ -46,20 +51,28 @@ export default async function MyListingsPage({
   return (
     <div className="space-y-4">
       <div className="flex flex-wrap items-center justify-between gap-2">
-        <h1 className="text-xl font-extrabold">آگهی‌های من</h1>
+        <h1 className="text-xl font-extrabold">{t('آگهی‌های من', 'My listings')}</h1>
         <Link href="/new" className="btn-cta text-sm">
-          ثبت آگهی
+          {t('ثبت آگهی', 'Post ad')}
         </Link>
       </div>
 
       <p className="text-xs text-muted">
-        آگهی‌های فعال: {activeCount} از {FREE_LISTING_LIMIT}
+        {t(
+          `آگهی‌های فعال: ${activeCount} از ${FREE_LISTING_LIMIT}`,
+          `Active listings: ${activeCount} of ${FREE_LISTING_LIMIT}`,
+        )}
         {atCap && (
-          <span className="mt-1 block font-bold text-warn">{FREE_THIRD_LISTING_MESSAGE}</span>
+          <span className="mt-1 block font-bold text-warn">
+            {t(FREE_THIRD_LISTING_MESSAGE, 'Choose a plan to publish a third listing.')}
+          </span>
         )}
       </p>
 
-      <nav aria-label="وضعیت آگهی‌ها" className="flex flex-wrap gap-2">
+      <nav
+        aria-label={t('وضعیت آگهی‌ها', 'Listing status')}
+        className="flex flex-wrap gap-2"
+      >
         {TABS.map((item) => (
           <Link
             key={item.key}
@@ -71,16 +84,21 @@ export default async function MyListingsPage({
                 : 'border-line bg-card text-muted hover:border-line-strong'
             }`}
           >
-            {item.label}
+            {t(item.label, item.en)}
           </Link>
         ))}
       </nav>
 
       {shown.length === 0 ? (
         <div className="rounded-card border border-dashed border-line-strong bg-card px-6 py-12 text-center">
-          <p className="font-extrabold">در این بخش آگهی‌ای نیست.</p>
+          <p className="font-extrabold">
+            {t('در این بخش آگهی‌ای نیست.', 'There are no listings in this section.')}
+          </p>
           <p className="mt-1 text-sm text-muted">
-            آگهی‌های بایگانی‌شده همان آگهی‌های متوقف‌شده هستند و هر زمان قابل بازفعال‌سازی‌اند.
+            {t(
+              'آگهی‌های بایگانی‌شده همان آگهی‌های متوقف‌شده هستند و هر زمان قابل بازفعال‌سازی‌اند.',
+              'Archived listings are paused listings and can be reactivated at any time.',
+            )}
           </p>
         </div>
       ) : (

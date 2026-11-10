@@ -1,11 +1,18 @@
-import type { Metadata } from 'next';
+import { localizedMetadata } from '@/lib/i18n/metadata';
 import Link from 'next/link';
 import { Icon } from '@/components/Icon';
 import { SupportForm } from '@/components/SupportForm';
+import { getLanguage } from '@/lib/i18n/server';
+import { serverT } from '@/lib/i18n/server';
 
-export const metadata: Metadata = { title: 'ثبت تیکت' };
+export const generateMetadata = localizedMetadata(
+  { title: 'ثبت تیکت' },
+  { title: 'Submit a ticket' },
+);
 
-export default function SupportTicketPage() {
+export default async function SupportTicketPage() {
+  const lang = await getLanguage();
+  const t = (fa: string, en?: string) => serverT(lang, fa, en);
   return (
     <article className="mx-auto max-w-2xl space-y-4">
       <Link
@@ -13,12 +20,17 @@ export default function SupportTicketPage() {
         className="inline-flex items-center gap-1.5 text-sm font-bold text-muted transition hover:text-ink"
       >
         <Icon name="arrowLeft" size={18} />
-        بازگشت به پشتیبانی
+        {t('بازگشت به پشتیبانی', 'Back to support')}
       </Link>
       <div>
-        <h1 className="text-xl font-extrabold">پشتیبانی و ثبت تیکت</h1>
+        <h1 className="text-xl font-extrabold">
+          {t('پشتیبانی و ثبت تیکت', 'Support & tickets')}
+        </h1>
         <p className="mt-1 text-sm text-muted">
-          مشکل یا سؤال خود را بنویسید؛ درخواست شما با شماره پیگیری ثبت می‌شود.
+          {t(
+            'مشکل یا سؤال خود را بنویسید؛ درخواست شما با شماره پیگیری ثبت می‌شود.',
+            'Describe your issue or question; your request will be saved with a reference number.',
+          )}
         </p>
       </div>
       <SupportForm kind="ticket" />

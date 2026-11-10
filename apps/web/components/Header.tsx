@@ -142,11 +142,17 @@ export function Header({
   const pathname = usePathname();
   const isActive = useActivePath();
   const { lang, t, toggleLanguage } = useI18n();
-  const rentMode = Boolean(pathname?.startsWith('/rent'));
+  const [soonNotice, setSoonNotice] = useState(false);
 
   useEffect(() => {
     setMenuOpen(false);
   }, [pathname]);
+
+  useEffect(() => {
+    if (!soonNotice) return;
+    const timer = window.setTimeout(() => setSoonNotice(false), 3600);
+    return () => window.clearTimeout(timer);
+  }, [soonNotice]);
 
   // Escape closes the drawer, and the page behind it must not scroll.
   useEffect(() => {
@@ -183,14 +189,7 @@ export function Header({
               <>
                 <Link
                   href="/profile"
-                  aria-label={displayName ?? t('پروفایل', 'Profile')}
-                  className="flex h-11 w-11 shrink-0 items-center justify-center rounded-full border border-line bg-card text-ink transition hover:border-line-strong sm:hidden"
-                >
-                  <Icon name="user" size={19} />
-                </Link>
-                <Link
-                  href="/profile"
-                  className="hidden max-w-40 truncate rounded-[var(--radius-pill)] border border-line bg-card px-3 py-1.5 text-xs font-bold text-ink sm:block"
+                  className="hidden max-w-40 truncate rounded-[var(--radius-pill)] border border-line bg-card px-3 py-1.5 text-xs font-bold text-ink md:inline-flex"
                 >
                   {displayName ?? t('پروفایل', 'Profile')}
                 </Link>
@@ -262,7 +261,7 @@ export function Header({
             className="absolute inset-y-0 start-0 flex w-80 max-w-[85vw] flex-col border-e border-line bg-card shadow-2xl"
           >
             {/* No «منو» title — just the close control, as the reference asks. */}
-            <div className="flex items-center justify-end border-b border-line px-4 py-3">
+            <div className="flex items-center justify-end border-b border-line px-4 py-2">
               <button
                 type="button"
                 onClick={() => setMenuOpen(false)}
@@ -378,46 +377,56 @@ export function Header({
               <div className="my-5 flex-1" />
 
               <div className="space-y-3 border-t border-line pt-3">
-                <Link
-                  href={rentMode ? '/' : '/rent'}
-                  className="flex items-center gap-2 rounded-field border border-[#0F7FC4]/30 bg-[#0F7FC4]/10 px-3 py-2.5 text-sm font-extrabold text-[#0F7FC4] transition hover:border-[#0F7FC4]/60"
+                <button
+                  type="button"
+                  aria-disabled="true"
+                  onClick={() => setSoonNotice(true)}
+                  className="flex w-full items-center gap-2 rounded-field border border-emerald-600/30 bg-emerald-950/10 px-3 py-2.5 text-start text-sm font-extrabold text-emerald-800 transition hover:border-emerald-600/50 dark:bg-emerald-500/15 dark:text-emerald-300"
                 >
                   <span aria-hidden className="text-base">
-                    {rentMode ? '🚗' : '⛵'}
+                    ⛵
                   </span>
-                  <span className="flex-1">
-                    {rentMode
-                      ? t('پورتال خرید و فروش', 'Buy & sell portal')
-                      : t('پورتال رنت', 'Rental portal')}
+                  <span className="flex-1">{t('پورتال رنت', 'Rental portal')}</span>
+                  <span className="rounded-[var(--radius-pill)] border border-emerald-600/30 px-1.5 py-0.5 text-[10px] font-extrabold">
+                    {t('بزودی', 'Coming soon')}
                   </span>
-                  <Icon name="chevronLeft" size={14} />
-                </Link>
+                </button>
 
-                <div className="flex justify-end">
+                <div className="flex items-center gap-2">
                   <button
                     type="button"
                     onClick={toggleLanguage}
-                    aria-label={
-                      lang === 'fa'
-                        ? 'Switch to English'
-                        : 'تغییر به زبان فارسی'
-                    }
+                    aria-label={lang === 'fa' ? 'Switch to English' : 'تغییر به زبان فارسی'}
                     title={lang === 'fa' ? 'English' : 'فارسی'}
-                    className="flex h-9 w-9 items-center justify-center rounded-full border border-line bg-page text-[11px] font-extrabold tracking-wide text-ink transition hover:border-cta hover:text-cta"
+                    className="flex h-9 w-9 shrink-0 items-center justify-center rounded-full border border-line bg-page text-[11px] font-extrabold tracking-wide text-ink transition hover:border-cta hover:text-cta"
                   >
-                    {lang === 'fa' ? 'EN' : 'PR'}
+                    {lang === 'fa' ? 'EN' : 'FA'}
                   </button>
+                  {authed ? (
+                    <div className="min-w-0 flex-1">
+                      <LogoutButton />
+                    </div>
+                  ) : (
+                    <Link href="/login" className="btn-cta flex min-w-0 flex-1 text-sm">
+                      {t('ورود به حساب', 'Sign in')}
+                    </Link>
+                  )}
                 </div>
-                {authed ? (
-                  <LogoutButton />
-                ) : (
-                  <Link href="/login" className="btn-cta flex w-full text-sm">
-                    {t('ورود به حساب', 'Sign in')}
-                  </Link>
-                )}
               </div>
             </div>
           </div>
+        </div>
+      )}
+
+      {soonNotice && (
+        <div
+          role="status"
+          className="fixed bottom-24 left-1/2 z-[60] w-[min(92vw,420px)] -translate-x-1/2 rounded-xl border border-emerald-600/30 bg-emerald-950 px-4 py-3 text-center text-sm font-bold leading-6 text-emerald-50 shadow-2xl sm:bottom-8"
+        >
+          {t(
+            'پورتال اختصاصی رنت به‌زودی در دامنه مجزا فعال می‌شود',
+            'The dedicated rental portal will launch soon on its own domain.',
+          )}
         </div>
       )}
     </>

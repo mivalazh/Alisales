@@ -2,6 +2,7 @@
 
 import { useEffect, useId, useRef, useState } from 'react';
 import { Icon } from './Icon';
+import { useI18n } from '@/lib/i18n';
 
 export interface SelectOption {
   value: string;
@@ -25,7 +26,7 @@ export function CustomSelect({
   value,
   onChange,
   options,
-  placeholder = 'انتخاب کنید…',
+  placeholder,
   disabled = false,
   invalid = false,
   ariaLabel,
@@ -40,6 +41,7 @@ export function CustomSelect({
   invalid?: boolean;
   ariaLabel?: string;
 }) {
+  const { t } = useI18n();
   const [open, setOpen] = useState(false);
   const [active, setActive] = useState(-1);
   const root = useRef<HTMLDivElement>(null);
@@ -110,7 +112,7 @@ export function CustomSelect({
         } ${disabled ? 'cursor-not-allowed opacity-70' : ''}`}
       >
         <span className={`truncate ${selected ? 'font-bold text-ink' : 'text-faint'}`}>
-          {selected?.label ?? placeholder}
+          {selected?.label ?? placeholder ?? t('انتخاب کنید…', 'Choose…')}
         </span>
         <Icon
           name="chevronDown"
@@ -126,7 +128,9 @@ export function CustomSelect({
           className="absolute z-40 mt-1 max-h-64 w-full overflow-y-auto rounded-xl border border-line bg-card p-1 shadow-xl"
         >
           {options.length === 0 && (
-            <li className="px-3 py-2 text-xs font-bold text-faint">گزینه‌ای نیست</li>
+            <li className="px-3 py-2 text-xs font-bold text-faint">
+              {t('گزینه‌ای نیست', 'No options')}
+            </li>
           )}
           {options.map((option, index) => {
             const isSelected = option.value === value;

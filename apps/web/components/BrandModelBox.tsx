@@ -4,6 +4,7 @@ import Link from 'next/link';
 import { useEffect, useMemo, useRef, useState, type ReactNode } from 'react';
 import { brandsForCategory, type VehicleCategory } from '@alisales/schemas';
 import { scrollToResults } from '@/lib/scroll';
+import { useI18n } from '@/lib/i18n';
 import { BrandEmblem } from './BrandEmblem';
 import { Icon } from './Icon';
 
@@ -98,6 +99,7 @@ export function BrandModelBox({
   onPick: (brandSlug: string, model?: string | null) => void;
 }) {
   const [query, setQuery] = useState('');
+  const { t } = useI18n();
   const drag = useDragScroll();
   const brands = useMemo(() => brandsForCategory(category), [category]);
 
@@ -125,7 +127,7 @@ export function BrandModelBox({
 
   return (
     <section
-      aria-label={CATEGORY_TITLE[category]}
+      aria-label={t(CATEGORY_TITLE[category])}
       className="rounded-card border border-line bg-card p-3 sm:p-4"
     >
       {active ? (
@@ -141,23 +143,25 @@ export function BrandModelBox({
               className="inline-flex items-center gap-1.5 rounded-[var(--radius-pill)] border border-line bg-page px-3 py-1.5 text-xs font-extrabold text-ink transition hover:border-line-strong"
             >
               <Icon name="arrowLeft" size={14} />
-              بازگشت به همه برندها
+              {t('بازگشت به همه برندها', 'Back to all brands')}
               <span className="text-muted" dir="ltr">
                 ({active.latin})
               </span>
             </button>
             <span className="text-[11px] font-bold text-faint">
-              {models.length > 0 ? `${models.length} مدل` : 'مدل پیشنهادی نداریم'}
+              {models.length > 0
+                ? t(`${models.length} مدل`, `${models.length} models`)
+                : t('مدل پیشنهادی نداریم', 'No suggested models')}
             </span>
           </div>
 
           <ul
             dir="rtl"
-            aria-label={`مدل‌های ${active.latin}`}
+            aria-label={t(`مدل‌های ${active.latin}`, `${active.latin} models`)}
             className={`${TWO_ROW_GRID} auto-cols-[112px] sm:auto-cols-[132px]`}
           >
             <ModelTile
-              label="همه مدل‌ها"
+              label={t('همه مدل‌ها', 'All models')}
               selected={!model}
               onPick={() => pickModel(null)}
             />
@@ -173,36 +177,39 @@ export function BrandModelBox({
 
           {models.length === 0 && (
             <p className="mt-1 text-[11px] font-bold text-muted">
-              برای این برند مدل پیشنهادی نداریم؛ نام مدل را در فیلترها بنویسید.
+              {t(
+                'برای این برند مدل پیشنهادی نداریم؛ نام مدل را در فیلترها بنویسید.',
+                'No suggested models for this brand. Type the model into the filters.',
+              )}
             </p>
           )}
         </>
       ) : (
         <>
           <div className="flex flex-wrap items-center justify-between gap-2">
-            <h2 className="text-sm font-extrabold text-ink">{CATEGORY_TITLE[category]}</h2>
+            <h2 className="text-sm font-extrabold text-ink">{t(CATEGORY_TITLE[category])}</h2>
             <Link
-              href="/new"
+              href="/support/brand-request"
               className="text-xs font-bold text-muted underline transition hover:text-ink"
             >
-              برند شما نیست؟ آگهی ثبت کنید
+              {t('ثبت برند جدید', 'Request New Brand')}
             </Link>
           </div>
 
           <label className="mt-3 flex items-center gap-2 rounded-field border border-line bg-page px-3">
             <Icon name="search" size={16} className="text-faint" />
-            <span className="sr-only">{SEARCH_PLACEHOLDER[category]}</span>
+            <span className="sr-only">{t(SEARCH_PLACEHOLDER[category])}</span>
             <input
               value={query}
               onChange={(e) => setQuery(e.target.value)}
-              placeholder={SEARCH_PLACEHOLDER[category]}
+              placeholder={t(SEARCH_PLACEHOLDER[category])}
               className="h-10 w-full bg-transparent text-sm font-semibold text-ink outline-none placeholder:text-faint"
             />
             {query && (
               <button
                 type="button"
                 onClick={() => setQuery('')}
-                aria-label="پاک کردن جستجوی برند"
+                aria-label={t('پاک کردن جستجوی برند', 'Clear brand search')}
                 className="text-faint transition hover:text-ink"
               >
                 <Icon name="close" size={16} />
@@ -212,7 +219,10 @@ export function BrandModelBox({
 
           {filtered.length === 0 ? (
             <p className="mt-4 rounded-field border border-dashed border-line-strong px-3 py-6 text-center text-xs font-bold text-muted">
-              برندی با این نام پیدا نشد؛ نام برند را در جستجو یا فیلتر مدل بنویسید.
+              {t(
+                'برندی با این نام پیدا نشد؛ نام برند را در جستجو یا فیلتر مدل بنویسید.',
+                'No brand with that name. Try the search or the model filter.',
+              )}
             </p>
           ) : (
             <ul

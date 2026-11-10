@@ -41,9 +41,17 @@ export interface MyListing {
   localPhotos?: ProcessedPhoto[];
 }
 
-export const isDemoMode = !(
-  process.env.EXPO_PUBLIC_SUPABASE_URL && process.env.EXPO_PUBLIC_SUPABASE_ANON_KEY
-);
+/**
+ * Public marketplace origin for links, share sheets and future REST calls.
+ * Supabase remains the direct data layer; this URL keeps the same deployment
+ * contract as the web app and is populated automatically by EAS/Expo env.
+ */
+export const apiBaseUrl = (process.env.EXPO_PUBLIC_API_URL ?? '').replace(/\/$/, '');
+
+export const supabaseUrl = process.env.EXPO_PUBLIC_SUPABASE_URL ?? null;
+export const supabaseAnonKey = process.env.EXPO_PUBLIC_SUPABASE_ANON_KEY ?? null;
+
+export const isDemoMode = !(supabaseUrl && supabaseAnonKey);
 
 let demo: MyListing[] | null = null;
 

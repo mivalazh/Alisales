@@ -1,13 +1,12 @@
-import type { Metadata } from 'next';
+import { localizedMetadata } from '@/lib/i18n/metadata';
 import Link from 'next/link';
 import { Icon } from '@/components/Icon';
 import { InspectionOffer } from '@/components/InspectionOffer';
 
-export const metadata: Metadata = {
-  title: 'کارشناسی خودرو تعمیرگاه شمس‌اله',
-  description:
-    'کارشناسی فنی کامل موتور، گیربکس، بدنه و دیاگ تخصصی پیش از خرید در کیش — با ۲۰٪ تخفیف ویژه کاربران Ali Sales و صدور برگه ضمانت کارشناسی.',
-};
+export const generateMetadata = localizedMetadata(
+  { title: 'کارشناسی خودرو تعمیرگاه شمس‌اله', description: 'کارشناسی فنی کامل موتور، گیربکس، بدنه و دیاگ تخصصی پیش از خرید در کیش — با ۲۰٪ تخفیف ویژه کاربران Ali Sales و صدور برگه ضمانت کارشناسی.' },
+  { title: 'Shamsollah Workshop Vehicle Inspection', description: 'A full pre-purchase mechanical, gearbox, body and diagnostics inspection in Kish — 20% off for Ali Sales users, with a written inspection guarantee.' },
+);
 
 const CHECKS = [
   'بررسی کامل موتور، گیربکس و سیستم تعلیق',

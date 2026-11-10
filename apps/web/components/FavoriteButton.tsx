@@ -2,6 +2,7 @@
 
 import { useEffect, useRef, useState } from 'react';
 import { Icon } from './Icon';
+import { useI18n } from '@/lib/i18n';
 
 export const FAVORITES_KEY = 'alisales-favorites';
 
@@ -99,6 +100,7 @@ export function FavoriteButton({
   compact?: boolean;
   className?: string;
 }) {
+  const { t } = useI18n();
   const [active, setActive] = useState(false);
   // Cards pass a fresh snapshot object each render; a ref keeps the effect from
   // re-fetching while still mirroring the latest fields.
@@ -164,7 +166,11 @@ export function FavoriteButton({
         type="button"
         onClick={toggle}
         aria-pressed={active}
-        aria-label={active ? 'حذف از علاقه‌مندی‌ها' : 'افزودن به علاقه‌مندی‌ها'}
+        aria-label={
+          active
+            ? t('حذف از علاقه‌مندی‌ها', 'Remove from favourites')
+            : t('افزودن به علاقه‌مندی‌ها', 'Save to favourites')
+        }
         className={`flex h-9 w-9 items-center justify-center rounded-full shadow-md backdrop-blur transition active:scale-95 ${className}`}
         style={{
           backgroundColor: 'rgba(255, 255, 255, 0.88)',
@@ -181,7 +187,11 @@ export function FavoriteButton({
       type="button"
       onClick={toggle}
       aria-pressed={active}
-      aria-label={active ? 'حذف از علاقه‌مندی‌ها' : 'افزودن به علاقه‌مندی‌ها'}
+      aria-label={
+        active
+          ? t('حذف از علاقه‌مندی‌ها', 'Remove from favourites')
+          : t('افزودن به علاقه‌مندی‌ها', 'Save to favourites')
+      }
       className={`flex h-11 w-11 items-center justify-center rounded-full border border-line bg-card transition hover:border-line-strong ${className}`}
       style={{ color: active ? '#F98513' : 'var(--color-text-secondary)' }}
     >

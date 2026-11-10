@@ -6,6 +6,7 @@ import type { SortKey } from '@/lib/sort';
 import { Catalog } from './Catalog';
 import { PartFilterBar } from './PartFilterBar';
 import type { StoryItem } from './Stories';
+import { useI18n } from '@/lib/i18n';
 
 /**
  * Client shell for the parts page: the spare-parts strip needs its own URL
@@ -36,6 +37,7 @@ export function PartsCatalog({
   compatibility: string;
   condition: string | null;
 }) {
+  const { t } = useI18n();
   return (
     <Catalog
       listings={listings}
@@ -47,9 +49,12 @@ export function PartsCatalog({
       showCategories={false}
       showStories
       stories={stories}
-      storiesLabel="داستان‌های قطعات"
+      storiesLabel={t('داستان‌های قطعات', 'Spare-part stories')}
       hideQuickChips
-      searchPlaceholder="جستجوی قطعه، شماره فنی یا نام خودرو..."
+      searchPlaceholder={t(
+        'جستجوی قطعه، شماره فنی یا نام خودرو...',
+        'Search parts, part numbers or vehicle models...',
+      )}
       filterStrip={({ filters: current, commitFilters }) => (
         <PartFilterBar
           basePath="/parts"

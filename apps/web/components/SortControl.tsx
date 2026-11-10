@@ -106,16 +106,17 @@ export function ViewModeToggle({
   value: ViewMode;
   onChange: (mode: ViewMode) => void;
 }) {
+  const { t } = useI18n();
   return (
     <div
       role="group"
-      aria-label="نحوه نمایش"
+      aria-label={t('نحوه نمایش')}
       className="flex items-center rounded-[var(--radius-pill)] border border-line bg-card p-1"
     >
       {(
         [
-          { mode: 'grid', icon: 'grid', label: 'نمایش شبکه‌ای' },
-          { mode: 'row', icon: 'list', label: 'نمایش فهرستی' },
+          { mode: 'grid', icon: 'grid', label: t('نمایش شبکه‌ای') },
+          { mode: 'row', icon: 'list', label: t('نمایش فهرستی') },
         ] as const
       ).map(({ mode, icon, label }) => (
         <button

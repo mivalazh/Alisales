@@ -12,6 +12,7 @@ import {
   paintConditions,
   type SearchFilters,
 } from '@alisales/schemas';
+import { useI18n } from '@/lib/i18n';
 import { Icon } from './Icon';
 
 /**
@@ -96,6 +97,7 @@ export function SearchBar({
   onApply: (patch: Partial<SearchFilters>) => void;
   placeholder?: string;
 }) {
+  const { t } = useI18n();
   const [value, setValue] = useState(q);
   const [open, setOpen] = useState(false);
   const [recent, setRecent] = useState<string[]>([]);
@@ -170,8 +172,8 @@ export function SearchBar({
           onChange={(e) => setValue(e.target.value)}
           onFocus={show}
           onClick={show}
-          placeholder={placeholder}
-          aria-label="جستجوی آگهی"
+          placeholder={t(placeholder)}
+          aria-label={t('جستجوی آگهی', 'Search listings')}
           aria-expanded={open}
           aria-controls="search-suggestions"
           className="field pe-10"
@@ -182,19 +184,19 @@ export function SearchBar({
         <div
           id="search-suggestions"
           role="dialog"
-          aria-label="پیشنهادهای جستجو"
+          aria-label={t('پیشنهادهای جستجو', 'Search suggestions')}
           className="absolute inset-x-0 top-full z-40 mt-2 rounded-2xl border border-line bg-card p-4 shadow-xl"
         >
           {recent.length > 0 && (
             <section className="mb-4">
               <div className="mb-2 flex items-center justify-between gap-2">
-                <h2 className="text-xs font-extrabold text-muted">جستجوهای اخیر</h2>
+                <h2 className="text-xs font-extrabold text-muted">{t('جستجوهای اخیر', 'Recent searches')}</h2>
                 <button
                   type="button"
                   onClick={clearRecent}
                   className="text-xs font-bold text-faint transition hover:text-ink"
                 >
-                  پاک کردن
+                  {t('پاک کردن', 'Clear')}
                 </button>
               </div>
               <ul className="flex flex-wrap gap-2">
@@ -216,7 +218,7 @@ export function SearchBar({
 
           {hints.length > 0 && (
             <section className="mb-4">
-              <h2 className="mb-2 text-xs font-extrabold text-muted">پیشنهادهای نزدیک</h2>
+              <h2 className="mb-2 text-xs font-extrabold text-muted">{t('پیشنهادهای نزدیک', 'Close matches')}</h2>
               <ul className="flex flex-wrap gap-2">
                 {hints.map((hint) => (
                   <li key={hint}>
@@ -235,7 +237,7 @@ export function SearchBar({
           )}
 
           <section className="mb-4">
-            <h2 className="mb-2 text-xs font-extrabold text-muted">بیشترین جستجوها</h2>
+            <h2 className="mb-2 text-xs font-extrabold text-muted">{t('بیشترین جستجوها', 'Trending searches')}</h2>
             <ul className="flex flex-wrap gap-2">
               {TRENDING.map((item) => (
                 <li key={item.label}>
@@ -244,7 +246,7 @@ export function SearchBar({
                     onClick={() => apply(item.patch, item.label)}
                     className="rounded-[var(--radius-pill)] bg-cta-soft px-3 py-1.5 text-xs font-extrabold text-ink transition hover:opacity-90"
                   >
-                    {item.label}
+                    {t(item.label)}
                   </button>
                 </li>
               ))}
@@ -252,7 +254,7 @@ export function SearchBar({
           </section>
 
           <section>
-            <h2 className="mb-2 text-xs font-extrabold text-muted">برندهای محبوب</h2>
+            <h2 className="mb-2 text-xs font-extrabold text-muted">{t('برندهای محبوب', 'Popular brands')}</h2>
             <ul className="flex flex-wrap gap-2">
               {BRAND_PILLS.map((brand) => (
                 <li key={brand.slug}>

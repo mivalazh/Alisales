@@ -1,13 +1,24 @@
-import type { Metadata } from 'next';
+import { localizedMetadata } from '@/lib/i18n/metadata';
 import { Suspense } from 'react';
 import { LoginForm } from '@/components/LoginForm';
+import { getLanguage, serverT } from '@/lib/i18n/server';
 
-export const metadata: Metadata = { title: 'ورود' };
+export const generateMetadata = localizedMetadata(
+  { title: 'ورود' },
+  { title: 'Sign in' },
+);
 
 /** Login — phone + one-time code (S2 / C4). */
-export default function LoginPage() {
+export default async function LoginPage() {
+  const lang = await getLanguage();
   return (
-    <Suspense fallback={<p className="text-center text-sm text-muted">در حال بارگذاری…</p>}>
+    <Suspense
+      fallback={
+        <p className="text-center text-sm text-muted">
+          {serverT(lang, 'در حال بارگذاری…', 'Loading…')}
+        </p>
+      }
+    >
       <LoginForm />
     </Suspense>
   );

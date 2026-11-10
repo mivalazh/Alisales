@@ -1136,8 +1136,47 @@ const catalogListings: ListingCardData[] = [
   },
 ];
 
+function seededBodyType(listing: ListingCardData): ListingCardData['bodyType'] {
+  if (listing.category === 'motorcycle' || listing.category === 'heavy') return null;
+  if (/camaro|huracan|mclaren|boxster|amg|m5|panamera/i.test(listing.model)) return 'coupe';
+  if (/s-class|s500/i.test(listing.model)) return 'sedan';
+  return 'suv';
+}
+
+/**
+ * The demo catalogue is also the client-facing showroom, so every seeded
+ * vehicle carries a complete, realistic condition declaration. New sellers
+ * fill their own; these defaults only fill records that predate the fields.
+ */
+function seededCondition(listing: ListingCardData, index: number): Partial<ListingCardData> {
+  if (listing.part) return {};
+  const paint = [
+    'factory',
+    'factory',
+    'one_spot',
+    'factory',
+    'few_spots',
+    'partial_repaint',
+  ][index % 6];
+  return {
+    bodyType: listing.bodyType ?? seededBodyType(listing),
+    paintCondition: paint,
+    chassisCondition: 'sealed',
+    thirdPartyInsurance: true,
+    thirdPartyMonths: 7 + (index % 5),
+    bodyInsurance: index % 4 !== 3,
+    bodyMonths: 6 + (index % 4),
+    technicalInspection: true,
+    inspectionSheetUrl: '/inspection/sample-report.svg',
+    inspectionNote:
+      'موتور و گیربکس سالم، شاسی پلمپ، بدون رنگ؛ برگه کارشناسی در آگهی بارگذاری شده است.',
+    isJournalPhoto: index % 5 === 0,
+  };
+}
+
 /** The seeded catalogue with its view counts attached for the browse sorts. */
-export const fixtureListings: ListingCardData[] = catalogListings.map((listing) => ({
+export const fixtureListings: ListingCardData[] = catalogListings.map((listing, index) => ({
   ...listing,
+  ...seededCondition(listing, index),
   views: VIEW_COUNTS[listing.slug] ?? 0,
 }));

@@ -54,6 +54,7 @@ import { PhotoUploader } from './PhotoUploader';
 import { PriceText } from './PriceText';
 import { RateLine } from './RateLine';
 import { useAedRate } from './RateProvider';
+import { useI18n } from '@/lib/i18n';
 import {
   processListingMedia,
   uploadProcessedPhoto,
@@ -123,11 +124,82 @@ const INITIAL_PART_DRAFT = {
 type PartDraft = typeof INITIAL_PART_DRAFT;
 type ListingMode = 'vehicle' | 'part';
 
-const CATEGORY_OPTIONS: ReadonlyArray<{ key: VehicleCategory; label: string; hint: string }> = [
-  { key: 'car', label: 'خودرو', hint: 'سواری، شاسی‌بلند و وارداتی' },
-  { key: 'motorcycle', label: 'موتور و اسکوتر برقی', hint: 'اسکوتر و موتور برقی، اسپرت و کلاسیک' },
-  { key: 'heavy', label: 'ماشین‌آلات سنگین', hint: 'کامیون، کشنده و راه‌سازی' },
+const CATEGORY_OPTIONS: ReadonlyArray<{
+  key: VehicleCategory;
+  label: string;
+  hint: string;
+  en: string;
+  enHint: string;
+}> = [
+  {
+    key: 'car',
+    label: 'خودرو',
+    hint: 'سواری، شاسی‌بلند و وارداتی',
+    en: 'Vehicles',
+    enHint: 'Cars, SUVs and imports',
+  },
+  {
+    key: 'motorcycle',
+    label: 'موتور و اسکوتر برقی',
+    hint: 'اسکوتر و موتور برقی، اسپرت و کلاسیک',
+    en: 'Electric Scooters & Bikes',
+    enHint: 'Electric scooters, sport and classic bikes',
+  },
+  {
+    key: 'heavy',
+    label: 'ماشین‌آلات سنگین',
+    hint: 'کامیون، کشنده و راه‌سازی',
+    en: 'Heavy Machinery',
+    enHint: 'Trucks, tractor units and construction equipment',
+  },
 ];
+
+const BODY_EN: Record<string, string> = {
+  sedan: 'Sedan',
+  suv: 'SUV',
+  coupe: 'Coupé',
+  convertible: 'Convertible',
+  hatchback: 'Hatchback',
+  crossover: 'Crossover',
+  pickup: 'Pickup',
+  van: 'Van',
+};
+
+const FUEL_EN: Record<string, string> = {
+  petrol: 'Petrol',
+  diesel: 'Diesel',
+  cng: 'Dual fuel (CNG)',
+  hybrid: 'Hybrid',
+  electric: 'Electric',
+};
+
+const BIKE_TYPE_EN: Record<string, string> = {
+  scooter: 'Electric scooter',
+  electric: 'Electric motorcycle',
+  petrol_scooter: 'Petrol scooter',
+  sport: 'Sport bike',
+  cross: 'Cross / off-road',
+  classic: 'Classic bike',
+  touring: 'Touring bike',
+};
+
+const HEAVY_TYPE_EN: Record<string, string> = {
+  truck: 'Truck',
+  tractor: 'Tractor unit',
+  trailer: 'Trailer',
+  excavator: 'Excavator',
+  loader: 'Loader',
+  crane: 'Crane',
+  dozer: 'Bulldozer',
+  mixer: 'Concrete mixer',
+  other: 'Other',
+};
+
+const PLATE_STATEMENT_EN: Record<string, string> = {
+  kish: 'The seller has declared this vehicle as having a Kish Island plate.',
+  temporary_transit: 'The seller has declared this vehicle as having a temporary transit plate.',
+  unplated: 'The seller has declared this vehicle as unplated.',
+};
 
 /** The step-2 spec card is named after the category actually being filled. */
 const SPEC_TITLE: Record<VehicleCategory, string> = {
@@ -196,6 +268,7 @@ function StepCard({
   title?: string;
   children: ReactNode;
 }) {
+  const { t } = useI18n();
   return (
     <section className="rounded-card border border-line bg-card p-4 sm:p-5">
       <div className="mb-4 flex items-center justify-between gap-3 border-b border-line pb-3">
@@ -205,7 +278,7 @@ function StepCard({
           <span aria-hidden className="flex-1" />
         )}
         <span className="rounded-[var(--radius-pill)] bg-cta-soft px-3 py-1 text-xs font-extrabold text-ink">
-          مرحله {step} از 3
+          {t(`مرحله ${step} از 3`, `Step ${step} of 3`)}
         </span>
       </div>
       <div className="space-y-4">{children}</div>
@@ -248,6 +321,7 @@ function BrandPicker({
   custom: string;
   onPick: (slug: string, customName: string) => void;
 }) {
+  const { t } = useI18n();
   const brands = useMemo(() => brandsForCategory(category), [category]);
   const selected = brands.find((brand) => brand.slug === value) ?? null;
   const [query, setQuery] = useState('');
@@ -281,7 +355,15 @@ function BrandPicker({
         aria-controls="brand-options"
         autoComplete="off"
         className="field"
-        value={open ? query : (selected?.label ?? (custom ? `${custom} (دلخواه)` : ''))}
+        value={
+          open
+            ? query
+            : (selected
+                ? t(selected.label, selected.latin)
+                : custom
+                  ? `${custom} ${t('(دلخواه)', '(custom)')}`
+                  : '')
+        }
         onFocus={() => {
           setOpen(true);
           setQuery('');
@@ -290,7 +372,7 @@ function BrandPicker({
           setQuery(e.target.value);
           setOpen(true);
         }}
-        placeholder="جستجوی برند…"
+        placeholder={t('جستجوی برند…', 'Search brands…')}
       />
 
       {open && (
@@ -312,7 +394,7 @@ function BrandPicker({
                   brand.slug === value ? 'bg-cta-soft text-ink' : 'text-muted'
                 }`}
               >
-                <span>{brand.label}</span>
+                <span>{t(brand.label, brand.latin)}</span>
                 <span dir="ltr" className="text-[11px] font-bold text-faint">
                   {brand.latin}
                 </span>
@@ -330,7 +412,10 @@ function BrandPicker({
                 }}
                 className="w-full rounded-field px-2 py-2 text-start text-sm font-bold text-cta hover:bg-cta-soft"
               >
-                «{query.trim()}» را به‌عنوان برند دلخواه ثبت کن
+                {t(
+                  `«${query.trim()}» را به‌عنوان برند دلخواه ثبت کن`,
+                  `Add “${query.trim()}” as a custom brand`,
+                )}
               </button>
             </li>
           )}
@@ -345,7 +430,10 @@ function BrandPicker({
                 }}
                 className="w-full rounded-field px-2 py-2 text-start text-xs font-bold text-cta hover:bg-cta-soft"
               >
-                «{query.trim()}» در فهرست نیست — به‌عنوان برند دلخواه ثبت کن
+                {t(
+                  `«${query.trim()}» در فهرست نیست — به‌عنوان برند دلخواه ثبت کن`,
+                  `“${query.trim()}” is not listed — add it as a custom brand`,
+                )}
               </button>
             </li>
           )}
@@ -365,6 +453,7 @@ function ModelPicker({
   value: string;
   onChange: (next: string) => void;
 }) {
+  const { t } = useI18n();
   const [open, setOpen] = useState(false);
   const root = useRef<HTMLDivElement>(null);
   const q = value.trim().toLowerCase();
@@ -396,7 +485,7 @@ function ModelPicker({
           onChange(e.target.value);
           setOpen(true);
         }}
-        placeholder="مثلاً Land Cruiser VXR"
+        placeholder={t('مثلاً Land Cruiser VXR', 'e.g. Land Cruiser VXR')}
       />
       {open && options.length > 0 && (
         <ul
@@ -434,13 +523,16 @@ function InspectionSheetField({
   onChange: (next: string) => void;
   error?: string;
 }) {
+  const { t } = useI18n();
   const input = useRef<HTMLInputElement>(null);
   const [busy, setBusy] = useState(false);
   const [localError, setLocalError] = useState<string | null>(null);
 
   return (
     <div>
-      <label className="label">برگه کارشناسی سلامت خودرو (اختیاری)</label>
+      <label className="label">
+        {t('برگه کارشناسی سلامت خودرو (اختیاری)', 'Vehicle inspection sheet (optional)')}
+      </label>
       <div className="flex flex-wrap items-center gap-2">
         <button
           type="button"
@@ -448,7 +540,11 @@ function InspectionSheetField({
           disabled={busy}
           className="rounded-field border border-line bg-page px-3 py-2 text-xs font-bold text-ink transition hover:border-line-strong disabled:opacity-60"
         >
-          {busy ? 'در حال بارگذاری…' : value ? 'تغییر برگه کارشناسی' : 'بارگذاری عکس برگه کارشناسی'}
+          {busy
+            ? t('در حال بارگذاری…', 'Uploading…')
+            : value
+              ? t('تغییر برگه کارشناسی', 'Replace inspection sheet')
+              : t('بارگذاری عکس برگه کارشناسی', 'Upload inspection sheet')}
         </button>
         {value && (
           <>
@@ -458,14 +554,14 @@ function InspectionSheetField({
               rel="noreferrer"
               className="text-xs font-bold text-cta underline"
             >
-              مشاهده برگه
+              {t('مشاهده برگه', 'View sheet')}
             </a>
             <button
               type="button"
               onClick={() => onChange('')}
               className="text-xs font-bold text-muted underline"
             >
-              حذف
+              {t('حذف', 'Remove')}
             </button>
           </>
         )}
@@ -485,7 +581,9 @@ function InspectionSheetField({
             const uploaded = await uploadProcessedPhoto(processed);
             onChange(uploaded.url ?? '');
           } catch {
-            setLocalError('بارگذاری برگه کارشناسی ناموفق بود.');
+            setLocalError(
+              t('بارگذاری برگه کارشناسی ناموفق بود.', 'Could not upload the inspection sheet.'),
+            );
           } finally {
             setBusy(false);
             if (input.current) input.current.value = '';
@@ -507,6 +605,7 @@ function InspectionSheetField({
 }
 
 export function ListingForm() {
+  const { t, lang } = useI18n();
   const rate = useAedRate();
   const perAed = rate?.aedToIrr ?? DEFAULT_AED_TO_IRR;
 
@@ -531,55 +630,55 @@ export function ListingForm() {
      of them look and behave like the brand/model comboboxes. */
   const bodyTypeOptions: SelectOption[] = bodyTypes.map((body) => ({
     value: body,
-    label: BODY_TYPE_LABELS[body],
+    label: t(BODY_TYPE_LABELS[body], BODY_EN[body]),
   }));
   const fuelOptions: SelectOption[] = useMemo(
-    () => fuelTypes.map((f) => ({ value: f, label: FUEL_LABELS[f] })),
-    [],
+    () => fuelTypes.map((f) => ({ value: f, label: t(FUEL_LABELS[f], FUEL_EN[f]) })),
+    [t],
   );
   const conditionOptions: SelectOption[] = conditions.map((c) => ({
     value: c,
-    label: c === 'new' ? 'نو' : 'کارکرده',
+    label: c === 'new' ? t('نو', 'Brand New') : t('کارکرده', 'Used'),
   }));
   const bikeTypeOptions: SelectOption[] = BIKE_TYPES.map((type) => ({
     value: type.key,
-    label: type.label,
+    label: t(type.label, BIKE_TYPE_EN[type.key]),
   }));
   const heavyTypeOptions: SelectOption[] = HEAVY_TYPES.map((type) => ({
     value: type.key,
-    label: type.label,
+    label: t(type.label, HEAVY_TYPE_EN[type.key]),
   }));
   const partCategoryOptions: SelectOption[] = partCategories.map((partCategory) => ({
     value: partCategory,
-    label: PART_CATEGORY_LABELS[partCategory],
+    label: t(PART_CATEGORY_LABELS[partCategory]),
   }));
   const partAuthenticityOptions: SelectOption[] = partOrigins.map((origin) => ({
     value: origin,
-    label: PART_ORIGIN_LABELS[origin],
+    label: t(PART_ORIGIN_LABELS[origin]),
   }));
   const partConditionOptions: SelectOption[] = partConditions.map((condition) => ({
     value: condition,
-    label: PART_CONDITION_LABELS[condition],
+    label: t(PART_CONDITION_LABELS[condition]),
   }));
   const cityOptions: SelectOption[] = selectableCities().map((c) => ({
     value: c.slug,
-    label: c.label,
+    label: t(c.label),
   }));
   const yesNoOptions: SelectOption[] = [
-    { value: 'yes', label: 'دارد' },
-    { value: 'no', label: 'ندارد' },
+    { value: 'yes', label: t('دارد', 'Yes') },
+    { value: 'no', label: t('ندارد', 'No') },
   ];
   const monthOptions: SelectOption[] = Array.from({ length: 12 }, (_, i) => ({
     value: String(i + 1),
-    label: `${i + 1} ماه`,
+    label: t(`${i + 1} ماه`, `${i + 1} months`),
   }));
   const paintOptions: SelectOption[] = paintConditions.map((paint) => ({
     value: paint,
-    label: PAINT_CONDITION_LABELS[paint],
+    label: t(PAINT_CONDITION_LABELS[paint]),
   }));
   const chassisOptions: SelectOption[] = chassisConditions.map((chassis) => ({
     value: chassis,
-    label: CHASSIS_CONDITION_LABELS[chassis],
+    label: t(CHASSIS_CONDITION_LABELS[chassis]),
   }));
 
   const photosRef = useRef<ProcessedPhoto[]>([]);
@@ -603,7 +702,9 @@ export function ListingForm() {
   const brands = useMemo(() => brandsForCategory(category), [category]);
   const activeBrand = brands.find((b) => b.slug === draft.brand) ?? null;
   const plateStatementText = draft.plateType
-    ? plateStatement(draft.plateType as PlateType)
+    ? lang === 'en'
+      ? (PLATE_STATEMENT_EN[draft.plateType] ?? null)
+      : plateStatement(draft.plateType as PlateType)
     : null;
 
   /** Switching the category resets the marque to that category's first brand. */
@@ -644,7 +745,14 @@ export function ListingForm() {
     const toman = irrToToman(irr);
     const words = tomanInWords(toman);
     const aed = formatAmountLatin(irrToAED(irr, perAed));
-    return { toman, words, line: `${words} · ≈ ${aed} درهم` };
+    return {
+      toman,
+      words,
+      line:
+        lang === 'en'
+          ? `${formatAmountLatin(toman)} Toman · ≈ ${aed} AED`
+          : `${words} · ≈ ${aed} درهم`,
+    };
   })();
 
   /** Switch unit and restate the typed number in the new unit. */
@@ -858,7 +966,12 @@ export function ListingForm() {
     setFieldErrors({});
 
     if (photos.some((p) => !p.path)) {
-      setFormError('عکس‌ها هنوز بارگذاری نشده‌اند؛ چند لحظه صبر کنید و دوباره تلاش کنید.');
+      setFormError(
+        t(
+          'عکس‌ها هنوز بارگذاری نشده‌اند؛ چند لحظه صبر کنید و دوباره تلاش کنید.',
+          'Photos are still uploading; wait a moment and try again.',
+        ),
+      );
       return;
     }
 
@@ -866,27 +979,64 @@ export function ListingForm() {
     // boxes outlined in red at once, not one error at a time.
     const missing: Record<string, string> = {};
     if (photos.length === 0) {
-      missing.photos = 'عکس‌ها — حداقل یک عکس برای انتشار آگهی لازم است.';
+      missing.photos = t(
+        'عکس‌ها — حداقل یک عکس برای انتشار آگهی لازم است.',
+        'Photos — at least one photo is required to publish.',
+      );
     }
     if (mode === 'vehicle') {
-      if (!draft.model.trim()) missing['vehicle.model'] = 'مدل — مدل خودرو را بنویسید.';
-      if (!draft.bodyType) missing['vehicle.bodyType'] = 'تیپ / کلاس بدنه — یک گزینه انتخاب کنید.';
-      if (!draft.year) missing['vehicle.year'] = 'سال ساخت — سال را انتخاب کنید.';
-      if (!draft.mileageKm.trim()) missing['vehicle.mileageKm'] = 'کارکرد — کارکرد را بنویسید.';
-      if (!draft.condition) missing['vehicle.condition'] = 'وضعیت خودرو — یک گزینه انتخاب کنید.';
-      if (!draft.color.trim()) missing['vehicle.color'] = 'رنگ — رنگ خودرو را بنویسید.';
-      if (!draft.plateType) missing['vehicle.plateType'] = 'وضعیت پلاک — یک گزینه انتخاب کنید.';
+      if (!draft.model.trim())
+        missing['vehicle.model'] = t('مدل — مدل خودرو را بنویسید.', 'Model — enter the model.');
+      if (!draft.bodyType)
+        missing['vehicle.bodyType'] = t(
+          'تیپ / کلاس بدنه — یک گزینه انتخاب کنید.',
+          'Trim / body class — choose an option.',
+        );
+      if (!draft.year)
+        missing['vehicle.year'] = t('سال ساخت — سال را انتخاب کنید.', 'Model year — choose a year.');
+      if (!draft.mileageKm.trim())
+        missing['vehicle.mileageKm'] = t(
+          'کارکرد — کارکرد را بنویسید.',
+          'Mileage — enter the mileage.',
+        );
+      if (!draft.condition)
+        missing['vehicle.condition'] = t(
+          'وضعیت خودرو — یک گزینه انتخاب کنید.',
+          'Vehicle condition — choose an option.',
+        );
+      if (!draft.color.trim())
+        missing['vehicle.color'] = t('رنگ — رنگ خودرو را بنویسید.', 'Colour — enter the colour.');
+      if (!draft.plateType)
+        missing['vehicle.plateType'] = t(
+          'وضعیت پلاک — یک گزینه انتخاب کنید.',
+          'Plate status — choose an option.',
+        );
     } else {
-      if (!partDraft.category) missing.category = 'دسته‌بندی — یک گزینه انتخاب کنید.';
-      if (!partDraft.title.trim()) missing.title = 'عنوان — عنوان قطعه را بنویسید.';
-      if (!partDraft.condition) missing.condition = 'وضعیت قطعه — یک گزینه انتخاب کنید.';
-      if (!partDraft.origin) missing.origin = 'اصالت قطعه — یک گزینه انتخاب کنید.';
+      if (!partDraft.category)
+        missing.category = t('دسته‌بندی — یک گزینه انتخاب کنید.', 'Category — choose an option.');
+      if (!partDraft.title.trim())
+        missing.title = t('عنوان — عنوان قطعه را بنویسید.', 'Title — enter the part title.');
+      if (!partDraft.condition)
+        missing.condition = t(
+          'وضعیت قطعه — یک گزینه انتخاب کنید.',
+          'Part condition — choose an option.',
+        );
+      if (!partDraft.origin)
+        missing.origin = t(
+          'اصالت قطعه — یک گزینه انتخاب کنید.',
+          'Part authenticity — choose an option.',
+        );
     }
     if (Object.keys(missing).length > 0) {
       applyIssues(
         Object.entries(missing).map(([path, message]) => ({ path, message })),
       );
-      setFormError('لطفاً همه‌ی فیلدهای الزامی مشخص‌شده را تکمیل کنید.');
+      setFormError(
+        t(
+          'لطفاً همه‌ی فیلدهای الزامی مشخص‌شده را تکمیل کنید.',
+          'Please complete all highlighted required fields.',
+        ),
+      );
       return;
     }
 
@@ -902,7 +1052,9 @@ export function ListingForm() {
           message: i.message,
         })),
       );
-      setFormError('لطفاً خطاهای مشخص‌شده را برطرف کنید.');
+      setFormError(
+        t('لطفاً خطاهای مشخص‌شده را برطرف کنید.', 'Please fix the highlighted fields.'),
+      );
       return;
     }
 
@@ -931,16 +1083,27 @@ export function ListingForm() {
       }
       if (res.status === 400 && body?.issues) {
         applyIssues(body.issues);
-        setFormError('اطلاعات ارسالی معتبر نیست.');
+        setFormError(t('اطلاعات ارسالی معتبر نیست.', 'The submitted details are not valid.'));
         return;
       }
       if (res.status === 401) {
         window.location.href = '/login?next=/new';
         return;
       }
-      setFormError(body?.error ?? 'ارسال آگهی ناموفق بود؛ لطفاً دوباره تلاش کنید.');
+      setFormError(
+        body?.error ??
+          t(
+            'ارسال آگهی ناموفق بود؛ لطفاً دوباره تلاش کنید.',
+            'Could not publish the listing; please try again.',
+          ),
+      );
     } catch {
-      setFormError('ارتباط با سرور برقرار نشد؛ اتصال اینترنت خود را بررسی کنید.');
+      setFormError(
+        t(
+          'ارتباط با سرور برقرار نشد؛ اتصال اینترنت خود را بررسی کنید.',
+          'Could not reach the server; check your internet connection.',
+        ),
+      );
     } finally {
       setSubmitting(false);
     }
@@ -964,7 +1127,9 @@ export function ListingForm() {
           <span className="mx-auto flex h-12 w-12 items-center justify-center rounded-full bg-cta-soft text-cta">
             <Icon name="checkCircle" size={26} />
           </span>
-          <p className="mt-3 text-lg font-extrabold">آگهی شما منتشر شد</p>
+          <p className="mt-3 text-lg font-extrabold">
+            {t('آگهی شما منتشر شد', 'Your listing is live')}
+          </p>
         </div>
 
         {publishedCard && (
@@ -975,30 +1140,38 @@ export function ListingForm() {
               <ListingCard listing={publishedCard} />
             </div>
             <div className="order-1 rounded-card border border-line bg-card p-4 sm:order-2 sm:p-5">
-              <h2 className="text-sm font-extrabold text-ink">جزئیات آگهی</h2>
+              <h2 className="text-sm font-extrabold text-ink">
+                {t('جزئیات آگهی', 'Listing details')}
+              </h2>
               <dl className="mt-3 grid grid-cols-2 gap-2 text-xs">
                 <div className="rounded-field border border-line bg-page p-2.5">
-                  <dt className="font-bold text-muted">قیمت</dt>
+                  <dt className="font-bold text-muted">{t('قیمت', 'Price')}</dt>
                   <dd className="mt-1 font-extrabold text-ink">
                     <PriceText irr={publishedCard.priceIRR} hideAed={publishedCard.hideAed} />
                   </dd>
                 </div>
                 <div className="rounded-field border border-line bg-page p-2.5">
-                  <dt className="font-bold text-muted">شهر</dt>
+                  <dt className="font-bold text-muted">{t('شهر', 'City')}</dt>
                   <dd className="mt-1 font-extrabold text-ink">
                     {CITY_LABELS[publishedCard.city] ?? publishedCard.city}
                   </dd>
                 </div>
                 <div className="rounded-field border border-line bg-page p-2.5">
-                  <dt className="font-bold text-muted">وضعیت</dt>
+                  <dt className="font-bold text-muted">{t('وضعیت', 'Condition')}</dt>
                   <dd className="mt-1 font-extrabold text-ink">
-                    {publishedCard.condition === 'new' ? 'نو' : 'کارکرده'}
+                    {publishedCard.condition === 'new'
+                      ? t('نو', 'Brand New')
+                      : t('کارکرده', 'Used')}
                   </dd>
                 </div>
                 <div className="rounded-field border border-line bg-page p-2.5">
-                  <dt className="font-bold text-muted">ارتباط با فروشنده</dt>
+                  <dt className="font-bold text-muted">
+                    {t('ارتباط با فروشنده', 'Seller contact')}
+                  </dt>
                   <dd className="mt-1 font-extrabold text-ink">
-                    {publishedCard.allowPhoneReveal ? 'شماره تماس نمایش داده می‌شود' : 'فقط چت داخلی'}
+                    {publishedCard.allowPhoneReveal
+                      ? t('شماره تماس نمایش داده می‌شود', 'Phone number shown')
+                      : t('فقط چت داخلی', 'In-app chat only')}
                   </dd>
                 </div>
               </dl>
@@ -1008,14 +1181,14 @@ export function ListingForm() {
                   className="btn-cta flex items-center justify-center gap-1.5 text-sm"
                 >
                   <Icon name="share" size={16} />
-                  مشاهده در سایت
+                  {t('مشاهده در سایت', 'View listing')}
                 </a>
                 <a
                   href={`/edit/${publishedCard.id}`}
                   className="btn-ghost flex items-center justify-center gap-1.5 text-sm"
                 >
                   <Icon name="pencil" size={16} />
-                  ویرایش آگهی
+                  {t('ویرایش آگهی', 'Edit listing')}
                 </a>
                 <div className="flex [&>button]:w-full [&>button]:justify-center">
                   <DeleteListingButton
@@ -1030,7 +1203,7 @@ export function ListingForm() {
                   className="btn-ghost flex items-center justify-center gap-1.5 text-sm"
                 >
                   <Icon name="plus" size={16} />
-                  ثبت آگهی دیگر
+                  {t('ثبت آگهی دیگر', 'Post another listing')}
                 </button>
               </div>
             </div>
@@ -1045,17 +1218,27 @@ export function ListingForm() {
       <div>
         <h1 className="text-2xl font-extrabold">
           {mode === 'part'
-            ? 'ثبت آگهی قطعه و لوازم جانبی'
-            : `ثبت آگهی ${VEHICLE_CATEGORY_LABELS[category]}`}
+            ? t('ثبت آگهی قطعه و لوازم جانبی', 'Post a spare-part ad')
+            : t(
+                `ثبت آگهی ${VEHICLE_CATEGORY_LABELS[category]}`,
+                `Post a ${VEHICLE_CATEGORY_LABELS[category] === 'خودرو' ? 'vehicle' : VEHICLE_CATEGORY_LABELS[category] === 'موتور و اسکوتر برقی' ? 'bike' : 'machinery'} ad`,
+              )}
         </h1>
         <p className="mt-1 text-sm text-muted">
-          ابتدا دسته‌بندی را انتخاب کنید؛ فرم و فیلترها بر همان اساس تنظیم می‌شوند.
+          {t(
+            'ابتدا دسته‌بندی را انتخاب کنید؛ فرم و فیلترها بر همان اساس تنظیم می‌شوند.',
+            'Choose a category first; the form and filters adapt to it.',
+          )}
         </p>
       </div>
 
       {/* Step 1 — the category comes first. */}
-      <StepCard step={1} title="دسته‌بندی آگهی">
-        <div className="grid gap-2 sm:grid-cols-2" role="group" aria-label="دسته‌بندی آگهی">
+      <StepCard step={1} title={t('دسته‌بندی آگهی', 'Listing category')}>
+        <div
+          className="grid gap-2 sm:grid-cols-2"
+          role="group"
+          aria-label={t('دسته‌بندی آگهی', 'Listing category')}
+        >
           {CATEGORY_OPTIONS.map((option) => {
             const active = mode === 'vehicle' && category === option.key;
             return (
@@ -1073,8 +1256,10 @@ export function ListingForm() {
                     : 'border-line bg-card text-muted hover:border-line-strong'
                 }`}
               >
-                <span className="block">{option.label}</span>
-                <span className="mt-0.5 block text-[11px] font-bold text-faint">{option.hint}</span>
+                <span className="block">{t(option.label, option.en)}</span>
+                <span className="mt-0.5 block text-[11px] font-bold text-faint">
+                  {t(option.hint, option.enHint)}
+                </span>
               </button>
             );
           })}
@@ -1088,9 +1273,9 @@ export function ListingForm() {
                 : 'border-line bg-card text-muted hover:border-line-strong'
             }`}
           >
-            <span className="block">قطعه و لوازم جانبی</span>
+            <span className="block">{t('قطعه و لوازم جانبی', 'Spare Parts & Accessories')}</span>
             <span className="mt-0.5 block text-[11px] font-bold text-faint">
-              قطعات یدکی، بدنه و لوازم
+              {t('قطعات یدکی، بدنه و لوازم', 'Replacement parts, body panels and accessories')}
             </span>
           </button>
         </div>
@@ -1105,15 +1290,27 @@ export function ListingForm() {
         </div>
       )}
 
-      <StepCard step={2} title="مشخصات">
+      <StepCard step={2} title={t('مشخصات', 'Specifications')}>
         {mode === 'vehicle' && (
           <>
-            <Section title={SPEC_TITLE[category]}>
+            <Section
+              title={t(
+                SPEC_TITLE[category],
+                category === 'car'
+                  ? 'Vehicle specifications'
+                  : category === 'motorcycle'
+                    ? 'Bike & scooter specifications'
+                    : 'Heavy machinery specifications',
+              )}
+            >
               <Field
                 htmlFor="brand"
-                label="برند"
+                label={t('برند', 'Brand')}
                 required
-                hint="می‌توانید از فهرست پیشنهادی انتخاب کنید یا مدل/برند دیگری بنویسید."
+                hint={t(
+                  'می‌توانید از فهرست پیشنهادی انتخاب کنید یا مدل/برند دیگری بنویسید.',
+                  'Pick from the suggestions or type another brand/model.',
+                )}
                 error={fieldErrors['vehicle.brand']}
               >
                 <BrandPicker
@@ -1130,24 +1327,30 @@ export function ListingForm() {
               {draft.brand === 'other' && (
                 <Field
                   htmlFor="customBrand"
-                  label="نام برند دلخواه"
-                  hint="نامی که در فهرست نبود را اینجا کامل بنویسید."
+                  label={t('نام برند دلخواه', 'Custom brand name')}
+                  hint={t(
+                    'نامی که در فهرست نبود را اینجا کامل بنویسید.',
+                    'Type the full name if it was not in the list.',
+                  )}
                 >
                   <input
                     id="customBrand"
                     className="field"
                     value={draft.customBrand}
                     onChange={(e) => set('customBrand', e.target.value)}
-                    placeholder="مثلاً بوگاتی"
+                    placeholder={t('مثلاً بوگاتی', 'e.g. Bugatti')}
                   />
                 </Field>
               )}
 
               <Field
                 htmlFor="model"
-                label="مدل"
+                label={t('مدل', 'Model')}
                 required
-                hint="می‌توانید از فهرست پیشنهادی انتخاب کنید یا مدل/برند دیگری بنویسید."
+                hint={t(
+                  'می‌توانید از فهرست پیشنهادی انتخاب کنید یا مدل/برند دیگری بنویسید.',
+                  'Pick from the suggestions or type another brand/model.',
+                )}
                 error={fieldErrors['vehicle.model']}
               >
                 <ModelPicker
@@ -1159,7 +1362,7 @@ export function ListingForm() {
 
               <Field
                 htmlFor="bodyType"
-                label="تیپ / کلاس بدنه"
+                label={t('تیپ / کلاس بدنه', 'Trim / body class')}
                 required
                 error={fieldErrors['vehicle.bodyType']}
               >
@@ -1168,16 +1371,19 @@ export function ListingForm() {
                   value={draft.bodyType}
                   onChange={(next) => set('bodyType', next)}
                   options={bodyTypeOptions}
-                  placeholder="کلاس بدنه را انتخاب کنید…"
+                  placeholder={t('کلاس بدنه را انتخاب کنید…', 'Choose a body class…')}
                   invalid={Boolean(fieldErrors['vehicle.bodyType'])}
                 />
               </Field>
 
               <Field
                 htmlFor="year"
-                label="سال ساخت (میلادی)"
+                label={t('سال ساخت (میلادی)', 'Model year')}
                 required
-                hint="سال میلادی خودرو را انتخاب کنید؛ معادل شمسی کنار هر گزینه نوشته شده است."
+                hint={t(
+                  'سال میلادی خودرو را انتخاب کنید؛ معادل شمسی کنار هر گزینه نوشته شده است.',
+                  'Choose the model year; the Persian year appears beside each option.',
+                )}
                 error={fieldErrors['vehicle.year']}
               >
                 <YearGridSelect
@@ -1190,9 +1396,9 @@ export function ListingForm() {
 
               <Field
                 htmlFor="mileageKm"
-                label={category === 'heavy' ? 'کارکرد (کیلومتر)' : 'کارکرد (کیلومتر)'}
+                label={t('کارکرد (کیلومتر)', 'Mileage (km)')}
                 required
-                hint="عدد صحیح؛ صفر کیلومتر: ۰"
+                hint={t('عدد صحیح؛ صفر کیلومتر: ۰', 'Whole kilometres; enter 0 for a new vehicle.')}
                 error={fieldErrors['vehicle.mileageKm']}
               >
                 <input
@@ -1201,7 +1407,7 @@ export function ListingForm() {
                   className="field"
                   value={draft.mileageKm}
                   onChange={(e) => set('mileageKm', groupTypedAmount(e.target.value))}
-                  placeholder="مثلاً 58,000"
+                  placeholder={t('مثلاً 58,000', 'e.g. 58,000')}
                   dir="ltr"
                 />
               </Field>
@@ -1214,14 +1420,17 @@ export function ListingForm() {
                     htmlFor="engineCc"
                     label={
                       draft.fuel === 'electric'
-                        ? 'توان موتور (وات) — اختیاری'
-                        : 'حجم موتور (cc)'
+                        ? t('توان موتور (وات) — اختیاری', 'Motor power (W) — optional')
+                        : t('حجم موتور (cc)', 'Engine size (cc)')
                     }
                     required={draft.fuel !== 'electric'}
                     hint={
                       draft.fuel === 'electric'
-                        ? 'مثلاً ۳۰۰۰ وات؛ برای موتورهای برقی خالی گذاشتن مجاز است.'
-                        : 'مثلاً ۳۹۹ یا ۸۹۰'
+                        ? t(
+                            'مثلاً ۳۰۰۰ وات؛ برای موتورهای برقی خالی گذاشتن مجاز است.',
+                            'e.g. 3,000 W; it may be left blank for electric bikes.',
+                          )
+                        : t('مثلاً ۳۹۹ یا ۸۹۰', 'e.g. 399 or 890')
                     }
                     error={fieldErrors.engineCc}
                   >
@@ -1238,7 +1447,7 @@ export function ListingForm() {
 
                   <Field
                     htmlFor="bikeType"
-                    label="نوع موتور"
+                    label={t('نوع موتور', 'Bike type')}
                     required
                     error={fieldErrors.bikeType}
                   >
@@ -1247,7 +1456,7 @@ export function ListingForm() {
                       value={draft.bikeType}
                       onChange={(next) => set('bikeType', next)}
                       options={bikeTypeOptions}
-                      placeholder="نوع موتور را انتخاب کنید…"
+                      placeholder={t('نوع موتور را انتخاب کنید…', 'Choose a bike type…')}
                       invalid={Boolean(fieldErrors.bikeType)}
                     />
                   </Field>
@@ -1258,7 +1467,7 @@ export function ListingForm() {
                 <>
                   <Field
                     htmlFor="heavyType"
-                    label="نوع ماشین‌آلات"
+                    label={t('نوع ماشین‌آلات', 'Machinery type')}
                     required
                     error={fieldErrors.heavyType}
                   >
@@ -1267,16 +1476,19 @@ export function ListingForm() {
                       value={draft.heavyType}
                       onChange={(next) => set('heavyType', next)}
                       options={heavyTypeOptions}
-                      placeholder="نوع ماشین‌آلات را انتخاب کنید…"
+                      placeholder={t(
+                        'نوع ماشین‌آلات را انتخاب کنید…',
+                        'Choose a machinery type…',
+                      )}
                       invalid={Boolean(fieldErrors.heavyType)}
                     />
                   </Field>
 
                   <Field
                     htmlFor="workingHours"
-                    label="ساعت کارکرد"
+                    label={t('ساعت کارکرد', 'Operating hours')}
                     required
-                    hint="مثلاً ۹٬۸۰۰ ساعت"
+                    hint={t('مثلاً ۹٬۸۰۰ ساعت', 'e.g. 9,800 hours')}
                     error={fieldErrors.workingHours}
                   >
                     <input
@@ -1294,7 +1506,11 @@ export function ListingForm() {
 
               <Field
                 htmlFor="fuel"
-                label={category === 'motorcycle' ? 'نوع سوخت / محرکه' : 'سوخت'}
+                label={
+                  category === 'motorcycle'
+                    ? t('نوع سوخت / محرکه', 'Fuel / drivetrain')
+                    : t('سوخت', 'Fuel')
+                }
                 required
                 error={fieldErrors['vehicle.fuel']}
               >
@@ -1309,9 +1525,12 @@ export function ListingForm() {
 
               <Field
                 htmlFor="color"
-                label="رنگ"
+                label={t('رنگ', 'Colour')}
                 required
-                hint="رنگ دقیق را خودتان بنویسید؛ همان عبارت در آگهی نمایش داده می‌شود."
+                hint={t(
+                  'رنگ دقیق را خودتان بنویسید؛ همان عبارت در آگهی نمایش داده می‌شود.',
+                  'Describe the exact colour; it appears verbatim on the listing.',
+                )}
                 error={fieldErrors['vehicle.color']}
               >
                 <input
@@ -1319,13 +1538,13 @@ export function ListingForm() {
                   className="field"
                   value={draft.color}
                   onChange={(e) => set('color', e.target.value)}
-                  placeholder="مثلاً سفید صدفی، مشکی متالیک..."
+                  placeholder={t('مثلاً سفید صدفی، مشکی متالیک...', 'e.g. pearl white, metallic black…')}
                 />
               </Field>
 
               <Field
                 htmlFor="condition"
-                label={category === 'heavy' ? 'وضعیت' : 'وضعیت خودرو'}
+                label={category === 'heavy' ? t('وضعیت', 'Condition') : t('وضعیت خودرو', 'Vehicle condition')}
                 required
                 error={fieldErrors['vehicle.condition']}
               >
@@ -1334,15 +1553,15 @@ export function ListingForm() {
                   value={draft.condition}
                   onChange={(next) => set('condition', next)}
                   options={conditionOptions}
-                  placeholder="انتخاب کنید…"
+                  placeholder={t('انتخاب کنید…', 'Choose…')}
                   invalid={Boolean(fieldErrors['vehicle.condition'])}
                 />
               </Field>
 
               <Field
                 htmlFor="vin"
-                label="شماره شاسی (VIN) — اختیاری"
-                hint="۱۷ کاراکتر؛ فقط حروف و ارقام انگلیسی"
+                label={t('شماره شاسی (VIN) — اختیاری', 'VIN — optional')}
+                hint={t('۱۷ کاراکتر؛ فقط حروف و ارقام انگلیسی', '17 characters; Latin letters and digits only.')}
                 error={fieldErrors['vehicle.vin']}
               >
                 <input
@@ -1357,7 +1576,7 @@ export function ListingForm() {
             </Section>
 
             {/* Dedicated seller-declared plate section — no forced police notice. */}
-            <Section title="وضعیت پلاک *">
+            <Section title={t('وضعیت پلاک *', 'Plate status *')}>
               <div className="col-span-full grid gap-2 sm:grid-cols-4">
                 {plateTypes.map((pt) => (
                   <label
@@ -1378,7 +1597,7 @@ export function ListingForm() {
                       onChange={(e) => set('plateType', e.target.value)}
                       className="accent-[var(--color-accent)]"
                     />
-                    {PLATE_TYPE_LABELS[pt]}
+                    {t(PLATE_TYPE_LABELS[pt])}
                   </label>
                 ))}
               </div>
@@ -1390,83 +1609,108 @@ export function ListingForm() {
               {plateStatementText && (
                 <div className="col-span-full rounded-field border border-line bg-page p-3 text-sm">
                   <p className="font-bold">{plateStatementText}</p>
-                  <p className="mt-1 text-xs text-muted">{PLATE_DECLARATION_FOOTER}</p>
+                  <p className="mt-1 text-xs text-muted">
+                    {t(
+                      PLATE_DECLARATION_FOOTER,
+                      'Plate status is declared by the seller.',
+                    )}
+                  </p>
                 </div>
               )}
             </Section>
 
             {/* Declared insurance / paint / chassis / inspection. These are
                 detail-page facts only — the grid card stays uncluttered. */}
-            <Section title="بیمه، رنگ، شاسی و معاینه فنی">
-              <Field htmlFor="thirdPartyInsurance" label="بیمه شخص ثالث">
+            <Section
+              title={t(
+                'بیمه، رنگ، شاسی و معاینه فنی',
+                'Insurance, paint, chassis & inspection',
+              )}
+            >
+              <Field htmlFor="thirdPartyInsurance" label={t('بیمه شخص ثالث', 'Third-party insurance')}>
                 <CustomSelect
                   id="thirdPartyInsurance"
                   value={draft.thirdPartyInsurance}
                   onChange={(next) => set('thirdPartyInsurance', next)}
                   options={yesNoOptions}
-                  placeholder="وضعیت بیمه…"
+                  placeholder={t('وضعیت بیمه…', 'Insurance status…')}
                 />
               </Field>
               {draft.thirdPartyInsurance === 'yes' && (
-                <Field htmlFor="thirdPartyMonths" label="باقی‌مانده بیمه شخص ثالث">
+                <Field
+                  htmlFor="thirdPartyMonths"
+                  label={t('باقی‌مانده بیمه شخص ثالث', 'Third-party insurance remaining')}
+                >
                   <CustomSelect
                     id="thirdPartyMonths"
                     value={draft.thirdPartyMonths}
                     onChange={(next) => set('thirdPartyMonths', next)}
                     options={monthOptions}
-                    placeholder="۱ تا ۱۲ ماه"
+                    placeholder={t('۱ تا ۱۲ ماه', '1 to 12 months')}
                   />
                 </Field>
               )}
 
-              <Field htmlFor="bodyInsurance" label="بیمه بدنه">
+              <Field htmlFor="bodyInsurance" label={t('بیمه بدنه', 'Body insurance')}>
                 <CustomSelect
                   id="bodyInsurance"
                   value={draft.bodyInsurance}
                   onChange={(next) => set('bodyInsurance', next)}
                   options={yesNoOptions}
-                  placeholder="وضعیت بیمه بدنه…"
+                  placeholder={t('وضعیت بیمه بدنه…', 'Body insurance status…')}
                 />
               </Field>
               {draft.bodyInsurance === 'yes' && (
-                <Field htmlFor="bodyMonths" label="باقی‌مانده بیمه بدنه">
+                <Field
+                  htmlFor="bodyMonths"
+                  label={t('باقی‌مانده بیمه بدنه', 'Body insurance remaining')}
+                >
                   <CustomSelect
                     id="bodyMonths"
                     value={draft.bodyMonths}
                     onChange={(next) => set('bodyMonths', next)}
                     options={monthOptions}
-                    placeholder="۱ تا ۱۲ ماه"
+                    placeholder={t('۱ تا ۱۲ ماه', '1 to 12 months')}
                   />
                 </Field>
               )}
 
-              <Field htmlFor="paintCondition" label="وضعیت رنگ و بدنه">
+              <Field
+                htmlFor="paintCondition"
+                label={t('وضعیت رنگ و بدنه', 'Paint & body condition')}
+              >
                 <CustomSelect
                   id="paintCondition"
                   value={draft.paintCondition}
                   onChange={(next) => set('paintCondition', next)}
                   options={paintOptions}
-                  placeholder="وضعیت رنگ…"
+                  placeholder={t('وضعیت رنگ…', 'Paint condition…')}
                 />
               </Field>
 
-              <Field htmlFor="chassisCondition" label="وضعیت شاسی">
+              <Field
+                htmlFor="chassisCondition"
+                label={t('وضعیت شاسی', 'Chassis condition')}
+              >
                 <CustomSelect
                   id="chassisCondition"
                   value={draft.chassisCondition}
                   onChange={(next) => set('chassisCondition', next)}
                   options={chassisOptions}
-                  placeholder="وضعیت شاسی…"
+                  placeholder={t('وضعیت شاسی…', 'Chassis condition…')}
                 />
               </Field>
 
-              <Field htmlFor="technicalInspection" label="معاینه فنی">
+              <Field
+                htmlFor="technicalInspection"
+                label={t('معاینه فنی', 'Technical inspection')}
+              >
                 <CustomSelect
                   id="technicalInspection"
                   value={draft.technicalInspection}
                   onChange={(next) => set('technicalInspection', next)}
                   options={yesNoOptions}
-                  placeholder="معاینه فنی دارد؟"
+                  placeholder={t('معاینه فنی دارد؟', 'Has a technical inspection?')}
                 />
               </Field>
 
@@ -1476,14 +1720,20 @@ export function ListingForm() {
                   onChange={(next) => set('inspectionSheetUrl', next)}
                   error={fieldErrors.inspectionSheetUrl}
                 />
-                <Field htmlFor="inspectionNote" label="خلاصه برگه کارشناسی (اختیاری)">
+                <Field
+                  htmlFor="inspectionNote"
+                  label={t('خلاصه برگه کارشناسی (اختیاری)', 'Inspection summary (optional)')}
+                >
                   <textarea
                     id="inspectionNote"
                     rows={3}
                     className="field resize-y"
                     value={draft.inspectionNote}
                     onChange={(e) => set('inspectionNote', e.target.value)}
-                    placeholder="مثلاً: موتور و گیربکس سالم، شاسی پلمپ، بدون رنگ…"
+                    placeholder={t(
+                      'مثلاً: موتور و گیربکس سالم، شاسی پلمپ، بدون رنگ…',
+                      'e.g. engine and gearbox sound, chassis sealed, no repaint…',
+                    )}
                   />
                 </Field>
               </div>
@@ -1492,29 +1742,46 @@ export function ListingForm() {
         )}
 
         {mode === 'part' && (
-          <Section title="مشخصات قطعه">
-            <Field htmlFor="partCategory" label="دسته‌بندی" required error={fieldErrors.category}>
+          <Section title={t('مشخصات قطعه', 'Part specifications')}>
+            <Field
+              htmlFor="partCategory"
+              label={t('دسته‌بندی', 'Category')}
+              required
+              error={fieldErrors.category}
+            >
               <CustomSelect
                 id="partCategory"
                 value={partDraft.category}
                 onChange={(next) => setPart('category', next)}
                 options={partCategoryOptions}
-                placeholder="دسته‌بندی قطعه…"
+                placeholder={t('دسته‌بندی قطعه…', 'Part category…')}
                 invalid={Boolean(fieldErrors.category)}
               />
             </Field>
 
-            <Field htmlFor="partTitle" label="عنوان" required error={fieldErrors.title}>
+            <Field
+              htmlFor="partTitle"
+              label={t('عنوان', 'Title')}
+              required
+              error={fieldErrors.title}
+            >
               <input
                 id="partTitle"
                 className="field"
                 value={partDraft.title}
                 onChange={(e) => setPart('title', e.target.value)}
-                placeholder="مثلاً دیسک ترمز جلو لندکروزر"
+                placeholder={t(
+                  'مثلاً دیسک ترمز جلو لندکروزر',
+                  'e.g. front brake disc for Land Cruiser',
+                )}
               />
             </Field>
 
-            <Field htmlFor="partNumber" label="شماره فنی (اختیاری)" error={fieldErrors.partNumber}>
+            <Field
+              htmlFor="partNumber"
+              label={t('شماره فنی (اختیاری)', 'Part number (optional)')}
+              error={fieldErrors.partNumber}
+            >
               <input
                 id="partNumber"
                 className="field font-mono"
@@ -1527,8 +1794,11 @@ export function ListingForm() {
 
             <Field
               htmlFor="partCompatibility"
-              label="سازگاری با خودرو (اختیاری)"
-              hint="اگر خالی بماند، «سازگاری عمومی» نمایش داده می‌شود."
+              label={t('سازگاری با خودرو (اختیاری)', 'Vehicle compatibility (optional)')}
+              hint={t(
+                'اگر خالی بماند، «سازگاری عمومی» نمایش داده می‌شود.',
+                'If left blank, it is shown as “universal compatibility”.',
+              )}
               error={fieldErrors.compatibility}
             >
               <input
@@ -1536,13 +1806,13 @@ export function ListingForm() {
                 className="field"
                 value={partDraft.compatibility}
                 onChange={(e) => setPart('compatibility', e.target.value)}
-                placeholder="لندکروزر و پاترول"
+                placeholder={t('لندکروزر و پاترول', 'Land Cruiser and Patrol')}
               />
             </Field>
 
             <Field
               htmlFor="partOriginCountry"
-              label="کشور سازنده"
+              label={t('کشور سازنده', 'Country of manufacture')}
               error={fieldErrors.originCountry}
             >
               <input
@@ -1550,39 +1820,53 @@ export function ListingForm() {
                 className="field"
                 value={partDraft.originCountry}
                 onChange={(e) => setPart('originCountry', e.target.value)}
-                placeholder="مثلاً ژاپن، آلمان، امارات..."
+                placeholder={t('مثلاً ژاپن، آلمان، امارات...', 'e.g. Japan, Germany, UAE…')}
               />
             </Field>
 
-            <Field htmlFor="partCondition" label="وضعیت قطعه" required error={fieldErrors.condition}>
+            <Field
+              htmlFor="partCondition"
+              label={t('وضعیت قطعه', 'Part condition')}
+              required
+              error={fieldErrors.condition}
+            >
               <CustomSelect
                 id="partCondition"
                 value={partDraft.condition}
                 onChange={(next) => setPart('condition', next)}
                 options={partConditionOptions}
-                placeholder="وضعیت قطعه…"
+                placeholder={t('وضعیت قطعه…', 'Part condition…')}
                 invalid={Boolean(fieldErrors.condition)}
               />
             </Field>
 
-            <Field htmlFor="partOrigin" label="اصالت قطعه" required error={fieldErrors.origin}>
+            <Field
+              htmlFor="partOrigin"
+              label={t('اصالت قطعه', 'Part authenticity')}
+              required
+              error={fieldErrors.origin}
+            >
               <CustomSelect
                 id="partOrigin"
                 value={partDraft.origin}
                 onChange={(next) => setPart('origin', next)}
                 options={partAuthenticityOptions}
-                placeholder="اصالت قطعه…"
+                placeholder={t('اصالت قطعه…', 'Part authenticity…')}
                 invalid={Boolean(fieldErrors.origin)}
               />
             </Field>
 
-            <Field htmlFor="partWarranty" label="گارانتی (اختیاری)" error={fieldErrors.warranty}>
+            <Field
+              htmlFor="partWarranty"
+              label={t('گارانتی (اختیاری)', 'Warranty (optional)')}
+              error={fieldErrors.warranty}
+            >
               <input
                 id="partWarranty"
                 className="field"
                 value={partDraft.warranty}
                 onChange={(e) => setPart('warranty', e.target.value)}
-                placeholder="مثلاً 6 ماه"
+                placeholder={t('مثلاً 6 ماه', 'e.g. 6 months')}
               />
             </Field>
           </Section>
@@ -1590,12 +1874,16 @@ export function ListingForm() {
       </StepCard>
 
       <StepCard step={3}>
-        <Section title="قیمت، شهر و تماس">
-          <div className="col-span-full flex flex-wrap items-center gap-2" role="group" aria-label="واحد قیمت">
+        <Section title={t('قیمت، شهر و تماس', 'Price, city and contact')}>
+          <div
+            className="col-span-full flex flex-wrap items-center gap-2"
+            role="group"
+            aria-label={t('واحد قیمت', 'Price currency')}
+          >
             {(
               [
-                { key: 'toman', label: 'تومان' },
-                { key: 'aed', label: 'درهم (AED)' },
+                { key: 'toman', label: t('تومان', 'Toman') },
+                { key: 'aed', label: t('درهم (AED)', 'AED') },
               ] as const
             ).map((option) => (
               <button
@@ -1614,15 +1902,23 @@ export function ListingForm() {
             ))}
           </div>
           <div className="col-span-full rounded-field border border-line bg-page px-3 py-2">
-            <p className="mb-0.5 text-[11px] font-bold text-faint">نرخ روز درهم</p>
+            <p className="mb-0.5 text-[11px] font-bold text-faint">
+              {t('نرخ روز درهم', 'Today’s AED rate')}
+            </p>
             <RateLine />
           </div>
 
           <Field
             htmlFor="priceIRR"
-            label={`قیمت (${unit === 'toman' ? 'تومان' : 'درهم'})`}
+            label={t(
+              `قیمت (${unit === 'toman' ? 'تومان' : 'درهم'})`,
+              `Price (${unit === 'toman' ? 'Toman' : 'AED'})`,
+            )}
             required
-            hint={`قیمت را به ${unit === 'toman' ? 'تومان' : 'درهم'} بنویسید؛ ارقام فارسی یا انگلیسی مجاز است و جداکننده هزار خودکار اضافه می‌شود.`}
+            hint={t(
+              `قیمت را به ${unit === 'toman' ? 'تومان' : 'درهم'} بنویسید؛ ارقام فارسی یا انگلیسی مجاز است و جداکننده هزار خودکار اضافه می‌شود.`,
+              `Enter the price in ${unit === 'toman' ? 'Toman' : 'AED'}; Persian or Latin digits are accepted and thousands separators are added automatically.`,
+            )}
             error={fieldErrors['priceIRR']}
           >
             <input
@@ -1632,7 +1928,11 @@ export function ListingForm() {
               className="field"
               value={draft.priceIRR}
               onChange={(e) => set('priceIRR', groupTypedAmount(e.target.value))}
-              placeholder={unit === 'toman' ? 'مثلاً 34,000,000,000' : 'مثلاً 125,000'}
+              placeholder={
+                unit === 'toman'
+                  ? t('مثلاً 34,000,000,000', 'e.g. 34,000,000,000')
+                  : t('مثلاً 125,000', 'e.g. 125,000')
+              }
               aria-describedby="priceIRR-words"
             />
             <p
@@ -1642,15 +1942,18 @@ export function ListingForm() {
             >
               {priceWords
                 ? priceWords.line
-                : 'مبلغ را با ارقام وارد کنید تا به حروف و درهم همین‌جا نوشته شود.'}
+                : t(
+                    'مبلغ را با ارقام وارد کنید تا به حروف و درهم همین‌جا نوشته شود.',
+                    'Enter the amount to see it in words and AED here.',
+                  )}
             </p>
           </Field>
 
           {/* City is a disabled select with کیش as the only option. */}
           <Field
             htmlFor="city"
-            label="شهر"
-            hint="در این مرحله فقط کیش فعال است."
+            label={t('شهر', 'City')}
+            hint={t('در این مرحله فقط کیش فعال است.', 'Only Kish is available at launch.')}
             error={fieldErrors['city']}
           >
             <CustomSelect
@@ -1671,9 +1974,15 @@ export function ListingForm() {
               className="mt-1 accent-[var(--color-accent)]"
             />
             <span>
-              عدم نمایش قیمت درهم در آگهی (فقط نمایش قیمت به تومان)
+              {t(
+                'عدم نمایش قیمت درهم در آگهی (فقط نمایش قیمت به تومان)',
+                'Hide the AED price on this listing (Toman only)',
+              )}
               <span className="hint mt-0 block">
-                خط «≈ … AED» روی کارت، فهرست و صفحه‌ی آگهی نمایش داده نمی‌شود.
+                {t(
+                  'خط «≈ … AED» روی کارت، فهرست و صفحه‌ی آگهی نمایش داده نمی‌شود.',
+                  'The “≈ … AED” line is hidden on cards, feeds and the listing page.',
+                )}
               </span>
             </span>
           </label>
@@ -1687,20 +1996,25 @@ export function ListingForm() {
               className="mt-1 accent-[var(--color-accent)]"
             />
             <span>
-              عدم نمایش شماره تماس در آگهی (فقط چت درون‌برنامه‌ای)
+              {t(
+                'عدم نمایش شماره تماس در آگهی (فقط چت درون‌برنامه‌ای)',
+                'Hide my phone number (in-app chat only)',
+              )}
               <span className="hint mt-0 block">
-                به‌صورت پیش‌فرض شماره تماس شما نمایش داده می‌شود؛ با تیک زدن این گزینه، خریداران فقط
-                از طریق پیام‌رسان داخلی با شما در تماس خواهند بود.
+                {t(
+                  'به‌صورت پیش‌فرض شماره تماس شما نمایش داده می‌شود؛ با تیک زدن این گزینه، خریداران فقط از طریق پیام‌رسان داخلی با شما در تماس خواهند بود.',
+                  'Your phone number is shown by default; tick this to let buyers contact you through in-app chat only.',
+                )}
               </span>
             </span>
           </label>
         </Section>
 
-        <Section title="توضیحات">
+        <Section title={t('توضیحات', 'Description')}>
           <Field
             className="col-span-full"
             htmlFor="description"
-            label="توضیحات آگهی (اختیاری)"
+            label={t('توضیحات آگهی (اختیاری)', 'Listing description (optional)')}
             error={fieldErrors['description']}
           >
             <textarea
@@ -1709,12 +2023,15 @@ export function ListingForm() {
               className="field resize-y"
               value={draft.description}
               onChange={(e) => set('description', e.target.value)}
-              placeholder="وضعیت فنی، دلیل فروش، لوازم همراه…"
+              placeholder={t(
+                'وضعیت فنی، دلیل فروش، لوازم همراه…',
+                'Mechanical condition, reason for selling, included accessories…',
+              )}
             />
           </Field>
         </Section>
 
-        <Section title="عکس‌های آگهی *">
+        <Section title={t('عکس‌های آگهی *', 'Listing photos *')}>
           <div
             className={`col-span-full rounded-field ${
               fieldErrors['photos']
@@ -1723,8 +2040,10 @@ export function ListingForm() {
             }`}
           >
             <p className="mb-2 text-xs font-bold text-muted">
-              بارگذاری حداقل یک عکس الزامی است؛ عکس اول کاور آگهی است و در اسلات‌های
-              بعدی می‌توانید ویدیو هم اضافه کنید.
+              {t(
+                'بارگذاری حداقل یک عکس الزامی است؛ عکس اول کاور آگهی است و در اسلات‌های بعدی می‌توانید ویدیو هم اضافه کنید.',
+                'At least one photo is required; the first is the cover and later slots can also hold video.',
+              )}
             </p>
             <PhotoUploader
               photos={photos}
@@ -1740,10 +2059,15 @@ export function ListingForm() {
                 className="mt-1 accent-[var(--color-accent)]"
               />
               <span>
-                عکس ژورنال است (تصویر اینترنتی/کاتالوگ)
+                {t(
+                  'عکس ژورنال است (تصویر اینترنتی/کاتالوگ)',
+                  'This is a journal photo (catalogue/internet image)',
+                )}
                 <span className="hint mt-0 block">
-                  با فعال بودن این گزینه، برچسب «عکس ژورنال» در مشخصات تکمیلی آگهی نمایش
-                  داده می‌شود تا خریدار بداند تصویر کاتالوگی است.
+                  {t(
+                    'با فعال بودن این گزینه، برچسب «عکس ژورنال» در مشخصات تکمیلی آگهی نمایش داده می‌شود تا خریدار بداند تصویر کاتالوگی است.',
+                    'When enabled, a “Journal photo” tag appears in the supplementary specs so buyers know it is a catalogue image.',
+                  )}
                 </span>
               </span>
             </label>
@@ -1753,7 +2077,10 @@ export function ListingForm() {
 
       <div className="flex flex-wrap items-center justify-between gap-3">
         <p className="text-xs text-faint">
-          با ثبت آگهی، صحت اطلاعات و وضعیت پلاک را تأیید می‌کنید.
+          {t(
+            'با ثبت آگهی، صحت اطلاعات و وضعیت پلاک را تأیید می‌کنید.',
+            'By posting, you confirm the accuracy of the information and plate status.',
+          )}
         </p>
         <button
           type="submit"
@@ -1761,10 +2088,10 @@ export function ListingForm() {
           className="btn-cta text-sm disabled:opacity-60"
         >
           {submitting
-            ? 'در حال ارسال…'
+            ? t('در حال ارسال…', 'Publishing…')
             : photosBusy
-              ? 'در حال پردازش عکس‌ها…'
-              : 'انتشار آگهی'}
+              ? t('در حال پردازش عکس‌ها…', 'Processing photos…')
+              : t('انتشار آگهی', 'Publish listing')}
         </button>
       </div>
     </form>

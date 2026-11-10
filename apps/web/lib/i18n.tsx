@@ -9,14 +9,16 @@ import {
   useState,
   type ReactNode,
 } from 'react';
+import { useRouter } from 'next/navigation';
+import { translate } from './i18n/dictionary';
 
 export type Language = 'fa' | 'en';
 
 interface LocaleValue {
   lang: Language;
   dir: 'rtl' | 'ltr';
-  /** Translate inline: `t('خانه', 'Home')`. */
-  t: (fa: string, en: string) => string;
+  /** Translate inline; the centralized dictionary is the fallback. */
+  t: (fa: string, en?: string) => string;
   setLanguage: (next: Language) => void;
   toggleLanguage: () => void;
 }
@@ -32,17 +34,15 @@ const STORAGE_KEY = 'alisales-language';
  * drawer, footer, filter labels and the control bar — is translated; listing
  * copy written by sellers is never machine-translated.
  */
-export function LocaleProvider({ children }: { children: ReactNode }) {
-  const [lang, setLangState] = useState<Language>('fa');
-
-  useEffect(() => {
-    try {
-      const stored = localStorage.getItem(STORAGE_KEY);
-      if (stored === 'en' || stored === 'fa') setLangState(stored);
-    } catch {
-      // private mode — Persian stays
-    }
-  }, []);
+export function LocaleProvider({
+  children,
+  initialLang = 'fa',
+}: {
+  children: ReactNode;
+  initialLang?: Language;
+}) {
+  const [lang, setLangState] = useState<Language>(initialLang);
+  const router = useRouter();
 
   useEffect(() => {
     const root = document.documentElement;
@@ -56,17 +56,29 @@ export function LocaleProvider({ children }: { children: ReactNode }) {
     }
   }, [lang]);
 
-  const setLanguage = useCallback((next: Language) => setLangState(next), []);
+  const setLanguage = useCallback(
+    (next: Language) => {
+      setLangState(next);
+      try {
+        document.cookie = `${STORAGE_KEY}=${next};path=/;max-age=31536000;samesite=lax`;
+      } catch {
+        // private mode — the client provider still switches
+      }
+      // Re-render server pages so `<html dir/lang>` and server copy follow.
+      router.refresh();
+    },
+    [router],
+  );
   const toggleLanguage = useCallback(
-    () => setLangState((current) => (current === 'fa' ? 'en' : 'fa')),
-    [],
+    () => setLanguage(lang === 'fa' ? 'en' : 'fa'),
+    [lang, setLanguage],
   );
 
   const value = useMemo<LocaleValue>(
     () => ({
       lang,
       dir: lang === 'fa' ? 'rtl' : 'ltr',
-      t: (fa, en) => (lang === 'en' ? en : fa),
+      t: (fa, en) => (lang === 'en' ? translate(fa, en) : fa),
       setLanguage,
       toggleLanguage,
     }),

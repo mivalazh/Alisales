@@ -1,22 +1,37 @@
 {
   "expo": {
-    "name": "Alisales",
+    "name": "Ali Sales",
     "slug": "alisales",
-    "version": "0.1.0",
+    "version": "1.0.0",
     "orientation": "portrait",
     "icon": "./assets/images/icon.png",
     "scheme": "alisales",
     "userInterfaceStyle": "light",
+    "newArchEnabled": true,
     "ios": {
-      "supportsTablet": true
+      "bundleIdentifier": "ir.alisales.app",
+      "buildNumber": "1",
+      "supportsTablet": false,
+      "infoPlist": {
+        "CFBundleDevelopmentRegion": "fa_IR",
+        "CFBundleAllowMixedLocalizations": true,
+        "UIStatusBarStyle": "UIStatusBarStyleLightContent",
+        "UIViewControllerBasedStatusBarAppearance": false,
+        "NSPhotoLibraryUsageDescription": "برای افزودن عکس خودرو به آگهی، به دسترسی گالری نیاز است.",
+        "NSCameraUsageDescription": "برای گرفتن عکس خودرو و افزودن آن به آگهی، به دوربین نیاز است."
+      }
     },
     "android": {
+      "package": "ir.alisales.app",
+      "versionCode": 1,
+      "edgeToEdgeEnabled": true,
+      "predictiveBackGestureEnabled": true,
       "adaptiveIcon": {
-        "backgroundColor": "#161224",
+        "backgroundColor": "#111144",
         "foregroundImage": "./assets/images/android-icon-foreground.png",
         "monochromeImage": "./assets/images/android-icon-monochrome.png"
       },
-      "predictiveBackGestureEnabled": false
+      "permissions": ["READ_MEDIA_IMAGES", "CAMERA"]
     },
     "web": {
       "output": "server",
@@ -27,7 +42,7 @@
       [
         "expo-splash-screen",
         {
-          "backgroundColor": "#161224",
+          "backgroundColor": "#111144",
           "image": "./assets/images/splash-icon.png",
           "imageWidth": 130
         }
@@ -39,6 +54,13 @@
         }
       ]
     ],
+    "extra": {
+      "rtl": true,
+      "supportsRTL": true,
+      "apiUrlEnv": "EXPO_PUBLIC_API_URL",
+      "supabaseUrlEnv": "EXPO_PUBLIC_SUPABASE_URL",
+      "supabaseAnonKeyEnv": "EXPO_PUBLIC_SUPABASE_ANON_KEY"
+    },
     "experiments": {
       "typedRoutes": true,
       "reactCompiler": true

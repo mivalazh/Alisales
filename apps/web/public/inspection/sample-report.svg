@@ -1,0 +1,31 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="900" height="1200" viewBox="0 0 900 1200" role="img" aria-label="Ali Sales vehicle inspection sheet">
+  <rect width="900" height="1200" fill="#F4F1EC"/>
+  <rect x="0" y="0" width="900" height="120" fill="#111144"/>
+  <text x="60" y="64" fill="#F4F1EC" font-family="Arial, sans-serif" font-size="30" font-weight="700">ALI SALES</text>
+  <text x="60" y="94" fill="#F98513" font-family="Arial, sans-serif" font-size="16" font-weight="700">KISH VEHICLE INSPECTION SHEET</text>
+  <rect x="60" y="160" width="780" height="940" rx="18" fill="#FFFFFF" stroke="#D8D2C7" stroke-width="2"/>
+  <text x="100" y="220" fill="#111144" font-family="Arial, sans-serif" font-size="24" font-weight="700">Inspection summary</text>
+  <line x1="100" y1="244" x2="800" y2="244" stroke="#E5DFD4" stroke-width="2"/>
+  <g fill="#4B5563" font-family="Arial, sans-serif" font-size="18">
+    <text x="100" y="300">Vehicle</text><text x="340" y="300" fill="#111144" font-weight="700">Verified catalogue vehicle</text>
+    <text x="100" y="350">Chassis</text><text x="340" y="350" fill="#111144" font-weight="700">Sealed front and rear</text>
+    <text x="100" y="400">Paint</text><text x="340" y="400" fill="#111144" font-weight="700">Declared by seller</text>
+    <text x="100" y="450">Engine &amp; gearbox</text><text x="340" y="450" fill="#111144" font-weight="700">Operational</text>
+    <text x="100" y="500">Technical inspection</text><text x="340" y="500" fill="#111144" font-weight="700">Valid</text>
+    <text x="100" y="550">Insurance</text><text x="340" y="550" fill="#111144" font-weight="700">Declared by seller</text>
+    <text x="100" y="600">Odometer</text><text x="340" y="600" fill="#111144" font-weight="700">As listed</text>
+  </g>
+  <rect x="100" y="670" width="700" height="170" rx="12" fill="#F4F1EC" stroke="#E5DFD4"/>
+  <text x="130" y="715" fill="#111144" font-family="Arial, sans-serif" font-size="18" font-weight="700">Workshop note</text>
+  <text x="130" y="755" fill="#4B5563" font-family="Arial, sans-serif" font-size="16">No structural repair recorded. Chassis sealed,</text>
+  <text x="130" y="783" fill="#4B5563" font-family="Arial, sans-serif" font-size="16">body panels consistent with the declared paint,</text>
+  <text x="130" y="811" fill="#4B5563" font-family="Arial, sans-serif" font-size="16">engine and gearbox checked and operational.</text>
+  <line x1="100" y1="920" x2="800" y2="920" stroke="#E5DFD4" stroke-width="2"/>
+  <text x="100" y="962" fill="#6B7280" font-family="Arial, sans-serif" font-size="15">Sample document for the Ali Sales demo catalogue.</text>
+  <text x="100" y="990" fill="#6B7280" font-family="Arial, sans-serif" font-size="15">Seller declaration and in-person inspection take precedence.</text>
+  <g fill="#F98513">
+    <circle cx="760" cy="958" r="44"/>
+  </g>
+  <text x="760" y="954" text-anchor="middle" fill="#111144" font-family="Arial, sans-serif" font-size="12" font-weight="700">ALI SALES</text>
+  <text x="760" y="972" text-anchor="middle" fill="#111144" font-family="Arial, sans-serif" font-size="10" font-weight="700">VERIFIED</text>
+</svg>

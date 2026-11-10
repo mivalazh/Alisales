@@ -291,6 +291,59 @@ html.dark {
   }
 }
 
+/*
+ * Installed app mode (iOS home screen, Android WebAPK, desktop PWA).
+ * The browser website keeps its marketing footer; the app is a focused native
+ * shell with a frosted tab bar, no footer and contained overscroll.
+ */
+.app-bottom-nav {
+  background: rgb(255 255 255 / 0.78) !important;
+  backdrop-filter: blur(22px) saturate(180%);
+  -webkit-backdrop-filter: blur(22px) saturate(180%);
+}
+
+:root[data-theme='dark'] .app-bottom-nav,
+html.dark .app-bottom-nav {
+  background: rgb(23 27 44 / 0.82) !important;
+}
+
+html.app-standalone {
+  overscroll-behavior-y: none;
+  -webkit-tap-highlight-color: transparent;
+}
+
+html.app-standalone body {
+  overscroll-behavior-y: contain;
+  /* black-translucent draws the page under the status bar; the header still
+     starts below the notch so no control sits under the clock. */
+  padding-top: env(safe-area-inset-top);
+}
+
+html.app-standalone::before {
+  content: '';
+  position: fixed;
+  inset: 0 0 auto;
+  z-index: 100;
+  height: env(safe-area-inset-top);
+  background: #111144;
+  pointer-events: none;
+}
+
+html.app-standalone .site-footer {
+  display: none !important;
+}
+
+html.app-standalone .app-bottom-nav {
+  border-top-color: rgb(100 116 139 / 0.16);
+  box-shadow: 0 -10px 30px -18px rgb(17 17 68 / 0.55);
+}
+
+/* Native press feedback: a quiet, physical scale instead of a browser hover. */
+html.app-standalone a,
+html.app-standalone button {
+  -webkit-tap-highlight-color: transparent;
+}
+
 /* AI assistant: cream medallion in dark mode, navy/orange mark on cream. */
 [data-theme='dark'] .ai-fab {
   background-color: #f4f1ec;

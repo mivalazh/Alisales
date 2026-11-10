@@ -2,8 +2,8 @@ import { readJson, writeJson } from '../storage/demo-store';
 
 /**
  * Platform demo store — the launch features that do not exist in the hosted
- * schema yet: user story submissions, workshop inspection bookings, rental
- * postings, the story paywall flag and the AI assistant's topic counters.
+ * schema yet: user story submissions, workshop inspection bookings, the
+ * story paywall flag and the AI assistant's topic counters.
  *
  * Everything runs through the same demo storage as the rest of the preview
  * (JSON on Node, isolate memory on Workers), so a reviewer can exercise the
@@ -39,48 +39,6 @@ export interface InspectionBooking {
   status: 'pending' | 'confirmed' | 'done' | 'cancelled';
 }
 
-export interface RentalPosting {
-  id: string;
-  slug: string;
-  title: string;
-  kind: 'car' | 'scooter' | 'yacht';
-  /** Passenger capacity (yachts and larger cars). */
-  capacity?: number;
-  /** Skipper/captain included in the charter price. */
-  captainIncluded?: boolean;
-  /** Yacht length in feet. */
-  lengthFt?: number;
-  brand: string;
-  model: string;
-  year: number;
-  imageUrl: string;
-  agency: string;
-  city: string;
-  /** All rates stored in IRR; the UI converts to Toman/AED. */
-  dailyIRR: number;
-  weeklyIRR: number;
-  monthlyIRR: number;
-  depositNote: string;
-  delivery: string[];
-  minAge: number;
-  createdAt: string;
-}
-
-export interface RentalBooking {
-  id: string;
-  rentalSlug: string;
-  rentalTitle: string;
-  name: string;
-  phone: string;
-  from: string;
-  to: string;
-  days: number;
-  plan: 'basic' | 'full';
-  totalIRR: number;
-  status: 'pending' | 'confirmed' | 'cancelled';
-  createdAt: string;
-}
-
 export interface AdminSettings {
   /** false = free launch stories; true = subscription/paywall guard. */
   storyPaidGuard: boolean;
@@ -89,8 +47,6 @@ export interface AdminSettings {
 interface PlatformData {
   stories: StorySubmission[];
   inspections: InspectionBooking[];
-  rentals: RentalPosting[];
-  rentalBookings: RentalBooking[];
   settings: AdminSettings;
   faqs: Record<string, number>;
 }
@@ -100,8 +56,6 @@ const FILE = 'platform.json';
 const DEFAULTS: PlatformData = {
   stories: [],
   inspections: [],
-  rentals: [],
-  rentalBookings: [],
   settings: { storyPaidGuard: false },
   faqs: {},
 };
@@ -206,50 +160,6 @@ export function updateInspection(
   });
   write(data);
   return found;
-}
-
-// ── Rentals ─────────────────────────────────────────────────────────────────
-
-export function listRentalPosts(): RentalPosting[] {
-  return [...read().rentals].sort((a, b) => b.createdAt.localeCompare(a.createdAt));
-}
-
-export function addRental(
-  input: Omit<RentalPosting, 'id' | 'slug' | 'createdAt'>,
-): RentalPosting {
-  const data = read();
-  const slug = `rent-${Date.now().toString(36)}`;
-  const posting: RentalPosting = {
-    ...input,
-    id: slug,
-    slug,
-    createdAt: new Date().toISOString(),
-  };
-  data.rentals = [...data.rentals, posting].slice(-200);
-  write(data);
-  return posting;
-}
-
-export function listRentalBookings(): RentalBooking[] {
-  return [...(read().rentalBookings ?? [])].sort((a, b) =>
-    b.createdAt.localeCompare(a.createdAt),
-  );
-}
-
-export function addRentalBooking(
-  input: Omit<RentalBooking, 'id' | 'createdAt' | 'status'>,
-): RentalBooking {
-  const data = read();
-  const id = `rb-${Date.now().toString(36)}-${Math.random().toString(36).slice(2, 6)}`;
-  const booking: RentalBooking = {
-    ...input,
-    id,
-    status: 'pending',
-    createdAt: new Date().toISOString(),
-  };
-  data.rentalBookings = [...(data.rentalBookings ?? []), booking].slice(-500);
-  write(data);
-  return booking;
 }
 
 // ── Assistant FAQ counters ──────────────────────────────────────────────────

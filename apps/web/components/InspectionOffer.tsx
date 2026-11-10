@@ -2,6 +2,7 @@
 
 import { useEffect, useState } from 'react';
 import { Icon } from './Icon';
+import { useI18n } from '@/lib/i18n';
 
 /**
  * «نوبت‌دهی کارشناسی فنی در تعمیرگاه شمس‌اله» — the platform-level offer.
@@ -20,6 +21,7 @@ export function InspectionOffer({
   listingTitle?: string | null;
   compact?: boolean;
 }) {
+  const { t } = useI18n();
   const [open, setOpen] = useState(false);
 
   return (
@@ -29,22 +31,34 @@ export function InspectionOffer({
           <span className="flex h-8 w-8 items-center justify-center rounded-full bg-[#F98513] text-white">
             <Icon name="shieldCheck" size={17} />
           </span>
-          نوبت‌دهی کارشناسی فنی در تعمیرگاه شمس‌اله
+          {t(
+            'نوبت‌دهی کارشناسی فنی در تعمیرگاه شمس‌اله',
+            'Technical inspection booking at Shamsollah Workshop',
+          )}
         </p>
         <p className="mt-2 text-xs leading-6 text-ink/80">
-          آفر ویژه کاربران سایت: <b className="font-extrabold text-[#B45309]">۲۰٪ تخفیف</b>{' '}
-          کارشناسی کامل موتور، گیربکس، بدنه و دیاگ تخصصی پیش از خرید + صدور برگه ضمانت
-          کارشناسی.
+          {t('آفر ویژه کاربران سایت:', 'Special offer for site members:')}{' '}
+          <b className="font-extrabold text-[#B45309]">{t('۲۰٪ تخفیف', '20% off')}</b>{' '}
+          {t(
+            'کارشناسی کامل موتور، گیربکس، بدنه و دیاگ تخصصی پیش از خرید + صدور برگه ضمانت کارشناسی.',
+            'A full pre-purchase inspection of the engine, gearbox and body with a specialist diagnostic, plus an inspection warranty sheet.',
+          )}
         </p>
         {!compact && (
           <ul className="mt-3 grid gap-1.5 text-[11px] font-bold text-muted sm:grid-cols-2">
             <li className="flex items-center gap-1.5">
               <Icon name="check" size={13} className="text-[#F98513]" />
-              گزارش فنی مکتوب برای مذاکره با فروشنده
+              {t(
+                'گزارش فنی مکتوب برای مذاکره با فروشنده',
+                'Written technical report to negotiate with the seller',
+              )}
             </li>
             <li className="flex items-center gap-1.5">
               <Icon name="check" size={13} className="text-[#F98513]" />
-              دیاگ تخصصی و بررسی سابقه‌ی تصادف
+              {t(
+                'دیاگ تخصصی و بررسی سابقه‌ی تصادف',
+                'Specialist diagnostics and accident-history check',
+              )}
             </li>
           </ul>
         )}
@@ -53,10 +67,16 @@ export function InspectionOffer({
           onClick={() => setOpen(true)}
           className="mt-4 inline-flex w-full items-center justify-center gap-2 rounded-[var(--radius-pill)] bg-[#111144] px-4 py-2.5 text-sm font-extrabold text-white transition hover:bg-[#1b1b5c] sm:w-auto"
         >
-          رزرو نوبت کارشناسی با آفر ویژه
+          {t(
+            'رزرو نوبت کارشناسی با آفر ویژه',
+            'Book an inspection with the special offer',
+          )}
         </button>
         <p className="mt-2 text-[10px] text-faint">
-          پاسخ‌گویی شنبه تا پنجشنبه، ۹ تا ۱۸ — تعمیرگاه تخصصی شمس‌اله، کیش.
+          {t(
+            'پاسخ‌گویی شنبه تا پنجشنبه، ۹ تا ۱۸ — تعمیرگاه تخصصی شمس‌اله، کیش.',
+            'Saturday to Thursday, 09:00–18:00 — Shamsollah Specialist Workshop, Kish.',
+          )}
         </p>
       </section>
 
@@ -80,6 +100,7 @@ function BookingModal({
   listingTitle: string | null;
   onClose: () => void;
 }) {
+  const { t } = useI18n();
   const [form, setForm] = useState({
     name: '',
     phone: '',
@@ -120,12 +141,12 @@ function BookingModal({
       });
       const body = (await res.json().catch(() => ({}))) as { ok?: boolean; error?: string };
       if (!res.ok) {
-        setError(body.error ?? 'ثبت نوبت انجام نشد.');
+        setError(body.error ?? t('ثبت نوبت انجام نشد.', 'Could not book the appointment.'));
         return;
       }
       setDone(true);
     } catch {
-      setError('ارتباط با سرور برقرار نشد.');
+      setError(t('ارتباط با سرور برقرار نشد.', 'Could not connect to the server.'));
     } finally {
       setBusy(false);
     }
@@ -135,7 +156,7 @@ function BookingModal({
     <div
       role="dialog"
       aria-modal="true"
-      aria-label="رزرو نوبت کارشناسی"
+      aria-label={t('رزرو نوبت کارشناسی', 'Book an inspection')}
       className="fixed inset-0 z-[55] flex items-center justify-center bg-black/60 p-4"
       onClick={onClose}
     >
@@ -147,11 +168,13 @@ function BookingModal({
           <span className="flex h-9 w-9 items-center justify-center rounded-full bg-cta-soft text-cta">
             <Icon name="shieldCheck" size={18} />
           </span>
-          <h2 className="text-sm font-extrabold">رزرو کارشناسی تعمیرگاه شمس‌اله</h2>
+          <h2 className="text-sm font-extrabold">
+            {t('رزرو کارشناسی تعمیرگاه شمس‌اله', 'Shamsollah Workshop inspection booking')}
+          </h2>
           <button
             type="button"
             onClick={onClose}
-            aria-label="بستن"
+            aria-label={t('بستن', 'Close')}
             className="ms-auto flex h-8 w-8 items-center justify-center rounded-full text-muted hover:bg-cta-soft hover:text-ink"
           >
             <Icon name="close" size={16} />
@@ -161,21 +184,26 @@ function BookingModal({
         {done ? (
           <div className="mt-4 space-y-2 text-sm">
             <p className="rounded-field border border-ok/40 bg-ok/10 px-3 py-2 font-bold text-ok">
-              نوبت شما ثبت شد؛ کارشناس تعمیرگاه برای تأیید ساعت با شما تماس می‌گیرد.
+              {t(
+                'نوبت شما ثبت شد؛ کارشناس تعمیرگاه برای تأیید ساعت با شما تماس می‌گیرد.',
+                'Your appointment is booked; the workshop specialist will call you to confirm the time.',
+              )}
             </p>
             <p className="text-xs leading-6 text-muted">
-              آفر ۲۰٪ تخفیف روی همین نوبت اعمال می‌شود. برگه‌ی ضمانت کارشناسی پس از
-              بازدید صادر می‌شود.
+              {t(
+                'آفر ۲۰٪ تخفیف روی همین نوبت اعمال می‌شود. برگه‌ی ضمانت کارشناسی پس از بازدید صادر می‌شود.',
+                'The 20% discount applies to this appointment. The inspection warranty sheet is issued after the visit.',
+              )}
             </p>
             <button type="button" onClick={onClose} className="btn-cta w-full text-sm">
-              بستن
+              {t('بستن', 'Close')}
             </button>
           </div>
         ) : (
           <div className="mt-3 space-y-2.5">
             <input
               className="field"
-              placeholder="نام و نام خانوادگی"
+              placeholder={t('نام و نام خانوادگی', 'Full name')}
               value={form.name}
               onChange={(event) => set('name', event.target.value)}
             />
@@ -191,27 +219,33 @@ function BookingModal({
               <input
                 className="field"
                 type="date"
-                aria-label="تاریخ نوبت"
+                aria-label={t('تاریخ نوبت', 'Appointment date')}
                 value={form.date}
                 onChange={(event) => set('date', event.target.value)}
               />
               <input
                 className="field"
                 type="time"
-                aria-label="ساعت نوبت"
+                aria-label={t('ساعت نوبت', 'Appointment time')}
                 value={form.time}
                 onChange={(event) => set('time', event.target.value)}
               />
             </div>
             <input
               className="field"
-              placeholder="خودروی مورد بررسی (مثلاً لندکروزر ۲۰۲۲)"
+              placeholder={t(
+                'خودروی مورد بررسی (مثلاً لندکروزر ۲۰۲۲)',
+                'Vehicle to inspect (e.g. Land Cruiser 2022)',
+              )}
               value={form.vehicle}
               onChange={(event) => set('vehicle', event.target.value)}
             />
             <input
               className="field"
-              placeholder="توضیح اختیاری (سابقه، قطعه، نگرانی…)"
+              placeholder={t(
+                'توضیح اختیاری (سابقه، قطعه، نگرانی…)',
+                'Optional note (history, part, concern...)',
+              )}
               value={form.note}
               onChange={(event) => set('note', event.target.value)}
             />
@@ -228,7 +262,9 @@ function BookingModal({
               disabled={busy}
               className="btn-cta w-full text-sm disabled:opacity-60"
             >
-              {busy ? 'در حال ثبت…' : 'ثبت نوبت با ۲۰٪ تخفیف'}
+              {busy
+                ? t('در حال ثبت…', 'Booking...')
+                : t('ثبت نوبت با ۲۰٪ تخفیف', 'Book with 20% off')}
             </button>
           </div>
         )}

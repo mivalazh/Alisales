@@ -27,6 +27,27 @@ classifieds marketplace. Persian-first: RTL is forced app-wide via
 - **`src/lib/theme.ts`** — `@studio/design` tokens mapped to React Native
   (RN can't read CSS custom properties, so the JS token object is the source)
 
+## Environment and store builds
+
+Set these in the shell or in an untracked `.env` before `expo start` / EAS:
+
+```bash
+EXPO_PUBLIC_API_URL=https://alisales.ir      # public web origin
+EXPO_PUBLIC_SUPABASE_URL=...                 # optional; without both Supabase vars the app runs its local demo store
+EXPO_PUBLIC_SUPABASE_ANON_KEY=...
+```
+
+The app is RTL-first (`I18nManager.forceRTL`), declares `ir.alisales.app` on
+iOS and Android, version `1.0.0` / build `1` in `app.json`, and keeps the same
+scheme (`alisales://`) in Expo Go and production builds. `eas.json` provides
+`preview` and `production` profiles:
+
+```bash
+npx eas build --platform ios --profile production
+npx eas build --platform android --profile production
+npx eas submit --platform ios --profile production
+```
+
 ## Commands
 
 ```bash
@@ -34,6 +55,8 @@ npm install                      # from the repo root
 npm run start -w @alisales/mobile   # Expo dev server
 npm run typecheck -w @alisales/mobile
 npm run generate:icons           # rebuild assets/images/*.png from the SVG mark
+npx eas build --platform ios --profile production   # TestFlight build
+npx eas build --platform android --profile production
 npx expo export --platform android   # Metro bundle check (Hermes)
 ```
 

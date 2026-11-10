@@ -7,6 +7,7 @@ import {
   partCategories,
   type SearchFilters,
 } from '@alisales/schemas';
+import { useI18n } from '@/lib/i18n';
 import { CustomSelect } from './CustomSelect';
 
 /**
@@ -82,6 +83,7 @@ export function PartFilterBar({
 }) {
   const router = useRouter();
   const params = useSearchParams();
+  const { t } = useI18n();
   const [compatOpen, setCompatOpen] = useState(false);
   const [compatDraft, setCompatDraft] = useState(compatibility);
   const compatRoot = useRef<HTMLDivElement>(null);
@@ -112,18 +114,20 @@ export function PartFilterBar({
 
   return (
     <section
-      aria-label="فیلترهای قطعه"
+      aria-label={t('فیلترهای قطعه', 'Part filters')}
       className="space-y-2.5 rounded-card border border-line bg-card p-3"
     >
       <div className="flex flex-wrap items-center gap-2">
-        <span className="text-xs font-extrabold text-ink">فیلترهای قطعه</span>
+        <span className="text-xs font-extrabold text-ink">
+          {t('فیلترهای قطعه', 'Part filters')}
+        </span>
 
         <div className="w-[170px]">
           <CustomSelect
             value={condition ?? ''}
             onChange={(next) => setParam('pcond', next || null)}
-            options={CONDITION_OPTIONS}
-            ariaLabel="وضعیت قطعه"
+            options={CONDITION_OPTIONS.map((option) => ({ ...option, label: t(option.label) }))}
+            ariaLabel={t('وضعیت قطعه', 'Part condition')}
           />
         </div>
 
@@ -131,8 +135,8 @@ export function PartFilterBar({
           <CustomSelect
             value={origin ?? ''}
             onChange={(next) => setParam('origin', next || null)}
-            options={AUTHENTICITY_OPTIONS}
-            ariaLabel="اصالت قطعه"
+            options={AUTHENTICITY_OPTIONS.map((option) => ({ ...option, label: t(option.label) }))}
+            ariaLabel={t('اصالت قطعه', 'Part authenticity')}
           />
         </div>
 
@@ -140,7 +144,7 @@ export function PartFilterBar({
           active={warranty}
           onClick={() => setParam('warranty', warranty ? null : '1')}
         >
-          دارای گارانتی
+          {t('دارای گارانتی', 'With warranty')}
         </Chip>
 
         <div ref={compatRoot} className="relative">
@@ -151,19 +155,19 @@ export function PartFilterBar({
               setCompatOpen((v) => !v);
             }}
           >
-            سازگاری با خودرو ▾
+            {t('سازگاری با خودرو', 'Vehicle compatibility')} ▾
           </Chip>
           {compatOpen && (
             <div className="absolute start-0 top-full z-50 mt-2 w-64 rounded-card border border-line bg-card p-2 shadow-xl">
               <label className="label" htmlFor="compat-input">
-                سازگار با خودرو
+                {t('سازگار با خودرو', 'Compatible with vehicle')}
               </label>
               <input
                 id="compat-input"
                 className="field"
                 value={compatDraft}
                 onChange={(e) => setCompatDraft(e.target.value)}
-                placeholder="مثلاً لندکروزر"
+                placeholder={t('مثلاً لندکروزر', 'e.g. Land Cruiser')}
               />
               <div className="mt-2 flex items-center justify-between gap-2">
                 <button
@@ -175,7 +179,7 @@ export function PartFilterBar({
                   }}
                   className="text-[11px] font-bold text-muted underline"
                 >
-                  حذف
+                  {t('حذف', 'Remove')}
                 </button>
                 <button
                   type="button"
@@ -185,7 +189,7 @@ export function PartFilterBar({
                   }}
                   className="btn-ghost text-xs"
                 >
-                  اعمال
+                  {t('اعمال', 'Apply')}
                 </button>
               </div>
             </div>
@@ -203,7 +207,7 @@ export function PartFilterBar({
             }}
             className="ms-auto text-[11px] font-bold text-muted underline"
           >
-            پاک کردن فیلترها
+            {t('پاک کردن فیلترها', 'Clear filters')}
           </button>
         )}
       </div>
@@ -214,13 +218,13 @@ export function PartFilterBar({
       >
         <li className="shrink-0">
           <Chip active={!category} onClick={() => setParam('category', null)}>
-            همه قطعات
+            {t('همه قطعات', 'All parts')}
           </Chip>
         </li>
         {partCategories.map((key) => (
           <li key={key} className="shrink-0">
             <Chip active={category === key} onClick={() => setParam('category', key)}>
-              {PART_CATEGORY_LABELS[key]}
+              {t(PART_CATEGORY_LABELS[key])}
             </Chip>
           </li>
         ))}

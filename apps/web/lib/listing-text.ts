@@ -65,26 +65,59 @@ export function mileageLabel(km: number): string {
  * The spec line facts, already Persian/Latin-mixed but each one its own item.
  * Empty values are dropped, so a bike without a plate shows «890 cc · اسپرت».
  */
-export function specParts(listing: TextListing): string[] {
+const BIKE_TYPE_EN: Readonly<Record<string, string>> = {
+  scooter: 'Scooter',
+  electric: 'Electric bike',
+  sport: 'Sport',
+  cross: 'Cross',
+  classic: 'Classic',
+};
+
+const HEAVY_TYPE_EN: Readonly<Record<string, string>> = {
+  truck: 'Truck',
+  tractor: 'Tractor unit',
+  excavator: 'Excavator',
+  loader: 'Loader',
+  crane: 'Crane',
+};
+
+const GEARBOX_EN: Readonly<Record<string, string>> = {
+  automatic: 'Automatic',
+  manual: 'Manual',
+};
+
+export function specParts(listing: TextListing, lang: 'fa' | 'en' = 'fa'): string[] {
   if (listing.part) return [];
   const parts: string[] = [];
+  const en = lang === 'en';
 
   if (listing.category === 'motorcycle') {
     // Electric scooters have no displacement: the drive type takes its place.
     if (listing.engineCc) parts.push(`${formatAmountLatin(listing.engineCc)} cc`);
-    else if (listing.fuel === 'electric') parts.push('برقی');
-    if (listing.bikeType) parts.push(BIKE_TYPE_LABELS[listing.bikeType] ?? listing.bikeType);
+    else if (listing.fuel === 'electric') parts.push(en ? 'Electric' : 'برقی');
+    if (listing.bikeType) {
+      parts.push(
+        (en ? BIKE_TYPE_EN[listing.bikeType] : BIKE_TYPE_LABELS[listing.bikeType]) ??
+          listing.bikeType,
+      );
+    }
     if (listing.mileageKm > 0) parts.push(mileageLabel(listing.mileageKm));
   } else if (listing.category === 'heavy') {
-    if (listing.heavyType) parts.push(HEAVY_TYPE_LABELS[listing.heavyType] ?? listing.heavyType);
+    if (listing.heavyType) {
+      parts.push(
+        (en ? HEAVY_TYPE_EN[listing.heavyType] : HEAVY_TYPE_LABELS[listing.heavyType]) ??
+          listing.heavyType,
+      );
+    }
     if (listing.workingHours) {
-      parts.push(`${formatAmountLatin(listing.workingHours)} ساعت`);
+      parts.push(`${formatAmountLatin(listing.workingHours)} ${en ? 'h' : 'ساعت'}`);
     }
     if (listing.mileageKm > 0) parts.push(mileageLabel(listing.mileageKm));
   } else {
     if (listing.mileageKm > 0) parts.push(mileageLabel(listing.mileageKm));
     if (listing.gearbox && GEARBOX_LABELS[listing.gearbox as keyof typeof GEARBOX_LABELS]) {
-      parts.push(GEARBOX_LABELS[listing.gearbox as keyof typeof GEARBOX_LABELS]);
+      const gearbox = listing.gearbox as keyof typeof GEARBOX_LABELS;
+      parts.push((en ? GEARBOX_EN[gearbox] : GEARBOX_LABELS[gearbox]) ?? gearbox);
     }
   }
 

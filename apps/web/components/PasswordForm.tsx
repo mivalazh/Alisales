@@ -2,6 +2,7 @@
 
 import { useState, type FormEvent } from 'react';
 import { Icon } from './Icon';
+import { useI18n } from '@/lib/i18n';
 
 /**
  * Set or change the account password.
@@ -11,6 +12,7 @@ import { Icon } from './Icon';
  * forgotten password is never a locked account.
  */
 export function PasswordForm({ hasPassword }: { hasPassword: boolean }) {
+  const { t } = useI18n();
   const [currentPassword, setCurrentPassword] = useState('');
   const [password, setPassword] = useState('');
   const [confirm, setConfirm] = useState('');
@@ -25,7 +27,7 @@ export function PasswordForm({ hasPassword }: { hasPassword: boolean }) {
     setError(null);
     setSaved(false);
     if (password !== confirm) {
-      setError('تکرار رمز عبور یکسان نیست.');
+      setError(t('تکرار رمز عبور یکسان نیست.', 'The passwords do not match.'));
       return;
     }
     setBusy(true);
@@ -37,7 +39,7 @@ export function PasswordForm({ hasPassword }: { hasPassword: boolean }) {
       });
       const data = (await res.json().catch(() => ({}))) as { error?: string };
       if (!res.ok) {
-        setError(data.error ?? 'ذخیره رمز عبور انجام نشد.');
+        setError(data.error ?? t('ذخیره رمز عبور انجام نشد.', 'Could not save the password.'));
         return;
       }
       setSaved(true);
@@ -46,7 +48,7 @@ export function PasswordForm({ hasPassword }: { hasPassword: boolean }) {
       setPassword('');
       setConfirm('');
     } catch {
-      setError('ارتباط با سرور برقرار نشد.');
+      setError(t('ارتباط با سرور برقرار نشد.', 'Could not connect to the server.'));
     } finally {
       setBusy(false);
     }
@@ -57,7 +59,7 @@ export function PasswordForm({ hasPassword }: { hasPassword: boolean }) {
       {existing && (
         <div>
           <label htmlFor="current-password" className="label">
-            رمز عبور فعلی
+            {t('رمز عبور فعلی', 'Current password')}
           </label>
           <input
             id="current-password"
@@ -75,7 +77,7 @@ export function PasswordForm({ hasPassword }: { hasPassword: boolean }) {
       <div className="grid gap-3 sm:grid-cols-2">
         <div>
           <label htmlFor="new-password" className="label">
-            {existing ? 'رمز عبور جدید' : 'رمز عبور'}
+            {existing ? t('رمز عبور جدید', 'New password') : t('رمز عبور', 'Password')}
           </label>
           <input
             id="new-password"
@@ -85,13 +87,13 @@ export function PasswordForm({ hasPassword }: { hasPassword: boolean }) {
             className="field"
             value={password}
             onChange={(e) => setPassword(e.target.value)}
-            placeholder="حداقل ۸ نویسه، حرف و رقم"
+            placeholder={t('حداقل ۸ نویسه، حرف و رقم', 'At least 8 characters, letters and digits')}
             required
           />
         </div>
         <div>
           <label htmlFor="confirm-password" className="label">
-            تکرار رمز عبور
+            {t('تکرار رمز عبور', 'Confirm password')}
           </label>
           <input
             id="confirm-password"
@@ -113,13 +115,20 @@ export function PasswordForm({ hasPassword }: { hasPassword: boolean }) {
       )}
       {saved && (
         <p className="text-xs font-extrabold text-[var(--color-success-fg)]" role="status">
-          رمز عبور ذخیره شد؛ از این پس می‌توانید با رمز وارد شوید.
+          {t(
+            'رمز عبور ذخیره شد؛ از این پس می‌توانید با رمز وارد شوید.',
+            'Password saved; you can now sign in with it.',
+          )}
         </p>
       )}
 
       <button type="submit" className="btn-cta text-sm" disabled={busy}>
         <Icon name="check" size={16} />
-        {busy ? 'در حال ذخیره…' : existing ? 'تغییر رمز عبور' : 'تعیین رمز عبور'}
+        {busy
+          ? t('در حال ذخیره…', 'Saving…')
+          : existing
+            ? t('تغییر رمز عبور', 'Change password')
+            : t('تعیین رمز عبور', 'Set password')}
       </button>
     </form>
   );

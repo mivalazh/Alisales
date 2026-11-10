@@ -10,6 +10,12 @@ import {
   type AccountType,
 } from '@alisales/schemas';
 import { Icon } from './Icon';
+import { useI18n } from '@/lib/i18n';
+
+const ACCOUNT_TYPE_EN: Record<AccountType, string> = {
+  individual: 'Individual',
+  showroom: 'Showroom',
+};
 
 /**
  * Phone + OTP login (S2 / C4).
@@ -28,6 +34,7 @@ import { Icon } from './Icon';
 
 export function LoginForm() {
   const router = useRouter();
+  const { t } = useI18n();
   const params = useSearchParams();
   // Open-redirect guard: only internal paths survive; anything else goes to /.
   const next = safeNextPath(params.get('next'));
@@ -77,13 +84,22 @@ export function LoginForm() {
         setNeedsProfile(Boolean(data.needsProfile));
         const hint = typeof data.demoCode === 'string' ? data.demoCode : null;
         setDemoCode(hint);
-        setNotice(hint ? 'کد ورود دمو ساخته شد.' : 'کد تأیید ارسال شد.');
+        setNotice(
+          hint
+            ? t('کد ورود دمو ساخته شد.', 'Demo sign-in code created.')
+            : t('کد تأیید ارسال شد.', 'Verification code sent.'),
+        );
         setWait(60);
         return;
       }
-      setError(String(data.error ?? 'ارسال کد ناموفق بود؛ دوباره تلاش کنید.'));
+      setError(
+        String(
+          data.error ??
+            t('ارسال کد ناموفق بود؛ دوباره تلاش کنید.', 'Could not send the code; try again.'),
+        ),
+      );
     } catch {
-      setError('ارتباط با سرور برقرار نشد.');
+      setError(t('ارتباط با سرور برقرار نشد.', 'Could not connect to the server.'));
     } finally {
       setBusy(false);
     }
@@ -102,9 +118,9 @@ export function LoginForm() {
         router.refresh();
         return;
       }
-      setError(String(data.error ?? 'ورود ناموفق بود.'));
+      setError(String(data.error ?? t('ورود ناموفق بود.', 'Sign-in failed.')));
     } catch {
-      setError('ارتباط با سرور برقرار نشد.');
+      setError(t('ارتباط با سرور برقرار نشد.', 'Could not connect to the server.'));
     } finally {
       setBusy(false);
     }
@@ -129,9 +145,9 @@ export function LoginForm() {
         router.refresh();
         return;
       }
-      setError(String(data.error ?? 'ورود ناموفق بود.'));
+      setError(String(data.error ?? t('ورود ناموفق بود.', 'Sign-in failed.')));
     } catch {
-      setError('ارتباط با سرور برقرار نشد.');
+      setError(t('ارتباط با سرور برقرار نشد.', 'Could not connect to the server.'));
     } finally {
       setBusy(false);
     }
@@ -144,20 +160,22 @@ export function LoginForm() {
           <Icon name="user" size={20} />
         </span>
         <div>
-          <h1 className="text-lg font-extrabold">ورود به حساب</h1>
-          <p className="text-xs text-muted">ورود با کد پیامکی یا رمز عبور</p>
+          <h1 className="text-lg font-extrabold">{t('ورود به حساب', 'Sign in')}</h1>
+          <p className="text-xs text-muted">
+            {t('ورود با کد پیامکی یا رمز عبور', 'Sign in with an SMS code or password')}
+          </p>
         </div>
       </div>
 
       <div
         role="tablist"
-        aria-label="روش ورود"
+        aria-label={t('روش ورود', 'Sign-in method')}
         className="mt-5 grid grid-cols-2 gap-1 rounded-card border border-line bg-page p-1"
       >
         {(
           [
-            { key: 'otp', label: 'کد پیامکی' },
-            { key: 'password', label: 'رمز عبور' },
+            { key: 'otp', label: t('کد پیامکی', 'SMS code') },
+            { key: 'password', label: t('رمز عبور', 'Password') },
           ] as const
         ).map((tab) => (
           <button
@@ -185,7 +203,7 @@ export function LoginForm() {
         <form onSubmit={(e) => void passwordLogin(e)} className="mt-6 space-y-4" noValidate>
           <div>
             <label htmlFor="pw-phone" className="label">
-              شماره موبایل
+              {t('شماره موبایل', 'Mobile number')}
             </label>
             <input
               id="pw-phone"
@@ -201,7 +219,7 @@ export function LoginForm() {
           </div>
           <div>
             <label htmlFor="pw" className="label">
-              رمز عبور
+              {t('رمز عبور', 'Password')}
             </label>
             <input
               id="pw"
@@ -215,7 +233,10 @@ export function LoginForm() {
               required
             />
             <p className="hint mt-1">
-              رمز عبور را در «تنظیمات حساب» تعیین کنید؛ اگر رمزی نساخته‌اید، از کد پیامکی وارد شوید.
+              {t(
+                'رمز عبور را در «تنظیمات حساب» تعیین کنید؛ اگر رمزی نساخته‌اید، از کد پیامکی وارد شوید.',
+                'Set a password in Account settings; if you have not created one, sign in with an SMS code.',
+              )}
             </p>
           </div>
 
@@ -226,21 +247,23 @@ export function LoginForm() {
           )}
 
           <button type="submit" disabled={busy} className="btn-cta w-full text-sm disabled:opacity-60">
-            {busy ? 'در حال ورود…' : 'ورود با رمز عبور'}
+            {busy
+              ? t('در حال ورود…', 'Signing in…')
+              : t('ورود با رمز عبور', 'Sign in with password')}
           </button>
 
           <Link
             href="/profile/settings"
             className="block text-center text-xs font-bold text-muted underline"
           >
-            تعیین یا تغییر رمز عبور
+            {t('تعیین یا تغییر رمز عبور', 'Set or change password')}
           </Link>
         </form>
       ) : step === 'phone' ? (
         <form onSubmit={(e) => void requestCode(e)} className="mt-6 space-y-4" noValidate>
           <div>
             <label htmlFor="phone" className="label">
-              شماره موبایل
+              {t('شماره موبایل', 'Mobile number')}
             </label>
             <input
               id="phone"
@@ -253,7 +276,9 @@ export function LoginForm() {
               placeholder="09123456789"
               required
             />
-            <p className="hint mt-1">ارقام فارسی یا انگلیسی، با یا بدون +98</p>
+            <p className="hint mt-1">
+              {t('ارقام فارسی یا انگلیسی، با یا بدون +98', 'Persian or Latin digits, with or without +98')}
+            </p>
           </div>
 
           {error && (
@@ -263,19 +288,21 @@ export function LoginForm() {
           )}
 
           <button type="submit" disabled={busy} className="btn-cta w-full text-sm disabled:opacity-60">
-            {busy ? 'در حال ارسال…' : 'دریافت کد تأیید'}
+            {busy
+              ? t('در حال ارسال…', 'Sending…')
+              : t('دریافت کد تأیید', 'Get verification code')}
           </button>
         </form>
       ) : (
         <form onSubmit={(e) => void verify(e)} className="mt-6 space-y-4" noValidate>
           <p className="text-sm text-muted">
-            کد شش‌رقمی ارسال‌شده به <span dir="ltr" className="font-bold text-ink">{phone}</span> را
-            وارد کنید.
+            {t('کد شش‌رقمی ارسال‌شده به', 'Enter the six-digit code sent to')}{' '}
+            <span dir="ltr" className="font-bold text-ink">{phone}</span>.
           </p>
 
           <div>
             <label htmlFor="code" className="label">
-              کد تأیید
+              {t('کد تأیید', 'Verification code')}
             </label>
             <input
               id="code"
@@ -296,7 +323,10 @@ export function LoginForm() {
               role="status"
               className="rounded-field border border-dashed border-cta bg-cta-soft px-3 py-2 text-xs leading-6 font-bold text-ink"
             >
-              حالت دمو — پیامک واقعی ارسال نمی‌شود. کد ورود:{' '}
+              {t(
+                'حالت دمو — پیامک واقعی ارسال نمی‌شود. کد ورود:',
+                'Demo mode — no real SMS is sent. Sign-in code:',
+              )}{' '}
               <span dir="ltr" className="tracking-[0.3em]">
                 {demoCode}
               </span>
@@ -305,22 +335,24 @@ export function LoginForm() {
 
           {needsProfile && (
             <div className="space-y-4 rounded-field border border-line bg-page p-3">
-              <p className="text-sm font-bold">تکمیل حساب</p>
+              <p className="text-sm font-bold">
+                {t('تکمیل حساب', 'Complete your account')}
+              </p>
               <div>
                 <label htmlFor="displayName" className="label">
-                  نام نمایشی
+                  {t('نام نمایشی', 'Display name')}
                 </label>
                 <input
                   id="displayName"
                   className="field"
                   value={displayName}
                   onChange={(e) => setDisplayName(e.target.value)}
-                  placeholder="نام شما یا نام نمایشگاه"
+                  placeholder={t('نام شما یا نام نمایشگاه', 'Your name or showroom name')}
                   required
                 />
               </div>
               <fieldset>
-                <legend className="label">نوع حساب</legend>
+                <legend className="label">{t('نوع حساب', 'Account type')}</legend>
                 <div className="grid grid-cols-2 gap-2">
                   {accountTypes.map((type) => (
                     <label
@@ -338,7 +370,7 @@ export function LoginForm() {
                         checked={accountType === type}
                         onChange={() => setAccountType(type)}
                       />
-                      {ACCOUNT_TYPE_LABELS[type]}
+                      {t(ACCOUNT_TYPE_LABELS[type], ACCOUNT_TYPE_EN[type])}
                     </label>
                   ))}
                 </div>
@@ -354,7 +386,7 @@ export function LoginForm() {
           )}
 
           <button type="submit" disabled={busy} className="btn-cta w-full text-sm disabled:opacity-60">
-            {busy ? 'در حال بررسی…' : 'ورود'}
+            {busy ? t('در حال بررسی…', 'Checking…') : t('ورود', 'Sign in')}
           </button>
 
           <button
@@ -363,7 +395,12 @@ export function LoginForm() {
             disabled={busy || wait > 0}
             className="w-full text-center text-xs font-bold text-muted disabled:opacity-60"
           >
-            {wait > 0 ? `ارسال دوباره کد تا ${wait} ثانیه` : 'ارسال دوباره کد'}
+            {wait > 0
+              ? t(
+                  `ارسال دوباره کد تا ${wait} ثانیه`,
+                  `Resend code in ${wait} seconds`,
+                )
+              : t('ارسال دوباره کد', 'Resend code')}
           </button>
 
           <button
@@ -377,7 +414,7 @@ export function LoginForm() {
             }}
             className="w-full text-center text-xs font-bold text-faint"
           >
-            تغییر شماره موبایل
+            {t('تغییر شماره موبایل', 'Change mobile number')}
           </button>
         </form>
       )}

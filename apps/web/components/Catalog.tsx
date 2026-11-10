@@ -140,6 +140,7 @@ export function Catalog({
 
   const filterCount = activeFilterCount(filters);
   const filterPool = useMemo(() => pool ?? listings, [pool, listings]);
+  const sortedListings = useMemo(() => sortListings(listings, sort), [listings, sort]);
 
   const ctx: CatalogContext = {
     openPanel: () => setPanelOpen((v) => !v),
@@ -236,11 +237,11 @@ export function Catalog({
             pool={filterPool}
           />
           <div className="min-w-0">
-            <ListingGrid listings={sortListings(listings, sort)} view={view} />
+            <ListingGrid listings={sortedListings} view={view} />
           </div>
         </div>
       ) : (
-        <ListingGrid listings={sortListings(listings, sort)} view={view} />
+        <ListingGrid listings={sortedListings} view={view} />
       )}
 
       {category && (

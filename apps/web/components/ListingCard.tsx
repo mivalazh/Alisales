@@ -14,6 +14,8 @@ import {
 } from '@alisales/schemas';
 import type { ListingCardData } from '@/lib/data/listings';
 import { brandLatinFor, specParts, vehicleTitle } from '@/lib/listing-text';
+import { useI18n } from '@/lib/i18n';
+import { postingAgeEnglish } from '@/lib/i18n/dictionary';
 import { FavoriteButton } from './FavoriteButton';
 import { Icon } from './Icon';
 import { PriceText } from './PriceText';
@@ -27,13 +29,14 @@ const SOLD_TEXT = '#64748B';
 const SWIPE_THRESHOLD = 36;
 
 function Badge({ badgeKey }: { badgeKey: BadgeKey }) {
+  const { t } = useI18n();
   const b = badgeFor(badgeKey);
   return (
     <span
       className="rounded-[var(--radius-pill)] border px-2 py-0.5 text-xs font-bold"
       style={{ background: b.background, color: b.foreground, borderColor: b.border }}
     >
-      {b.label}
+      {t(b.label)}
     </span>
   );
 }
@@ -78,6 +81,7 @@ function cardBadges(listing: ListingCardData): BadgeKey[] {
  * heart stay above that link and never navigate.
  */
 export function ListingCard({ listing }: { listing: ListingCardData }) {
+  const { lang, t } = useI18n();
   const sold = listing.state === 'sold';
   const part = listing.part ?? null;
   const title = part ? part.title : vehicleTitle(listing);
@@ -85,7 +89,7 @@ export function ListingCard({ listing }: { listing: ListingCardData }) {
   // Latin marque on its own line, spec facts as separate items — see
   // lib/listing-text.ts for why both are bdi/dir guarded.
   const latin = part ? null : brandLatinFor(listing.brand);
-  const specs = part ? [] : specParts(listing);
+  const specs = part ? [] : specParts(listing, lang);
 
   const photos = listing.photos?.length
     ? listing.photos
@@ -125,7 +129,7 @@ export function ListingCard({ listing }: { listing: ListingCardData }) {
 
   return (
     <li
-      className="group relative flex h-full min-w-0 flex-col overflow-hidden rounded-card border border-line bg-card transition hover:border-line-strong hover:shadow-lg"
+      className="group relative flex h-full min-w-0 touch-manipulation flex-col overflow-hidden rounded-card border border-line bg-card transition hover:border-line-strong hover:shadow-lg active:scale-[0.98]"
       onTouchStart={onTouchStart}
       onTouchEnd={onTouchEnd}
     >
@@ -137,6 +141,8 @@ export function ListingCard({ listing }: { listing: ListingCardData }) {
             fill
             sizes="(min-width: 1280px) 25vw, (min-width: 1024px) 33vw, (min-width: 640px) 50vw, 50vw"
             unoptimized={isPreSizedSource(current)}
+            loading="lazy"
+            decoding="async"
             className={`object-cover ${sold ? 'opacity-60 grayscale' : ''}`}
           />
         ) : (
@@ -148,7 +154,7 @@ export function ListingCard({ listing }: { listing: ListingCardData }) {
             <button
               type="button"
               onClick={() => go(-1)}
-              aria-label="عکس قبلی"
+              aria-label={t('عکس قبلی', 'Previous photo')}
               className="absolute start-2 top-1/2 z-20 flex h-8 w-8 -translate-y-1/2 items-center justify-center rounded-full bg-white/90 text-[#111144] shadow-md transition hover:bg-white sm:opacity-0 sm:group-hover:opacity-100 sm:group-focus-within:opacity-100"
             >
               <Icon name="chevronRight" size={16} />
@@ -156,7 +162,7 @@ export function ListingCard({ listing }: { listing: ListingCardData }) {
             <button
               type="button"
               onClick={() => go(1)}
-              aria-label="عکس بعدی"
+              aria-label={t('عکس بعدی', 'Next photo')}
               className="absolute end-2 top-1/2 z-20 flex h-8 w-8 -translate-y-1/2 items-center justify-center rounded-full bg-white/90 text-[#111144] shadow-md transition hover:bg-white sm:opacity-0 sm:group-hover:opacity-100 sm:group-focus-within:opacity-100"
             >
               <Icon name="chevronLeft" size={16} />
@@ -202,7 +208,7 @@ export function ListingCard({ listing }: { listing: ListingCardData }) {
         <div className="flex min-h-[26px] flex-wrap content-start gap-1.5">
           {part && (
             <span className="rounded-[var(--radius-pill)] border border-line bg-page px-2 py-0.5 text-xs font-bold text-muted">
-              {PART_CONDITION_LABELS[part.condition]}
+              {t(PART_CONDITION_LABELS[part.condition])}
             </span>
           )}
           {cardBadges(listing).map((b) => (
@@ -245,8 +251,8 @@ export function ListingCard({ listing }: { listing: ListingCardData }) {
         >
           {part ? (
             <>
-              {PART_CATEGORY_LABELS[part.category]} · {PART_ORIGIN_LABELS[part.origin]} ·{' '}
-              {compatibilityLabel(part.compatibility)}
+              {t(PART_CATEGORY_LABELS[part.category])} · {t(PART_ORIGIN_LABELS[part.origin])} ·{' '}
+              {lang === 'en' ? part.compatibility : compatibilityLabel(part.compatibility)}
             </>
           ) : (
             specs.map((item, i) => (
@@ -260,7 +266,7 @@ export function ListingCard({ listing }: { listing: ListingCardData }) {
 
         {/* The price owns its own row, so the spec line above can never run
             into it and every card in a row lines up. */}
-        <div className="min-h-[42px] pt-1">
+        <div className="w-full min-w-0 overflow-hidden pt-1">
           <PriceText irr={listing.priceIRR} sold={sold} hideAed={listing.hideAed} />
         </div>
 
@@ -269,16 +275,18 @@ export function ListingCard({ listing }: { listing: ListingCardData }) {
             the whole row instead of drifting up on unverified cards. */}
         <div className="flex min-h-[28px] flex-wrap content-start gap-1.5">
           {listing.showroomVerified ? (
-            <VerifiedPill label={part ? 'تعمیرگاه معتبر' : 'نمایشگاه معتبر'} />
+            <VerifiedPill label={t(part ? 'تعمیرگاه معتبر' : 'نمایشگاه معتبر')} />
           ) : sellerName ? (
             <p className="w-full truncate text-xs font-bold text-muted">{sellerName}</p>
           ) : null}
         </div>
 
         <div className="mt-auto flex items-center justify-between border-t border-line pt-2 text-xs text-faint">
-          <span>{CITY_LABELS[listing.city] ?? listing.city}</span>
+          <span>{t(CITY_LABELS[listing.city] ?? listing.city)}</span>
           <time dateTime={listing.publishedAt ?? undefined}>
-            {postingAgeLabel(listing.publishedAt ?? Date.now())}
+            {lang === 'en'
+              ? postingAgeEnglish(listing.publishedAt ?? Date.now())
+              : postingAgeLabel(listing.publishedAt ?? Date.now())}
           </time>
         </div>
       </div>
@@ -288,7 +296,7 @@ export function ListingCard({ listing }: { listing: ListingCardData }) {
       <Link
         href={`/listing/${listing.slug}`}
         onClick={onLinkClick}
-        aria-label={`مشاهده‌ی آگهی ${title}${listing.year ? ` ${listing.year}` : ''}`}
+        aria-label={`${t('مشاهده‌ی آگهی', 'View listing')} ${title}${listing.year ? ` ${listing.year}` : ''}`}
         className="absolute inset-0 z-10 rounded-card"
       />
     </li>

@@ -2,6 +2,7 @@
 
 import { useEffect, useRef, useState } from 'react';
 import { Icon } from './Icon';
+import { useI18n } from '@/lib/i18n';
 
 /** Model years shown newest-first in the grid. */
 const YEARS = Array.from({ length: 32 }, (_, index) => 2026 - index);
@@ -18,9 +19,9 @@ export function YearGridSelect({
   id,
   value,
   onChange,
-  placeholder = 'سال ساخت را انتخاب کنید…',
+  placeholder,
   invalid = false,
-  ariaLabel = 'سال ساخت',
+  ariaLabel,
 }: {
   id?: string;
   value: string;
@@ -29,6 +30,7 @@ export function YearGridSelect({
   invalid?: boolean;
   ariaLabel?: string;
 }) {
+  const { t } = useI18n();
   const [open, setOpen] = useState(false);
   const root = useRef<HTMLDivElement>(null);
   const selected = Number.parseInt(value, 10);
@@ -56,14 +58,14 @@ export function YearGridSelect({
         type="button"
         aria-haspopup="dialog"
         aria-expanded={open}
-        aria-label={ariaLabel}
+        aria-label={ariaLabel ?? t('سال ساخت', 'Model year')}
         onClick={() => setOpen((v) => !v)}
         className={`field flex items-center justify-between gap-2 text-start ${
           invalid ? 'border-2 border-red-500 bg-red-50/40 dark:bg-red-950/20' : ''
         }`}
       >
         <span className={`${value ? 'font-bold text-ink' : 'text-faint'}`}>
-          {value || placeholder}
+          {value || placeholder || t('سال ساخت را انتخاب کنید…', 'Choose a model year…')}
         </span>
         <Icon
           name="chevronDown"
@@ -75,11 +77,11 @@ export function YearGridSelect({
       {open && (
         <div
           role="dialog"
-          aria-label={ariaLabel}
+          aria-label={ariaLabel ?? t('سال ساخت', 'Model year')}
           className="absolute inset-x-0 top-full z-40 mt-2 rounded-card border border-line bg-card p-3 shadow-xl"
         >
           <div className="mb-2 flex items-center justify-between gap-2 text-[11px] font-extrabold text-muted">
-            <span>سال ساخت (میلادی)</span>
+            <span>{t('سال ساخت (میلادی)', 'Model year')}</span>
             {value && (
               <button
                 type="button"
@@ -89,7 +91,7 @@ export function YearGridSelect({
                 }}
                 className="text-cta underline"
               >
-                پاک کردن
+                {t('پاک کردن', 'Clear')}
               </button>
             )}
           </div>

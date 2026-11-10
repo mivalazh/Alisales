@@ -3,6 +3,7 @@
 import Image from 'next/image';
 import Link from 'next/link';
 import { useEffect, useRef, useState } from 'react';
+import { useI18n } from '@/lib/i18n';
 import { Icon } from './Icon';
 
 interface MessageListing {
@@ -21,12 +22,12 @@ interface Message {
 }
 
 const SEED_FAQS = [
+  'چه موتوری برای مسافت بلند خوبه؟',
+  'چه ماشینی بخرم؟',
   'خودروی ارزان کیش',
   'فرق پلاک منطقه آزاد و گذر موقت',
   'کارشناسی تعمیرگاه شمس‌اله',
   'قطعات استوک اصل',
-  'اجاره خودرو در کیش',
-  'اجاره یات و قایق تفریحی',
   'چک‌لیست خرید خودرو',
 ];
 
@@ -39,6 +40,7 @@ const SEED_FAQS = [
  * no «transfer to support» button: the widget answers, it does not open tickets.
  */
 export function AIAssistantWidget() {
+  const { t, lang } = useI18n();
   const [open, setOpen] = useState(false);
   const [input, setInput] = useState('');
   const [busy, setBusy] = useState(false);
@@ -46,7 +48,10 @@ export function AIAssistantWidget() {
   const [messages, setMessages] = useState<Message[]>([
     {
       role: 'assistant',
-      text: 'سلام! من دستیار Ali Sales هستم؛ خودرو، اسکوتر، ماشین‌آلات، قطعات، پلاک کیش، اجاره و یات. بودجه یا سؤال فنی‌تان را بگویید تا دقیق راهنمایی کنم.',
+      text: t(
+        'سلام! من دستیار Ali Sales هستم؛ خودرو، اسکوتر، ماشین‌آلات، قطعات و پلاک کیش. بودجه یا سؤال فنی‌تان را بگویید تا دقیق راهنمایی کنم.',
+        'Hi! I am the Ali Sales consultant for cars, scooters, heavy machinery, spare parts and Kish plates. Tell me your budget or technical question and I will narrow it down.',
+      ),
     },
   ]);
   const scroller = useRef<HTMLDivElement>(null);
@@ -72,10 +77,10 @@ export function AIAssistantWidget() {
     setInput('');
     setBusy(true);
     try {
-      const res = await fetch('/api/assistant', {
+      const res = await fetch('/api/ai/chat', {
         method: 'POST',
         headers: { 'content-type': 'application/json' },
-        body: JSON.stringify({ message: q }),
+        body: JSON.stringify({ message: q, lang }),
       });
       const body = (await res.json().catch(() => ({}))) as {
         reply?: string;
@@ -87,7 +92,10 @@ export function AIAssistantWidget() {
       if (!res.ok || !body.reply) {
         setMessages((current) => [
           ...current,
-          { role: 'assistant', text: body.error ?? 'فعلاً نتوانستم جواب بدهم؛ دوباره بپرسید.' },
+          {
+            role: 'assistant',
+            text: body.error ?? t('فعلاً نتوانستم جواب بدهم؛ دوباره بپرسید.', 'I could not answer that just now. Please try again.'),
+          },
         ]);
         return;
       }
@@ -104,7 +112,10 @@ export function AIAssistantWidget() {
     } catch {
       setMessages((current) => [
         ...current,
-        { role: 'assistant', text: 'ارتباط با سرور برقرار نشد؛ دوباره تلاش کنید.' },
+        {
+          role: 'assistant',
+          text: t('ارتباط با سرور برقرار نشد؛ دوباره تلاش کنید.', 'Could not reach the server. Please try again.'),
+        },
       ]);
     } finally {
       setBusy(false);
@@ -116,7 +127,7 @@ export function AIAssistantWidget() {
       {open && (
         <div
           role="dialog"
-          aria-label="دستیار هوشمند Ali Sales"
+          aria-label={t('دستیار هوشمند Ali Sales')}
           className="fixed bottom-36 right-4 z-50 flex max-h-[70vh] w-[min(92vw,370px)] flex-col overflow-hidden rounded-2xl border border-line bg-card shadow-2xl sm:bottom-24 sm:right-6"
         >
           <div className="flex items-center gap-2 bg-[#111144] px-3 py-2.5 text-white">
@@ -124,13 +135,13 @@ export function AIAssistantWidget() {
               <Icon name="sparkle" size={17} />
             </span>
             <div className="min-w-0 flex-1">
-              <p className="text-xs font-extrabold">دستیار هوشمند Ali Sales</p>
-              <p className="text-[9px] text-white/60">جستجو در کاتالوگ زنده — همیشه بیدار</p>
+              <p className="text-xs font-extrabold">{t('دستیار هوشمند Ali Sales')}</p>
+              <p className="text-[9px] text-white/60">{t('جستجو در کاتالوگ زنده — همیشه بیدار')}</p>
             </div>
             <button
               type="button"
               onClick={() => setOpen(false)}
-              aria-label="بستن دستیار"
+              aria-label={t('بستن دستیار')}
               className="flex h-7 w-7 items-center justify-center rounded-full text-white/80 hover:bg-white/10"
             >
               <Icon name="close" size={15} />
@@ -138,7 +149,7 @@ export function AIAssistantWidget() {
           </div>
 
           <div className="border-b border-line px-2.5 py-2">
-            <p className="mb-1.5 text-[10px] font-extrabold text-faint">سوالات پرتکرار کاربران</p>
+            <p className="mb-1.5 text-[10px] font-extrabold text-faint">{t('سوالات پرتکرار کاربران')}</p>
             <div className="flex gap-1.5 overflow-x-auto pb-0.5 [scrollbar-width:none] [&::-webkit-scrollbar]:hidden">
               {faqs.map((faq) => (
                 <button
@@ -147,7 +158,7 @@ export function AIAssistantWidget() {
                   onClick={() => void ask(faq)}
                   className="shrink-0 whitespace-nowrap rounded-[var(--radius-pill)] border border-line bg-page px-2.5 py-1 text-[10px] font-bold text-muted transition hover:border-cta hover:text-ink"
                 >
-                  {faq}
+                  {t(faq)}
                 </button>
               ))}
             </div>
@@ -194,8 +205,7 @@ export function AIAssistantWidget() {
                               <span className="block truncate text-[11px] font-extrabold text-ink">
                                 {listing.title}
                               </span>
-                              <span dir="ltr" className="mt-0.5 block text-[10px] font-extrabold text-[#F98513]">
-                                {listing.priceToman.toLocaleString('en-US')} تومان
+                              <span dir="ltr" className="mt-0.5 block text-[10px] font-extrabold text-[#F98513]">                                  {listing.priceToman.toLocaleString('en-US')} {t('تومان')}
                               </span>
                             </span>
                           </Link>
@@ -215,9 +225,20 @@ export function AIAssistantWidget() {
               ),
             )}
             {busy && (
-              <p className="w-fit rounded-2xl bg-page px-3 py-2 text-xs text-faint">
-                در حال جستجو…
-              </p>
+              <div
+                role="status"
+                aria-live="polite"
+                className="w-fit max-w-[92%] rounded-2xl rounded-bl-sm border border-line bg-page px-3 py-2.5"
+              >
+                <span className="flex items-center gap-1" aria-hidden="true">
+                  <span className="h-1.5 w-1.5 animate-bounce rounded-full bg-[#F98513] [animation-delay:-0.24s]" />
+                  <span className="h-1.5 w-1.5 animate-bounce rounded-full bg-[#F98513] [animation-delay:-0.12s]" />
+                  <span className="h-1.5 w-1.5 animate-bounce rounded-full bg-[#F98513]" />
+                </span>
+                <span className="mt-1.5 block animate-pulse bg-gradient-to-l from-faint via-ink to-faint bg-clip-text text-[10px] font-bold text-transparent">
+                  {t('در حال تحلیل کاتالوگ و مشخصات فنی...')}
+                </span>
+              </div>
             )}
           </div>
 
@@ -230,15 +251,15 @@ export function AIAssistantWidget() {
           >
             <input
               className="field h-9 flex-1 text-xs"
-              placeholder="سؤال‌تان را بنویسید…"
+              placeholder={t('سؤال‌تان را بنویسید…')}
               value={input}
               onChange={(event) => setInput(event.target.value)}
-              aria-label="سؤال از دستیار"
+              aria-label={t('سؤال از دستیار')}
             />
             <button
               type="submit"
               disabled={busy || !input.trim()}
-              aria-label="ارسال"
+              aria-label={t('ارسال', 'Send')}
               className="flex h-9 w-9 shrink-0 items-center justify-center rounded-full bg-[#F98513] text-white transition hover:bg-[#e0770f] disabled:opacity-50"
             >
               <Icon name="chevronLeft" size={17} />
@@ -251,8 +272,8 @@ export function AIAssistantWidget() {
         type="button"
         onClick={() => setOpen((v) => !v)}
         aria-expanded={open}
-        aria-label={open ? 'بستن دستیار هوشمند' : 'باز کردن دستیار هوشمند'}
-        className="ai-fab fixed bottom-20 right-4 z-40 flex h-14 w-14 items-center justify-center rounded-full border-2 border-[#F98513]/70 bg-[#111144] text-[#F98513] shadow-xl transition hover:scale-105 sm:bottom-6 sm:right-6"
+        aria-label={open ? t('بستن دستیار هوشمند') : t('باز کردن دستیار هوشمند')}
+        className="ai-fab fixed bottom-20 right-4 z-40 flex h-14 w-14 items-center justify-center rounded-full border-2 border-[#F98513]/70 bg-[#111144] text-[#F98513] shadow-[0_12px_30px_-4px_rgba(249,133,19,0.5),0_6px_16px_-2px_rgba(17,17,68,0.4)] ring-2 ring-[#F98513]/70 transition-all duration-200 hover:-translate-y-1 sm:bottom-6 sm:right-6"
       >
         <Icon name={open ? 'close' : 'sparkle'} size={24} />
       </button>
