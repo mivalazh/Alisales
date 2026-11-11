@@ -99,7 +99,7 @@ export async function setAedRate(tomanPerAed: number, source: 'admin' | 'auto'):
  *  3. Nobitex USDT/IRT last price ÷ 3.6725 — the Tether-linked fallback that
  *     needs no key, so a fresh install still gets a market-derived number.
  *
- * Every candidate goes through the 15,000–60,000 Toman window before it is
+ * Every candidate goes through the 15,000–120,000 Toman window before it is
  * stored: `0`, `NaN`, a rial/Toman mix-up or a stale quote keeps the previous
  * (or default) rate instead of poisoning every price on the site. A failed
  * fetch backs off for 15 minutes so a dead API cannot slow each render.

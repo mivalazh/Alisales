@@ -64,14 +64,17 @@ export function tomanRateToIrr(tomanPerAed: number): number {
 }
 
 /**
- * The window a real AED rate can sit in: 15,000–60,000 Toman per dirham.
+ * The window a real AED rate can sit in: 15,000–120,000 Toman per dirham.
  *
- * A live feed that answers `0`, `NaN`, a rial/toman mix-up or a stale number
- * must never reach a price on the site, so every automatic value is checked
- * against this window before it is stored.
+ * The upper bound is a sanity ceiling, not a forecast. It has to sit above the
+ * free market (the Tether-derived quote was ~71,600 Toman/AED in November 2026)
+ * or every genuine live rate would be rejected and prices would silently fall
+ * back to the launch reference. A live feed that answers `0`, `NaN`, a
+ * rial/toman mix-up or a stale number still must pass this window before it is
+ * stored.
  */
 export const MIN_AED_TOMAN = 15_000;
-export const MAX_AED_TOMAN = 60_000;
+export const MAX_AED_TOMAN = 120_000;
 
 /** Guarded parse of a stored/admin value (rial per AED). */
 export function isPlausibleAedRate(value: unknown): value is number {
