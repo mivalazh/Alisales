@@ -32,6 +32,12 @@ export const ICONS = {
     ],
   },
   search: { paths: ['M21 21l-4.3-4.3', 'M11 18a7 7 0 1 0 0-14 7 7 0 0 0 0 14z'] },
+  bell: {
+    paths: [
+      'M18 8a6 6 0 0 0-12 0c0 7-3 7-3 9h18c0-2-3-2-3-9',
+      'M13.7 21a2 2 0 0 1-3.4 0',
+    ],
+  },
   sliders: {
     paths: [
       'M4 21v-7',
@@ -68,6 +74,14 @@ export const ICONS = {
     paths: [
       'M20.8 4.6a5.5 5.5 0 0 0-7.8 0L12 5.7l-1.1-1.1a5.5 5.5 0 0 0-7.8 7.8l1.1 1.1L12 21.2l7.8-7.8 1.1-1.1a5.5 5.5 0 0 0 0-7.8z',
     ],
+    filled: true,
+  },
+  /** Saved listings: an outline ribbon, and the orange filled state. */
+  bookmark: {
+    paths: ['M6 3h12a1 1 0 0 1 1 1v18l-7-4.5L5 22V4a1 1 0 0 1 1-1z'],
+  },
+  bookmarkFilled: {
+    paths: ['M6 3h12a1 1 0 0 1 1 1v18l-7-4.5L5 22V4a1 1 0 0 1 1-1z'],
     filled: true,
   },
 

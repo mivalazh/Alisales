@@ -17,6 +17,7 @@ import { isPreSizedSource } from '@/lib/images';
 import { getLanguage } from '@/lib/i18n/server';
 import { serverT } from '@/lib/i18n/server';
 import { postingAgeEnglish } from '@/lib/i18n/dictionary';
+import { translateListingContentToEn } from '@/lib/i18n/content';
 
 export const generateMetadata = localizedMetadata(
   { title: 'پروفایل فروشنده' },
@@ -57,6 +58,13 @@ export default async function SellerPage({
   if (!profile) notFound();
   const t = (fa: string, en?: string) => serverT(lang, fa, en);
 
+  const displayName =
+    lang === 'en' ? translateListingContentToEn(profile.name) : profile.name;
+  const displayBio =
+    profile.bio && lang === 'en'
+      ? translateListingContentToEn(profile.bio)
+      : profile.bio;
+
   const session = await getSession();
   const isOwner = session?.sub === profile.id;
   const tab = parseTab(query.tab);
@@ -65,7 +73,7 @@ export default async function SellerPage({
 
   return (
     <div className="mx-auto max-w-4xl space-y-4">
-      <NativeBackHeader title={profile.name} fallbackHref="/" />
+      <NativeBackHeader title={displayName} fallbackHref="/" />
       {/* Cover + identity */}
       <section className="overflow-hidden rounded-card border border-line bg-card">
         <div
@@ -97,7 +105,7 @@ export default async function SellerPage({
             </span>
             <div className="min-w-0 flex-1 pb-1">
               <h1 className="flex flex-wrap items-center gap-1.5 text-lg font-extrabold leading-tight">
-                <span className="truncate">{profile.name}</span>
+                <span className="truncate">{displayName}</span>
                 {profile.verified && <VerifiedPill label={t('تأییدشده', 'Verified')} />}
               </h1>
               <p className="mt-0.5 flex flex-wrap items-center gap-x-2 text-xs font-bold text-muted">
@@ -119,8 +127,8 @@ export default async function SellerPage({
             </div>
           </div>
 
-          {profile.bio && (
-            <p className="mt-3 whitespace-pre-line text-sm leading-7 text-ink/85">{profile.bio}</p>
+          {displayBio && (
+            <p className="mt-3 whitespace-pre-line text-sm leading-7 text-ink/85">{displayBio}</p>
           )}
 
           <div className="mt-3 flex flex-wrap items-start gap-2">
@@ -135,7 +143,7 @@ export default async function SellerPage({
             <SellerActions
               sellerId={profile.id}
               listingId={firstActive?.id ?? null}
-              name={profile.name}
+              name={displayName}
               isOwner={isOwner}
               canCall={Boolean(firstActive?.allowPhoneReveal)}
             />

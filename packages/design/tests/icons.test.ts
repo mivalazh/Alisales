@@ -25,12 +25,12 @@ describe('shared icon registry', () => {
     expect(JSON.stringify(ICONS)).not.toMatch(/#[0-9a-f]{3,8}/i);
   });
 
-  it('only heartFilled renders filled (all others are stroke outlines)', () => {
+  it('only the explicit saved/heart fills render filled', () => {
     const entries = Object.entries(ICONS) as Array<[string, { filled?: boolean }]>
     const filled = entries
       .filter(([, def]) => def.filled)
       .map(([name]) => name);
-    expect(filled).toEqual(['heartFilled']);
+    expect(filled).toEqual(['heartFilled', 'bookmarkFilled']);
   });
 
   it('icon names are unique and camelCase', () => {
@@ -48,8 +48,8 @@ describe('shared icon registry', () => {
 
   it('ships the icon set both apps depend on', () => {
     const required = [
-      'menu', 'close', 'arrowLeft', 'chevronDown', 'search', 'sliders',
-      'plus', 'check', 'send', 'trash', 'heart', 'heartFilled',
+      'menu', 'close', 'arrowLeft', 'chevronDown', 'search', 'sliders', 'bell',
+      'plus', 'check', 'send', 'trash', 'heart', 'heartFilled', 'bookmark', 'bookmarkFilled',
       'camera', 'cameraPlus', 'image', 'imageX',
       'shieldCheck', 'clock', 'plate', 'sparkle', 'badgeCheck', 'car', 'alertCircle',
       'home', 'message', 'user',

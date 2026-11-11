@@ -14,15 +14,31 @@ import { getLanguage } from '@/lib/i18n/server';
 import { RateProvider } from '@/components/RateProvider';
 import { getSession } from '@/lib/auth/session';
 import { getAedRate } from '@/lib/data/rate-store';
+import { absoluteUrl, SITE_URL } from '@/lib/seo';
 
-const siteUrl = process.env.NEXT_PUBLIC_SITE_URL;
+const siteUrl = process.env.NEXT_PUBLIC_SITE_URL || SITE_URL;
 
 export async function generateMetadata(): Promise<Metadata> {
   const lang = await getLanguage();
   const isEnglish = lang === 'en';
 
   return {
-    metadataBase: siteUrl ? new URL(siteUrl) : undefined,
+    metadataBase: new URL(siteUrl),
+    keywords: [
+      'خرید خودرو کیش',
+      'فروش خودرو کیش',
+      'خرید و فروش خودرو و قطعات کیش',
+      'اجاره خودرو کیش',
+      'رنت ماشین کیش',
+      'car marketplace Kish',
+      'buy car Kish',
+    ],
+    openGraph: {
+      type: 'website',
+      siteName: 'Ali Sales',
+      url: absoluteUrl('/'),
+      locale: isEnglish ? 'en_US' : 'fa_IR',
+    },
     title: {
       default: isEnglish
         ? 'Ali Sales | Buy and sell cars in Kish'

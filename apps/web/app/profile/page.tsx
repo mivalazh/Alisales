@@ -76,7 +76,7 @@ export default async function ProfilePage() {
         `${favoriteIds.length} آگهی ذخیره‌شده`,
         `${favoriteIds.length} saved listings`,
       ),
-      icon: 'heart',
+      icon: 'bookmark',
     },
     {
       href: `/seller/${session.sub}?tab=reviews`,
@@ -149,9 +149,6 @@ export default async function ProfilePage() {
               ) : (
                 initial
               )}
-              <span className="absolute bottom-0 end-0 flex h-7 w-7 items-center justify-center rounded-full border-2 border-card bg-[#0F7FC4] text-white transition group-hover:scale-110">
-                <Icon name="camera" size={13} />
-              </span>
             </a>
             <div className="min-w-0 flex-1 pb-1">
               <h1 className="truncate text-lg font-extrabold sm:text-xl">{session.displayName}</h1>
@@ -161,21 +158,24 @@ export default async function ProfilePage() {
                 {t(ACCOUNT_TYPE_LABELS[session.accountType])}
               </p>
             </div>
-            <a
-              href="#profile-editor"
-              className="mb-1 hidden rounded-full border border-line px-3 py-1.5 text-[11px] font-extrabold text-ink transition hover:border-line-strong sm:inline-flex"
-            >
-              {t('ویرایش پروفایل', 'Edit profile')}
-            </a>
           </div>
 
-          <p className="mt-3 line-clamp-3 text-xs leading-6 text-muted sm:text-sm">
-            {custom?.bio?.trim() ||
-              t(
-                'بایو خود را اضافه کنید: چه خودروهایی می‌فروشید، کجای کیش هستید و چه چیزی شما را متفاوت می‌کند.',
-                'Add a bio: what you sell, where you are in Kish and what sets you apart.',
-              )}
-          </p>
+          {custom?.bio?.trim() ? (
+            <p className="mt-3 whitespace-pre-line text-xs leading-6 text-muted sm:text-sm">
+              {custom.bio}
+            </p>
+          ) : null}
+
+          <ProfileCustomizer
+            embedded
+            initial={{
+              bio: custom?.bio ?? '',
+              avatarUrl: custom?.avatarUrl ?? null,
+              coverUrl: custom?.coverUrl ?? null,
+            }}
+            displayName={session.displayName ?? ''}
+            initials={initial}
+          />
         </div>
 
         <dl className="grid grid-cols-2 gap-2 border-t border-line bg-page/60 p-3 sm:grid-cols-4 sm:p-4">
@@ -190,7 +190,7 @@ export default async function ProfilePage() {
               label: t('ذخیره‌شده‌ها', 'Saved'),
               value: formatAmountLatin(favoriteIds.length),
               href: '/favorites',
-              tone: 'text-rose-500',
+              tone: 'text-[#F98513]',
             },
             {
               label: t('استوری‌های من', 'My stories'),
@@ -221,18 +221,6 @@ export default async function ProfilePage() {
           ))}
         </dl>
       </section>
-
-      <div id="profile-editor" className="scroll-mt-24">
-        <ProfileCustomizer
-          initial={{
-          bio: custom?.bio ?? '',
-          avatarUrl: custom?.avatarUrl ?? null,
-          coverUrl: custom?.coverUrl ?? null,
-        }}
-          displayName={session.displayName ?? ''}
-          initials={initial}
-        />
-      </div>
 
       {followed.length > 0 && (
         <section

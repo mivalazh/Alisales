@@ -99,7 +99,6 @@ const INITIAL_DRAFT = {
   chassisCondition: '',
   technicalInspection: '',
   inspectionSheetUrl: '',
-  inspectionNote: '',
   /** Cover is a catalogue/internet photo, not the actual car. */
   isJournalPhoto: false,
 };
@@ -250,9 +249,9 @@ function Field({
 
 function Section({ title, children }: { title: string; children: ReactNode }) {
   return (
-    <section className="rounded-card border border-line bg-card p-4 sm:p-5">
-      <h2 className="mb-4 border-b border-line pb-2 text-md font-extrabold">{title}</h2>
-      <div className="grid gap-4 sm:grid-cols-2">{children}</div>
+    <section className="rounded-card border border-line bg-card p-3.5 sm:p-4">
+      <h2 className="mb-3 border-b border-line pb-2 text-md font-extrabold">{title}</h2>
+      <div className="grid gap-3 sm:grid-cols-2">{children}</div>
     </section>
   );
 }
@@ -270,8 +269,8 @@ function StepCard({
 }) {
   const { t } = useI18n();
   return (
-    <section className="rounded-card border border-line bg-card p-4 sm:p-5">
-      <div className="mb-4 flex items-center justify-between gap-3 border-b border-line pb-3">
+    <section className="rounded-card border border-line bg-card p-3.5 sm:p-4">
+      <div className="mb-3 flex items-center justify-between gap-3 border-b border-line pb-2.5">
         {title ? (
           <h2 className="text-md font-extrabold text-ink">{title}</h2>
         ) : (
@@ -281,7 +280,7 @@ function StepCard({
           {t(`مرحله ${step} از 3`, `Step ${step} of 3`)}
         </span>
       </div>
-      <div className="space-y-4">{children}</div>
+      <div className="space-y-3">{children}</div>
     </section>
   );
 }
@@ -926,7 +925,8 @@ export function ListingForm() {
           draft.technicalInspection === '' ? null : draft.technicalInspection === 'yes',
         isJournalPhoto: draft.isJournalPhoto,
         inspectionSheetUrl: draft.inspectionSheetUrl.trim() || null,
-        inspectionNote: draft.inspectionNote.trim() || null,
+        // The old summary field is retired; sellers upload the sheet itself.
+        inspectionNote: null,
         vin: draft.vin.trim() ? draft.vin.trim().toUpperCase() : null,
       },
       priceIRR: Math.round(priceIRR()),
@@ -1714,28 +1714,12 @@ export function ListingForm() {
                 />
               </Field>
 
-              <div className="col-span-full grid gap-3 sm:grid-cols-2">
+              <div className="col-span-full">
                 <InspectionSheetField
                   value={draft.inspectionSheetUrl}
                   onChange={(next) => set('inspectionSheetUrl', next)}
                   error={fieldErrors.inspectionSheetUrl}
                 />
-                <Field
-                  htmlFor="inspectionNote"
-                  label={t('خلاصه برگه کارشناسی (اختیاری)', 'Inspection summary (optional)')}
-                >
-                  <textarea
-                    id="inspectionNote"
-                    rows={3}
-                    className="field resize-y"
-                    value={draft.inspectionNote}
-                    onChange={(e) => set('inspectionNote', e.target.value)}
-                    placeholder={t(
-                      'مثلاً: موتور و گیربکس سالم، شاسی پلمپ، بدون رنگ…',
-                      'e.g. engine and gearbox sound, chassis sealed, no repaint…',
-                    )}
-                  />
-                </Field>
               </div>
             </Section>
           </>

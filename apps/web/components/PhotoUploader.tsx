@@ -140,12 +140,6 @@ export function PhotoUploader({
         </span>
       </div>
 
-      <p className="hint mb-2">
-        {t(
-          'تصویر اول (کاور آگهی) باید عکس باشد؛ در اسلات‌های بعدی می‌توانید ویدیو (MP4، WebM یا MOV تا ۴۰ مگابایت) هم اضافه کنید. اطلاعات مخفی عکس (EXIF) حذف و همه عکس‌ها به WebP تبدیل می‌شوند.',
-          'The first slot (listing cover) must be an image; later slots can also include video (MP4, WebM or MOV up to 40 MB). Hidden EXIF data is removed and images are converted to WebP.',
-        )}
-      </p>
 
       <ul className="grid grid-cols-3 gap-2 sm:grid-cols-4">
         {photos.map((photo, index) => (

@@ -183,12 +183,16 @@ export function SiteFooter() {
               )}
             </p>
           </div>
-          <p
+          <a
+            href={process.env.NEXT_PUBLIC_CREATOR_URL || 'https://mivatech.ir'}
+            target="_blank"
+            rel="noopener noreferrer"
+            aria-label="Created by Miva Tech — opens in a new tab"
             dir="ltr"
-            className="shrink-0 rounded-[var(--radius-pill)] border border-line bg-page px-3 py-1 text-xs font-semibold tracking-wide text-muted"
+            className="shrink-0 rounded-[var(--radius-pill)] border border-line bg-page px-3 py-1 text-xs font-semibold tracking-wide text-muted transition hover:border-[#F98513]/60 hover:text-ink hover:shadow-[0_0_0_3px_rgba(249,133,19,0.12)]"
           >
             Created by <span className="font-extrabold text-cta">Miva Tech</span>
-          </p>
+          </a>
         </div>
       </div>
     </footer>

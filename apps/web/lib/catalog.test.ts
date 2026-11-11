@@ -132,7 +132,7 @@ describe('navigation destinations (same five on every device)', () => {
       'خانه',
       'چت‌ها',
       'ثبت آگهی',
-      'علاقه‌مندی‌ها',
+      'ذخیره‌شده‌ها',
       'پروفایل',
     ]);
   });

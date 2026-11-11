@@ -1,6 +1,6 @@
 'use client';
 
-import { useEffect, useState, type ReactNode } from 'react';
+import { useEffect, useRef, useState, type ReactNode } from 'react';
 import {
   BIKE_TYPES,
   CITY_LABELS,
@@ -136,7 +136,15 @@ function YearGrid({
   const { t } = useI18n();
   const [open, setOpen] = useState(false);
   const [activeBound, setActiveBound] = useState<'from' | 'to'>('from');
+  const closeTimer = useRef<number | null>(null);
   const active = from !== undefined || to !== undefined;
+
+  useEffect(
+    () => () => {
+      if (closeTimer.current !== null) window.clearTimeout(closeTimer.current);
+    },
+    [],
+  );
   // «تا سال» defaults to the current latest model year. It is a display
   // default until the buyer actually picks a second year, so the URL is not
   // rewritten with a yearTo=2026 filter on every page load.
@@ -161,9 +169,16 @@ function YearGrid({
     );
     onChange(next.range);
     setActiveBound(next.activeBound);
+    // Two completed bounds are the end of this range: let the orange
+    // confirmation land for a moment, then get out of the buyer's way.
+    if (next.activeBound === 'from' && next.range.yearFrom !== undefined && next.range.yearTo !== undefined) {
+      if (closeTimer.current !== null) window.clearTimeout(closeTimer.current);
+      closeTimer.current = window.setTimeout(() => setOpen(false), 180);
+    }
   };
 
   const reset = () => {
+    if (closeTimer.current !== null) window.clearTimeout(closeTimer.current);
     onChange({ yearFrom: undefined, yearTo: undefined });
     setActiveBound('from');
   };

@@ -15,6 +15,7 @@ import { vehicleTitle } from '@/lib/listing-text';
 import { getLanguage } from '@/lib/i18n/server';
 import { serverT } from '@/lib/i18n/server';
 import { postingAgeEnglish } from '@/lib/i18n/dictionary';
+import { translateListingContentToEn } from '@/lib/i18n/content';
 
 export const generateMetadata = localizedMetadata(
   { title: 'چت‌ها' },
@@ -42,16 +43,18 @@ export default async function ChatsPage() {
         getUser(otherId),
       ]);
       const last = messages.at(-1);
-      const name =
+      const rawName =
         peer?.displayName?.trim() ||
         listing?.showroomName ||
         t('کاربر آلی‌سیلز', 'Ali Sales member');
+      const name =
+        lang === 'en' ? translateListingContentToEn(rawName) : rawName;
       return {
         conversation,
         listing,
         last,
         name,
-        initials: name.trim().charAt(0) || '؟',
+        initials: rawName.trim().charAt(0) || '؟',
       };
     }),
   );
@@ -103,7 +106,13 @@ export default async function ChatsPage() {
                   </span>
                   {listing && (
                     <span className="mt-0.5 block truncate text-[11px] font-bold text-faint">
-                      {listing.part ? listing.part.title : vehicleTitle(listing)}
+                      {lang === 'en'
+                        ? translateListingContentToEn(
+                            listing.part ? listing.part.title : vehicleTitle(listing),
+                          )
+                        : listing.part
+                          ? listing.part.title
+                          : vehicleTitle(listing)}
                     </span>
                   )}
                 </span>

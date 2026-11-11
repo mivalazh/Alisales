@@ -1,3 +1,4 @@
+import type { Metadata } from 'next';
 import Link from 'next/link';
 import { notFound } from 'next/navigation';
 import { badgeFor, type BadgeKey } from '@studio/design';
@@ -17,6 +18,7 @@ import {
 import { ContactButtons } from '@/components/ContactButtons';
 import { InspectionOffer } from '@/components/InspectionOffer';
 import { ListingGallery } from '@/components/ListingGallery';
+import { InspectionSheetLightbox } from '@/components/InspectionSheetLightbox';
 import { NativeBackHeader } from '@/components/NativeBackHeader';
 import { FavoriteButton } from '@/components/FavoriteButton';
 import { Icon } from '@/components/Icon';
@@ -28,11 +30,44 @@ import { VerifiedPill, sellerDisplayName } from '@/components/SellerVerified';
 import { SoldBadge } from '@/components/SoldBadge';
 import { getListing, getSellerPhone } from '@/lib/data/listings';
 import { brandLatinFor, vehicleTitle } from '@/lib/listing-text';
+import { translateListingContentToEn } from '@/lib/i18n/content';
+import { absoluteUrl } from '@/lib/seo';
 import { getSession } from '@/lib/auth/session';
 import { getLanguage } from '@/lib/i18n/server';
 import { serverT } from '@/lib/i18n/server';
 import { recordView } from '@/lib/data/s2-store';
 import { shouldRecordView } from '@/lib/data/stats-rules';
+
+export async function generateMetadata({
+  params,
+}: {
+  params: Promise<{ slug: string }>;
+}): Promise<Metadata> {
+  const { slug } = await params;
+  const [listing, lang] = await Promise.all([getListing(slug), getLanguage()]);
+  if (!listing) return { title: 'Listing not found' };
+  const isEn = lang === 'en';
+  const rawTitle = listing.part ? listing.part.title : vehicleTitle(listing);
+  const title = isEn ? translateListingContentToEn(rawTitle) : rawTitle;
+  const description = listing.description?.trim()
+    ? isEn
+      ? translateListingContentToEn(listing.description).slice(0, 160)
+      : listing.description.slice(0, 160)
+    : isEn
+      ? `Used ${translateListingContentToEn(rawTitle)} in Kish with a workshop inspection.`
+      : `${rawTitle} در کیش با امکان کارشناسی تعمیرگاه.`;
+  return {
+    title: `${title}${listing.year ? ` — ${listing.year}` : ''}`,
+    description,
+    alternates: { canonical: `/listing/${listing.slug}` },
+    openGraph: {
+      title: `${title}${listing.year ? ` — ${listing.year}` : ''}`,
+      description,
+      url: absoluteUrl(`/listing/${listing.slug}`),
+      ...(listing.coverUrl ? { images: [{ url: listing.coverUrl }] } : {}),
+    },
+  };
+}
 
 const STATE_BADGE: Record<string, BadgeKey> = {
   draft: 'draft',
@@ -69,6 +104,18 @@ export default async function ListingDetailPage({
   const phone = await getSellerPhone(listing.id);
   const sold = listing.state === 'sold';
   const part = listing.part ?? null;
+  const rawTitle = part ? part.title : vehicleTitle(listing);
+  const displayTitle =
+    lang === 'en' ? translateListingContentToEn(rawTitle) : rawTitle;
+  const displayDescription = listing.description?.trim()
+    ? lang === 'en'
+      ? translateListingContentToEn(listing.description)
+      : listing.description
+    : null;
+  const displaySeller =
+    listing.showroomName && lang === 'en'
+      ? translateListingContentToEn(listing.showroomName)
+      : listing.showroomName;
 
   // Owner statistics (C2): one unique view per visitor; the owner's own visit
   // never counts, so posting age and «بازدید» stay honest.
@@ -102,14 +149,32 @@ export default async function ListingDetailPage({
         { icon: 'car', label: t('دسته‌بندی'), value: t(PART_CATEGORY_LABELS[part.category]) },
         { icon: 'shieldCheck', label: t('اصالت'), value: t(PART_ORIGIN_LABELS[part.origin]) },
         ...(part.originCountry
-          ? [{ icon: 'plate' as const, label: t('کشور سازنده'), value: part.originCountry }]
+          ? [
+              {
+                icon: 'plate' as const,
+                label: t('کشور سازنده'),
+                value:
+                  lang === 'en'
+                    ? translateListingContentToEn(part.originCountry)
+                    : part.originCountry,
+              },
+            ]
           : []),
         { icon: 'car', label: t('سازگاری'), value: compatibilityLabel(part.compatibility) },
         ...(part.partNumber
           ? [{ icon: 'gear' as const, label: t('شماره فنی'), value: part.partNumber }]
           : []),
         ...(part.warranty
-          ? [{ icon: 'shieldCheck' as const, label: t('گارانتی'), value: part.warranty }]
+          ? [
+              {
+                icon: 'shieldCheck' as const,
+                label: t('گارانتی'),
+                value:
+                  lang === 'en'
+                    ? translateListingContentToEn(part.warranty)
+                    : part.warranty,
+              },
+            ]
           : []),
         { icon: 'car', label: t('وضعیت'), value: t(PART_CONDITION_LABELS[part.condition]) },
       ]
@@ -141,12 +206,32 @@ export default async function ListingDetailPage({
     if (text) extraSpecs.push({ label, value: text, ...(positive ? { positive } : {}) });
   };
   if (part) {
-    pushSpec(t('کشور سازنده'), part.originCountry ?? null);
+    pushSpec(
+      t('کشور سازنده'),
+      lang === 'en' && part.originCountry
+        ? translateListingContentToEn(part.originCountry)
+        : part.originCountry ?? null,
+    );
     pushSpec(t('شماره فنی'), part.partNumber);
-    pushSpec(t('گارانتی'), part.warranty);
-    if (part.compatibility) pushSpec(t('سازگاری خودرو'), part.compatibility);
+    pushSpec(
+      t('گارانتی'),
+      lang === 'en' && part.warranty
+        ? translateListingContentToEn(part.warranty)
+        : part.warranty,
+    );
+    if (part.compatibility) {
+      pushSpec(
+        t('سازگاری خودرو'),
+        lang === 'en' ? translateListingContentToEn(part.compatibility) : part.compatibility,
+      );
+    }
   } else {
-    pushSpec(t('رنگ'), t(colorLabel(listing.color)));
+    pushSpec(
+      t('رنگ'),
+      lang === 'en'
+        ? translateListingContentToEn(colorLabel(listing.color))
+        : t(colorLabel(listing.color)),
+    );
     pushSpec(
       t('تیپ / کلاس بدنه'),
       listing.bodyType ? t(BODY_TYPE_LABELS[listing.bodyType]) : null,
@@ -219,8 +304,7 @@ export default async function ListingDetailPage({
     <section className="rounded-card border border-line bg-card p-4 sm:p-5">
       <h2 className="text-base font-extrabold text-ink">{t('توضیحات آگهی')}</h2>
       <p className="mt-3 whitespace-pre-line text-justify text-sm leading-8 text-ink/85">
-        {listing.description?.trim() ||
-          t('فروشنده برای این آگهی توضیحی ثبت نکرده است.')}
+        {displayDescription || t('فروشنده برای این آگهی توضیحی ثبت نکرده است.')}
       </p>
 
       {extraSpecs.length > 0 && (
@@ -248,30 +332,26 @@ export default async function ListingDetailPage({
         </div>
       )}
 
-      {(listing.inspectionNote || listing.inspectionSheetUrl) && (
+      {listing.inspectionSheetUrl && (
         <div className="mt-4 rounded-xl border border-emerald-200/80 bg-emerald-50/60 p-3.5 dark:border-emerald-400/20 dark:bg-emerald-400/[0.07]">
           <div className="flex items-start gap-2">
             <span className="mt-0.5 flex h-7 w-7 shrink-0 items-center justify-center rounded-full bg-emerald-500/15 text-emerald-700 dark:text-emerald-300">
               <Icon name="shieldCheck" size={15} />
             </span>
             <div className="min-w-0 flex-1">
-              <p className="text-xs font-extrabold text-ink">{t('خلاصه برگه کارشناسی')}</p>
-              {listing.inspectionNote && (
-                <p className="mt-1 text-xs leading-6 text-muted">
-                  {t(listing.inspectionNote)}
-                </p>
-              )}
-              {listing.inspectionSheetUrl && (
-                <a
-                  href={listing.inspectionSheetUrl}
-                  target="_blank"
-                  rel="noreferrer"
-                  className="mt-2.5 inline-flex items-center gap-1.5 rounded-lg bg-[#111144] px-3 py-2 text-[11px] font-extrabold text-white transition hover:bg-[#1b1b57] active:scale-[0.98] dark:bg-[#F4F1EC] dark:text-[#111144] dark:hover:bg-white"
-                >
-                  <Icon name="shieldCheck" size={14} />
-                  {t('مشاهده برگه کارشناسی')}
-                </a>
-              )}
+              <p className="text-xs font-extrabold text-ink">
+                {t('برگه کارشناسی بارگذاری‌شده', 'Uploaded inspection sheet')}
+              </p>
+              <p className="mt-1 text-xs leading-6 text-muted">
+                {t(
+                  'تصویر اصلی برگه‌ای که فروشنده بارگذاری کرده است.',
+                  'The original sheet uploaded by the seller.',
+                )}
+              </p>
+              <InspectionSheetLightbox
+                src={listing.inspectionSheetUrl}
+                label={t('مشاهده برگه کارشناسی', 'View inspection sheet')}
+              />
             </div>
           </div>
         </div>
@@ -281,8 +361,65 @@ export default async function ListingDetailPage({
 
   return (
     <article className="mx-auto max-w-6xl space-y-5">
+      <script
+        type="application/ld+json"
+        dangerouslySetInnerHTML={{
+          __html: JSON.stringify({
+            '@context': 'https://schema.org',
+            '@graph': [
+              {
+                '@type': part ? 'Product' : ['Vehicle', 'Product'],
+                '@id': absoluteUrl(`/listing/${listing.slug}#product`),
+                name: displayTitle,
+                description: displayDescription ?? undefined,
+                url: absoluteUrl(`/listing/${listing.slug}`),
+                ...(listing.coverUrl ? { image: [listing.coverUrl] } : {}),
+                ...(part
+                  ? { category: part.category, brand: { '@type': 'Brand', name: 'Ali Sales' } }
+                  : {
+                      brand: { '@type': 'Brand', name: brandLatinFor(listing.brand) ?? listing.brand },
+                      vehicleModelDate: String(listing.year),
+                      mileageFromOdometer: {
+                        '@type': 'QuantitativeValue',
+                        value: listing.mileageKm,
+                        unitCode: 'KMT',
+                      },
+                      bodyType: listing.bodyType ?? undefined,
+                      color: listing.color,
+                    }),
+                offers: {
+                  '@type': 'Offer',
+                  price: listing.priceIRR,
+                  priceCurrency: 'IRR',
+                  availability: sold
+                    ? 'https://schema.org/SoldOut'
+                    : 'https://schema.org/InStock',
+                  itemCondition:
+                    listing.condition === 'new'
+                      ? 'https://schema.org/NewCondition'
+                      : 'https://schema.org/UsedCondition',
+                  url: absoluteUrl(`/listing/${listing.slug}`),
+                  seller: { '@type': 'Organization', name: displaySeller ?? 'Ali Sales' },
+                },
+              },
+              {
+                '@type': 'BreadcrumbList',
+                itemListElement: [
+                  { '@type': 'ListItem', position: 1, name: 'Home', item: absoluteUrl('/') },
+                  {
+                    '@type': 'ListItem',
+                    position: 2,
+                    name: displayTitle,
+                    item: absoluteUrl(`/listing/${listing.slug}`),
+                  },
+                ],
+              },
+            ],
+          }).replace(/</g, '\\u003c'),
+        }}
+      />
       <NativeBackHeader
-        title={part ? part.title : vehicleTitle(listing)}
+        title={displayTitle}
         fallbackHref="/"
       />
       <Link
@@ -298,7 +435,7 @@ export default async function ListingDetailPage({
         <div className="min-w-0 space-y-4 lg:col-span-7">
           <ListingGallery
             photos={listing.photos.length > 0 ? listing.photos : listing.coverUrl ? [listing.coverUrl] : []}
-            alt={part ? part.title : `${listing.model} ${listing.year}`}
+            alt={part ? displayTitle : `${translateListingContentToEn(listing.model)} ${listing.year}`}
             sold={sold}
           />
 
@@ -345,10 +482,10 @@ export default async function ListingDetailPage({
               style={sold ? { color: '#64748B' } : undefined}
             >
               {part ? (
-                part.title
+                displayTitle
               ) : (
                 <>
-                  <bdi>{vehicleTitle(listing)}</bdi>
+                  <bdi>{displayTitle}</bdi>
                   {listing.year > 0 && <span className="font-bold"> — {listing.year}</span>}
                 </>
               )}
@@ -391,7 +528,7 @@ export default async function ListingDetailPage({
                   <VerifiedPill label={t(part ? 'تعمیرگاه معتبر' : 'نمایشگاه معتبر')} />
                 ) : (
                   <p className="truncate text-sm font-extrabold">
-                    {sellerDisplayName(listing.showroomName) ?? t('فروشنده حقیقی', 'Private seller')}
+                    {displaySeller ?? t('فروشنده حقیقی', 'Private seller')}
                   </p>
                 )}
                 <p className="mt-1 text-xs font-bold text-muted">
@@ -442,7 +579,7 @@ export default async function ListingDetailPage({
 
           <InspectionOffer
             listingSlug={listing.slug}
-            listingTitle={part ? part.title : vehicleTitle(listing)}
+            listingTitle={displayTitle}
           />
         </aside>
       </div>

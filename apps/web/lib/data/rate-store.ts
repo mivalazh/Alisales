@@ -17,9 +17,9 @@ import { readJson, writeJson } from '../storage/demo-store';
  *
  * Sources, in order:
  *  1. `settings.rate` — whatever the owner last saved from the external admin tool.
- *  2. The optional daily feed (`AED_RATE_FEED_URL`), cached for 24h. No public
- *     source quotes IRR reliably, so this is opt-in: without the env var the
- *     stored/admin value — or the launch reference — is what the site shows.
+ *  2. A live free-market source: optional `AED_RATE_FEED_URL`, Navasan when a
+ *     key exists, otherwise Nobitex USDT/IRT ÷ 3.6725. Automatic values cache
+ *     for six hours and failures back off for fifteen minutes.
  *  3. `DEFAULT_AED_RATE` (272,000 rial / 27,200 toman per AED).
  *
  * `updatedAt` always travels with the number so «آخرین بروزرسانی» is the truth
@@ -34,7 +34,7 @@ const FEED_TIMEOUT_MS = 3_000;
 const FAILURE_BACKOFF_MS = 15 * 60_000;
 
 /** Tether is the market's dollar proxy; dirhams are pegged at 3.6725/USD. */
-const NOBITEX_USDT_IRT = 'https://api.nobitex.ir/v2/orderbook/USDTIRT';
+const NOBITEX_USDT_IRT = 'https://apiv2.nobitex.ir/v3/orderbook/USDTIRT';
 const NAVASAN_LATEST = 'https://api.navasan.tech/latest/';
 
 let feedFailedAt = 0;
@@ -164,14 +164,28 @@ async function fetchLiveToman(): Promise<number | null> {
 
   try {
     const body = await getJson(NOBITEX_USDT_IRT);
-    const raw = (body as { lastTradePrice?: unknown; last?: unknown } | null)?.lastTradePrice ??
-      (body as { last?: unknown } | null)?.last;
+    const book = body as
+      | {
+          lastTradePrice?: unknown;
+          last?: unknown;
+          bids?: unknown[][];
+          asks?: unknown[][];
+        }
+      | null;
+    const raw =
+      book?.lastTradePrice ??
+      book?.last ??
+      book?.bids?.[0]?.[0] ??
+      book?.asks?.[0]?.[0];
     const irtPerUsdt = typeof raw === 'string' ? Number(raw) : raw;
     if (typeof irtPerUsdt !== 'number' || !Number.isFinite(irtPerUsdt) || irtPerUsdt <= 0) {
       return null;
     }
-    // IRT is rial; Toman = /10, and one dirham is 1/3.6725 dollars.
-    const toman = irtPerUsdt / 10 / AED_PER_USD;
+    // Nobitex has quoted this pair in both rial and Toman over its lifetime;
+    // anything above 500k is unmistakably rial. Normalise to Toman, then
+    // divide the USD/AED peg (3.6725) to get the free-market dirham rate.
+    const usdtToman = irtPerUsdt > 500_000 ? irtPerUsdt / 10 : irtPerUsdt;
+    const toman = usdtToman / AED_PER_USD;
     return isPlausibleAedRateToman(toman) ? Math.round(toman) : null;
   } catch {
     return null;

@@ -10,16 +10,19 @@ import { ViewModeToggle, type ViewMode } from './SortControl';
 import { ListEmptyState } from './ListEmptyState';
 import { isPreSizedSource } from '@/lib/images';
 import { useI18n } from '@/lib/i18n';
+import { translateListingContentToEn } from '@/lib/i18n/content';
 
 const VIEW_KEY = 'alisales-favorites-view';
 
 /**
  * Device-local favorites for guests — a two-column phone / four-column desktop
  * grid with a compact list toggle. Removing an item writes the same device key
- * the card heart uses, so both stay in step.
+ * the card bookmark uses, so both stay in step.
  */
 export function FavoritesList() {
-  const { t } = useI18n();
+  const { t, lang } = useI18n();
+  const displayTitle = (item: FavoriteSnapshot) =>
+    lang === 'en' ? translateListingContentToEn(item.model || item.slug) : item.model || item.slug;
   const [items, setItems] = useState<FavoriteSnapshot[] | null>(null);
   const [view, setView] = useState<ViewMode>('grid');
 
@@ -53,11 +56,11 @@ export function FavoritesList() {
   if (items.length === 0) {
     return (
       <ListEmptyState
-        icon="heart"
+        icon="bookmark"
         title={t('هنوز آگهی‌ای ذخیره نکرده‌اید.', 'You have not saved any listings yet.')}
         description={t(
-          'با نشان کردن آگهی‌ها، اینجا لیست شخصی خود را می‌سازید.',
-          'Save listings with the heart and they will appear here.',
+          'با ذخیره کردن آگهی‌ها، اینجا فهرست شخصی خود را می‌سازید.',
+          'Save listings with the bookmark and they will appear here.',
         )}
         actionHref="/"
         actionLabel={t('مرور آگهی‌ها', 'Browse listings')}
@@ -82,7 +85,7 @@ export function FavoritesList() {
             >
               <Link href={`/listing/${item.slug}`} className="min-w-0 flex-1">
                 <p className="truncate text-sm font-extrabold">
-                  {item.model || item.slug}
+                  {displayTitle(item)}
                   {item.year ? ` — ${item.year}` : ''}
                 </p>
                 {item.priceIRR ? <PriceText irr={item.priceIRR} /> : null}
@@ -112,7 +115,7 @@ export function FavoritesList() {
                 {item.coverUrl ? (
                   <Image
                     src={item.coverUrl}
-                    alt={item.model || item.slug}
+                    alt={displayTitle(item)}
                     fill
                     sizes="(min-width: 1024px) 25vw, 50vw"
                     unoptimized={isPreSizedSource(item.coverUrl)}
@@ -127,7 +130,7 @@ export function FavoritesList() {
                 )}
               </div>
               <div className="space-y-1 p-3">
-                <p className="truncate text-sm font-extrabold">{item.model || item.slug}</p>
+                <p className="truncate text-sm font-extrabold">{displayTitle(item)}</p>
                 {item.year ? <p className="text-xs text-muted">{item.year}</p> : null}
                 {item.priceIRR ? <PriceText irr={item.priceIRR} /> : null}
               </div>
@@ -147,7 +150,7 @@ function RemoveButton({ onClick }: { onClick: () => void }) {
   return (
     <button
       type="button"
-      aria-label={t('حذف از علاقه‌مندی‌ها', 'Remove from saved')}
+      aria-label={t('حذف از ذخیره‌شده‌ها', 'Remove from saved')}
       onClick={onClick}
       className="flex h-9 w-9 shrink-0 items-center justify-center rounded-full shadow-md backdrop-blur transition hover:opacity-90"
       style={{ backgroundColor: 'rgba(255, 255, 255, 0.88)', color: '#111144' }}

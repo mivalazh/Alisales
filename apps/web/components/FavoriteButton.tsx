@@ -77,7 +77,7 @@ function upsert(snapshot: FavoriteSnapshot, fields?: Omit<FavoriteSnapshot, 'slu
  * Favorite toggle — one tap from a card or the detail page.
  *
  * The device list always updates immediately (guests included) and is the
- * rendered state, so the heart survives navigation and reload. When a listing
+ * rendered state, so the bookmark survives navigation and reload. When a listing
  * id is present the account list is synced too; a 401 simply means the visitor
  * is browsing as a guest.
  */
@@ -119,7 +119,7 @@ export function FavoriteButton({
         if (cancelled || !Array.isArray(data.ids)) return;
         setActive(data.ids.includes(listingId));
         // Keep the device mirror in step with the account so a reload off the
-        // detail page still shows the heart.
+        // detail page still shows the bookmark.
         if (data.ids.includes(listingId)) {
           upsert({ slug, model: '', year: 0, priceIRR: 0, ...snapshotRef.current });
         }
@@ -168,8 +168,8 @@ export function FavoriteButton({
         aria-pressed={active}
         aria-label={
           active
-            ? t('حذف از علاقه‌مندی‌ها', 'Remove from favourites')
-            : t('افزودن به علاقه‌مندی‌ها', 'Save to favourites')
+            ? t('حذف از ذخیره‌شده‌ها', 'Remove from saved')
+            : t('ذخیره آگهی', 'Save listing')
         }
         className={`flex h-9 w-9 items-center justify-center rounded-full shadow-md backdrop-blur transition active:scale-95 ${className}`}
         style={{
@@ -177,7 +177,7 @@ export function FavoriteButton({
           color: active ? '#F98513' : '#111144',
         }}
       >
-        <Icon name={active ? 'heartFilled' : 'heart'} size={18} />
+        <Icon name={active ? 'bookmarkFilled' : 'bookmark'} size={18} />
       </button>
     );
   }
@@ -189,13 +189,13 @@ export function FavoriteButton({
       aria-pressed={active}
       aria-label={
         active
-          ? t('حذف از علاقه‌مندی‌ها', 'Remove from favourites')
-          : t('افزودن به علاقه‌مندی‌ها', 'Save to favourites')
+          ? t('حذف از ذخیره‌شده‌ها', 'Remove from saved')
+          : t('ذخیره آگهی', 'Save listing')
       }
       className={`flex h-11 w-11 items-center justify-center rounded-full border border-line bg-card transition hover:border-line-strong ${className}`}
       style={{ color: active ? '#F98513' : 'var(--color-text-secondary)' }}
     >
-      <Icon name={active ? 'heartFilled' : 'heart'} size={20} />
+      <Icon name={active ? 'bookmarkFilled' : 'bookmark'} size={20} />
     </button>
   );
 }

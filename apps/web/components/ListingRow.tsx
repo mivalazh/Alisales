@@ -8,6 +8,7 @@ import type { ReactNode } from 'react';
 import type { ListingCardData } from '@/lib/data/listings';
 import { brandLatinFor, specParts, vehicleTitle } from '@/lib/listing-text';
 import { useI18n } from '@/lib/i18n';
+import { translateListingContentToEn } from '@/lib/i18n/content';
 import { postingAgeEnglish } from '@/lib/i18n/dictionary';
 import { FavoriteButton } from './FavoriteButton';
 import { PriceText } from './PriceText';
@@ -40,6 +41,8 @@ export function ListingRow({
   const part = listing.part ?? null;
   const latin = part ? null : brandLatinFor(listing.brand);
   const specs = part ? [] : specParts(listing, lang);
+  const rawTitle = part ? part.title : vehicleTitle(listing);
+  const title = lang === 'en' ? translateListingContentToEn(rawTitle) : rawTitle;
 
   return (
     <li className="relative min-w-0 overflow-hidden rounded-card border border-line bg-card transition hover:border-line-strong hover:shadow-lg">
@@ -48,7 +51,7 @@ export function ListingRow({
           {listing.coverUrl ? (
             <Image
               src={listing.coverUrl}
-              alt={part ? part.title : `${listing.model} ${listing.year}`}
+              alt={part ? title : `${translateListingContentToEn(listing.model)} ${listing.year}`}
               fill
               sizes="128px"
               unoptimized={isPreSizedSource(listing.coverUrl)}
@@ -107,7 +110,7 @@ export function ListingRow({
             style={sold ? { color: SOLD_TEXT } : undefined}
           >
             {part ? (
-              part.title
+              title
             ) : (
               <>
                 <bdi>{vehicleTitle(listing)}</bdi>{' '}

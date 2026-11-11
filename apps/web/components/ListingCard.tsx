@@ -15,6 +15,7 @@ import {
 import type { ListingCardData } from '@/lib/data/listings';
 import { brandLatinFor, specParts, vehicleTitle } from '@/lib/listing-text';
 import { useI18n } from '@/lib/i18n';
+import { translateListingContentToEn } from '@/lib/i18n/content';
 import { postingAgeEnglish } from '@/lib/i18n/dictionary';
 import { FavoriteButton } from './FavoriteButton';
 import { Icon } from './Icon';
@@ -75,17 +76,20 @@ function cardBadges(listing: ListingCardData): BadgeKey[] {
  * year, mileage and price always render with Latin digits.
  *
  * The cover frame is browsable before the detail page: arrows step through the
- * gallery, touch devices swipe, and a counter shows where you are. The heart
+ * gallery, touch devices swipe, and a counter shows where you are. The bookmark
  * sits in the photo's top-start corner (top-right in RTL) and the whole card is
  * covered by one stretched link, so a tap anywhere opens the listing. Arrow and
- * heart stay above that link and never navigate.
+ * bookmark stay above that link and never navigate.
  */
 export function ListingCard({ listing }: { listing: ListingCardData }) {
   const { lang, t } = useI18n();
   const sold = listing.state === 'sold';
   const part = listing.part ?? null;
-  const title = part ? part.title : vehicleTitle(listing);
-  const sellerName = sellerDisplayName(listing.showroomName);
+  const rawTitle = part ? part.title : vehicleTitle(listing);
+  const title = lang === 'en' ? translateListingContentToEn(rawTitle) : rawTitle;
+  const rawSeller = sellerDisplayName(listing.showroomName);
+  const sellerName =
+    rawSeller && lang === 'en' ? translateListingContentToEn(rawSeller) : rawSeller;
   // Latin marque on its own line, spec facts as separate items — see
   // lib/listing-text.ts for why both are bdi/dir guarded.
   const latin = part ? null : brandLatinFor(listing.brand);
@@ -137,7 +141,7 @@ export function ListingCard({ listing }: { listing: ListingCardData }) {
         {current ? (
           <Image
             src={current}
-            alt={part ? part.title : `${listing.model} ${listing.year}`}
+            alt={part ? title : `${translateListingContentToEn(listing.model)} ${listing.year}`}
             fill
             sizes="(min-width: 1280px) 25vw, (min-width: 1024px) 33vw, (min-width: 640px) 50vw, 50vw"
             unoptimized={isPreSizedSource(current)}
@@ -222,7 +226,7 @@ export function ListingCard({ listing }: { listing: ListingCardData }) {
               className="line-clamp-2 text-sm font-extrabold leading-tight sm:text-base"
               style={sold ? { color: SOLD_TEXT } : undefined}
             >
-              {part.title}
+              {title}
             </h3>
           </div>
         ) : (
@@ -292,7 +296,7 @@ export function ListingCard({ listing }: { listing: ListingCardData }) {
       </div>
 
       {/* One stretched link: a tap anywhere on the card opens the listing,
-          while the arrows, dots and heart stay above it and never navigate. */}
+          while the arrows, dots and bookmark stay above it and never navigate. */}
       <Link
         href={`/listing/${listing.slug}`}
         onClick={onLinkClick}

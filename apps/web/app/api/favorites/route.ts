@@ -9,7 +9,7 @@ import { addFavorite, listFavoriteIds, removeFavorite } from '@/lib/data/s2-stor
  */
 function unauthorized(): NextResponse {
   return NextResponse.json(
-    { error: 'برای ذخیره‌ی علاقه‌مندی‌ها وارد حساب خود شوید.' },
+    { error: 'برای ذخیره‌ی آگهی‌ها وارد حساب خود شوید.' },
     { status: 401 },
   );
 }

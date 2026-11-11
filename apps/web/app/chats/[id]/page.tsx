@@ -10,6 +10,7 @@ import {
 import { markRead, readAt } from '@/lib/data/chat-presence';
 import { ChatThread, type ChatListingContext } from '@/components/ChatThread';
 import { vehicleTitle } from '@/lib/listing-text';
+import { translateListingContentToEn } from '@/lib/i18n/content';
 import { getLanguage, serverT } from '@/lib/i18n/server';
 
 export const generateMetadata = localizedMetadata(
@@ -62,16 +63,26 @@ export default async function ChatPage({ params }: { params: Promise<{ id: strin
   markRead(conversation.id, session.sub);
   const otherReadAt = readAt(conversation.id, otherId);
 
-  const peerName =
+  const rawPeerName =
     peerAccount?.displayName?.trim() ||
     listing?.showroomName ||
     serverT(lang, 'کاربر آلی‌سیلز', 'Ali Sales user');
-  const initials = peerName.trim().charAt(0) || '؟';
+  const peerName =
+    lang === 'en' ? translateListingContentToEn(rawPeerName) : rawPeerName;
+  const initials = rawPeerName.trim().charAt(0) || '؟';
 
+  const rawListingTitle = listing
+    ? listing.part
+      ? listing.part.title
+      : vehicleTitle(listing)
+    : '';
   const context: ChatListingContext | null = listing
     ? {
         slug: listing.slug,
-        title: listing.part ? listing.part.title : vehicleTitle(listing),
+        title:
+          lang === 'en'
+            ? translateListingContentToEn(rawListingTitle)
+            : rawListingTitle,
         priceIRR: listing.priceIRR,
         coverUrl: listing.coverUrl,
         sold: listing.state === 'sold',

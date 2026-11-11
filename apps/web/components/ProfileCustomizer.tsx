@@ -28,10 +28,13 @@ export function ProfileCustomizer({
   initial,
   displayName,
   initials,
+  embedded = false,
 }: {
   initial: Values;
   displayName: string;
   initials: string;
+  /** Renders inside the profile hero instead of a second duplicate card. */
+  embedded?: boolean;
 }) {
   const router = useRouter();
   const { t } = useI18n();
@@ -99,29 +102,38 @@ export function ProfileCustomizer({
 
   return (
     <section
+      id="profile-editor"
       aria-label={t('ویرایش پروفایل', 'Edit profile')}
-      className="rounded-card border border-line bg-card p-4 sm:p-5"
+      className={
+        embedded
+          ? 'mt-3 scroll-mt-24 border-t border-line pt-3'
+          : 'scroll-mt-24 rounded-card border border-line bg-card p-4 sm:p-5'
+      }
     >
       <div className="flex flex-wrap items-center justify-between gap-2">
-        <h2 className="text-sm font-extrabold">
-          {t('پروفایل نمایشگاهی', 'Showroom profile')}
-        </h2>
+        {!embedded && (
+          <h2 className="text-sm font-extrabold">
+            {t('پروفایل نمایشگاهی', 'Showroom profile')}
+          </h2>
+        )}
         <button
           type="button"
           onClick={() => setOpen((v) => !v)}
           aria-expanded={open}
-          className="rounded-[var(--radius-pill)] border border-line px-3 py-1.5 text-xs font-extrabold text-ink transition hover:border-line-strong"
+          className="ms-auto rounded-[var(--radius-pill)] border border-line px-3 py-1.5 text-xs font-extrabold text-ink transition hover:border-line-strong"
         >
           {open ? t('بستن', 'Close') : t('ویرایش پروفایل', 'Edit profile')}
         </button>
       </div>
 
-      <p className="mt-1 text-xs text-muted">
-        {t(
-          'عکس پروفایل، کاور و بایو اختیاری است؛ اگر خالی بماند، نشان حرف اول نام و کاور پیش‌فرض نمایش داده می‌شود.',
-          'Avatar, cover and bio are optional. If left empty, your initial and the default cover are shown.',
-        )}
-      </p>
+      {!embedded && (
+        <p className="mt-1 text-xs text-muted">
+          {t(
+            'عکس پروفایل، کاور و بایو اختیاری است؛ اگر خالی بماند، نشان حرف اول نام و کاور پیش‌فرض نمایش داده می‌شود.',
+            'Avatar, cover and bio are optional. If left empty, your initial and the default cover are shown.',
+          )}
+        </p>
+      )}
 
       {open && (
         <div className="mt-4 space-y-4">

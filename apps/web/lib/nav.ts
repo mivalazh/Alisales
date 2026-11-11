@@ -19,6 +19,6 @@ export const NAV_ITEMS: readonly NavItem[] = [
   { key: 'home', href: '/', label: 'خانه', icon: 'home' },
   { key: 'chats', href: '/chats', label: 'چت‌ها', icon: 'message' },
   { key: 'post', href: '/new', label: 'ثبت آگهی', icon: 'plus', primary: true },
-  { key: 'favorites', href: '/favorites', label: 'علاقه‌مندی‌ها', icon: 'heart' },
+  { key: 'favorites', href: '/favorites', label: 'ذخیره‌شده‌ها', icon: 'bookmark' },
   { key: 'profile', href: '/profile', label: 'پروفایل', icon: 'user' },
 ] as const;

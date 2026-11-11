@@ -64,7 +64,7 @@ export const EN_DICTIONARY: Readonly<Record<string, string>> = {
   'خانه': 'Home',
   'چت‌ها': 'Chats',
   'ثبت آگهی': 'Post ad',
-  'علاقه‌مندی‌ها': 'Saved',
+  'ذخیره‌شده‌ها': 'Saved',
   'پروفایل': 'Profile',
   'خودرو': 'Vehicles',
   'خودروها': 'Vehicles',
@@ -299,8 +299,7 @@ export const EN_DICTIONARY: Readonly<Record<string, string>> = {
   'بدون عکس': 'No photos',
   'نمایش عکس': 'View photo',
   'عکس': 'photo',
-  'افزودن به علاقه‌مندی‌ها': 'Save to favourites',
-  'حذف از علاقه‌مندی‌ها': 'Remove from favourites',
+  'حذف از ذخیره‌شده‌ها': 'Remove from saved',
 
   // Workshop inspection offer
   'نوبت‌دهی کارشناسی فنی در تعمیرگاه شمس‌اله':
@@ -421,7 +420,7 @@ export const EN_DICTIONARY: Readonly<Record<string, string>> = {
   // Profile, support and footer
   'آگهی‌های من': 'My ads',
   'تنظیمات حساب': 'Account settings',
-  'علاقه‌مندی': 'Saved',
+  'ذخیره': 'Saved',
   'خروج از حساب کاربری': 'Sign out',
   'پشتیبانی و سوالات متداول': 'Support & FAQ',
   'ویرایش آگهی': 'Edit listing',

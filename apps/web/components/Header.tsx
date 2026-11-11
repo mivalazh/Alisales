@@ -9,6 +9,7 @@ import { NAV_ITEMS, type NavItem } from '@/lib/nav';
 import { CitySelect } from './CitySelect';
 import { Icon } from './Icon';
 import { LogoutButton } from './LogoutButton';
+import { NotificationBell } from './NotificationBell';
 import { ThemeToggle } from './ThemeToggle';
 import { useActivePath } from './useActivePath';
 
@@ -183,6 +184,7 @@ export function Header({
               <Icon name={menuOpen ? 'close' : 'menu'} size={22} />
             </button>
             <ThemeToggle />
+            <NotificationBell authed={authed} />
             {authed ? (
               <>
                 <Link

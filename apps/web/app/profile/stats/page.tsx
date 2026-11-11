@@ -66,7 +66,7 @@ export default async function OwnerStatsPage({
           { label: t('بازدید', 'Views'), value: totals.views },
           { label: t('گفتگوی جدید', 'New chats'), value: totals.chatStarts },
           { label: t('نمایش شماره', 'Phone reveals'), value: totals.phoneReveals },
-          { label: t('علاقه‌مندی', 'Saved'), value: totals.favorites },
+          { label: t('ذخیره', 'Saved'), value: totals.favorites },
         ].map((tile) => (
           <div key={tile.label} className="rounded-card border border-line bg-card p-3 text-center">
             <p className="text-2xl font-extrabold">{tile.value}</p>
@@ -110,7 +110,7 @@ export default async function OwnerStatsPage({
                 <th className="p-3 font-bold">{t('بازدید', 'Views')}</th>
                 <th className="p-3 font-bold">{t('گفتگوی جدید', 'New chats')}</th>
                 <th className="p-3 font-bold">{t('نمایش شماره', 'Phone reveals')}</th>
-                <th className="p-3 font-bold">{t('علاقه‌مندی', 'Saved')}</th>
+                <th className="p-3 font-bold">{t('ذخیره', 'Saved')}</th>
               </tr>
             </thead>
             <tbody>
