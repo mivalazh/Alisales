@@ -1,13 +1,12 @@
 import { NextResponse } from 'next/server';
 import {
-  freeLimitDecision,
   listingPublishSchema,
   partListingPublishSchema,
   type ListingPublish,
   type PartListingPublish,
 } from '@alisales/schemas';
 import { getSession } from '@/lib/auth/session';
-import { activeListingsCount, admin } from '@/lib/data/s2-store';
+import { admin } from '@/lib/data/s2-store';
 import { devPhotoUrls, publishFixture, publishHosted } from '@/lib/data/publish-store';
 import { isOwnedPhotoPath } from '@/lib/data/photo-rules';
 import { fixtureMode } from '@/lib/config/mode';
@@ -25,9 +24,7 @@ import type { ListingCardData } from '@/lib/data/listings';
  * - Guests get 401; the page itself is also behind the login guard.
  * - Valid listings publish immediately with `state: 'active'` (C6); the DB
  *   default stays untouched.
- * - The two-active-listing free limit is enforced here against the real rows:
- *   sold, archived (paused) and expired listings do not count, and the third
- *   attempt returns «برای آگهی سوم، پلن انتخاب کن.» (403).
+ * - Posting is free without a listing cap during the launch period.
  *
  * Photos: the browser uploads the compressed WebP bytes to `/api/photos` and
  * submits storage paths. Paths must sit in the seller's own folder, and the
@@ -204,13 +201,6 @@ export async function POST(request: Request): Promise<NextResponse> {
   const fixtureCard = isPart
     ? toDevPartCard(payload as PartListingPublish, session.sub)
     : toDevCard(payload as ListingPublish, session.sub);
-
-  // Two free active listings (C6), counted against the live rows — vehicles
-  // and parts share the same quota.
-  const decision = freeLimitDecision(await activeListingsCount(session.sub));
-  if (!decision.allowed) {
-    return NextResponse.json({ error: decision.message }, { status: 403 });
-  }
 
   if (admin()) {
     try {

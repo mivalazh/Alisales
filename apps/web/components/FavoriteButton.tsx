@@ -3,6 +3,7 @@
 import { useEffect, useRef, useState } from 'react';
 import { Icon } from './Icon';
 import { useI18n } from '@/lib/i18n';
+import { pushLocalNotification } from '@/lib/local-notifications';
 
 export const FAVORITES_KEY = 'alisales-favorites';
 
@@ -145,6 +146,18 @@ export function FavoriteButton({
     }
     const nowActive = !isSaved;
     setActive(nowActive);
+
+    if (nowActive) {
+      const text = [snapshot?.model, snapshot?.year].filter(Boolean).join(' ');
+      pushLocalNotification({
+        kind: 'saved',
+        title: t('آگهی ذخیره شد', 'Listing saved'),
+        body: text
+          ? t(`${text} به ذخیره‌شده‌های شما اضافه شد.`, `${text} was added to your saved listings.`)
+          : t('این آگهی به ذخیره‌شده‌های شما اضافه شد.', 'This listing was added to your saved listings.'),
+        href: `/listing/${slug}`,
+      });
+    }
 
     if (listingId) {
       void (nowActive

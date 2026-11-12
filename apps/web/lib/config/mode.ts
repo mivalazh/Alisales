@@ -49,6 +49,14 @@ export function hostedReadsConfigured(): boolean {
   return Boolean(process.env.NEXT_PUBLIC_SUPABASE_URL && process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY);
 }
 
+/**
+ * Launch-day switch: when true, no seeded sample listing or sample story is
+ * served. Real listings written to Supabase or the dev store stay visible.
+ */
+export function demoListingsHidden(): boolean {
+  return flagOn(process.env.NEXT_PUBLIC_HIDE_DEMO_LISTINGS);
+}
+
 /** Operator explicitly requires real services (no fixture fallback). */
 export function requireHostedServices(): boolean {
   return flagOn(process.env.REQUIRE_HOSTED_SERVICES);

@@ -1,26 +1,31 @@
 import { NextResponse } from 'next/server';
-import { readJson, writeJson } from '@/lib/storage/demo-store';
+import {
+  createSupportRequest,
+  findSupportByCode,
+  type SupportTopic,
+} from '@/lib/support-store';
 
-/**
- * Support inbox — brand requests and tickets. The demo deployment keeps them
- * in the demo store (JSON file on Node, isolate memory on Workers); hosted
- * environments will swap in the Supabase table without changing this contract.
- */
-interface SupportRequest {
-  id: string;
-  kind: 'brand' | 'ticket';
-  name: string;
-  contact: string;
-  model: string;
-  message: string;
-  createdAt: string;
-}
-
-const STORE = 'support-requests.json';
-const MAX_ENTRIES = 500;
+const TOPICS: SupportTopic[] = ['technical', 'advertising', 'suggestion', 'report'];
 
 function text(value: unknown, max: number): string {
   return typeof value === 'string' ? value.trim().slice(0, max) : '';
+}
+
+export async function GET(request: Request): Promise<NextResponse> {
+  const code = new URL(request.url).searchParams.get('code')?.trim();
+  if (!code) return NextResponse.json({ error: 'کد پیگیری را وارد کنید.' }, { status: 400 });
+  const ticket = findSupportByCode(code);
+  if (!ticket) return NextResponse.json({ error: 'تیکتی با این کد پیدا نشد.' }, { status: 404 });
+  return NextResponse.json({
+    ticket: {
+      code: ticket.code,
+      topic: ticket.topic,
+      status: ticket.status,
+      reply: ticket.reply,
+      message: ticket.message,
+      createdAt: ticket.createdAt,
+    },
+  });
 }
 
 export async function POST(request: Request): Promise<NextResponse> {
@@ -32,15 +37,16 @@ export async function POST(request: Request): Promise<NextResponse> {
   }
 
   const body = (raw ?? {}) as Record<string, unknown>;
-  const kind = body.kind === 'brand' ? 'brand' : body.kind === 'ticket' ? 'ticket' : null;
+  const topic = TOPICS.includes(body.topic as SupportTopic)
+    ? (body.topic as SupportTopic)
+    : body.kind === 'brand'
+      ? 'suggestion'
+      : 'technical';
   const name = text(body.name, 80);
   const contact = text(body.contact, 80);
   const model = text(body.model, 80);
   const message = text(body.message, 1200);
 
-  if (!kind) {
-    return NextResponse.json({ error: 'نوع درخواست نامعتبر است.' }, { status: 400 });
-  }
   if (name.length < 2) {
     return NextResponse.json({ error: 'نام خود را وارد کنید.' }, { status: 400 });
   }
@@ -51,19 +57,16 @@ export async function POST(request: Request): Promise<NextResponse> {
     return NextResponse.json({ error: 'متن درخواست را کامل‌تر بنویسید.' }, { status: 400 });
   }
 
-  const entry: SupportRequest = {
-    id: crypto.randomUUID(),
-    kind,
-    name,
-    contact,
-    model,
-    message,
-    createdAt: new Date().toISOString(),
-  };
-
-  const existing = readJson<SupportRequest[]>(STORE, () => []);
-  const list = Array.isArray(existing) ? existing : [];
-  writeJson(STORE, [...list, entry].slice(-MAX_ENTRIES));
-
-  return NextResponse.json({ ok: true, id: entry.id }, { status: 201 });
+  const entry = createSupportRequest({ topic, name, contact, model, message });
+  return NextResponse.json(
+    {
+      ok: true,
+      id: entry.id,
+      code: entry.code,
+      status: entry.status,
+      reply: entry.reply,
+      topic: entry.topic,
+    },
+    { status: 201 },
+  );
 }

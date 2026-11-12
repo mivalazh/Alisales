@@ -1,11 +1,8 @@
 import { localizedMetadata } from '@/lib/i18n/metadata';
 import { redirect } from 'next/navigation';
-import { FREE_LISTING_LIMIT } from '@alisales/schemas';
 import { getSession } from '@/lib/auth/session';
 import { demoAuthMode } from '@/lib/config/mode';
-import { activeListingsCount } from '@/lib/data/s2-store';
 import { ListingForm } from '@/components/ListingForm';
-import { PlanPreview } from '@/components/PlanPreview';
 import { getLanguage, serverT } from '@/lib/i18n/server';
 
 export const generateMetadata = localizedMetadata(
@@ -15,9 +12,7 @@ export const generateMetadata = localizedMetadata(
 
 /**
  * Listing creation (S2): signed-in only, publishes immediately (C6).
- *
- * At the two-active-listing free cap the form is replaced by the read-only
- * «بزودی» plan preview: no publish attempt, no payment call.
+ * Launch period: posting is free without a listing cap.
  */
 export default async function NewListingPage() {
   const lang = await getLanguage();
@@ -30,15 +25,12 @@ export default async function NewListingPage() {
     if (demoAuthMode()) redirect('/api/auth/demo?next=/new');
     redirect('/login?next=/new');
   }
-  const active = await activeListingsCount(session.sub);
-  const atCap = active >= FREE_LISTING_LIMIT;
-
   return (
     <div className="space-y-4">
       <div>
         <h1 className="text-xl font-extrabold">{t('ثبت آگهی', 'Post ad')}</h1>
       </div>
-      {atCap ? <PlanPreview /> : <ListingForm />}
+      <ListingForm />
     </div>
   );
 }

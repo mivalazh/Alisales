@@ -33,16 +33,13 @@ export interface StoryItem {
  * theatre with segmented progress, auto-advance, next/prev tap zones, a
  * mute toggle for clips, the seller header and a bottom «مشاهده آگهی» CTA.
  *
- * The add tile is plan-gated: an account without a story package or showroom
- * subscription gets the purchase modal instead of an uploader.
+ * Stories are free for every signed-in member during the launch period.
  */
 export function Stories({ stories, label = 'داستان‌های آگهی' }: { stories: StoryItem[]; label?: string }) {
   const { t } = useI18n();
   const [openIndex, setOpenIndex] = useState<number | null>(null);
-  const [planOpen, setPlanOpen] = useState(false);
   const [composerOpen, setComposerOpen] = useState(false);
   const [displayName, setDisplayName] = useState<string | null>(null);
-  const [paidGuard, setPaidGuard] = useState(false);
   const [mine, setMine] = useState<StoryListingOption[]>([]);
   const [created, setCreated] = useState<StoryItem[]>([]);
 
@@ -51,7 +48,6 @@ export function Stories({ stories, label = 'داستان‌های آگهی' }: {
       const res = await fetch('/api/stories');
       if (!res.ok) return;
       const body = (await res.json()) as {
-        paidGuard?: boolean;
         stories?: Array<{
           id: string;
           title: string;
@@ -61,7 +57,6 @@ export function Stories({ stories, label = 'داستان‌های آگهی' }: {
         }>;
         mine?: StoryListingOption[];
       };
-      setPaidGuard(Boolean(body.paidGuard));
       setMine(body.mine ?? []);
       setCreated(
         (body.stories ?? []).map((story) => ({
@@ -93,10 +88,7 @@ export function Stories({ stories, label = 'داستان‌های آگهی' }: {
 
   const rail = [...created, ...stories];
 
-  const openAdd = () => {
-    if (paidGuard) setPlanOpen(true);
-    else setComposerOpen(true);
-  };
+  const openAdd = () => setComposerOpen(true);
 
   return (
     <section aria-label={t(label)} className="rounded-card border border-line bg-card p-3 sm:p-4">
@@ -109,8 +101,6 @@ export function Stories({ stories, label = 'داستان‌های آگهی' }: {
           <StoryTile key={story.slug} story={story} onOpen={() => setOpenIndex(index)} />
         ))}
       </ul>
-
-      {planOpen && <PlanModal onClose={() => setPlanOpen(false)} />}
 
       {composerOpen && (
         <StoryComposer
@@ -175,69 +165,6 @@ function AddStoryTile({
         </span>
       </button>
     </li>
-  );
-}
-
-/** Story package guard for accounts without the plan. */
-function PlanModal({ onClose }: { onClose: () => void }) {
-  const { t } = useI18n();
-  useEffect(() => {
-    const onKey = (event: KeyboardEvent) => {
-      if (event.key === 'Escape') onClose();
-    };
-    document.addEventListener('keydown', onKey);
-    const previous = document.body.style.overflow;
-    document.body.style.overflow = 'hidden';
-    return () => {
-      document.removeEventListener('keydown', onKey);
-      document.body.style.overflow = previous;
-    };
-  }, [onClose]);
-
-  return (
-    <div
-      role="dialog"
-      aria-modal="true"
-      aria-label={t('بسته استوری', 'Story package')}
-      className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 p-4"
-      onClick={onClose}
-    >
-      <div
-        className="w-full max-w-sm rounded-card border border-line bg-card p-5 shadow-2xl"
-        onClick={(event) => event.stopPropagation()}
-      >
-        <div className="flex items-center gap-2">
-          <span className="flex h-10 w-10 items-center justify-center rounded-full bg-cta-soft text-cta">
-            <Icon name="sparkle" size={20} />
-          </span>
-          <h2 className="text-sm font-extrabold text-ink">
-            {t('ثبت استوری ویدیویی', 'Publish a video story')}
-          </h2>
-          <button
-            type="button"
-            onClick={onClose}
-            aria-label={t('بستن', 'Close')}
-            className="ms-auto flex h-8 w-8 items-center justify-center rounded-full text-muted hover:bg-cta-soft hover:text-ink"
-          >
-            <Icon name="close" size={16} />
-          </button>
-        </div>
-        <p className="mt-3 text-xs leading-6 text-muted">
-          {t(
-            'برای ثبت استوری ویدیویی در بالای صفحه، نیاز به تهیه بسته استوری یا اشتراک نمایشگاهی دارید.',
-            'To publish a video story at the top of the page, you need a story package or a showroom subscription.',
-          )}
-        </p>
-        <div className="mt-4 flex flex-wrap gap-2">
-          <a href="/support?topic=stories" className="btn-cta text-sm">
-            {t('مشاهده پلن‌ها', 'View plans')}
-          </a>
-          <a href="/support" className="btn-ghost text-sm">
-            {t('تماس با پشتیبانی', 'Contact support')}
-          </a>
-        </div>
-      </div>
-    </div>
   );
 }
 

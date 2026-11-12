@@ -6,6 +6,7 @@ import { usePathname } from 'next/navigation';
 import { useEffect, useRef, useState } from 'react';
 import { useI18n } from '@/lib/i18n';
 import { Icon } from './Icon';
+import { CarLoader } from './CarLoader';
 
 interface MessageListing {
   slug: string;
@@ -137,8 +138,9 @@ export function AIAssistantWidget() {
           className="fixed bottom-36 right-4 z-50 flex max-h-[70vh] w-[min(92vw,370px)] flex-col overflow-hidden rounded-2xl border border-line bg-card shadow-2xl sm:bottom-24 sm:right-6"
         >
           <div className="flex items-center gap-2 bg-[#111144] px-3 py-2.5 text-white">
-            <span className="flex h-8 w-8 items-center justify-center rounded-full bg-[#F98513]/20 text-[#F98513]">
-              <Icon name="sparkle" size={17} />
+            <span className="ai-orb ai-orb-sm shrink-0" aria-hidden="true">
+              <span className="ai-orb-eye" />
+              <span className="ai-orb-eye" />
             </span>
             <div className="min-w-0 flex-1">
               <p className="text-xs font-extrabold">{t('دستیار هوشمند Ali Sales')}</p>
@@ -236,12 +238,8 @@ export function AIAssistantWidget() {
                 aria-live="polite"
                 className="w-fit max-w-[92%] rounded-2xl rounded-bl-sm border border-line bg-page px-3 py-2.5"
               >
-                <span className="flex items-center gap-1" aria-hidden="true">
-                  <span className="h-1.5 w-1.5 animate-bounce rounded-full bg-[#F98513] [animation-delay:-0.24s]" />
-                  <span className="h-1.5 w-1.5 animate-bounce rounded-full bg-[#F98513] [animation-delay:-0.12s]" />
-                  <span className="h-1.5 w-1.5 animate-bounce rounded-full bg-[#F98513]" />
-                </span>
-                <span className="mt-1.5 block animate-pulse bg-gradient-to-l from-faint via-ink to-faint bg-clip-text text-[10px] font-bold text-transparent">
+                <CarLoader size="sm" label={t('در حال فکر کردن', 'Thinking')} />
+                <span className="mt-0.5 block animate-pulse bg-gradient-to-l from-faint via-ink to-faint bg-clip-text text-[10px] font-bold text-transparent">
                   {t('در حال تحلیل کاتالوگ و مشخصات فنی...')}
                 </span>
               </div>
@@ -279,9 +277,16 @@ export function AIAssistantWidget() {
         onClick={() => setOpen((v) => !v)}
         aria-expanded={open}
         aria-label={open ? t('بستن دستیار هوشمند') : t('باز کردن دستیار هوشمند')}
-        className="ai-fab fixed bottom-20 right-4 z-40 flex h-14 w-14 items-center justify-center rounded-full border-2 border-[#F98513]/70 bg-[#111144] text-[#F98513] shadow-[0_12px_30px_-4px_rgba(249,133,19,0.5),0_6px_16px_-2px_rgba(17,17,68,0.4)] ring-2 ring-[#F98513]/70 transition-all duration-200 hover:-translate-y-1 sm:bottom-6 sm:right-6 dark:bg-[#F4F1EC] dark:text-[#111144]"
+        className="ai-fab fixed bottom-20 right-4 z-40 flex h-14 w-14 items-center justify-center rounded-full border-2 border-[#F98513]/70 bg-[#111144] shadow-[0_12px_30px_-4px_rgba(249,133,19,0.5),0_6px_16px_-2px_rgba(17,17,68,0.4)] ring-2 ring-[#F98513]/70 transition-all duration-200 hover:-translate-y-1 sm:bottom-6 sm:right-6"
       >
-        <Icon name={open ? 'close' : 'sparkle'} size={24} />
+        {open ? (
+          <Icon name="close" size={22} className="text-white" />
+        ) : (
+          <span className="ai-orb" aria-hidden="true">
+            <span className="ai-orb-eye" />
+            <span className="ai-orb-eye" />
+          </span>
+        )}
       </button>
     </>
   );

@@ -66,8 +66,8 @@ export default async function ChatsPage() {
   });
 
   return (
-    <div className="mx-auto max-w-2xl space-y-4 bg-[#F4F1EC] dark:bg-[#111144]">
-      <h1 className="text-xl font-extrabold">{t('چت‌ها')}</h1>
+    <div className="mx-auto max-w-2xl space-y-4 bg-[#F4F1EC] px-1 pb-2 dark:bg-[#0B0D1E]">
+      <h1 className="text-xl font-extrabold dark:text-white">{t('چت‌ها')}</h1>
 
       {rows.length === 0 ? (
         <ListEmptyState
@@ -78,22 +78,22 @@ export default async function ChatsPage() {
           actionLabel={t('مشاهده آگهی‌ها')}
         />
       ) : (
-        <ul className="flex flex-col gap-2">
+        <ul className="flex flex-col gap-2.5">
           {rows.map(({ conversation, listing, last, name, initials }) => (
             <li key={conversation.id}>
               <Link
                 href={`/chats/${conversation.id}`}
-                className="flex items-center gap-3 rounded-card border border-line bg-card p-3 transition hover:border-line-strong"
+                className="flex items-center gap-3 rounded-2xl border border-line bg-card p-3 transition hover:border-line-strong dark:border-white/10 dark:bg-[#131735]/90 dark:shadow-xl dark:shadow-black/20 dark:hover:border-white/20"
               >
                 <span
                   aria-hidden
-                  className="flex h-11 w-11 shrink-0 items-center justify-center rounded-full bg-cta-soft text-sm font-extrabold text-ink"
+                  className="flex h-11 w-11 shrink-0 items-center justify-center rounded-full bg-cta-soft text-sm font-extrabold text-ink dark:bg-[#F98513]/15 dark:text-[#F98513] dark:shadow-[0_0_14px_rgba(249,133,19,0.2)]"
                 >
                   {initials}
                 </span>
                 <span className="min-w-0 flex-1">
                   <span className="flex items-center justify-between gap-2">
-                    <span className="truncate text-sm font-extrabold text-ink">{name}</span>
+                    <span className="truncate text-sm font-extrabold text-ink dark:text-white">{name}</span>
                     <span className="shrink-0 text-[10px] font-bold text-faint">
                       {lang === 'en'
                         ? postingAgeEnglish(last?.createdAt ?? conversation.createdAt)

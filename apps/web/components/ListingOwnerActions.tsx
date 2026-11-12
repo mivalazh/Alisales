@@ -3,7 +3,7 @@
 import Link from 'next/link';
 import { useRouter } from 'next/navigation';
 import { useState } from 'react';
-import { FREE_THIRD_LISTING_MESSAGE, type ListingState } from '@alisales/schemas';
+import type { ListingState } from '@alisales/schemas';
 import { DeleteListingButton } from './DeleteListingButton';
 import { useI18n } from '@/lib/i18n';
 
@@ -17,8 +17,7 @@ const ACTION_LABELS: Record<Target, { fa: string; en: string }> = {
 
 /**
  * Row actions on «آگهی‌های من»: edit, mark sold, archive (paused) and
- * reactivate. Reactivation is a server decision — the two-active-listing cap
- * answers 403 with «برای آگهی سوم، پلن انتخاب کن.» and the plan preview link.
+ * reactivate. Listing limits are disabled during the free launch period.
  */
 export function ListingOwnerActions({ id, state }: { id: string; state: ListingState }) {
   const router = useRouter();
@@ -82,14 +81,7 @@ export function ListingOwnerActions({ id, state }: { id: string; state: ListingS
       <DeleteListingButton id={id} compact />
       {error && (
         <span className="text-xs font-bold text-bad" role="alert">
-          {error === FREE_THIRD_LISTING_MESSAGE
-            ? t(FREE_THIRD_LISTING_MESSAGE, 'Choose a plan to publish a third listing.')
-            : error}
-          {error === FREE_THIRD_LISTING_MESSAGE && (
-            <Link href="/new" className="ms-1 underline">
-              {t('دیدن پلن‌ها', 'See plans')}
-            </Link>
-          )}
+          {error}
         </span>
       )}
     </div>

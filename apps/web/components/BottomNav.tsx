@@ -28,9 +28,13 @@ export function BottomNav() {
   const isActive = useActivePath();
   const { t } = useI18n();
 
-  // The inspection report is a focused reading screen; everything else keeps
-  // the bar, including the post-publish success state.
-  if (pathname?.includes('/inspection')) {
+  // Focused screens hide the bar: the inspection report is a reading view,
+  // and an open chat needs its full height for the pinned composer. The chat
+  // list and the post-publish success state keep it.
+  if (
+    pathname?.includes('/inspection') ||
+    (pathname?.startsWith('/chats/') && pathname.split('/').length > 2)
+  ) {
     return null;
   }
 

@@ -381,3 +381,86 @@ html.app-standalone button {
 [data-theme='dark'] .ai-fab:hover {
   background-color: #ffffff;
 }
+
+/* ── Living AI orb ─────────────────────────────────────────────────────── */
+.ai-orb {
+  position: relative;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 5px;
+  width: 46px;
+  height: 46px;
+  flex: none;
+  overflow: hidden;
+  border-radius: 9999px;
+  background:
+    radial-gradient(circle at 30% 24%, rgba(255, 255, 255, 0.92), transparent 24%),
+    radial-gradient(circle at 72% 76%, #223382 0%, transparent 58%),
+    radial-gradient(circle at 68% 26%, #0F7FC4 0%, transparent 56%),
+    linear-gradient(140deg, #F98513 0%, #F98513 38%, #0F7FC4 76%, #223382 100%);
+  box-shadow:
+    inset 0 -4px 9px rgba(10, 18, 58, 0.38),
+    inset 0 3px 7px rgba(255, 255, 255, 0.28),
+    0 4px 14px rgba(249, 133, 19, 0.32);
+  animation: ai-float 4.2s ease-in-out infinite;
+}
+.ai-orb::after {
+  content: '';
+  position: absolute;
+  inset: 0;
+  border-radius: inherit;
+  background: linear-gradient(115deg, rgba(255, 255, 255, 0.36), transparent 42%);
+  pointer-events: none;
+}
+.ai-orb-sm {
+  width: 34px;
+  height: 34px;
+  gap: 4px;
+}
+.ai-orb-eye {
+  position: relative;
+  z-index: 1;
+  width: 6px;
+  height: 15px;
+  border-radius: 9999px;
+  background: #fff;
+  box-shadow: 0 0 6px rgba(255, 255, 255, 0.65);
+  transform-origin: center;
+  animation: ai-blink 4.8s ease-in-out infinite;
+}
+.ai-orb-sm .ai-orb-eye {
+  width: 4.5px;
+  height: 11px;
+}
+.ai-orb-eye:nth-child(2) {
+  animation-delay: 0.09s;
+}
+@keyframes ai-blink {
+  0%, 40%, 46%, 100% { transform: translateX(0) scaleY(1); }
+  42%, 44% { transform: translateX(0) scaleY(0.08); }
+  55%, 64% { transform: translateX(1.6px) scaleY(1); }
+  70%, 79% { transform: translateX(-1.6px) scaleY(1); }
+  83%, 85% { transform: translateX(0) scaleY(0.1); }
+  88% { transform: translateX(0) scaleY(1); }
+}
+@keyframes ai-float {
+  0%, 100% { transform: translateY(0); }
+  50% { transform: translateY(-3px); }
+}
+
+/* ── Car loader ────────────────────────────────────────────────────────── */
+.car-loader svg { overflow: visible; }
+.car-wheel {
+  transform-box: fill-box;
+  transform-origin: center;
+  animation: car-wheel-spin 0.85s linear infinite;
+}
+.car-wheel-back { animation-duration: 0.95s; }
+@keyframes car-wheel-spin {
+  to { transform: rotate(360deg); }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .ai-orb, .ai-orb-eye, .car-wheel { animation: none !important; }
+}

@@ -1,7 +1,7 @@
 'use client';
 
 import Image from 'next/image';
-import { useRef, useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import { Icon } from './Icon';
 import { isPreSizedSource } from '@/lib/images';
 import { useI18n } from '@/lib/i18n';
@@ -13,9 +13,8 @@ function isVideoUrl(url: string): boolean {
 
 /**
  * Detail-page gallery: one hero frame with next/prev arrows, a thumbnail strip
- * that jumps to a photo, and horizontal swipe on touch devices. The hero keeps
- * the compact 16:10 frame and the 420px cap from the desktop layout; sold
- * listings stay desaturated.
+ * that jumps to a photo, horizontal swipe on touch devices, and a fullscreen
+ * viewer with 2× zoom. Video slots always get native controls and play inline.
  */
 export function ListingGallery({
   photos,
@@ -28,11 +27,29 @@ export function ListingGallery({
 }) {
   const { t } = useI18n();
   const [index, setIndex] = useState(0);
+  const [viewer, setViewer] = useState(false);
+  const [zoomed, setZoomed] = useState(false);
   const startX = useRef<number | null>(null);
   const count = photos.length;
   const current = photos[Math.min(index, Math.max(count - 1, 0))] ?? null;
 
   const go = (step: number) => setIndex((i) => (i + step + count) % count);
+
+  useEffect(() => {
+    if (!viewer) return;
+    const onKey = (event: KeyboardEvent) => {
+      if (event.key === 'Escape') setViewer(false);
+      if (event.key === 'ArrowRight' && count > 1) go(-1);
+      if (event.key === 'ArrowLeft' && count > 1) go(1);
+    };
+    document.addEventListener('keydown', onKey);
+    const previous = document.body.style.overflow;
+    document.body.style.overflow = 'hidden';
+    return () => {
+      document.removeEventListener('keydown', onKey);
+      document.body.style.overflow = previous;
+    };
+  }, [viewer, count]);
 
   return (
     <div className="space-y-2">
@@ -78,13 +95,27 @@ export function ListingGallery({
           </div>
         )}
 
+        {current && !isVideoUrl(current) && (
+          <button
+            type="button"
+            onClick={() => {
+              setZoomed(false);
+              setViewer(true);
+            }}
+            aria-label={t('نمایش تمام‌صفحه و بزرگ‌نمایی عکس', 'Open fullscreen photo viewer')}
+            className="absolute start-2 top-2 z-10 flex h-9 w-9 items-center justify-center rounded-full bg-[#111144]/75 text-white shadow-md backdrop-blur transition hover:bg-[#111144]"
+          >
+            <Icon name="plus" size={17} />
+          </button>
+        )}
+
         {count > 1 && (
           <>
             <button
               type="button"
               onClick={() => go(-1)}
               aria-label={t('عکس قبلی', 'Previous photo')}
-              className="absolute start-2 top-1/2 flex h-9 w-9 -translate-y-1/2 items-center justify-center rounded-full bg-white/90 text-[#111144] shadow-md transition hover:bg-white"
+              className="absolute start-2 top-1/2 z-10 flex h-9 w-9 -translate-y-1/2 items-center justify-center rounded-full bg-white/90 text-[#111144] shadow-md transition hover:bg-white"
             >
               <Icon name="chevronRight" size={18} />
             </button>
@@ -92,11 +123,11 @@ export function ListingGallery({
               type="button"
               onClick={() => go(1)}
               aria-label={t('عکس بعدی', 'Next photo')}
-              className="absolute end-2 top-1/2 flex h-9 w-9 -translate-y-1/2 items-center justify-center rounded-full bg-white/90 text-[#111144] shadow-md transition hover:bg-white"
+              className="absolute end-2 top-1/2 z-10 flex h-9 w-9 -translate-y-1/2 items-center justify-center rounded-full bg-white/90 text-[#111144] shadow-md transition hover:bg-white"
             >
               <Icon name="chevronLeft" size={18} />
             </button>
-            <span className="absolute bottom-2 end-2 rounded-full bg-[#111144]/75 px-2 py-0.5 text-[11px] font-bold text-white">
+            <span className="absolute bottom-2 end-2 z-10 rounded-full bg-[#111144]/75 px-2 py-0.5 text-[11px] font-bold text-white">
               {index + 1} / {count}
             </span>
           </>
@@ -120,7 +151,7 @@ export function ListingGallery({
                   <>
                     <video src={url} muted playsInline preload="metadata" className="h-full w-full object-cover" />
                     <span className="absolute inset-0 flex items-center justify-center bg-black/30 text-white">
-                      <Icon name="grid" size={16} />
+                      <Icon name="camera" size={16} />
                     </span>
                   </>
                 ) : (
@@ -139,6 +170,49 @@ export function ListingGallery({
             </li>
           ))}
         </ul>
+      )}
+
+      {viewer && current && (
+        <div
+          role="dialog"
+          aria-modal="true"
+          aria-label={t('نمایش عکس', 'Photo viewer')}
+          className="fixed inset-0 z-[70] flex flex-col bg-black/95"
+          onClick={() => setViewer(false)}
+        >
+          <div className="flex shrink-0 items-center justify-between px-3 py-2 text-white">
+            <span className="text-xs font-bold" dir="ltr">{index + 1} / {count}</span>
+            <div className="flex items-center gap-2">
+              <button
+                type="button"
+                onClick={(event) => {
+                  event.stopPropagation();
+                  setZoomed((value) => !value);
+                }}
+                className="rounded-full border border-white/25 px-3 py-1.5 text-[11px] font-bold"
+              >
+                {zoomed ? t('بزرگ‌نمایی کمتر', 'Zoom out') : t('بزرگ‌نمایی ۲×', 'Zoom 2×')}
+              </button>
+              <button
+                type="button"
+                onClick={() => setViewer(false)}
+                aria-label={t('بستن', 'Close')}
+                className="flex h-8 w-8 items-center justify-center rounded-full bg-white/15 text-white"
+              >
+                <Icon name="close" size={17} />
+              </button>
+            </div>
+          </div>
+          <div className="flex min-h-0 flex-1 items-center justify-center overflow-auto p-3" onClick={(event) => event.stopPropagation()}>
+            {/* eslint-disable-next-line @next/next/no-img-element */}
+            <img
+              src={current}
+              alt={alt}
+              onClick={() => setZoomed((value) => !value)}
+              className={`max-h-full max-w-full cursor-zoom-in object-contain transition-transform duration-300 ${zoomed ? 'scale-[2] cursor-zoom-out' : 'scale-100'}`}
+            />
+          </div>
+        </div>
       )}
     </div>
   );

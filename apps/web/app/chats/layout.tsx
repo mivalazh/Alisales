@@ -8,7 +8,7 @@ import type { ReactNode } from 'react';
  */
 export default function ChatsLayout({ children }: { children: ReactNode }) {
   return (
-    <div className="min-h-[calc(100vh-4rem)] bg-[#F4F1EC] dark:bg-[#111144]">
+    <div className="min-h-[calc(100vh-4rem)] bg-[#F4F1EC] dark:bg-[#0B0D1E]">
       {children}
     </div>
   );

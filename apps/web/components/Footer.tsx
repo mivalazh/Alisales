@@ -144,9 +144,6 @@ export function SiteFooter() {
         {/* Phone: compact identity + accordion */}
         <div className="sm:hidden">
           <p className="text-base font-extrabold text-ink">Ali Sales</p>
-          <p className="mt-2 rounded-field border border-[#F98513]/40 bg-[#FFF7EC] px-3 py-2 text-[11px] font-bold leading-6 text-ink dark:bg-[#2a2418]">
-            {t(WORKSHOP_CREDIT, WORKSHOP_CREDIT_EN)}
-          </p>
           <div className="mt-3">
             <FooterAccordion />
           </div>
@@ -156,9 +153,6 @@ export function SiteFooter() {
         <div className="hidden gap-8 sm:grid lg:grid-cols-4">
           <div className="lg:col-span-1">
             <p className="text-base font-extrabold text-ink">Ali Sales</p>
-            <p className="mt-3 max-w-xs rounded-field border border-[#F98513]/40 bg-[#FFF7EC] px-3 py-2 text-[11px] font-bold leading-6 text-ink dark:bg-[#2a2418]">
-              {t(WORKSHOP_CREDIT, WORKSHOP_CREDIT_EN)}
-            </p>
           </div>
 
           <div className="grid grid-cols-2 gap-x-4 gap-y-6 sm:grid-cols-3 lg:col-span-3">

@@ -1,13 +1,11 @@
 import { localizedMetadata } from '@/lib/i18n/metadata';
 import Link from 'next/link';
 import { redirect } from 'next/navigation';
-import { FREE_LISTING_LIMIT, FREE_THIRD_LISTING_MESSAGE } from '@alisales/schemas';
 import { getSession } from '@/lib/auth/session';
 import { listingsBySeller } from '@/lib/data/s2-store';
 import { mergeMyListings, readMyListings } from '@/lib/data/my-listings-cookie';
 import { ListingRow } from '@/components/ListingRow';
 import { ListingOwnerActions } from '@/components/ListingOwnerActions';
-import { PlanPreview } from '@/components/PlanPreview';
 import { getLanguage, serverT } from '@/lib/i18n/server';
 
 export const generateMetadata = localizedMetadata(
@@ -26,8 +24,8 @@ const TABS: ReadonlyArray<{ key: Tab; label: string; en: string }> = [
 /**
  * Owner listings. «بایگانی‌شده» is a UI label for the existing `paused` state
  * (C5) — no enum change, no separate storage. Every row carries the owner
- * actions: edit, sold, archive and reactivate (the last one obeys the
- * two-active-listing free cap and shows the «بزودی» plan preview at the cap).
+ * actions: edit, sold, archive and reactivate. Posting is uncapped during
+ * the free launch period.
  */
 export default async function MyListingsPage({
   searchParams,
@@ -46,7 +44,6 @@ export default async function MyListingsPage({
   const listings = mergeMyListings(mine, await listingsBySeller(session.sub));
   const shown = listings.filter((l) => l.state === activeTab);
   const activeCount = listings.filter((l) => l.state === 'active').length;
-  const atCap = activeCount >= FREE_LISTING_LIMIT;
 
   return (
     <div className="space-y-4">
@@ -59,13 +56,8 @@ export default async function MyListingsPage({
 
       <p className="text-xs text-muted">
         {t(
-          `آگهی‌های فعال: ${activeCount} از ${FREE_LISTING_LIMIT}`,
-          `Active listings: ${activeCount} of ${FREE_LISTING_LIMIT}`,
-        )}
-        {atCap && (
-          <span className="mt-1 block font-bold text-warn">
-            {t(FREE_THIRD_LISTING_MESSAGE, 'Choose a plan to publish a third listing.')}
-          </span>
+          `آگهی‌های فعال: ${activeCount} — در دوره راه‌اندازی، ثبت آگهی رایگان و بدون محدودیت است.`,
+          `Active listings: ${activeCount} — posting is free and uncapped during launch.`,
         )}
       </p>
 
@@ -113,7 +105,6 @@ export default async function MyListingsPage({
         </ul>
       )}
 
-      {atCap && <PlanPreview />}
     </div>
   );
 }

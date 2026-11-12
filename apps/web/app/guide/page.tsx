@@ -1,6 +1,5 @@
 import { localizedMetadata } from '@/lib/i18n/metadata';
 import Link from 'next/link';
-import { FREE_LISTING_LIMIT, formatAmountLatin } from '@alisales/schemas';
 import { getLanguage } from '@/lib/i18n/server';
 import { serverT } from '@/lib/i18n/server';
 
@@ -55,8 +54,8 @@ export default async function GuidePage() {
       <h1 className="text-xl font-extrabold">{t('راهنمای ثبت آگهی', 'Posting guide')}</h1>
       <p className="text-sm text-muted">
         {t(
-          `هر حساب شخصی می‌تواند تا ${formatAmountLatin(FREE_LISTING_LIMIT)} آگهی فعال داشته باشد. برای آگهی بیشتر، پلن لازم است.`,
-          `Each account can have up to ${formatAmountLatin(FREE_LISTING_LIMIT)} active listings. A plan is required for more.`,
+          'در دوره راه‌اندازی، ثبت و انتشار آگهی برای همه رایگان و بدون محدودیت است. هر وقت خواستید آگهی تازه بگذارید.',
+          'During launch, posting and publishing are free for everyone, with no listing cap.',
         )}
       </p>
       <ol className="space-y-3">

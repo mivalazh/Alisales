@@ -90,7 +90,7 @@ export default async function ChatPage({ params }: { params: Promise<{ id: strin
     : null;
 
   return (
-    <>
+    <div className="-mb-24 -mt-6 sm:-mb-6 lg:-mt-8">
       <ChatThread
       conversationId={conversation.id}
       currentUserId={session.sub}
@@ -110,6 +110,6 @@ export default async function ChatPage({ params }: { params: Promise<{ id: strin
           visit: m.visit,
         }))}
       />
-    </>
+    </div>
   );
 }

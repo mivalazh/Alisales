@@ -1,7 +1,7 @@
 import { NextResponse } from 'next/server';
-import { FREE_LISTING_LIMIT, FREE_THIRD_LISTING_MESSAGE, canTransition, listingStateChangeSchema, type ListingState } from '@alisales/schemas';
+import { canTransition, listingStateChangeSchema, type ListingState } from '@alisales/schemas';
 import { getSession } from '@/lib/auth/session';
-import { activeListingsCount, admin, listingById } from '@/lib/data/s2-store';
+import { admin, listingById } from '@/lib/data/s2-store';
 import { updateDevListing } from '@/lib/data/dev-store';
 
 /**
@@ -11,8 +11,6 @@ import { updateDevListing } from '@/lib/data/dev-store';
  * paused → active, sold → active (reactivation, 0005). The service-role write
  * bypasses the DB trigger, so the same rules are enforced here.
  *
- * Reactivation obeys the two-active-listing free cap: a paused or sold listing
- * may only return to `active` while the owner has fewer than two active ones.
  * Only `state` (and `sold_at`) is written — `published_at` stays put, so the
  * posting age of an edited or reactivated listing never resets.
  */
@@ -57,15 +55,6 @@ export async function POST(
         { status: 400 },
       );
     }
-    if (next === 'active') {
-      const active = await activeListingsCount(session.sub);
-      if (active >= FREE_LISTING_LIMIT) {
-        return NextResponse.json(
-          { error: FREE_THIRD_LISTING_MESSAGE, planRequired: true },
-          { status: 403 },
-        );
-      }
-    }
     const fields: Record<string, unknown> =
       next === 'sold'
         ? { state: 'sold', sold_at: new Date().toISOString() }
@@ -87,15 +76,6 @@ export async function POST(
   }
   if (!canTransition(listing.state, next, 'owner')) {
     return NextResponse.json({ error: 'این تغییر وضعیت برای آگهی مجاز نیست.' }, { status: 400 });
-  }
-  if (next === 'active') {
-    const active = await activeListingsCount(session.sub);
-    if (active >= FREE_LISTING_LIMIT) {
-      return NextResponse.json(
-        { error: FREE_THIRD_LISTING_MESSAGE, planRequired: true },
-        { status: 403 },
-      );
-    }
   }
   updateDevListing(id, { state: next });
   return NextResponse.json({ ok: true, state: next });

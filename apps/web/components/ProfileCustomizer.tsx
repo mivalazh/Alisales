@@ -137,8 +137,8 @@ export function ProfileCustomizer({
 
       {open && (
         <div className="mt-4 space-y-4">
-          <div className="grid gap-3 sm:grid-cols-2">
-            <div className="rounded-field border border-line bg-page p-3">
+          <div className="flex flex-wrap items-center gap-3 rounded-field border border-line bg-page p-3">
+            <div className="flex min-w-0 flex-1 items-center gap-3">
               <p className="text-xs font-extrabold text-ink">{t('عکس پروفایل', 'Avatar')}</p>
               <div className="mt-2 flex items-center gap-3">
                 <span className="flex h-14 w-14 shrink-0 items-center justify-center overflow-hidden rounded-full border border-line bg-card text-lg font-extrabold">
@@ -184,7 +184,7 @@ export function ProfileCustomizer({
               </div>
             </div>
 
-            <div className="rounded-field border border-line bg-page p-3">
+            <div className="flex min-w-0 flex-1 items-center gap-3 border-t border-line pt-3 sm:border-s sm:border-t-0 sm:ps-3 sm:pt-0">
               <p className="text-xs font-extrabold text-ink">{t('کاور پروفایل', 'Profile cover')}</p>
               <div className="mt-2 flex items-center gap-3">
                 <span className="flex h-14 w-24 shrink-0 items-center justify-center overflow-hidden rounded-field border border-line bg-card text-faint">
@@ -241,10 +241,10 @@ export function ProfileCustomizer({
               maxLength={BIO_MAX}
               value={values.bio}
               onChange={(e) => setValues((v) => ({ ...v, bio: e.target.value }))}
-              placeholder={`${displayName} — ${t(
-                'چه خودروهایی می‌فروشید، کجا هستید و چه چیزی شما را متفاوت می‌کند؟',
-                'what do you sell, where are you based and what sets you apart?',
-              )}`}
+              placeholder={t(
+                'چند خط صمیمی درباره خودتون یا نمایشگاهتون بنویسید...',
+                'A few friendly lines about you or your showroom...',
+              )}
             />
             <p className="mt-1 text-[11px] font-bold text-faint">
               {t(`${values.bio.length} از ${BIO_MAX} نویسه`, `${values.bio.length} of ${BIO_MAX} characters`)}

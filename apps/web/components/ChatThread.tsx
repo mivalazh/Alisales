@@ -286,9 +286,9 @@ export function ChatThread({
   const blocks = useMemo(() => buildBlocks(messages, lang), [messages, lang]);
 
   return (
-    <div className="mx-auto flex h-[calc(100dvh-10rem)] max-w-2xl flex-col sm:h-[calc(100dvh-9rem)]">
+    <div className="mx-auto flex h-[calc(100dvh-4rem)] max-h-[calc(100dvh-4rem)] max-w-2xl flex-col overflow-hidden overscroll-contain sm:h-[calc(100dvh-8rem)] sm:max-h-[calc(100dvh-8rem)]">
       {/* Messenger header: back, peer identity, presence. Nothing else. */}
-      <header className="sticky top-16 z-30 flex items-center gap-2 border-b border-line bg-card/95 px-2 py-2 backdrop-blur sm:top-20">
+      <header className="flex shrink-0 items-center gap-2 border-b border-line bg-card/95 px-2 py-2 backdrop-blur">
         <Link
           href="/chats"
           aria-label={t('بازگشت به چت‌ها', 'Back to chats')}
@@ -333,7 +333,7 @@ export function ChatThread({
         <Link
           href={`/listing/${listing.slug}`}
           aria-label={t('مشاهده آگهی', 'View listing')}
-          className="mt-2 flex items-center gap-2.5 rounded-xl border border-line bg-card p-2 transition hover:border-line-strong active:scale-[0.99]"
+          className="mt-2 flex shrink-0 items-center gap-2.5 rounded-xl border border-line bg-card p-2 transition hover:border-line-strong active:scale-[0.99]"
         >
           <div className="relative h-12 w-16 shrink-0 overflow-hidden rounded-lg bg-sunken">
             {listing.coverUrl && (
@@ -365,7 +365,7 @@ export function ChatThread({
           role="log"
           aria-label={t('پیام‌ها', 'Messages')}
           aria-live="polite"
-          className="flex min-h-0 flex-1 flex-col gap-1 overflow-y-auto px-1 py-3"
+          className="flex min-h-0 flex-1 flex-col gap-1 overflow-y-auto px-4 py-3"
         >
           {messages.length === 0 && (
             <div className="m-auto max-w-xs px-4 text-center">
@@ -488,8 +488,11 @@ export function ChatThread({
         )}
       </div>
 
+      {/* Composer dock: this is the only fixed-height footer; the message log
+          alone scrolls above it, so the input never rides up the viewport. */}
+      <div className="sticky bottom-0 shrink-0 border-t border-slate-200/80 bg-white pb-[env(safe-area-inset-bottom)] dark:border-white/10 dark:bg-[#111144]">
       {/* Quick replies */}
-      <div className="mt-2 flex gap-1.5 overflow-x-auto px-1 pb-1">
+      <div className="flex gap-1.5 overflow-x-auto px-3 pt-2 pb-1">
         {QUICK_REPLIES.map((reply) => {
           const label = t(reply.fa, reply.en);
           return (
@@ -512,7 +515,7 @@ export function ChatThread({
           e.preventDefault();
           void send(text);
         }}
-        className="mt-2 flex items-end gap-2 rounded-full border border-line bg-card p-1.5 shadow-sm"
+        className="m-2 flex items-end gap-2 rounded-full border border-line bg-card p-1.5 shadow-sm"
       >
         <label htmlFor="message" className="sr-only">
           {t('متن پیام', 'Message text')}
@@ -536,6 +539,7 @@ export function ChatThread({
           <Icon name="send" size={18} />
         </button>
       </form>
+      </div>
 
       {error && (
         <p className="error-text mt-1 px-2" role="alert">

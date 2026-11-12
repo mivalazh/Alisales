@@ -205,7 +205,7 @@ export default async function ListingDetailPage({
     const text = (value ?? '').trim();
     if (text) extraSpecs.push({ label, value: text, ...(positive ? { positive } : {}) });
   };
-  if (part) {
+  if (listing.kind === 'part' && part) {
     pushSpec(
       t('کشور سازنده'),
       lang === 'en' && part.originCountry
@@ -225,7 +225,7 @@ export default async function ListingDetailPage({
         lang === 'en' ? translateListingContentToEn(part.compatibility) : part.compatibility,
       );
     }
-  } else {
+  } else if (listing.kind !== 'part') {
     pushSpec(
       t('رنگ'),
       lang === 'en'
@@ -237,7 +237,7 @@ export default async function ListingDetailPage({
       listing.bodyType ? t(BODY_TYPE_LABELS[listing.bodyType]) : null,
     );
     if (listing.engineCc) pushSpec(t('توان / حجم موتور'), `${listing.engineCc} cc`);
-    if (listing.workingHours) {
+    if (listing.category === 'heavy' && listing.workingHours) {
       pushSpec(t('ساعت کارکرد'), `${listing.workingHours} ${t('ساعت')}`);
     }
     // Seller-declared condition facts — detailed here, never on the grid card.

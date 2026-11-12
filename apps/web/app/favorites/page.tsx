@@ -33,8 +33,8 @@ export default async function FavoritesPage({
 
   if (!session) {
     return (
-      <div className="mx-auto max-w-2xl space-y-4 bg-[#F4F1EC] dark:bg-[#111144]">
-        <h1 className="text-xl font-extrabold">{t('ذخیره‌شده‌ها', 'Saved')}</h1>
+      <div className="mx-auto max-w-2xl space-y-4 bg-[#F4F1EC] dark:bg-[#0B0D1E]">
+        <h1 className="text-xl font-extrabold dark:text-white">{t('ذخیره‌شده‌ها', 'Saved')}</h1>
         <p className="text-xs text-muted">
           {t('این فهرست روی همین دستگاه ذخیره شده است.', 'This list is stored on this device.')}{' '}
           <Link href="/login?next=/favorites" className="font-bold underline">
@@ -55,8 +55,8 @@ export default async function FavoritesPage({
   const items = resolved.filter((listing): listing is ListingCardData => listing !== null);
 
   return (
-    <div className="mx-auto max-w-2xl space-y-4 bg-[#F4F1EC] dark:bg-[#111144]">
-      <h1 className="text-xl font-extrabold">{t('ذخیره‌شده‌ها', 'Saved')}</h1>
+    <div className="mx-auto max-w-2xl space-y-4 bg-[#F4F1EC] dark:bg-[#0B0D1E]">
+      <h1 className="text-xl font-extrabold dark:text-white">{t('ذخیره‌شده‌ها', 'Saved')}</h1>
       <p className="text-xs text-muted">
         {t('ذخیره‌شده روی حساب شما.', 'Saved to your account.')}
       </p>
@@ -81,7 +81,7 @@ export default async function FavoritesPage({
             <div
               role="group"
               aria-label={t('نحوه نمایش', 'Display mode')}
-              className="flex items-center rounded-[var(--radius-pill)] border border-line bg-card p-1"
+              className="flex items-center rounded-[var(--radius-pill)] border border-line bg-card p-1 dark:border-white/10 dark:bg-[#131735]/90"
             >
               {(
                 [
