@@ -1,7 +1,7 @@
 'use client';
 
 import { useRouter } from 'next/navigation';
-import { useEffect, useMemo, useState, type ReactNode } from 'react';
+import { useEffect, useMemo, useState, useTransition, type ReactNode } from 'react';
 import {
   DEFAULT_FILTERS,
   activeFilterCount,
@@ -20,6 +20,7 @@ import { SearchBar } from './SearchBar';
 import { SortControl, ViewModeToggle, type ViewMode } from './SortControl';
 import { Stories, type StoryItem } from './Stories';
 import { Icon } from './Icon';
+import { CarLoader } from './CarLoader';
 import { useI18n } from '@/lib/i18n';
 
 const VIEW_KEY = 'alisales-view';
@@ -106,6 +107,7 @@ export function Catalog({
   const [panelOpen, setPanelOpen] = useState(false);
   const [sheetOpen, setSheetOpen] = useState(false);
   const [view, setView] = useState<ViewMode>('grid');
+  const [isPending, startTransition] = useTransition();
 
   useEffect(() => {
     try {
@@ -135,7 +137,9 @@ export function Catalog({
     if (nextSort !== 'newest') params.sort = nextSort;
     if (nextKind) params.kind = nextKind;
     const qs = new URLSearchParams(params).toString();
-    router.push(qs ? `${basePath}?${qs}` : basePath);
+    startTransition(() => {
+      router.push(qs ? `${basePath}?${qs}` : basePath);
+    });
   };
 
   const filterCount = activeFilterCount(filters);
@@ -169,6 +173,13 @@ export function Catalog({
 
   return (
     <div className="space-y-4">
+      {isPending && (
+        <div className="pointer-events-none fixed inset-x-0 top-20 z-30 flex justify-center" role="status" aria-label={t('در حال به‌روزرسانی نتایج', 'Updating results')}>
+          <span className="rounded-full border border-line bg-card/95 px-4 py-2 shadow-lg backdrop-blur">
+            <CarLoader size="sm" label={t('در حال به‌روزرسانی نتایج', 'Updating results')} />
+          </span>
+        </div>
+      )}
       {/* A pick from the suggestion panel is a fresh search: it replaces the
           filters instead of stacking another brand on top of them. */}
       <SearchBar
