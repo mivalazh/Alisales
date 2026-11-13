@@ -23,7 +23,7 @@ import { moderationOverlay } from './moderation-store';
 import { applyModeration } from './moderation-rules';
 import { matchesFilters } from '../filter-match';
 import { admin } from './s2-store';
-import { demoListingsHidden } from '../config/mode';
+import { visibleCatalog } from './demo-seed';
 import { mergeMyListings, readMyListings } from './my-listings-cookie';
 
 /** Structured part data for a non-vehicle listing (`parts_listings`). */
@@ -169,11 +169,6 @@ interface ListingCardRow {
 }
 
 const STORAGE_BUCKET = 'listing-photos';
-
-/** Sample cards disappear on launch day; user-created rows are unaffected. */
-function demoListings(): ListingCardData[] {
-  return demoListingsHidden() ? [] : fixtureListings;
-}
 
 function publicPhotoUrl(path: string): string | null {
   const base = process.env.NEXT_PUBLIC_SUPABASE_URL;
@@ -355,7 +350,7 @@ export async function searchListings(
     // visible even when the demo store lives in another Workers isolate.
     const mine = await readMyListings();
     const local = applyModeration(
-      applyListingOverrides(mergeMyListings(mine, [...devListings(), ...demoListings()])),
+      applyListingOverrides(mergeMyListings(mine, visibleCatalog(fixtureListings, devListings()))),
       {
         hidden: overlay.hidden,
         verifiedSellers: overlay.verifiedSellers,
@@ -387,7 +382,7 @@ export async function getListing(slug: string): Promise<ListingDetailData | null
   const supabase = supabaseClient();
   if (!supabase) {
     const mine = await readMyListings();
-    const all = mergeMyListings(mine, [...devListings(), ...demoListings()]);
+    const all = mergeMyListings(mine, visibleCatalog(fixtureListings, devListings()));
     const found = applyListingOverrides(all).find((l) => l.slug === slug);
     // Owner-removed listings are gone from the public site, not just the grid.
     if (!found || found.state === 'rejected') return null;
@@ -435,7 +430,7 @@ export interface OwnerPhotoMeta {
 export async function getOwnerListing(id: string): Promise<ListingDetailData | null> {
   const sb = admin();
   if (!sb) {
-    const found = applyListingOverrides([...devListings(), ...demoListings()]).find((l) => l.id === id);
+    const found = applyListingOverrides(visibleCatalog(fixtureListings, devListings())).find((l) => l.id === id);
     if (!found) return null;
     return {
       ...found,
@@ -454,7 +449,7 @@ export async function getOwnerListing(id: string): Promise<ListingDetailData | n
 export async function getOwnerPhotos(id: string): Promise<OwnerPhotoMeta[]> {
   const sb = admin();
   if (!sb) {
-    const found = [...devListings(), ...demoListings()].find((l) => l.id === id);
+    const found = visibleCatalog(fixtureListings, devListings()).find((l) => l.id === id);
     return (found?.photos ?? []).map((url, index) => ({
       path: url.replace(/^\/api\/photos\//, ''),
       url,

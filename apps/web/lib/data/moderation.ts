@@ -9,6 +9,7 @@ import {
 import { admin, listingById, openAbuseReports, setReportStatus, allUsers } from './s2-store';
 import { fixtureListings } from './fixtures';
 import { devListings, updateDevListing } from './dev-store';
+import { visibleCatalog } from './demo-seed';
 import {
   readModerationState,
   moderationOverlay,
@@ -109,7 +110,7 @@ function dateLabel(iso: string): string {
 /** Full public catalog (fixtures + owner-created) with moderation applied. */
 async function catalog(): Promise<ListingCardData[]> {
   const overlay = moderationOverlay();
-  return applyModeration([...devListings(), ...fixtureListings], {
+  return applyModeration(visibleCatalog(fixtureListings, devListings()), {
     hidden: overlay.hidden,
     verifiedSellers: overlay.verifiedSellers,
   });
@@ -301,7 +302,7 @@ export async function bumpListing(id: string): Promise<ModerationActionResult> {
 /** Confirm an inspection and mark its listing as workshop-inspected. */
 export async function markInspected(slug: string | null): Promise<void> {
   if (!slug) return;
-  const found = [...devListings(), ...fixtureListings].find((listing) => listing.slug === slug);
+  const found = visibleCatalog(fixtureListings, devListings()).find((listing) => listing.slug === slug);
   if (found) updateDevListing(found.id, { hasReport: true });
 }
 

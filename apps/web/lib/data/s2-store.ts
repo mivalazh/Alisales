@@ -640,11 +640,12 @@ function mapCardRow(r: Record<string, unknown>): ListingCardData {
 export async function listingById(id: string): Promise<ListingCardData | null> {
   const sb = admin();
   if (!sb) {
-    const [{ devListings, applyListingOverrides }, { fixtureListings }] = await Promise.all([
+    const [{ devListings, applyListingOverrides }, { fixtureListings }, { visibleCatalog }] = await Promise.all([
       import('./dev-store'),
       import('./fixtures'),
+      import('./demo-seed'),
     ]);
-    return applyListingOverrides([...devListings(), ...fixtureListings]).find((l) => l.id === id) ?? null;
+    return applyListingOverrides(visibleCatalog(fixtureListings, devListings())).find((l) => l.id === id) ?? null;
   }
   const { data } = await sb.from('listing_cards').select('*').eq('id', id).maybeSingle();
   return data ? mapCardRow(data as Record<string, unknown>) : null;

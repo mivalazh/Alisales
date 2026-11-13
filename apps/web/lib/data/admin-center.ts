@@ -1,6 +1,7 @@
 import { readJson } from '../storage/demo-store';
 import { devListings } from './dev-store';
 import { fixtureListings } from './fixtures';
+import { visibleCatalog } from './demo-seed';
 import { moderationQueues, type ModerationQueues } from './moderation';
 import {
   adminSettings,
@@ -57,7 +58,7 @@ export interface AdminCenterData {
 
 export async function adminCenterData(): Promise<AdminCenterData> {
   const [queues, rate] = await Promise.all([moderationQueues(), getAedRate()]);
-  const listings: AdminListingRow[] = [...devListings(), ...fixtureListings]
+  const listings: AdminListingRow[] = visibleCatalog(fixtureListings, devListings())
     .map((listing) => ({
       id: listing.id,
       slug: listing.slug,

@@ -3,6 +3,7 @@ import { accountPhone, getUser, listingsBySeller, type Account } from './s2-stor
 import { averageRating, reviewsFor, type SellerReview } from './reviews';
 import { fixtureListings } from './fixtures';
 import { devListings } from './dev-store';
+import { visibleCatalog } from './demo-seed';
 import { followerCount, profileCustomization } from './social-store';
 import { storiesFrom } from '../stories';
 import type { StoryItem } from '@/components/Stories';
@@ -50,7 +51,7 @@ export async function loadSellerProfile(sellerId: string): Promise<SellerProfile
   const own = await listingsBySeller(sellerId);
   const listings = own.length
     ? own
-    : [...devListings(), ...fixtureListings].filter((listing) => listing.sellerId === sellerId);
+    : visibleCatalog(fixtureListings, devListings()).filter((listing) => listing.sellerId === sellerId);
   if (!account && listings.length === 0) return null;
 
   const [reviews, phone] = await Promise.all([reviewsFor(sellerId), accountPhone(sellerId)]);
