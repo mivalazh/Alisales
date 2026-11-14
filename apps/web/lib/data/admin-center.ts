@@ -12,7 +12,7 @@ import {
   type StorySubmission,
 } from './platform-store';
 import { getAedRate } from './rate-store';
-import type { AedRate } from '@alisales/schemas';
+import type { AedRate, ListingState } from '@alisales/schemas';
 
 /**
  * Owner control centre data (`/admin`).
@@ -29,7 +29,7 @@ export interface AdminListingRow {
   title: string;
   kind: 'vehicle' | 'part';
   city: string;
-  state: string;
+  state: ListingState;
   priceIRR: number;
   featured: boolean;
   publishedAt: string | null;
