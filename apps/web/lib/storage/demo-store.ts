@@ -98,3 +98,17 @@ export function writeBytes(name: string, data: Uint8Array): void {
   fs.mkdirSync(dir, { recursive: true });
   fs.writeFileSync(fileFor(name), data);
 }
+
+/** Removes a stored blob in fixture mode; missing keys are ignored. */
+export function deleteBytes(name: string): void {
+  const fs = nodeFs();
+  if (!fs) {
+    memory().delete(name);
+    return;
+  }
+  try {
+    fs.rmSync(fileFor(name), { force: true });
+  } catch {
+    // A missing/unreadable fixture file is already cleaned up.
+  }
+}

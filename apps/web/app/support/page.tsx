@@ -1,6 +1,6 @@
 import { localizedMetadata } from '@/lib/i18n/metadata';
+import Link from 'next/link';
 import { Icon } from '@/components/Icon';
-import { MyTickets } from '@/components/MyTickets';
 import { SupportForm } from '@/components/SupportForm';
 import { SupportHelpCenter } from '@/components/SupportHelpCenter';
 import { getLanguage, serverT } from '@/lib/i18n/server';
@@ -18,7 +18,31 @@ export default async function SupportPage() {
     <article className="mx-auto max-w-4xl space-y-5">
       <SupportForm kind="ticket" />
 
-      <MyTickets />
+      <section
+        id="partnership"
+        className="flex flex-col items-start justify-between gap-3 rounded-card border border-line bg-card p-4 sm:flex-row sm:items-center sm:p-5"
+      >
+        <div>
+          <p className="text-[11px] font-extrabold text-[#F98513]">
+            {t('همکاری تجاری', 'Commercial partnership')}
+          </p>
+          <h2 className="mt-1 text-base font-extrabold text-ink">
+            {t('همکاری با ما', 'Partner with us')}
+          </h2>
+          <p className="mt-1 max-w-md text-xs leading-6 text-muted">
+            {t(
+              'برای نمایشگاه‌ها، فروشگاه‌های قطعات و همکاران تبلیغاتی؛ درخواست خود را ثبت کنید.',
+              'For showrooms, parts stores and advertising partners; send us your request.',
+            )}
+          </p>
+        </div>
+        <Link
+          href="/support/ticket?topic=advertising"
+          className="bg-[#F98513] hover:bg-[#e0760c] text-white font-extrabold rounded-xl px-5 py-3 shadow-sm"
+        >
+          {t('همکاری با ما', 'Partner with us')}
+        </Link>
+      </section>
 
       <SupportHelpCenter />
 

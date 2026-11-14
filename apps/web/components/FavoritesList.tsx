@@ -8,6 +8,7 @@ import { Icon } from './Icon';
 import { PriceText } from './PriceText';
 import { ViewModeToggle, type ViewMode } from './SortControl';
 import { ListEmptyState } from './ListEmptyState';
+import { CarLoader } from './CarLoader';
 import { isPreSizedSource } from '@/lib/images';
 import { useI18n } from '@/lib/i18n';
 import { translateListingContentToEn } from '@/lib/i18n/content';
@@ -51,7 +52,13 @@ export function FavoritesList() {
     setItems(next);
   };
 
-  if (items === null) return null;
+  if (items === null) {
+    return (
+      <div className="flex min-h-[40vh] items-center justify-center">
+        <CarLoader label={t('در حال بارگذاری', 'loading...')} />
+      </div>
+    );
+  }
 
   if (items.length === 0) {
     return (

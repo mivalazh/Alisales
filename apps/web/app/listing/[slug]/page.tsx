@@ -29,6 +29,8 @@ import { RateLine } from '@/components/RateLine';
 import { VerifiedPill, sellerDisplayName } from '@/components/SellerVerified';
 import { SoldBadge } from '@/components/SoldBadge';
 import { getListing, getSellerPhone } from '@/lib/data/listings';
+import { profileCustomization } from '@/lib/data/social-store';
+import { isPublicSellerProfile, resolveSellerProfileMode } from '@/lib/seller-visibility';
 import { brandLatinFor, vehicleTitle } from '@/lib/listing-text';
 import { translateListingContentToEn } from '@/lib/i18n/content';
 import { absoluteUrl } from '@/lib/seo';
@@ -101,7 +103,13 @@ export default async function ListingDetailPage({
   const t = (fa: string, en?: string) => serverT(lang, fa, en);
 
   // Server guarantees: null for sold / non-revealed phones.
-  const phone = await getSellerPhone(listing.id);
+  const [phone, sellerCustom] = await Promise.all([
+    getSellerPhone(listing.id),
+    profileCustomization(listing.sellerId),
+  ]);
+  const sellerIsBusiness = isPublicSellerProfile(
+    resolveSellerProfileMode(sellerCustom?.profileMode, null, [listing]),
+  );
   const sold = listing.state === 'sold';
   const part = listing.part ?? null;
   const rawTitle = part ? part.title : vehicleTitle(listing);
@@ -399,7 +407,15 @@ export default async function ListingDetailPage({
                       ? 'https://schema.org/NewCondition'
                       : 'https://schema.org/UsedCondition',
                   url: absoluteUrl(`/listing/${listing.slug}`),
-                  seller: { '@type': 'Organization', name: displaySeller ?? 'Ali Sales' },
+                  // Personal sellers are intentionally not named in structured data.
+                  ...(sellerIsBusiness
+                    ? {
+                        seller: {
+                          '@type': 'Organization',
+                          name: displaySeller ?? 'Ali Sales',
+                        },
+                      }
+                    : {}),
                 },
               },
               {
@@ -524,11 +540,17 @@ export default async function ListingDetailPage({
           <div className="rounded-card border border-line bg-card p-4 sm:p-5">
             <div className="flex items-center justify-between gap-3">
               <div className="min-w-0">
-                {listing.showroomVerified ? (
-                  <VerifiedPill label={t(part ? 'تعمیرگاه معتبر' : 'نمایشگاه معتبر')} />
+                {sellerIsBusiness ? (
+                  listing.showroomVerified ? (
+                    <VerifiedPill label={t(part ? 'تعمیرگاه معتبر' : 'نمایشگاه معتبر')} />
+                  ) : (
+                    <p className="truncate text-sm font-extrabold">
+                      {displaySeller ?? t('فروشنده', 'Seller')}
+                    </p>
+                  )
                 ) : (
                   <p className="truncate text-sm font-extrabold">
-                    {displaySeller ?? t('فروشنده حقیقی', 'Private seller')}
+                    {t('فروشنده حقیقی', 'Private seller')}
                   </p>
                 )}
                 <p className="mt-1 text-xs font-bold text-muted">
@@ -537,13 +559,15 @@ export default async function ListingDetailPage({
               </div>
             </div>
 
-            <Link
-              href={`/seller/${listing.sellerId}`}
-              className="mt-2 inline-flex items-center gap-1 text-xs font-bold text-muted underline transition hover:text-ink"
-            >
-              <Icon name="user" size={14} />
-              {t('مشاهده‌ی پروفایل فروشنده', 'View seller profile')}
-            </Link>
+            {sellerIsBusiness && (
+              <Link
+                href={`/seller/${listing.sellerId}`}
+                className="mt-2 inline-flex items-center gap-1 text-xs font-bold text-muted underline transition hover:text-ink"
+              >
+                <Icon name="user" size={14} />
+                {t('مشاهده‌ی پروفایل فروشنده', 'View seller profile')}
+              </Link>
+            )}
 
             <div className="mt-4 border-t border-line pt-4">
               <ContactButtons
@@ -566,7 +590,7 @@ export default async function ListingDetailPage({
                 </Link>
                 <DeleteListingButton
                   id={listing.id}
-                  redirectTo={`/seller/${listing.sellerId}`}
+                  redirectTo={sellerIsBusiness ? `/seller/${listing.sellerId}` : '/profile/listings'}
                   compact
                 />
               </div>

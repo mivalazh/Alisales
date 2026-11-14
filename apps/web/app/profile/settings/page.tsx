@@ -29,7 +29,7 @@ export default async function SettingsPage() {
   const t = (fa: string, en: string) => serverT(lang, fa, en);
 
   const passwordReady = hasPassword(session.phone);
-  const custom = profileCustomization(session.sub);
+  const custom = await profileCustomization(session.sub);
   const profileMode = custom?.profileMode ?? profileModeFor(session.accountType);
 
   return (

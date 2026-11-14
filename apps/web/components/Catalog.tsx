@@ -239,7 +239,7 @@ export function Catalog({
       )}
 
       {category ? (
-        <div className="grid gap-4 lg:grid-cols-[264px_minmax(0,1fr)] lg:items-start">
+        <div className="flex flex-col gap-4 lg:flex-row lg:items-start">
           <FilterSidebar
             category={category}
             filters={filters}
@@ -247,7 +247,7 @@ export function Catalog({
             onClear={() => commit({ ...DEFAULT_FILTERS, q: filters.q }, sort)}
             pool={filterPool}
           />
-          <div className="min-w-0">
+          <div className="min-w-0 flex-1">
             <ListingGrid listings={sortedListings} view={view} />
           </div>
         </div>

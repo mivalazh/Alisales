@@ -14,7 +14,7 @@ function text(value: unknown, max: number): string {
 export async function GET(request: Request): Promise<NextResponse> {
   const code = new URL(request.url).searchParams.get('code')?.trim();
   if (!code) return NextResponse.json({ error: 'کد پیگیری را وارد کنید.' }, { status: 400 });
-  const ticket = findSupportByCode(code);
+  const ticket = await findSupportByCode(code);
   if (!ticket) return NextResponse.json({ error: 'تیکتی با این کد پیدا نشد.' }, { status: 404 });
   return NextResponse.json({
     ticket: {
@@ -57,7 +57,7 @@ export async function POST(request: Request): Promise<NextResponse> {
     return NextResponse.json({ error: 'متن درخواست را کامل‌تر بنویسید.' }, { status: 400 });
   }
 
-  const entry = createSupportRequest({ topic, name, contact, model, message });
+  const entry = await createSupportRequest({ topic, name, contact, model, message });
   return NextResponse.json(
     {
       ok: true,

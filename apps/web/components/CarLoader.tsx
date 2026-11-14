@@ -5,20 +5,25 @@
  */
 export function CarLoader({
   size = 'md',
-  label = 'در حال بارگذاری',
+  label = 'loading...',
 }: {
   size?: 'sm' | 'md' | 'lg';
   label?: string;
 }) {
-  const width = size === 'sm' ? 88 : size === 'lg' ? 270 : 168;
+  const compact = size === 'sm';
   return (
     <span
-      className="car-loader inline-flex flex-col items-center text-[#F98513]"
+      className={`car-loader inline-flex flex-col items-center text-[#F98513] ${
+        compact ? 'w-20' : 'w-32 sm:w-40'
+      }`}
       role="status"
       aria-label={label}
-      style={{ width }}
     >
-      <svg viewBox="0 0 260 112" className="h-auto w-full" aria-hidden="true">
+      <svg
+        viewBox="0 0 260 112"
+        className={`${compact ? 'h-10' : 'h-16 sm:h-20'} w-full`}
+        aria-hidden="true"
+      >
         {/* Speed lines sliding beneath the car. */}
         <g
           className="car-speed"
@@ -67,7 +72,18 @@ export function CarLoader({
           <path d="M198 64v5M198 87v5M184 78h5M207 78h5" stroke="#F98513" strokeWidth="2.4" strokeLinecap="round" />
         </g>
       </svg>
-      <span className="sr-only">{label}</span>
+      {compact ? (
+        <span className="sr-only">{label}</span>
+      ) : (
+        <span className="mt-1 font-mono text-xs tracking-widest text-[#F98513] lowercase">
+          loading
+          <span className="car-dots" aria-hidden="true">
+            <span>.</span>
+            <span>.</span>
+            <span>.</span>
+          </span>
+        </span>
+      )}
     </span>
   );
 }

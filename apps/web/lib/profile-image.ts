@@ -1,18 +1,24 @@
+import { AVATAR_EDGE_PX, COVER_EDGE_PX, MAX_PROFILE_MEDIA_BYTES } from './media-rules';
+
 /**
  * Profile artwork pipeline — avatar and cover banner.
  *
- * Same idea as the listing photo pipeline, with profile-sized targets: decode
- * (EXIF rotation applied), downscale, re-encode WebP as a data URL, so the
- * stored value is one short string and no upload endpoint is needed. Metadata
- * (GPS, serials) is dropped by the canvas re-encode.
+ * Decode with EXIF rotation applied, downscale, re-encode WebP and hand the
+ * compressed blob to the upload route. Metadata (GPS, serials) is dropped by
+ * the canvas re-encode; the stored profile row keeps only the storage URL.
  */
 
-export const AVATAR_EDGE_PX = 320;
-export const COVER_EDGE_PX = 1280;
+export { AVATAR_EDGE_PX, COVER_EDGE_PX };
+
+export interface ProfileImage {
+  blob: Blob;
+  width: number;
+  height: number;
+}
 
 export class ProfileImageError extends Error {}
 
-export async function profileImageDataUrl(file: File, maxEdge: number): Promise<string> {
+export async function profileImageBlob(file: File, maxEdge: number): Promise<ProfileImage> {
   if (!file.type.startsWith('image/')) {
     throw new ProfileImageError('فقط فایل تصویری مجاز است.');
   }
@@ -41,12 +47,18 @@ export async function profileImageDataUrl(file: File, maxEdge: number): Promise<
   bitmap.close();
 
   let quality = 0.84;
-  let url = canvas.toDataURL('image/webp', quality);
-  // Keep the stored string small: the API caps it at ~180 KB.
-  while (url.length > 150_000 && quality > 0.4) {
+  let blob = await new Promise<Blob | null>((resolve) =>
+    canvas.toBlob(resolve, 'image/webp', quality),
+  );
+  while (blob && blob.size > MAX_PROFILE_MEDIA_BYTES && quality > 0.4) {
     quality -= 0.12;
-    url = canvas.toDataURL('image/webp', quality);
+    blob = await new Promise<Blob | null>((resolve) =>
+      canvas.toBlob(resolve, 'image/webp', quality),
+    );
   }
-  if (url.length > 240_000) throw new ProfileImageError('حجم تصویر بیش از حد مجاز است.');
-  return url;
+  if (!blob) throw new ProfileImageError('تبدیل تصویر به WebP ممکن نیست.');
+  if (blob.size > MAX_PROFILE_MEDIA_BYTES) {
+    throw new ProfileImageError('حجم تصویر بیش از حد مجاز است.');
+  }
+  return { blob, width, height };
 }

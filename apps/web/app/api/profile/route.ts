@@ -1,12 +1,16 @@
 import { NextResponse } from 'next/server';
 import { businessTypes, profileModes } from '@alisales/schemas';
 import { getSession } from '@/lib/auth/session';
+import { CURATED_AVATARS } from '@/lib/avatars';
+import { deleteMediaUrl } from '@/lib/data/media-store';
 import {
   BIO_MAX,
-  IMAGE_MAX_CHARS,
   profileCustomization,
   saveProfileCustomization,
 } from '@/lib/data/social-store';
+import { MAX_MEDIA_URL_CHARS, isProfileMediaUrl, ownsMediaUrl } from '@/lib/media-rules';
+
+const CURATED_AVATAR_URLS = new Set(CURATED_AVATARS.map((avatar) => avatar.url));
 
 /**
  * The signed-in seller's own profile customization: avatar, cover banner and
@@ -17,23 +21,25 @@ function unauthorized(): NextResponse {
   return NextResponse.json({ error: 'برای ویرایش پروفایل وارد حساب خود شوید.' }, { status: 401 });
 }
 
-function cleanImage(value: unknown): string | null | undefined {
+function cleanImage(
+  value: unknown,
+  kind: 'avatar' | 'cover',
+  userId: string,
+): string | null | undefined {
   if (value === undefined) return undefined;
   if (value === null || value === '') return null;
   if (typeof value !== 'string') return undefined;
   const trimmed = value.trim();
   if (!trimmed) return null;
-  const isData = trimmed.startsWith('data:image/');
-  const isRemote = /^https?:\/\//.test(trimmed) || trimmed.startsWith('/');
-  if (!isData && !isRemote) return undefined;
-  if (trimmed.length > IMAGE_MAX_CHARS) return 'too-large';
-  return trimmed;
+  if (kind === 'avatar' && CURATED_AVATAR_URLS.has(trimmed)) return trimmed;
+  if (trimmed.length > MAX_MEDIA_URL_CHARS) return 'too-large';
+  return isProfileMediaUrl(trimmed) && ownsMediaUrl(trimmed, userId) ? trimmed : undefined;
 }
 
 export async function GET(): Promise<NextResponse> {
   const session = await getSession();
   if (!session) return unauthorized();
-  return NextResponse.json({ profile: profileCustomization(session.sub) });
+  return NextResponse.json({ profile: await profileCustomization(session.sub) });
 }
 
 export async function PUT(request: Request): Promise<NextResponse> {
@@ -75,8 +81,8 @@ export async function PUT(request: Request): Promise<NextResponse> {
     return NextResponse.json({ error: 'نوع کسب‌وکار نامعتبر است.' }, { status: 400 });
   }
 
-  const avatarUrl = cleanImage(body.avatarUrl);
-  const coverUrl = cleanImage(body.coverUrl);
+  const avatarUrl = cleanImage(body.avatarUrl, 'avatar', session.sub);
+  const coverUrl = cleanImage(body.coverUrl, 'cover', session.sub);
   if (avatarUrl === 'too-large' || coverUrl === 'too-large') {
     return NextResponse.json({ error: 'حجم تصویر بیش از حد مجاز است.' }, { status: 413 });
   }
@@ -87,7 +93,8 @@ export async function PUT(request: Request): Promise<NextResponse> {
     return NextResponse.json({ error: 'نشانی تصویر نامعتبر است.' }, { status: 400 });
   }
 
-  const saved = saveProfileCustomization(session.sub, {
+  const previous = await profileCustomization(session.sub);
+  const saved = await saveProfileCustomization(session.sub, {
     bio: typeof body.bio === 'string' ? body.bio : undefined,
     avatarUrl: avatarUrl as string | null | undefined,
     coverUrl: coverUrl as string | null | undefined,
@@ -98,5 +105,15 @@ export async function PUT(request: Request): Promise<NextResponse> {
         ? undefined
         : (body.businessType as 'car-dealer' | 'parts-store' | 'workshop' | 'rental' | null),
   });
+
+  // Replace-or-remove cleanup: old uploaded artwork is deleted only after the
+  // row has been saved, so a failed save can never break the current profile.
+  if (saved.avatarUrl !== previous?.avatarUrl) {
+    await deleteMediaUrl(previous?.avatarUrl);
+  }
+  if (saved.coverUrl !== previous?.coverUrl) {
+    await deleteMediaUrl(previous?.coverUrl);
+  }
+
   return NextResponse.json({ ok: true, profile: saved });
 }

@@ -24,8 +24,10 @@ export async function GET(request: Request): Promise<NextResponse> {
   const session = await getSession();
   if (!session) return unauthorized();
   const sellerId = new URL(request.url).searchParams.get('sellerId') ?? '';
-  if (sellerId) return NextResponse.json({ following: isFollowing(session.sub, sellerId) });
-  return NextResponse.json({ sellerIds: followedSellerIds(session.sub) });
+  if (sellerId) {
+    return NextResponse.json({ following: await isFollowing(session.sub, sellerId) });
+  }
+  return NextResponse.json({ sellerIds: await followedSellerIds(session.sub) });
 }
 
 export async function POST(request: Request): Promise<NextResponse> {
@@ -47,6 +49,6 @@ export async function POST(request: Request): Promise<NextResponse> {
     return NextResponse.json({ error: 'نمی‌توانید نمایشگاه خودتان را دنبال کنید.' }, { status: 400 });
   }
 
-  const following = toggleFollow(session.sub, sellerId);
+  const following = await toggleFollow(session.sub, sellerId);
   return NextResponse.json({ ok: true, following });
 }

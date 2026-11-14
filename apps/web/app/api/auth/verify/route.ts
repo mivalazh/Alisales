@@ -103,13 +103,13 @@ export async function POST(request: Request): Promise<NextResponse> {
     });
   }
 
-  if (!profileCustomization(account.id)) {
+  if (!(await profileCustomization(account.id))) {
     const requestedBusiness =
       typeof body.businessType === 'string' &&
       businessTypes.includes(body.businessType as never)
         ? (body.businessType as BusinessType)
         : null;
-    saveProfileCustomization(account.id, {
+    await saveProfileCustomization(account.id, {
       profileMode: profileModeFor(account.accountType),
       businessType: requestedBusiness,
     });

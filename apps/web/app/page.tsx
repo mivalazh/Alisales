@@ -70,7 +70,7 @@ export default async function HomePage({
 
   const [session, lang] = await Promise.all([getSession(), getLanguage()]);
   const t = (fa: string, en?: string) => serverT(lang, fa, en);
-  const followed = followedSellerIds(session?.sub);
+  const followed = await followedSellerIds(session?.sub);
   const [base, approved] = await Promise.all([searchListings(filters), approvedStories()]);
   let listings = base;
   if (kind) {

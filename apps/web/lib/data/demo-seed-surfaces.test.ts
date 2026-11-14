@@ -21,6 +21,8 @@ const userListing = {
   id: 'user-created-listing',
   slug: 'user-created-listing',
   sellerId: 'user-created-seller',
+  showroomName: null,
+  showroomVerified: false,
 };
 
 let dataDir: string;
@@ -61,6 +63,7 @@ describe('demo seed switch across server surfaces', () => {
 
     expect(await loadSellerProfile(sample.sellerId)).toBeNull();
     const profile = await loadSellerProfile(userListing.sellerId);
+    expect(profile?.profileMode).toBe('personal');
     expect(profile?.listings.map((listing) => listing.id)).toEqual([userListing.id]);
     expect(profile?.stories.map((story) => story.slug)).toEqual([userListing.slug]);
 

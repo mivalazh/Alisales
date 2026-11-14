@@ -1,7 +1,7 @@
-import { localizedMetadata } from '@/lib/i18n/metadata';
+import type { Metadata } from 'next';
 import Image from 'next/image';
 import Link from 'next/link';
-import { notFound } from 'next/navigation';
+import { notFound, redirect } from 'next/navigation';
 import { CITY_LABELS, formatJalaliDate, formatAmountLatin, irrToToman, postingAgeLabel } from '@alisales/schemas';
 import { getSession } from '@/lib/auth/session';
 import { loadSellerProfile } from '@/lib/data/seller-profile';
@@ -18,11 +18,24 @@ import { getLanguage } from '@/lib/i18n/server';
 import { serverT } from '@/lib/i18n/server';
 import { postingAgeEnglish } from '@/lib/i18n/dictionary';
 import { translateListingContentToEn } from '@/lib/i18n/content';
+import { isPublicSellerProfile } from '@/lib/seller-visibility';
 
-export const generateMetadata = localizedMetadata(
-  { title: 'پروفایل فروشنده' },
-  { title: 'Seller profile' },
-);
+export async function generateMetadata({
+  params,
+}: {
+  params: Promise<{ id: string }>;
+}): Promise<Metadata> {
+  const [{ id }, lang] = await Promise.all([params, getLanguage()]);
+  const profile = await loadSellerProfile(id);
+  const title = lang === 'en' ? 'Seller profile' : 'پروفایل فروشنده';
+  if (!profile || !isPublicSellerProfile(profile.profileMode)) {
+    return { title, robots: { index: false, follow: false } };
+  }
+  return {
+    title,
+    alternates: { canonical: `/seller/${profile.id}` },
+  };
+}
 
 type Tab = 'active' | 'stories' | 'reviews';
 const TABS: ReadonlyArray<{ key: Tab; label: string; en: string }> = [
@@ -37,13 +50,13 @@ function parseTab(value: string | string[] | undefined): Tab {
 }
 
 /**
- * Public showroom profile — an Instagram-style identity page.
+ * Public business profile — an Instagram-style identity page.
  *
- * Four numbers only: live listings, stories, rating and followers. Sold counts,
- * response rate and reply time are deliberately absent; they were noise on a
- * page whose job is «who is this showroom and what do they have». The primary
- * action is «دنبال کردن» for a visitor (their stories then lead the rail and
- * their stock leads the feeds) and «ویرایش پروفایل» for the owner.
+ * Personal accounts never reach this route: owners are redirected to /profile
+ * and visitors get a 404. For a business, four numbers only: live listings,
+ * stories, rating and followers. Sold counts, response rate and reply time are
+ * deliberately absent; they were noise on a page whose job is «who is this
+ * showroom and what do they have».
  */
 export default async function SellerPage({
   params,
@@ -56,6 +69,15 @@ export default async function SellerPage({
   const query = await searchParams;
   const [profile, lang] = await Promise.all([loadSellerProfile(id), getLanguage()]);
   if (!profile) notFound();
+
+  const session = await getSession();
+  // Personal accounts have no public seller page. Owners go back to their
+  // private hub; everyone else gets a 404 rather than a hint that it exists.
+  if (!isPublicSellerProfile(profile.profileMode)) {
+    if (session?.sub === profile.id) redirect('/profile');
+    notFound();
+  }
+
   const t = (fa: string, en?: string) => serverT(lang, fa, en);
 
   const displayName =
@@ -65,11 +87,10 @@ export default async function SellerPage({
       ? translateListingContentToEn(profile.bio)
       : profile.bio;
 
-  const session = await getSession();
   const isOwner = session?.sub === profile.id;
   const tab = parseTab(query.tab);
   const firstActive = profile.active[0] ?? null;
-  const following = isFollowing(session?.sub, profile.id);
+  const following = await isFollowing(session?.sub, profile.id);
 
   return (
     <div className="mx-auto max-w-4xl space-y-4">

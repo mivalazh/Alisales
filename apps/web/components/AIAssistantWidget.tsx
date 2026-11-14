@@ -135,7 +135,7 @@ export function AIAssistantWidget() {
         <div
           role="dialog"
           aria-label={t('دستیار هوشمند Ali Sales')}
-          className="fixed bottom-24 right-3 z-50 flex h-[520px] max-h-[80dvh] w-[calc(100vw-1.5rem)] flex-col overflow-hidden rounded-2xl border border-line bg-card shadow-2xl sm:right-6 sm:w-[420px] md:w-[450px]"
+          className="fixed bottom-20 right-4 z-50 flex h-[390px] max-h-[60dvh] w-[calc(100vw-2rem)] max-w-[340px] flex-col overflow-hidden rounded-2xl border border-line bg-card shadow-2xl sm:bottom-6 sm:right-6 sm:h-[460px] sm:max-h-[72dvh] sm:max-w-[380px]"
         >
           <div className="flex items-center gap-2 bg-[#111144] px-3 py-2.5 text-white">
             <span className="ai-orb ai-orb-sm shrink-0" aria-hidden="true">
@@ -177,13 +177,13 @@ export function AIAssistantWidget() {
               message.role === 'user' ? (
                 <p
                   key={index}
-                  className="ms-auto w-fit max-w-[85%] rounded-2xl rounded-br-sm bg-[#111144] px-3 py-2 text-xs font-bold leading-6 text-white"
+                  className="ms-auto w-fit max-w-[86%] rounded-2xl rounded-br-sm bg-[#111144] px-2.5 py-1.5 text-[11px] font-bold leading-5 text-white"
                 >
                   {message.text}
                 </p>
               ) : (
-                <div key={index} className="w-fit max-w-[92%] space-y-2">
-                  <p className="rounded-2xl rounded-bl-sm bg-page px-3 py-2 text-xs leading-6 text-ink">
+                <div key={index} className="w-fit max-w-[90%] space-y-1.5">
+                  <p className="rounded-2xl rounded-bl-sm bg-page px-2.5 py-1.5 text-[11px] leading-5 text-ink">
                     {message.text}
                   </p>
                   {message.listings && message.listings.length > 0 && (
@@ -194,18 +194,19 @@ export function AIAssistantWidget() {
                             href={`/listing/${listing.slug}`}
                             className="flex items-center gap-2 rounded-xl border border-line bg-card p-1.5 transition hover:border-cta"
                           >
-                            <span className="relative h-11 w-14 shrink-0 overflow-hidden rounded-lg bg-sunken">
+                            <span className="relative h-11 w-11 shrink-0 overflow-hidden rounded-lg bg-sunken">
                               {listing.coverUrl ? (
                                 <Image
                                   src={listing.coverUrl}
-                                  alt={listing.title}
+                                  alt=""
                                   fill
-                                  sizes="56px"
-                                  className="object-cover"
+                                  sizes="44px"
+                                  className="h-11 w-11 rounded-lg object-cover"
                                 />
                               ) : (
-                                <span className="flex h-full items-center justify-center text-[8px] text-faint">
-                                  No image
+                                <span className="flex h-full items-center justify-center text-faint">
+                                  <Icon name="imageX" size={15} />
+                                  <span className="sr-only">No image</span>
                                 </span>
                               )}
                             </span>

@@ -7,6 +7,8 @@ import { visibleCatalog } from './demo-seed';
 import { followerCount, profileCustomization } from './social-store';
 import { storiesFrom } from '../stories';
 import type { StoryItem } from '@/components/Stories';
+import type { ProfileMode } from '@alisales/schemas';
+import { resolveSellerProfileMode } from '../seller-visibility';
 
 /**
  * Public seller profile data.
@@ -26,6 +28,8 @@ export interface SellerStats {
 
 export interface SellerProfile {
   id: string;
+  /** Personal profiles are private; only business profiles have public pages. */
+  profileMode: ProfileMode;
   name: string;
   initials: string;
   verified: boolean;
@@ -54,12 +58,17 @@ export async function loadSellerProfile(sellerId: string): Promise<SellerProfile
     : visibleCatalog(fixtureListings, devListings()).filter((listing) => listing.sellerId === sellerId);
   if (!account && listings.length === 0) return null;
 
-  const [reviews, phone] = await Promise.all([reviewsFor(sellerId), accountPhone(sellerId)]);
+  const [reviews, phone, custom, followers] = await Promise.all([
+    reviewsFor(sellerId),
+    accountPhone(sellerId),
+    profileCustomization(sellerId),
+    followerCount(sellerId),
+  ]);
 
   const active = listings.filter((listing) => listing.state === 'active');
+  const profileMode = resolveSellerProfileMode(custom?.profileMode, account?.accountType, listings);
   const name =
     account?.displayName?.trim() || listings[0]?.showroomName?.trim() || 'فروشنده آلی‌سیلز';
-  const custom = profileCustomization(sellerId);
   // The seller's own story rail: their live, photographed stock, newest first.
   const stories = storiesFrom(active, [], [], 8);
   const rating = averageRating(reviews);
@@ -71,6 +80,7 @@ export async function loadSellerProfile(sellerId: string): Promise<SellerProfile
 
   return {
     id: sellerId,
+    profileMode,
     name,
     initials: name.trim().charAt(0) || '؟',
     verified:
@@ -89,7 +99,7 @@ export async function loadSellerProfile(sellerId: string): Promise<SellerProfile
       active: active.length,
       rating,
       reviewCount: reviews.length,
-      followers: followerCount(sellerId),
+      followers,
       stories: stories.length,
     },
   };

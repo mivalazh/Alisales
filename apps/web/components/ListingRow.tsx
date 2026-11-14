@@ -14,6 +14,7 @@ import { FavoriteButton } from './FavoriteButton';
 import { PriceText } from './PriceText';
 import { VerifiedPill } from './SellerVerified';
 import { SoldBadge } from './SoldBadge';
+import { Icon } from './Icon';
 import { isPreSizedSource } from '@/lib/images';
 
 const SOLD_TEXT = '#64748B';
@@ -43,12 +44,15 @@ export function ListingRow({
   const specs = part ? [] : specParts(listing, lang);
   const rawTitle = part ? part.title : vehicleTitle(listing);
   const title = lang === 'en' ? translateListingContentToEn(rawTitle) : rawTitle;
+  const hasPhoto = Boolean(
+    listing.coverUrl && !/no-image|placeholder/i.test(listing.coverUrl),
+  );
 
   return (
     <li className="relative min-w-0 overflow-hidden rounded-card border border-line bg-card transition hover:border-line-strong hover:shadow-lg">
       <Link href={`/listing/${listing.slug}`} className="flex items-stretch gap-3 p-3 sm:gap-4 sm:p-4">
-        <div className="relative aspect-square w-24 shrink-0 overflow-hidden rounded-field bg-sunken sm:w-32">
-          {listing.coverUrl ? (
+        <div className="relative h-20 w-24 shrink-0 overflow-hidden rounded-field bg-sunken">
+          {hasPhoto && listing.coverUrl ? (
             <Image
               src={listing.coverUrl}
               alt={part ? title : `${translateListingContentToEn(listing.model)} ${listing.year}`}
@@ -60,21 +64,9 @@ export function ListingRow({
               className={`object-cover ${sold ? 'opacity-60 grayscale' : ''}`}
             />
           ) : (
-            <div className="flex h-full items-center justify-center text-faint">
-              <svg
-                aria-hidden="true"
-                width="24"
-                height="24"
-                viewBox="0 0 24 24"
-                fill="none"
-                stroke="currentColor"
-                strokeWidth="1.5"
-                strokeLinecap="round"
-                strokeLinejoin="round"
-              >
-                <path d="M4 8h3l1.5-2h7L17 8h3v11H4z" />
-                <circle cx="12" cy="13" r="3.5" />
-              </svg>
+            <div className="flex h-full w-full items-center justify-center text-faint">
+              <Icon name="imageX" size={24} />
+              <span className="sr-only">No image</span>
             </div>
           )}
         </div>

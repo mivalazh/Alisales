@@ -8,41 +8,10 @@ export const generateMetadata = localizedMetadata(
   { title: 'About us' },
 );
 
-const VALUES: ReadonlyArray<{
-  fa: string;
-  en: string;
-  bodyFa: string;
-  bodyEn: string;
-  icon: IconName;
-}> = [
-  {
-    fa: 'شفافیت قیمت درهم و تومان',
-    en: 'Transparent Toman and AED pricing',
-    bodyFa: 'هر قیمت با نرخ روز درهم و تومان دیده می‌شود؛ عددی پنهان نمی‌ماند.',
-    bodyEn: 'Every price shows the live Toman and AED reference, with no hidden number.',
-    icon: 'badgeCheck',
-  },
-  {
-    fa: 'اصالت و کارشناسی فنی',
-    en: 'Authenticity and technical inspection',
-    bodyFa: 'وضعیت رنگ، شاسی و مدارک را پیش از خرید روشن می‌کنیم و جای ابهام نمی‌گذاریم.',
-    bodyEn: 'We make paint, chassis and document status clear before purchase.',
-    icon: 'shieldCheck',
-  },
-  {
-    fa: 'سرعت و امنیت معامله',
-    en: 'Fast, safe transactions',
-    bodyFa: 'چت داخلی، گزارش تخلف و اطلاعات تماس کنترل‌شده، معامله را ساده‌تر می‌کند.',
-    bodyEn: 'In-app chat, abuse reporting and controlled contact details keep the deal simple.',
-    icon: 'clock',
-  },
-  {
-    fa: 'پشتیبانی تخصصی و انسانی',
-    en: 'Specialist human support',
-    bodyFa: 'تیم پشتیبانی با دانش خودرویی در کنار شماست، نه فقط یک فهرست آگهی.',
-    bodyEn: 'A support team with real automotive knowledge, not just a listing board.',
-    icon: 'gear',
-  },
+const PILLS: ReadonlyArray<{ fa: string; en: string; icon: IconName }> = [
+  { fa: 'خودروهای لوکس', en: 'Luxury cars', icon: 'car' },
+  { fa: 'اسکوتر و موتور برقی', en: 'Electric scooters & bikes', icon: 'sparkle' },
+  { fa: 'قطعات اورجینال', en: 'Original spare parts', icon: 'gear' },
 ];
 
 export default async function AboutPage() {
@@ -50,83 +19,55 @@ export default async function AboutPage() {
   const t = (fa: string, en: string) => serverT(lang, fa, en);
 
   return (
-    <article className="mx-auto max-w-4xl space-y-5">
-      <section className="relative overflow-hidden rounded-3xl bg-[#111144] px-5 py-8 text-white shadow-lg sm:px-8 sm:py-10">
-        <div className="absolute inset-0 opacity-60 [background-image:radial-gradient(circle_at_15%_20%,#F98513_0,transparent_28%),radial-gradient(circle_at_88%_75%,#DEF434_0,transparent_24%)]" />
-        <div className="relative max-w-2xl">
+    <article className="mx-auto max-w-3xl">
+      <section className="relative overflow-hidden rounded-3xl bg-[#111144] px-5 py-8 text-white shadow-xl sm:px-8 sm:py-10">
+        <div className="absolute inset-0 opacity-70 [background-image:radial-gradient(circle_at_12%_16%,#F98513_0,transparent_30%),radial-gradient(circle_at_88%_82%,#DEF434_0,transparent_25%)]" />
+        <div className="relative">
           <p className="inline-flex items-center gap-1.5 rounded-full border border-white/15 bg-white/10 px-3 py-1 text-[11px] font-bold text-white/85 backdrop-blur">
-            <Icon name="sparkle" size={14} />
-            {t('داستان ما در جزیره کیش', 'Our story on Kish Island')}
+            <Icon name="pin" size={13} />
+            {t('کیش، ایران', 'Kish Island, Iran')}
           </p>
-          <h1 className="mt-4 text-2xl font-black leading-tight sm:text-4xl">
+
+          <h1 className="mt-4 max-w-2xl text-2xl font-black leading-tight sm:text-4xl">
             {t(
-              'خرید و فروش خودرو، با شفافیت و کارشناسی واقعی',
-              'Buying and selling cars with real transparency and inspection',
+              'مرجع خودرو، موتور برقی و قطعات کیش.',
+              'Kish Island’s home for cars, electric scooters and spare parts.',
             )}
           </h1>
+
           <p className="mt-3 max-w-xl text-sm leading-7 text-white/80 sm:text-base sm:leading-8">
             {t(
-              'Ali Sales با تجربه‌ی دیدن خودرو از نزدیک و شناخت بازار کیش ساخته شد؛ جایی که شفافیت و بررسی فنی، بخشی از معامله است. حالا همان تجربه، فهرست خودرو و قطعات کیش را قابل اعتمادتر می‌کند.',
-              'Ali Sales was built from hands-on vehicle experience and a deep understanding of the Kish market, where transparency and inspection are part of every deal. That experience now makes the island’s vehicle and parts marketplace more trustworthy.',
+              'علی سیلز بازار خودروهای لوکس، اسکوترهای برقی، ماشین‌آلات سنگین و قطعات اورجینال را در یک جای روشن و قابل‌اعتماد جمع کرده است. آگهی‌ها را ببینید، مقایسه کنید و مستقیم با فروشنده حرف بزنید.',
+              'Ali Sales brings luxury cars, electric scooters, heavy machinery and original spare parts into one clear, trusted marketplace. Browse, compare and talk directly to the seller.',
             )}
           </p>
+
           <div className="mt-5 flex flex-wrap gap-2">
-            <Link href="/cars" className="rounded-full bg-[#DEF434] px-4 py-2 text-sm font-extrabold text-[#111144] transition hover:bg-white">
-              {t('دیدن خودروها', 'Browse vehicles')}
-            </Link>
-            <Link href="/guide" className="rounded-full border border-white/25 px-4 py-2 text-sm font-bold text-white transition hover:bg-white/10">
-              {t('راهنمای خرید', 'Buying guide')}
-            </Link>
-          </div>
-        </div>
-      </section>
-
-      <section className="rounded-card border border-line bg-card p-4 sm:p-6">
-        <div className="flex flex-wrap items-end justify-between gap-2">
-          <div>
-            <p className="text-[11px] font-extrabold text-cta">{t('هویت ما', 'Our identity')}</p>
-            <h2 className="mt-1 text-lg font-extrabold text-ink sm:text-xl">
-              {t('چهار چیزی که هر روز تکرار می‌کنیم', 'Four things we repeat every day')}
-            </h2>
-          </div>
-          <p className="max-w-sm text-xs leading-6 text-muted">
-            {t(
-              'این ارزش‌ها فقط شعار نیستند؛ در قیمت‌گذاری، گزارش فنی و پشتیبانی هر آگهی دیده می‌شوند.',
-              'These are not slogans; they show up in pricing, inspection reports and support on every listing.',
-            )}
-          </p>
-        </div>
-        <div className="mt-5 grid gap-3 sm:grid-cols-2">
-          {VALUES.map((value) => (
-            <div key={value.fa} className="rounded-2xl border border-line bg-page/70 p-4">
-              <span className="flex h-10 w-10 items-center justify-center rounded-full bg-[#F98513]/15 text-[#F98513]">
-                <Icon name={value.icon} size={19} />
+            {PILLS.map((pill) => (
+              <span
+                key={pill.fa}
+                className="inline-flex items-center gap-1.5 rounded-full border border-white/20 bg-white/10 px-3 py-1.5 text-xs font-bold text-white backdrop-blur"
+              >
+                <Icon name={pill.icon} size={14} className="text-[#DEF434]" />
+                {t(pill.fa, pill.en)}
               </span>
-              <h3 className="mt-3 text-sm font-extrabold text-ink">{t(value.fa, value.en)}</h3>
-              <p className="mt-1 text-xs leading-6 text-muted">{t(value.bodyFa, value.bodyEn)}</p>
-            </div>
-          ))}
-        </div>
-      </section>
+            ))}
+          </div>
 
-      <section className="-mt-2 grid gap-3 sm:grid-cols-2 sm:-mt-5 sm:px-4">
-        <div className="rounded-2xl border border-line bg-card p-4 shadow-sm sm:p-5">
-          <p className="text-[11px] font-extrabold text-cta">{t('چشم‌انداز', 'Vision')}</p>
-          <p className="mt-2 text-sm font-bold leading-7 text-ink">
-            {t(
-              'مرجع اول خرید و فروش خودرو، موتور و قطعات در کیش باشیم؛ با اطلاعاتی که خریدار می‌تواند به آن تکیه کند.',
-              'To be the first reference for buying and selling cars, bikes and parts in Kish, with information buyers can rely on.',
-            )}
-          </p>
-        </div>
-        <div className="rounded-2xl border border-line bg-card p-4 shadow-sm sm:p-5">
-          <p className="text-[11px] font-extrabold text-cta">{t('ماموریت ما', 'Our mission')}</p>
-          <p className="mt-2 text-sm font-bold leading-7 text-ink">
-            {t(
-              'فاصله بین فروشنده و خریدار را با قیمت روشن، کارشناسی فنی و ارتباط مستقیم کمتر کنیم.',
-              'To shorten the distance between seller and buyer with clear prices, technical inspection and direct communication.',
-            )}
-          </p>
+          <div className="mt-6 flex flex-wrap gap-2">
+            <Link
+              href="/cars"
+              className="rounded-xl bg-[#F98513] px-5 py-2.5 text-sm font-extrabold text-white transition hover:bg-[#e0760c]"
+            >
+              {t('دیدن خودروها', 'Browse cars')}
+            </Link>
+            <Link
+              href="/parts"
+              className="rounded-xl border border-white/25 px-5 py-2.5 text-sm font-bold text-white transition hover:bg-white/10"
+            >
+              {t('قطعات و لوازم یدکی', 'Spare parts')}
+            </Link>
+          </div>
         </div>
       </section>
     </article>

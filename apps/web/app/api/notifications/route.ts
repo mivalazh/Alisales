@@ -4,7 +4,7 @@ import { getSession } from '@/lib/auth/session';
 import { getLanguage, serverT } from '@/lib/i18n/server';
 import { listFavoriteIds, listingById } from '@/lib/data/s2-store';
 import { searchListings } from '@/lib/data/listings';
-import { followedSellerIds } from '@/lib/data/social-store';
+import { followedSellerIds, profileCustomization } from '@/lib/data/social-store';
 import { listInspections, listStories } from '@/lib/data/platform-store';
 
 type NotificationKind = 'saved_sold' | 'followed' | 'inspection';
@@ -36,7 +36,7 @@ export async function GET(): Promise<NextResponse> {
   const [lang, favoriteIds, followedIds, allListings] = await Promise.all([
     getLanguage(),
     listFavoriteIds(session.sub),
-    Promise.resolve(followedSellerIds(session.sub)),
+    followedSellerIds(session.sub),
     searchListings(DEFAULT_FILTERS),
   ]);
   const t = (fa: string, en: string) => serverT(lang, fa, en);
@@ -73,24 +73,37 @@ export async function GET(): Promise<NextResponse> {
     });
   }
 
-  const followedStories = listStories('approved')
+  const [approvedStories, bookings] = await Promise.all([
+    listStories('approved'),
+    listInspections(),
+  ]);
+  const followedStories = approvedStories
     .filter((story) => followed.has(story.authorId))
     .slice(0, 4);
-  for (const story of followedStories) {
+  const storyModes = await Promise.all(
+    followedStories.map((story) => profileCustomization(story.authorId)),
+  );
+  followedStories.forEach((story, index) => {
+    const publicAuthor = storyModes[index]?.profileMode === 'business';
     items.push({
       id: `followed-story-${story.id}`,
       kind: 'followed',
       title: t('استوری تازه از نمایشگاه دنبال‌شده', 'New story from a followed showroom'),
       body: t(`${story.title} منتشر شد.`, `${story.title} was just posted.`),
-      href: story.listingSlug ? `/listing/${story.listingSlug}` : `/seller/${story.authorId}?tab=stories`,
+      // A personal author has no public seller URL; send the reader home.
+      href: story.listingSlug
+        ? `/listing/${story.listingSlug}`
+        : publicAuthor
+          ? `/seller/${story.authorId}?tab=stories`
+          : '/',
       createdAt: story.createdAt,
     });
-  }
+  });
 
-  const bookings = listInspections()
+  const ownBookings = bookings
     .filter((booking) => booking.phone === session.phone && booking.status !== 'cancelled')
     .slice(0, 4);
-  for (const booking of bookings) {
+  for (const booking of ownBookings) {
     const confirmed = booking.status === 'confirmed' || booking.status === 'done';
     items.push({
       id: `inspection-${booking.id}-${booking.status}`,

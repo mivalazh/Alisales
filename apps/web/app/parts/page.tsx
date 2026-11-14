@@ -68,7 +68,7 @@ export default async function PartsPage({
 
   const [session, lang] = await Promise.all([getSession(), getLanguage()]);
   const t = (fa: string, en?: string) => serverT(lang, fa, en);
-  const followed = followedSellerIds(session?.sub);
+  const followed = await followedSellerIds(session?.sub);
   const [base, pool, approved] = await Promise.all([
     searchListings(filters),
     searchListings(DEFAULT_FILTERS),

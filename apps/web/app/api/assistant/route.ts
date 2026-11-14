@@ -301,17 +301,17 @@ export async function POST(request: Request): Promise<NextResponse> {
     return NextResponse.json({
       reply: /^[\x00-\x7F\s]+$/.test(message) ? PROFANITY_REPLY_EN : PROFANITY_REPLY,
       listings: [],
-      faqs: topFaqTopics(),
+      faqs: await topFaqTopics(),
     });
   }
 
   // The rental portal now lives on its own domain; never link the old route.
   if (/یات|قایق|مارینا|چارتر|yacht|boat|مارينا|اجاره|رنت|rent/.test(text)) {
-    trackFaq('پورتال رنت');
+    await trackFaq('پورتال رنت');
     return NextResponse.json({
       reply: english ? EN.rental : RENTAL_COMING_SOON,
       listings: [],
-      faqs: topFaqTopics(),
+      faqs: await topFaqTopics(),
     });
   }
 
@@ -339,7 +339,7 @@ export async function POST(request: Request): Promise<NextResponse> {
         ? EN.compare
         : 'لندکروزر VXR سواری نرم‌تر، قطعات فراوان‌تر و ارزش فروش بالاتری دارد؛ پاترول پلاتینیوم موتور قوی‌تر و مصرف بالاتر، با تعلیق راحت‌تر در آفرود. برای کیش و مسیرهای ساحلی، لندکروزر کم‌دردسرتر است؛ اگر آفرود جدی می‌خواهید، پاترول با لاستیک مناسب انتخاب خوبی است. هر دو را قبل از خرید با کارشناسی شاسی و گیربکس چک کنید.',
       listings: [],
-      faqs: topFaqTopics(),
+      faqs: await topFaqTopics(),
       cta: {
         label: english ? 'Compare with brand filter' : 'مقایسه با فیلتر برند',
         href: '/cars?brand=toyota,nissan',
@@ -349,11 +349,11 @@ export async function POST(request: Request): Promise<NextResponse> {
 
   // Plate / customs rules.
   if (/پلاک|گذر|منطقه آزاد|گمرک|kish plate|transit/.test(text)) {
-    trackFaq('فرق پلاک منطقه آزاد و گذر موقت');
+    await trackFaq('فرق پلاک منطقه آزاد و گذر موقت');
     return NextResponse.json({
       reply: english ? EN.plate : PLATE_ANSWER,
       listings: [],
-      faqs: topFaqTopics(),
+      faqs: await topFaqTopics(),
       cta: {
         label: english ? 'See free-zone plate vehicles' : 'دیدن خودروهای پلاک منطقه آزاد',
         href: '/cars?plateType=kish',
@@ -363,11 +363,11 @@ export async function POST(request: Request): Promise<NextResponse> {
 
   // Workshop / inspection.
   if (/کارشناسی|شمس|دیاگ|inspection|برگه/.test(text)) {
-    trackFaq('چک‌لیست کارشناسی پیش از خرید');
+    await trackFaq('چک‌لیست کارشناسی پیش از خرید');
     return NextResponse.json({
       reply: english ? EN.workshop : WORKSHOP_ANSWER,
       listings: [],
-      faqs: topFaqTopics(),
+      faqs: await topFaqTopics(),
       cta: {
         label: english ? 'View the buying guide' : 'مشاهده راهنمای خرید',
         href: '/guide',
@@ -390,7 +390,7 @@ export async function POST(request: Request): Promise<NextResponse> {
             ? EN.checklist
             : BUYING_CHECKLIST,
       listings: [],
-      faqs: topFaqTopics(),
+      faqs: await topFaqTopics(),
       cta: {
         label: english ? 'Filter sealed-chassis vehicles' : 'فیلتر خودروهای شاسی‌پلمپ',
         href: '/cars?chassisCondition=sealed',
@@ -408,11 +408,11 @@ export async function POST(request: Request): Promise<NextResponse> {
   if (advisoryIntent) {
     const rows = adviceMatches(active, text);
     const llm = await llmReply(message, rows.length > 0 ? rows : active);
-    trackFaq('مشاوره خرید خودرو');
+    await trackFaq('مشاوره خرید خودرو');
     return NextResponse.json({
       reply: llm ?? adviceAnswer(text, rows, english),
       listings: pickListings(rows),
-      faqs: topFaqTopics(),
+      faqs: await topFaqTopics(),
       cta: {
         label: /موتور|اسکوتر|bike|scooter/.test(text)
           ? english
@@ -436,7 +436,7 @@ export async function POST(request: Request): Promise<NextResponse> {
       ),
     );
     const rows = (matched.length > 0 ? matched : parts).slice(0, 3);
-    trackFaq('قطعات استوک اصل');
+    await trackFaq('قطعات استوک اصل');
     return NextResponse.json({
       reply:
         rows.length > 0
@@ -447,7 +447,7 @@ export async function POST(request: Request): Promise<NextResponse> {
             ? EN.partsNone
             : 'فعلاً قطعه‌ی منطبقی در فهرست نیست؛ فیلتر دسته‌بندی قطعات را ببینید یا درخواست خود را به پشتیبانی بدهید.',
       listings: pickListings(rows),
-      faqs: topFaqTopics(),
+      faqs: await topFaqTopics(),
       cta: { label: english ? 'All parts' : 'همه‌ی قطعات', href: '/parts' },
     });
   }
@@ -473,7 +473,7 @@ export async function POST(request: Request): Promise<NextResponse> {
       .filter((listing) => (budgetIRR === null ? true : listing.priceIRR <= budgetIRR))
       .sort((a, b) => a.priceIRR - b.priceIRR)
       .slice(0, 3);
-    trackFaq('خودروی ارزان کیش');
+    await trackFaq('خودروی ارزان کیش');
     return NextResponse.json({
       reply:
         cars.length > 0
@@ -484,7 +484,7 @@ export async function POST(request: Request): Promise<NextResponse> {
             ? EN.budgetNone
             : 'در این بودجه خودروی فعالی پیدا نکردم؛ بودجه را کمی بالاتر ببرید یا فیلترها را در صفحه‌ی خودروها ببینید.',
       listings: pickListings(cars),
-      faqs: topFaqTopics(),
+      faqs: await topFaqTopics(),
       cta: {
         label: english ? 'Search vehicles by price' : 'جستجوی خودرو با فیلتر قیمت',
         href: '/cars',
@@ -514,7 +514,7 @@ export async function POST(request: Request): Promise<NextResponse> {
   const namedModel = /[a-z]{2,}|لندکروزر|پاترول|پورشه|بی.?ام.?و|مرسدس|تویوتا|نیسان/i.test(
     message,
   );
-  trackFaq('جستجوی خودرو در کیش');
+  await trackFaq('جستجوی خودرو در کیش');
   return NextResponse.json({
     reply:
       rows.length > 0
@@ -529,7 +529,7 @@ export async function POST(request: Request): Promise<NextResponse> {
             ? EN.generic
             : 'برای اینکه دقیق راهنمایی کنم، بودجه، کاربری (شهری، خانواده، آفرود یا مسافت بلند) و نوع پلاک را بگویید. تا آن موقع، تازه‌ترین آگهی‌های فعال کاتالوگ را ببینید.',
     listings: pickListings(rows.length > 0 ? rows : active.slice(0, 3)),
-    faqs: topFaqTopics(),
+    faqs: await topFaqTopics(),
     cta: { label: english ? 'All listings' : 'همه‌ی آگهی‌ها', href: '/' },
   });
 }

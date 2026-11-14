@@ -8,6 +8,8 @@ import { CustomSelect } from './CustomSelect';
 import { GalleryPermissionDialog, useGalleryPicker } from './GalleryPermission';
 import { Icon } from './Icon';
 import { isPreSizedSource } from '@/lib/images';
+import { mediaExtension } from '@/lib/media-rules';
+import { processListingMedia } from '@/lib/photos';
 import { useI18n } from '@/lib/i18n';
 
 const StoryViewer = dynamic(
@@ -41,10 +43,10 @@ export function Stories({ stories, label = 'داستان‌های آگهی' }: {
   const [openIndex, setOpenIndex] = useState<number | null>(null);
   const [composerOpen, setComposerOpen] = useState(false);
   const [displayName, setDisplayName] = useState<string | null>(null);
-  const [userId, setUserId] = useState<string | null>(null);
   const [mine, setMine] = useState<StoryListingOption[]>([]);
   const [created, setCreated] = useState<StoryItem[]>([]);
-  const [draft, setDraft] = useState<{ url: string; kind: 'image' | 'video' } | null>(null);
+  const [draft, setDraft] = useState<StoryDraft | null>(null);
+  const [pickerError, setPickerError] = useState<string | null>(null);
   const mediaInput = useRef<HTMLInputElement>(null);
   const gallery = useGalleryPicker();
 
@@ -59,6 +61,8 @@ export function Stories({ stories, label = 'داستان‌های آگهی' }: {
           mediaUrl: string;
           mediaKind: 'image' | 'video';
           listingSlug: string | null;
+          authorId: string;
+          authorProfilePublic: boolean;
         }>;
         mine?: StoryListingOption[];
       };
@@ -70,8 +74,8 @@ export function Stories({ stories, label = 'داستان‌های آگهی' }: {
           coverUrl: story.mediaUrl,
           href: story.listingSlug
             ? `/listing/${story.listingSlug}`
-            : userId
-              ? `/seller/${userId}`
+            : story.authorProfilePublic
+              ? `/seller/${story.authorId}`
               : '/',
           ...(story.mediaKind === 'video' ? { videoUrl: story.mediaUrl } : {}),
         })),
@@ -79,7 +83,7 @@ export function Stories({ stories, label = 'داستان‌های آگهی' }: {
     } catch {
       // stories are an enhancement; a failed fetch leaves the seeded rail
     }
-  }, [userId]);
+  }, []);
 
   useEffect(() => {
     let alive = true;
@@ -88,7 +92,6 @@ export function Stories({ stories, label = 'داستان‌های آگهی' }: {
       .then((body: { user?: { id?: string; displayName?: string | null } } | null) => {
         if (alive && body?.user) {
           setDisplayName(body.user.displayName ?? '');
-          setUserId(body.user.id ?? null);
         }
       })
       .catch(() => undefined);
@@ -104,17 +107,34 @@ export function Stories({ stories, label = 'داستان‌های آگهی' }: {
     gallery.request(() => mediaInput.current?.click());
   };
 
-  const draftPicked = (file: File | undefined) => {
+  const draftPicked = async (file: File | undefined) => {
     if (!file) return;
-    const kind = file.type.startsWith('video/') ? 'video' : 'image';
-    const reader = new FileReader();
-    reader.onload = () => {
-      if (typeof reader.result === 'string') {
-        setDraft({ url: reader.result, kind });
-        setComposerOpen(true);
-      }
-    };
-    reader.readAsDataURL(file);
+    setPickerError(null);
+    try {
+      const processed = await processListingMedia(file);
+      if (!processed.blob) throw new Error(t('خواندن رسانه ممکن نشد.', 'Could not read that media.'));
+      setDraft({
+        previewUrl: processed.previewUrl,
+        kind: processed.kind,
+        blob: processed.blob,
+        mime: processed.mime,
+        width: processed.width,
+        height: processed.height,
+      });
+      setComposerOpen(true);
+    } catch (err) {
+      setPickerError(
+        err instanceof Error ? err.message : t('خواندن رسانه ممکن نشد.', 'Could not read that media.'),
+      );
+    }
+  };
+
+  const clearDraft = () => {
+    setComposerOpen(false);
+    setDraft((current) => {
+      if (current) URL.revokeObjectURL(current.previewUrl);
+      return null;
+    });
   };
 
   return (
@@ -135,10 +155,11 @@ export function Stories({ stories, label = 'داستان‌های آگهی' }: {
         accept="image/*,video/mp4,video/webm,video/quicktime"
         hidden
         onChange={(event) => {
-          draftPicked(event.target.files?.[0]);
+          void draftPicked(event.target.files?.[0]);
           event.currentTarget.value = '';
         }}
       />
+      {pickerError && <p className="mt-1 px-1 text-xs font-bold text-red-600">{pickerError}</p>}
       <GalleryPermissionDialog
         open={gallery.pending}
         onAllow={gallery.allow}
@@ -149,15 +170,10 @@ export function Stories({ stories, label = 'داستان‌های آگهی' }: {
         <StoryComposer
           listings={mine}
           displayName={displayName}
-          mediaUrl={draft.url}
-          mediaKind={draft.kind}
-          onClose={() => {
-            setComposerOpen(false);
-            setDraft(null);
-          }}
+          media={draft}
+          onClose={clearDraft}
           onPublished={() => {
-            setComposerOpen(false);
-            setDraft(null);
+            clearDraft();
             void loadStories();
           }}
         />
@@ -178,6 +194,16 @@ export interface StoryListingOption {
   slug: string;
   title: string;
   coverUrl: string | null;
+}
+
+interface StoryDraft {
+  /** Local object URL used only for the composer preview. */
+  previewUrl: string;
+  kind: 'image' | 'video';
+  blob: Blob;
+  mime: string;
+  width: number;
+  height: number;
 }
 
 /** Circular «+» entry point: avatar (or initial) with an orange plus badge. */
@@ -228,15 +254,13 @@ function AddStoryTile({
 function StoryComposer({
   listings,
   displayName,
-  mediaUrl,
-  mediaKind,
+  media,
   onClose,
   onPublished,
 }: {
   listings: StoryListingOption[];
   displayName: string | null;
-  mediaUrl: string;
-  mediaKind: 'image' | 'video';
+  media: StoryDraft;
   onClose: () => void;
   onPublished: () => void;
 }) {
@@ -271,13 +295,32 @@ function StoryComposer({
     }
     setBusy(true);
     setError(null);
+    let uploadedUrl: string | null = null;
     try {
+      const form = new FormData();
+      form.append(
+        'file',
+        new File([media.blob], `story.${mediaExtension(media.mime)}`, { type: media.mime }),
+      );
+      form.append('width', String(media.width));
+      form.append('height', String(media.height));
+      const upload = await fetch('/api/media/story', { method: 'POST', body: form });
+      const uploaded = (await upload.json().catch(() => ({}))) as {
+        url?: string;
+        error?: string;
+      };
+      if (!upload.ok || !uploaded.url) {
+        setError(uploaded.error ?? t('بارگذاری رسانه انجام نشد.', 'Could not upload the media.'));
+        return;
+      }
+      uploadedUrl = uploaded.url;
+
       const res = await fetch('/api/stories', {
         method: 'POST',
         headers: { 'content-type': 'application/json' },
         body: JSON.stringify({
-          mediaUrl,
-          mediaKind,
+          mediaUrl: uploaded.url,
+          mediaKind: media.kind,
           listingSlug: target === 'listing' ? listingSlug : null,
           title:
             target === 'listing'
@@ -287,11 +330,25 @@ function StoryComposer({
       });
       const body = (await res.json().catch(() => ({}))) as { ok?: boolean; error?: string };
       if (!res.ok) {
+        // The story row failed; remove the just-uploaded object instead of
+        // leaving an orphan in the story bucket.
+        void fetch('/api/media', {
+          method: 'DELETE',
+          headers: { 'content-type': 'application/json' },
+          body: JSON.stringify({ url: uploaded.url }),
+        });
         setError(body.error ?? t('ثبت استوری انجام نشد.', 'Could not publish the story.'));
         return;
       }
       onPublished();
     } catch {
+      if (uploadedUrl) {
+        void fetch('/api/media', {
+          method: 'DELETE',
+          headers: { 'content-type': 'application/json' },
+          body: JSON.stringify({ url: uploadedUrl }),
+        });
+      }
       setError(t('ارتباط با سرور برقرار نشد.', 'Could not connect to the server.'));
     } finally {
       setBusy(false);
@@ -327,11 +384,11 @@ function StoryComposer({
 
         <div className="mt-3 flex gap-3">
           <div className="h-28 w-20 shrink-0 overflow-hidden rounded-xl border border-line bg-sunken">
-            {mediaKind === 'video' ? (
-              <video src={mediaUrl} muted loop autoPlay playsInline className="h-full w-full object-cover" />
+            {media.kind === 'video' ? (
+              <video src={media.previewUrl} muted loop autoPlay playsInline className="h-full w-full object-cover" />
             ) : (
               // eslint-disable-next-line @next/next/no-img-element
-              <img src={mediaUrl} alt={t('پیش‌نمایش استوری', 'Story preview')} className="h-full w-full object-cover" />
+              <img src={media.previewUrl} alt={t('پیش‌نمایش استوری', 'Story preview')} className="h-full w-full object-cover" />
             )}
           </div>
           <div className="min-w-0 flex-1">

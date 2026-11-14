@@ -1,4 +1,3 @@
-import { readJson } from '../storage/demo-store';
 import { devListings } from './dev-store';
 import { fixtureListings } from './fixtures';
 import { visibleCatalog } from './demo-seed';
@@ -12,6 +11,7 @@ import {
   type StorySubmission,
 } from './platform-store';
 import { getAedRate } from './rate-store';
+import { listSupportRequests } from '../support-store';
 import type { AedRate, ListingState } from '@alisales/schemas';
 
 /**
@@ -57,7 +57,15 @@ export interface AdminCenterData {
 }
 
 export async function adminCenterData(): Promise<AdminCenterData> {
-  const [queues, rate] = await Promise.all([moderationQueues(), getAedRate()]);
+  const [queues, rate, storySubmissions, inspections, supportRequests, settings] =
+    await Promise.all([
+      moderationQueues(),
+      getAedRate(),
+      listStories(),
+      listInspections(),
+      listSupportRequests(),
+      adminSettings(),
+    ]);
   const listings: AdminListingRow[] = visibleCatalog(fixtureListings, devListings())
     .map((listing) => ({
       id: listing.id,
@@ -73,18 +81,23 @@ export async function adminCenterData(): Promise<AdminCenterData> {
     }))
     .sort((a, b) => (b.publishedAt ?? '').localeCompare(a.publishedAt ?? ''));
 
-  const tickets = readJson<AdminSupportItem[]>('support-requests.json', () => []);
-  const sortedTickets = Array.isArray(tickets)
-    ? [...tickets].sort((a, b) => b.createdAt.localeCompare(a.createdAt))
-    : [];
+  const tickets: AdminSupportItem[] = supportRequests.map((ticket) => ({
+    id: ticket.id,
+    kind: ticket.kind,
+    name: ticket.name,
+    contact: ticket.contact,
+    model: ticket.model,
+    message: ticket.message,
+    createdAt: ticket.createdAt,
+  }));
 
   return {
     queues,
     listings,
-    storySubmissions: listStories(),
-    inspections: listInspections(),
-    tickets: sortedTickets,
+    storySubmissions,
+    inspections,
+    tickets,
     rate,
-    settings: adminSettings(),
+    settings,
   };
 }

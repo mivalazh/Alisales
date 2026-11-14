@@ -1701,20 +1701,20 @@ export function ListingForm() {
                 />
               </Field>
 
-              <Field
-                htmlFor="technicalInspection"
-                label={t('معاینه فنی', 'Technical inspection')}
-              >
-                <CustomSelect
-                  id="technicalInspection"
-                  value={draft.technicalInspection}
-                  onChange={(next) => set('technicalInspection', next)}
-                  options={yesNoOptions}
-                  placeholder={t('معاینه فنی دارد؟', 'Has a technical inspection?')}
-                />
-              </Field>
+              <div className="col-span-full grid grid-cols-1 gap-4 sm:grid-cols-2">
+                <Field
+                  htmlFor="technicalInspection"
+                  label={t('معاینه فنی', 'Technical inspection')}
+                >
+                  <CustomSelect
+                    id="technicalInspection"
+                    value={draft.technicalInspection}
+                    onChange={(next) => set('technicalInspection', next)}
+                    options={yesNoOptions}
+                    placeholder={t('معاینه فنی دارد؟', 'Has a technical inspection?')}
+                  />
+                </Field>
 
-              <div className="col-span-full">
                 <InspectionSheetField
                   value={draft.inspectionSheetUrl}
                   onChange={(next) => set('inspectionSheetUrl', next)}

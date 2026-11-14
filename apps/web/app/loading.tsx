@@ -4,12 +4,11 @@ import { CarLoader } from '@/components/CarLoader';
 export default function Loading() {
   return (
     <div
-      className="flex min-h-[60vh] flex-col items-center justify-center gap-4 px-4"
+      className="flex min-h-[60vh] flex-col items-center justify-center px-4"
       aria-busy="true"
       aria-label="Loading"
     >
-      <CarLoader size="lg" />
-      <p className="animate-pulse text-xs font-bold text-muted">در حال آماده‌سازی…</p>
+      <CarLoader />
     </div>
   );
 }

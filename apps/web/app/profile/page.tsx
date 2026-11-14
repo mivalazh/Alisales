@@ -14,7 +14,6 @@ import { followedSellerIds, profileCustomization } from '@/lib/data/social-store
 import { storiesFrom } from '@/lib/stories';
 import { Icon, type IconName } from '@/components/Icon';
 import { LogoutButton } from '@/components/LogoutButton';
-import { ProfileCustomizer } from '@/components/ProfileCustomizer';
 import { ProfileMediaButton } from '@/components/ProfileMediaButton';
 import { getLanguage } from '@/lib/i18n/server';
 import { serverT } from '@/lib/i18n/server';
@@ -47,7 +46,7 @@ export default async function ProfilePage() {
     listingsBySeller(session.sub),
     listFavoriteIds(session.sub),
     reviewsFor(session.sub),
-    Promise.resolve(profileCustomization(session.sub)),
+    profileCustomization(session.sub),
     getUser(session.sub),
   ]);
   const profileMode = custom?.profileMode ?? profileModeFor(account?.accountType ?? session.accountType);
@@ -57,7 +56,7 @@ export default async function ProfilePage() {
   const stories = storiesFrom(active, [], [], 8);
   const initial = (session.displayName ?? '?').trim().charAt(0) || '?';
 
-  const followedIds = isBusiness ? followedSellerIds(session.sub) : [];
+  const followedIds = isBusiness ? await followedSellerIds(session.sub) : [];
   const followed = await Promise.all(
     followedIds.slice(0, 12).map(async (id) => {
       const followedAccount = await getUser(id);
@@ -65,7 +64,7 @@ export default async function ProfilePage() {
     }),
   );
 
-  const baseShortcuts: Shortcut[] = [
+  const coreShortcuts: Shortcut[] = [
     {
       href: '/profile/listings',
       label: t('آگهی‌های من'),
@@ -78,20 +77,22 @@ export default async function ProfilePage() {
       hint: t(`${favoriteIds.length} آگهی ذخیره‌شده`),
       icon: 'bookmark',
     },
-    {
-      href: `/seller/${session.sub}?tab=stories`,
-      label: t('استوری‌های من'),
-      hint: t(`${stories.length} استوری از آگهی‌های شما`),
-      icon: 'camera',
-    },
-    {
-      href: '/profile/settings',
-      label: t('تنظیمات حساب'),
-      hint: t('نوع حساب، نام نمایشی و رمز عبور'),
-      icon: 'gear',
-    },
   ];
+  const settingsShortcut: Shortcut = {
+    href: '/profile/settings',
+    label: t('تنظیمات حساب'),
+    hint: t('نوع حساب، نام نمایشی و رمز عبور'),
+    icon: 'gear',
+  };
+  const storyShortcut: Shortcut = {
+    href: `/seller/${session.sub}?tab=stories`,
+    label: t('استوری‌های من'),
+    hint: t(`${stories.length} استوری از آگهی‌های شما`),
+    icon: 'camera',
+  };
 
+  // Personal accounts have no public seller URL, so their hub never links to
+  // one. Business accounts keep the public page and story/review shortcuts.
   const shortcuts: Shortcut[] = isBusiness
     ? [
         {
@@ -100,7 +101,8 @@ export default async function ProfilePage() {
           hint: t('کاور، بایو، آگهی‌ها، استوری و امتیاز'),
           icon: 'badgeCheck',
         },
-        ...baseShortcuts.slice(0, 3),
+        ...coreShortcuts,
+        storyShortcut,
         {
           href: `/seller/${session.sub}?tab=reviews`,
           label: t('امتیاز و نظرات'),
@@ -110,9 +112,9 @@ export default async function ProfilePage() {
               : t(`${rating} از ۵ · ${reviews.length} نظر`),
           icon: 'sparkle',
         },
-        ...baseShortcuts.slice(3),
+        settingsShortcut,
       ]
-    : baseShortcuts;
+    : [...coreShortcuts, settingsShortcut];
 
   return (
     <div className="mx-auto max-w-2xl space-y-4">
@@ -147,12 +149,16 @@ export default async function ProfilePage() {
               <h1 className="truncate text-lg font-extrabold sm:text-xl">{session.displayName}</h1>
               <p className="mt-0.5 text-xs text-muted sm:text-sm">
                 <span dir="ltr">{maskPhone(session.phone)}</span>
-                <span className="mx-1.5 text-faint">·</span>
-                {isBusiness ? t('حساب کسب‌وکار') : t('حساب شخصی')}
-                {isBusiness && custom?.businessType && (
+                {isBusiness && (
                   <>
                     <span className="mx-1.5 text-faint">·</span>
-                    {t(BUSINESS_TYPE_LABELS[custom.businessType])}
+                    {t('حساب کسب‌وکار')}
+                    {custom?.businessType && (
+                      <>
+                        <span className="mx-1.5 text-faint">·</span>
+                        {t(BUSINESS_TYPE_LABELS[custom.businessType])}
+                      </>
+                    )}
                   </>
                 )}
               </p>
@@ -164,18 +170,10 @@ export default async function ProfilePage() {
               {custom.bio}
             </p>
           ) : null}
-
-          <ProfileCustomizer
-            embedded
-            initial={{
-              bio: custom?.bio ?? '',
-              avatarUrl: custom?.avatarUrl ?? null,
-            }}
-          />
         </div>
 
         {isBusiness && (
-          <dl className="grid grid-cols-2 gap-2 border-t border-line bg-page/60 p-3 sm:grid-cols-4 sm:p-4">
+          <dl className="grid grid-cols-2 gap-2 p-3 sm:grid-cols-4 sm:p-4">
             {[
               {
                 label: t('آگهی‌های فعال'),

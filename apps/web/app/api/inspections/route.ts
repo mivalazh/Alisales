@@ -50,7 +50,7 @@ export async function POST(request: Request): Promise<NextResponse> {
   }
 
   const session = await getSession();
-  const booking = addInspection({
+  const booking = await addInspection({
     name,
     phone: normalizePhone(phone),
     date,

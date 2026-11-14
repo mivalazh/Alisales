@@ -11,6 +11,7 @@ import {
   hostedDataConfigured,
   requireHostedServices,
 } from '../apps/web/lib/config/mode';
+import { authSecret } from '../apps/web/lib/auth/session';
 import { fixtureListings } from '../apps/web/lib/data/fixtures';
 import { applyFiltersLocally } from '../apps/web/lib/data/listings';
 
@@ -42,6 +43,31 @@ afterEach(() => {
     if (value === undefined) delete process.env[key];
     else process.env[key] = value;
   }
+});
+
+describe('production auth cutover', () => {
+  it('is strict, disables demo OTP and never uses the demo signing key', () => {
+    const previousNodeEnv = process.env.NODE_ENV;
+    const previousSecret = process.env.AUTH_SECRET;
+    process.env.NODE_ENV = 'production';
+    delete process.env.AUTH_SECRET;
+    process.env.NEXT_PUBLIC_DEMO_OTP_HINT = 'true';
+    try {
+      expect(requireHostedServices()).toBe(true);
+      expect(fixtureMode()).toBe(false);
+      expect(demoAuthMode()).toBe(false);
+      expect(demoOtpHintEnabled()).toBe(false);
+      expect(authSecret()).toBeNull();
+
+      process.env.AUTH_SECRET = 'production-secret-at-least-16-chars';
+      expect(authSecret()).toBe('production-secret-at-least-16-chars');
+    } finally {
+      if (previousNodeEnv === undefined) delete process.env.NODE_ENV;
+      else process.env.NODE_ENV = previousNodeEnv;
+      if (previousSecret === undefined) delete process.env.AUTH_SECRET;
+      else process.env.AUTH_SECRET = previousSecret;
+    }
+  });
 });
 
 describe('cloud fallback without hosted credentials', () => {

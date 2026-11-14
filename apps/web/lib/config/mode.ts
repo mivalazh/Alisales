@@ -9,18 +9,15 @@ import { nodeFs } from '../storage/node-fs';
  * `NODE_ENV` for them:
  *
  *  1. Where data lives. With Supabase service credentials the app is hosted;
- *     without them it is a fixture/demo deployment that keeps its JSON store
- *     on disk — even in a production build, so a cloud preview link never
- *     answers 503 just because the owner has not connected Supabase yet. On a
- *     runtime with no filesystem (Workers) that store is isolate memory; see
- *     `lib/storage/demo-store.ts`.
- *  2. Whether the demo affordances are allowed (OTP printed to the server log
- *     and, behind an explicit public flag, echoed to the OTP step so the owner
- *     can sign in on a preview link).
+ *     without them a development build uses the fixture store. Production is
+ *     always strict and answers 503 instead of serving fixture data. On a
+ *     runtime with no filesystem (Workers) the development store is isolate
+ *     memory; see `lib/storage/demo-store.ts`.
+ *  2. Whether demo affordances are allowed. Demo OTP is development-only; a
+ *     production build never prints, echoes or accepts a demo code.
  *
- * `REQUIRE_HOSTED_SERVICES=true` is the strict switch: it disables both
- * fallbacks and restores the old "configure the services or get 503" behavior,
- * which is what a real deployment should use once credentials exist.
+ * `REQUIRE_HOSTED_SERVICES=true` remains available to force strict mode in a
+ * non-production environment, but it is no longer required for production.
  */
 
 /** True for '1', 'true', 'yes', 'on' (case-insensitive). */
@@ -57,8 +54,16 @@ export function demoListingsHidden(): boolean {
   return flagOn(process.env.NEXT_PUBLIC_HIDE_DEMO_LISTINGS);
 }
 
-/** Operator explicitly requires real services (no fixture fallback). */
+/**
+ * Operator explicitly requires real services (no fixture fallback).
+ *
+ * Production builds are always strict: the fixture fallback exists for local
+ * development and review builds, never for a real deployment. Keeping this
+ * independent of an environment flag means a missing flag cannot silently
+ * bring the demo store or demo login back after a cutover.
+ */
 export function requireHostedServices(): boolean {
+  if (process.env.NODE_ENV === 'production') return true;
   return flagOn(process.env.REQUIRE_HOSTED_SERVICES);
 }
 
@@ -66,7 +71,7 @@ export function requireHostedServices(): boolean {
  * Fixture/demo data mode: no Supabase write credentials and no strict switch.
  *
  * In this mode listings, accounts, views, chat and reports live in the demo
- * store (see `demoDataDir`), in development and in production alike.
+ * store (see `demoDataDir`). Production never enters this mode.
  */
 export function fixtureMode(): boolean {
   if (requireHostedServices()) return false;
@@ -82,6 +87,9 @@ export function fixtureMode(): boolean {
  * deployment always sends for real.
  */
 export function demoAuthMode(): boolean {
+  // Demo auth is a development affordance only. A production build must always
+  // use a real SMS code, even if someone accidentally leaves a fixture flag on.
+  if (process.env.NODE_ENV === 'production') return false;
   return fixtureMode() && !smsConfigured();
 }
 
@@ -92,15 +100,11 @@ function onWorkersRuntime(): boolean {
 }
 
 /**
- * Public, documented demo switch. When on, the OTP step also shows the code
- * that was written to the server log, so the owner can sign in on the preview
- * link without console access. Never turn this on for a real deployment.
+ * Public, documented demo switch. When on in a development fixture session,
+ * the OTP step also shows the code that was written to the server log.
  *
- * The hosted preview is exactly that case, so a Workers deployment in demo
- * mode (no Supabase, no SMS) turns the hint on by itself: the owner can test
- * login, publishing, chat and stats on the preview URL with no extra env vars.
- * A real deployment never reaches this branch — Supabase credentials switch
- * demo mode off (and `REQUIRE_HOSTED_SERVICES=true` forces it off).
+ * Production never reaches this branch: `demoAuthMode()` is false there, so a
+ * missing SMS provider returns 503 rather than leaking a code.
  */
 export function demoOtpHintEnabled(): boolean {
   if (!demoAuthMode()) return false;

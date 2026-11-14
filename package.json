@@ -14,7 +14,8 @@
     "smoke:db": "tsx scripts/smoke-db.ts",
     "generate:icons": "node scripts/generate-app-icons.mjs",
     "typecheck": "npm run typecheck --workspaces --if-present",
-    "build": "npm run build --workspaces --if-present"
+    "build": "npm run build --workspaces --if-present",
+    "auth:e2e": "node scripts/e2e-auth.mjs"
   },
   "devDependencies": {
     "@electric-sql/pglite": "^0.5.10",

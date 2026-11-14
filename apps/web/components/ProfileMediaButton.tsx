@@ -5,7 +5,7 @@ import { useRouter } from 'next/navigation';
 import { useI18n } from '@/lib/i18n';
 import { Icon } from './Icon';
 import { GalleryPermissionDialog, useGalleryPicker } from './GalleryPermission';
-import { AVATAR_EDGE_PX, COVER_EDGE_PX, profileImageDataUrl } from '@/lib/profile-image';
+import { AVATAR_EDGE_PX, COVER_EDGE_PX, profileImageBlob } from '@/lib/profile-image';
 
 /** Compact camera control that sits directly on the cover or avatar. */
 export function ProfileMediaButton({
@@ -26,23 +26,56 @@ export function ProfileMediaButton({
     if (!file) return;
     setBusy(true);
     setError(null);
+    let uploadedUrl: string | null = null;
     try {
-      const url = await profileImageDataUrl(
+      const image = await profileImageBlob(
         file,
         kind === 'avatar' ? AVATAR_EDGE_PX : COVER_EDGE_PX,
       );
+      const form = new FormData();
+      form.append('file', new File([image.blob], 'profile.webp', { type: 'image/webp' }));
+      form.append('kind', kind);
+      form.append('width', String(image.width));
+      form.append('height', String(image.height));
+
+      const upload = await fetch('/api/media/profile', { method: 'POST', body: form });
+      const uploaded = (await upload.json().catch(() => ({}))) as {
+        url?: string;
+        error?: string;
+      };
+      if (!upload.ok || !uploaded.url) {
+        setError(uploaded.error ?? t('بارگذاری تصویر ناموفق بود.', 'Could not upload the image.'));
+        return;
+      }
+      uploadedUrl = uploaded.url;
+
       const res = await fetch('/api/profile', {
         method: 'PUT',
         headers: { 'content-type': 'application/json' },
-        body: JSON.stringify(kind === 'avatar' ? { avatarUrl: url } : { coverUrl: url }),
+        body: JSON.stringify(
+          kind === 'avatar' ? { avatarUrl: uploaded.url } : { coverUrl: uploaded.url },
+        ),
       });
       const body = (await res.json().catch(() => ({}))) as { error?: string };
       if (!res.ok) {
+        // The upload succeeded but the profile row did not; do not leave an orphan.
+        void fetch('/api/media', {
+          method: 'DELETE',
+          headers: { 'content-type': 'application/json' },
+          body: JSON.stringify({ url: uploaded.url }),
+        });
         setError(body.error ?? t('ذخیره تصویر ناموفق بود.', 'Could not save the image.'));
         return;
       }
       router.refresh();
     } catch (err) {
+      if (uploadedUrl) {
+        void fetch('/api/media', {
+          method: 'DELETE',
+          headers: { 'content-type': 'application/json' },
+          body: JSON.stringify({ url: uploadedUrl }),
+        });
+      }
       setError(
         err instanceof Error
           ? err.message

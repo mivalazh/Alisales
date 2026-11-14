@@ -88,19 +88,19 @@ export async function POST(request: Request): Promise<NextResponse> {
       result = await bumpListing(id);
       break;
     case 'story-submission-approve':
-      decideStorySubmission(id, 'approved');
+      await decideStorySubmission(id, 'approved');
       result = { ok: true };
       break;
     case 'story-submission-reject':
-      decideStorySubmission(id, 'rejected');
+      await decideStorySubmission(id, 'rejected');
       result = { ok: true };
       break;
     case 'story-submission-delete':
-      deleteStorySubmission(id);
+      await deleteStorySubmission(id);
       result = { ok: true };
       break;
     case 'story-guard-toggle':
-      setStoryPaidGuard(Boolean(body.enabled));
+      await setStoryPaidGuard(Boolean(body.enabled));
       result = { ok: true };
       break;
     case 'inspection-update': {
@@ -113,7 +113,7 @@ export async function POST(request: Request): Promise<NextResponse> {
       ) {
         return NextResponse.json({ error: 'وضعیت نوبت نامعتبر است.' }, { status: 400 });
       }
-      const booking = updateInspection(id, status as InspectionBooking['status']);
+      const booking = await updateInspection(id, status as InspectionBooking['status']);
       if (!booking) return NextResponse.json({ error: 'نوبت پیدا نشد.' }, { status: 400 });
       if (status === 'confirmed' || status === 'done') await markInspected(booking.listingSlug);
       result = { ok: true };

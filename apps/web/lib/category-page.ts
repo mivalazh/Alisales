@@ -56,7 +56,7 @@ export async function loadCategoryPage(
   // The category rides through the shared search, so the grid, the live counts
   // and the story rail all read the same narrowed pool.
   const session = await getSession();
-  const followed = followedSellerIds(session?.sub);
+  const followed = await followedSellerIds(session?.sub);
 
   const [listings, categoryPool, approved] = await Promise.all([
     searchListings(filters, category),

@@ -44,8 +44,8 @@ import { useI18n } from '@/lib/i18n';
  * result count (computed with the same predicate the server search uses, so a
  * count can never disagree with the grid).
  *
- * Mobile: one «فیلترها» button opens a bottom sheet with those same groups, a
- * sticky footer showing «نمایش N آگهی» and «پاک کردن همه».
+ * Mobile: one «فیلترها» button opens a compact slide-over with those same
+ * groups, a sticky footer showing «نمایش N آگهی» and «پاک کردن همه».
  *
  * Active filters are removable chips above the grid (see FilterChips).
  */
@@ -723,7 +723,7 @@ export function FilterGroups({
   );
 }
 
-/** Desktop sidebar — sticky, scrollable, with the result count on top. */
+/** Desktop right-hand sidebar — sticky, scrollable, with the result count on top. */
 export function FilterSidebar({
   category,
   filters,
@@ -740,7 +740,7 @@ export function FilterSidebar({
   const { t } = useI18n();
   const count = countMatches(pool, filters);
   return (
-    <aside className="hidden lg:block">
+    <aside className="hidden lg:block lg:w-72 lg:shrink-0">
       <div className="sticky top-24 max-h-[calc(100vh-7rem)] overflow-y-auto rounded-card border border-line bg-card p-3">
         <div className="flex items-center justify-between gap-2 border-b border-line pb-2">
           <h2 className="flex items-center gap-1.5 text-sm font-extrabold">
@@ -764,7 +764,7 @@ export function FilterSidebar({
   );
 }
 
-/** Mobile bottom sheet — the same groups, applied on «نمایش N آگهی». */
+/** Mobile slide-over — the same groups, applied on «نمایش N آگهی». */
 export function FilterSheet({
   open,
   category,
@@ -811,11 +811,11 @@ export function FilterSheet({
       role="dialog"
       aria-modal="true"
       aria-label={t('فیلترها', 'Filters')}
-      className="fixed inset-0 z-50 flex items-end justify-center bg-black/50 lg:hidden"
+      className="fixed inset-0 z-50 flex justify-start bg-black/50 lg:hidden"
       onClick={onClose}
     >
       <div
-        className="flex max-h-[88vh] w-full max-w-lg flex-col rounded-t-card border border-line bg-page"
+        className="flex h-[100dvh] w-[calc(100vw-1.5rem)] max-w-[340px] flex-col overflow-hidden border-e border-line bg-[#F4F1EC] shadow-2xl dark:bg-[#0B0D1E]"
         onClick={(e) => e.stopPropagation()}
       >
         <div className="flex items-center justify-between border-b border-line px-4 py-3">
@@ -830,7 +830,7 @@ export function FilterSheet({
           </button>
         </div>
 
-        <div className="flex-1 overflow-y-auto px-4">
+        <div className="flex-1 overflow-y-auto px-3.5">
           <FilterGroups
             category={category}
             filters={draft}
@@ -840,7 +840,7 @@ export function FilterSheet({
         </div>
 
         <div
-          className="flex items-center gap-2 border-t border-line bg-card px-4 py-3"
+          className="flex items-center gap-2 border-t border-line bg-card px-3.5 py-3"
           style={{ paddingBottom: 'calc(0.75rem + env(safe-area-inset-bottom))' }}
         >
           <button

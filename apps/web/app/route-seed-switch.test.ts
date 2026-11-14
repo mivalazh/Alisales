@@ -2,7 +2,7 @@ import { afterAll, beforeEach, describe, expect, it, vi } from 'vitest';
 import { createElement } from 'react';
 import { renderToStaticMarkup } from 'react-dom/server';
 import HomePage from './page';
-import SellerPage from './seller/[id]/page';
+import SellerPage, { generateMetadata as sellerMetadata } from './seller/[id]/page';
 import AdminPage from './admin/page';
 import { fixtureListings } from '../lib/data/fixtures';
 import { devListings } from '../lib/data/dev-store';
@@ -212,7 +212,7 @@ describe('flag-on routes', () => {
     expect(html).not.toContain('Land Cruiser VXR');
   });
 
-  it('seeded seller routes 404 while the user seller still renders', async () => {
+  it('gates both hidden fixture and personal seller routes', async () => {
     await expect(
       SellerPage({
         params: Promise.resolve({ id: sampleSeed.sellerId }),
@@ -220,16 +220,18 @@ describe('flag-on routes', () => {
       }),
     ).rejects.toThrow('NEXT_NOT_FOUND');
 
-    const html = renderToStaticMarkup(
-      await SellerPage({
+    // The user-created seller is personal, so their public seller URL is a 404.
+    await expect(
+      SellerPage({
         params: Promise.resolve({ id: user.sellerId }),
         searchParams: Promise.resolve({}),
       }),
-    );
+    ).rejects.toThrow('NEXT_NOT_FOUND');
 
-    expect(html).toContain('/listing/user-created-listing');
-    expect(html).not.toContain('/listing/land-cruiser-kish');
-    expect(html).not.toContain('Land Cruiser VXR');
+    const metadata = await sellerMetadata({
+      params: Promise.resolve({ id: user.sellerId }),
+    });
+    expect(metadata.robots).toEqual({ index: false, follow: false });
   });
 
   it('admin page renders only the user-created catalogue row', async () => {

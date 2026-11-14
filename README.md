@@ -106,13 +106,30 @@ read-only, wiped with `rm -rf`); the mobile app runs an in-memory demo store
 with a visible «حالت نمایشی محلی» banner. With `NEXT_PUBLIC_SUPABASE_*` set, the
 grid reads the shared `search_listings` RPC and mutations are RLS-gated.
 
-**Demo / cloud-preview mode** (`apps/web/lib/config/mode.ts`): a production
-build without Supabase write credentials keeps the same fixture store instead
-of answering 503, and the login code is written to the server log. Set
-`REQUIRE_HOSTED_SERVICES=true` to refuse that fallback, and
-`NEXT_PUBLIC_DEMO_OTP_HINT=true` (preview builds only) to also show the code on
-the OTP step so the owner can sign in on a shared preview link. Fixture cards
-use the SVG illustrations in `apps/web/public/covers/`
+**Development fixtures** (`apps/web/lib/config/mode.ts`): `next dev` without
+Supabase credentials serves the fixture store and can print the OTP to the
+server log; `NEXT_PUBLIC_DEMO_OTP_HINT=true` also shows it on the OTP step.
+Production is always strict: it requires Supabase, an SMS provider and a real
+`AUTH_SECRET`, never accepts demo OTP, and answers 503 when a service is
+missing. The production secret names are:
+
+```
+SUPABASE_URL
+NEXT_PUBLIC_SUPABASE_URL
+SUPABASE_SERVICE_ROLE_KEY
+NEXT_PUBLIC_SUPABASE_ANON_KEY
+SMS_API_KEY
+SMS_SENDER
+SMS_API_URL
+AUTH_SECRET                 # ≥16 random characters
+REQUIRE_HOSTED_SERVICES     # optional; production is already strict
+```
+
+Do not set `NEXT_PUBLIC_DEMO_OTP_HINT` in production. After deploying with the
+secrets, run `npm run auth:e2e -- --url=https://<preview-host>` and enter the
+SMS code when prompted; it verifies the real OTP, session cookie, `/api/auth/me`
+and logout, and fails if the demo route or demo code is still available.
+Fixture cards use the SVG illustrations in `apps/web/public/covers/`
 (`node scripts/gen-covers.mjs` regenerates them).
 
 **Owner moderation hub** (`/admin`, `apps/web/app/admin`): reported listings,
