@@ -109,6 +109,7 @@ export function demoOtpHintEnabled(): boolean {
 
 const PRIMARY_DIR = join(process.cwd(), '.dev-data');
 const FALLBACK_DIR = '/tmp/alisales-demo-data';
+const DATA_DIR_ENV = 'DEMO_DATA_DIR';
 
 let resolvedDir: string | null = null;
 
@@ -137,6 +138,9 @@ function writable(dir: string): boolean {
  * keeps everything in isolate memory, so this path is only a stable key.
  */
 export function demoDataDir(): string {
+  // Tests and local harnesses can point every demo store at an isolated dir.
+  const override = process.env[DATA_DIR_ENV]?.trim();
+  if (override) return override;
   if (resolvedDir) return resolvedDir;
   if (writable(PRIMARY_DIR)) {
     resolvedDir = PRIMARY_DIR;
