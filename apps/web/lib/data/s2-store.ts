@@ -696,11 +696,10 @@ export async function ownerStats(ownerId: string): Promise<ListingOwnerStats[]> 
 }
 
 /**
- * Active listings of one seller — the two-listing free limit (C6).
+ * Active listings of one seller, used by owner and profile counts.
  *
- * Hosted mode counts the real `listings` rows (vehicles and parts share the
- * quota); the DB trigger only enforces plan slots for user-context writes, so
- * the server-side count is what covers service-role publishes.
+ * Hosted mode counts the real `listings` rows; fixture mode counts the local
+ * store. The launch flow does not apply a listing cap.
  */
 export async function activeListingsCount(sellerId: string): Promise<number> {
   const sb = admin();

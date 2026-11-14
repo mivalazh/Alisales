@@ -1,10 +1,9 @@
 /**
- * Read-only plan preview (the third-listing gate).
+ * Legacy plan-preview copy and card data.
  *
- * Prices are not shown: both cards render «بزودی» and «انتخاب پلن» only opens
- * the «بزودی» notice. There is no checkout, no payment request and no
- * subscription write here — `subscriptions` stays off in feature flags and
- * `subscription_payments` is untouched.
+ * The web PlanPreview component has been removed. These values stay exported
+ * because shared schema tests lock their limits and the «بزودی» label; no web
+ * surface consumes them and there is no checkout or subscription write.
  */
 export const PLAN_PREVIEW_SOON = 'بزودی';
 

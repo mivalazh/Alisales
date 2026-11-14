@@ -72,7 +72,10 @@ export interface CreateListingCheck {
   usedSlots: number;
 }
 
-/** Enforced in UI, Zod guards and the `enforce_listing_guard` DB trigger. */
+/**
+ * Shared slot rule retained for schema and database tests. The web launch flow
+ * currently publishes without applying this cap.
+ */
 export function canCreateListing(check: CreateListingCheck): boolean {
   return check.usedSlots < check.plan.listingLimit;
 }

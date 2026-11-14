@@ -327,7 +327,7 @@ export {
   SEARCH_SCORE,
 } from './search';
 
-// Read-only plan preview («بزودی») behind the third-listing gate
+// Legacy plan-preview data retained for shared schema tests (no web UI)
 export { PLAN_PREVIEW_SOON, PLAN_PREVIEWS } from './plan-preview';
 export type { PlanPreviewCard } from './plan-preview';
 
