@@ -395,12 +395,12 @@ export function AdminDashboard({ data }: { data: AdminCenterData }) {
       {tab === 'inspections' && (
         <section className="space-y-2">
           <h2 className="text-sm font-extrabold">
-            نوبت‌های کارشناسی تعمیرگاه شمس‌اله {openInspections > 0 && `· ${openInspections} باز`}
+            نوبت‌های کارشناسی پیش از خرید {openInspections > 0 && `· ${openInspections} باز`}
           </h2>
           <ul className="space-y-2">
             {data.inspections.length === 0 && (
               <li className="rounded-card border border-dashed border-line bg-page p-4 text-sm text-muted">
-                هنوز درخواست کارشناسی ثبت نشده است. فرم رزرو در صفحه‌ی آگهی و /inspection قرار دارد.
+                هنوز درخواست کارشناسی ثبت نشده است. فرم رزرو در صفحه‌ی هر آگهی قرار دارد.
               </li>
             )}
             {data.inspections.map((booking) => (

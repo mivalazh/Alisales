@@ -578,6 +578,7 @@ export default async function ListingDetailPage({
           </div>
 
           <InspectionOffer
+            showWorkshopName
             listingSlug={listing.slug}
             listingTitle={displayTitle}
           />

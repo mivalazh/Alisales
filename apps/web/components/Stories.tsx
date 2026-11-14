@@ -5,6 +5,7 @@ import dynamic from 'next/dynamic';
 import { useCallback, useEffect, useRef, useState } from 'react';
 import { emblemInk } from './BrandEmblem';
 import { CustomSelect } from './CustomSelect';
+import { GalleryPermissionDialog, useGalleryPicker } from './GalleryPermission';
 import { Icon } from './Icon';
 import { isPreSizedSource } from '@/lib/images';
 import { useI18n } from '@/lib/i18n';
@@ -40,8 +41,12 @@ export function Stories({ stories, label = 'داستان‌های آگهی' }: {
   const [openIndex, setOpenIndex] = useState<number | null>(null);
   const [composerOpen, setComposerOpen] = useState(false);
   const [displayName, setDisplayName] = useState<string | null>(null);
+  const [userId, setUserId] = useState<string | null>(null);
   const [mine, setMine] = useState<StoryListingOption[]>([]);
   const [created, setCreated] = useState<StoryItem[]>([]);
+  const [draft, setDraft] = useState<{ url: string; kind: 'image' | 'video' } | null>(null);
+  const mediaInput = useRef<HTMLInputElement>(null);
+  const gallery = useGalleryPicker();
 
   const loadStories = useCallback(async () => {
     try {
@@ -63,21 +68,28 @@ export function Stories({ stories, label = 'داستان‌های آگهی' }: {
           slug: `story-${story.id}`,
           title: story.title,
           coverUrl: story.mediaUrl,
-          href: story.listingSlug ? `/listing/${story.listingSlug}` : '/',
+          href: story.listingSlug
+            ? `/listing/${story.listingSlug}`
+            : userId
+              ? `/seller/${userId}`
+              : '/',
           ...(story.mediaKind === 'video' ? { videoUrl: story.mediaUrl } : {}),
         })),
       );
     } catch {
       // stories are an enhancement; a failed fetch leaves the seeded rail
     }
-  }, []);
+  }, [userId]);
 
   useEffect(() => {
     let alive = true;
     fetch('/api/auth/me')
       .then((res) => (res.ok ? res.json() : null))
-      .then((body: { user?: { displayName?: string | null } } | null) => {
-        if (alive && body?.user) setDisplayName(body.user.displayName ?? '');
+      .then((body: { user?: { id?: string; displayName?: string | null } } | null) => {
+        if (alive && body?.user) {
+          setDisplayName(body.user.displayName ?? '');
+          setUserId(body.user.id ?? null);
+        }
       })
       .catch(() => undefined);
     void loadStories();
@@ -88,13 +100,28 @@ export function Stories({ stories, label = 'داستان‌های آگهی' }: {
 
   const rail = [...created, ...stories];
 
-  const openAdd = () => setComposerOpen(true);
+  const openAdd = () => {
+    gallery.request(() => mediaInput.current?.click());
+  };
+
+  const draftPicked = (file: File | undefined) => {
+    if (!file) return;
+    const kind = file.type.startsWith('video/') ? 'video' : 'image';
+    const reader = new FileReader();
+    reader.onload = () => {
+      if (typeof reader.result === 'string') {
+        setDraft({ url: reader.result, kind });
+        setComposerOpen(true);
+      }
+    };
+    reader.readAsDataURL(file);
+  };
 
   return (
     <section aria-label={t(label)} className="rounded-card border border-line bg-card p-3 sm:p-4">
       <ul
         aria-label={t(label)}
-        className="flex snap-x snap-mandatory items-start gap-3 overflow-x-auto px-0.5 pb-1 [scrollbar-width:none] [&::-webkit-scrollbar]:hidden"
+        className="flex snap-x snap-mandatory items-start gap-3 overflow-x-auto overflow-y-visible px-0.5 py-2.5 pt-3 [scrollbar-width:none] [&::-webkit-scrollbar]:hidden"
       >
         <AddStoryTile displayName={displayName} onClick={openAdd} />
         {rail.map((story, index) => (
@@ -102,13 +129,35 @@ export function Stories({ stories, label = 'داستان‌های آگهی' }: {
         ))}
       </ul>
 
-      {composerOpen && (
+      <input
+        ref={mediaInput}
+        type="file"
+        accept="image/*,video/mp4,video/webm,video/quicktime"
+        hidden
+        onChange={(event) => {
+          draftPicked(event.target.files?.[0]);
+          event.currentTarget.value = '';
+        }}
+      />
+      <GalleryPermissionDialog
+        open={gallery.pending}
+        onAllow={gallery.allow}
+        onCancel={gallery.cancel}
+      />
+
+      {composerOpen && draft && (
         <StoryComposer
           listings={mine}
           displayName={displayName}
-          onClose={() => setComposerOpen(false)}
+          mediaUrl={draft.url}
+          mediaKind={draft.kind}
+          onClose={() => {
+            setComposerOpen(false);
+            setDraft(null);
+          }}
           onPublished={() => {
             setComposerOpen(false);
+            setDraft(null);
             void loadStories();
           }}
         />
@@ -179,21 +228,25 @@ function AddStoryTile({
 function StoryComposer({
   listings,
   displayName,
+  mediaUrl,
+  mediaKind,
   onClose,
   onPublished,
 }: {
   listings: StoryListingOption[];
   displayName: string | null;
+  mediaUrl: string;
+  mediaKind: 'image' | 'video';
   onClose: () => void;
   onPublished: () => void;
 }) {
   const { t } = useI18n();
-  const [listingSlug, setListingSlug] = useState('');
-  const [mediaUrl, setMediaUrl] = useState<string | null>(null);
-  const [mediaKind, setMediaKind] = useState<'image' | 'video'>('image');
+  const [target, setTarget] = useState<'listing' | 'profile'>(
+    listings.length > 0 ? 'listing' : 'profile',
+  );
+  const [listingSlug, setListingSlug] = useState(listings[0]?.slug ?? '');
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState<string | null>(null);
-  const fileRef = useRef<HTMLInputElement>(null);
 
   useEffect(() => {
     const onKey = (event: KeyboardEvent) => {
@@ -210,36 +263,10 @@ function StoryComposer({
 
   const picked = listings.find((item) => item.slug === listingSlug) ?? null;
 
-  const chooseFile = (file: File | undefined) => {
-    if (!file) return;
-    if (!file.type.startsWith('image/') && !file.type.startsWith('video/')) {
-      setError(t('فقط عکس یا ویدیو قابل انتخاب است.', 'Please choose an image or a video.'));
-      return;
-    }
-    if (file.size > 8 * 1024 * 1024) {
-      setError(t('حجم فایل باید کمتر از ۸ مگابایت باشد.', 'The file must be smaller than 8 MB.'));
-      return;
-    }
-    setError(null);
-    const kind = file.type.startsWith('video/') ? 'video' : 'image';
-    const reader = new FileReader();
-    reader.onload = () => {
-      setMediaKind(kind);
-      setMediaUrl(typeof reader.result === 'string' ? reader.result : null);
-    };
-    reader.readAsDataURL(file);
-  };
-
   const publish = async () => {
     if (busy) return;
-    const cover = mediaUrl ?? picked?.coverUrl ?? null;
-    if (!cover) {
-      setError(
-        t(
-          'یک عکس/ویدیو عمودی یا یکی از آگهی‌هایتان را انتخاب کنید.',
-          'Choose a vertical photo/video or one of your listings.',
-        ),
-      );
+    if (target === 'listing' && !listingSlug) {
+      setError(t('یکی از آگهی‌هایتان را انتخاب کنید.', 'Choose one of your listings.'));
       return;
     }
     setBusy(true);
@@ -249,10 +276,13 @@ function StoryComposer({
         method: 'POST',
         headers: { 'content-type': 'application/json' },
         body: JSON.stringify({
-          mediaUrl: cover,
-          mediaKind: mediaUrl ? mediaKind : 'image',
-          listingSlug: listingSlug || null,
-          title: picked?.title ?? displayName ?? 'استوری Ali Sales',
+          mediaUrl,
+          mediaKind,
+          listingSlug: target === 'listing' ? listingSlug : null,
+          title:
+            target === 'listing'
+              ? (picked?.title ?? displayName ?? 'استوری Ali Sales')
+              : (displayName ?? 'استوری Ali Sales'),
         }),
       });
       const body = (await res.json().catch(() => ({}))) as { ok?: boolean; error?: string };
@@ -277,16 +307,14 @@ function StoryComposer({
       onClick={onClose}
     >
       <div
-        className="w-full max-w-sm rounded-card border border-line bg-card p-5 shadow-2xl"
+        className="w-full max-w-md rounded-card border border-line bg-card p-5 shadow-2xl"
         onClick={(event) => event.stopPropagation()}
       >
         <div className="flex items-center gap-2">
           <span className="flex h-10 w-10 items-center justify-center rounded-full bg-cta-soft text-cta">
             <Icon name="camera" size={20} />
           </span>
-          <h2 className="text-sm font-extrabold text-ink">
-            {t('ثبت استوری رایگان', 'Publish a free story')}
-          </h2>
+          <h2 className="text-sm font-extrabold text-ink">{t('انتشار استوری', 'Publish a story')}</h2>
           <button
             type="button"
             onClick={onClose}
@@ -297,69 +325,56 @@ function StoryComposer({
           </button>
         </div>
 
-        <p className="mt-2 text-xs leading-6 text-muted">
-          {t(
-            'در طرح افتتاحیه، استوری برای همه‌ی کاربران رایگان است. یک عکس/ویدیو عمودی بگذارید یا استوری یکی از آگهی‌هایتان را بسازید.',
-            'During the launch period, stories are free for every member. Upload a vertical photo or clip, or create a story for one of your listings.',
-          )}
-        </p>
+        <div className="mt-3 flex gap-3">
+          <div className="h-28 w-20 shrink-0 overflow-hidden rounded-xl border border-line bg-sunken">
+            {mediaKind === 'video' ? (
+              <video src={mediaUrl} muted loop autoPlay playsInline className="h-full w-full object-cover" />
+            ) : (
+              // eslint-disable-next-line @next/next/no-img-element
+              <img src={mediaUrl} alt={t('پیش‌نمایش استوری', 'Story preview')} className="h-full w-full object-cover" />
+            )}
+          </div>
+          <div className="min-w-0 flex-1">
+            <p className="text-xs font-extrabold text-ink">{t('مقصد استوری', 'Story destination')}</p>
+            <div className="mt-2 grid gap-2">
+              <button
+                type="button"
+                onClick={() => setTarget('listing')}
+                disabled={listings.length === 0}
+                aria-pressed={target === 'listing'}
+                className={`rounded-xl border p-2.5 text-start text-xs transition disabled:cursor-not-allowed disabled:opacity-50 ${
+                  target === 'listing' ? 'border-cta bg-cta-soft' : 'border-line bg-page/60'
+                }`}
+              >
+                <span className="block font-extrabold text-ink">{t('۱. انتقال به آگهی من', '1. Link to my listing')}</span>
+                <span className="mt-0.5 block text-[10px] text-muted">{t('لینک به یکی از آگهی‌ها', 'Link to one of your listings')}</span>
+              </button>
+              <button
+                type="button"
+                onClick={() => setTarget('profile')}
+                aria-pressed={target === 'profile'}
+                className={`rounded-xl border p-2.5 text-start text-xs transition ${
+                  target === 'profile' ? 'border-cta bg-cta-soft' : 'border-line bg-page/60'
+                }`}
+              >
+                <span className="block font-extrabold text-ink">{t('۲. انتقال به پروفایل من', '2. Link to my profile')}</span>
+                <span className="mt-0.5 block text-[10px] text-muted">{t('نمایش پروفایل/صفحه من', 'Show my profile page')}</span>
+              </button>
+            </div>
+          </div>
+        </div>
 
-        <div className="mt-3 space-y-3">
-          <div>
-            <span className="label mb-0">
-              {t('آگهی مرتبط (اختیاری)', 'Related listing (optional)')}
-            </span>
+        {target === 'listing' && listings.length > 0 && (
+          <div className="mt-3">
+            <span className="label mb-0">{t('آگهی مرتبط', 'Related listing')}</span>
             <CustomSelect
               value={listingSlug}
               onChange={setListingSlug}
               ariaLabel={t('آگهی مرتبط', 'Related listing')}
-              placeholder={t('بدون آگهی — استوری آزاد', 'No listing — standalone story')}
-              options={[
-                {
-                  value: '',
-                  label: t('بدون آگهی — استوری آزاد', 'No listing — standalone story'),
-                },
-                ...listings.map((item) => ({ value: item.slug, label: item.title })),
-              ]}
+              options={listings.map((item) => ({ value: item.slug, label: item.title }))}
             />
           </div>
-
-          <div>
-            <span className="label mb-0">
-              {t('عکس یا ویدیو عمودی', 'Vertical photo or video')}
-            </span>
-            <button
-              type="button"
-              onClick={() => fileRef.current?.click()}
-              className="flex aspect-[9/16] max-h-40 w-full flex-col items-center justify-center gap-1 overflow-hidden rounded-field border border-dashed border-line-strong bg-page text-xs font-bold text-muted transition hover:border-cta hover:text-ink"
-            >
-              {mediaUrl ? (
-                mediaKind === 'video' ? (
-                  <video src={mediaUrl} muted loop autoPlay playsInline className="h-full w-full object-cover" />
-                ) : (
-                  // eslint-disable-next-line @next/next/no-img-element
-                  <img
-                    src={mediaUrl}
-                    alt={t('پیش‌نمایش استوری', 'Story preview')}
-                    className="h-full w-full object-cover"
-                  />
-                )
-              ) : (
-                <>
-                  <Icon name="plus" size={22} />
-                  {t('انتخاب فایل', 'Choose file')}
-                </>
-              )}
-            </button>
-            <input
-              ref={fileRef}
-              type="file"
-              accept="image/*,video/mp4,video/webm,video/quicktime"
-              hidden
-              onChange={(event) => chooseFile(event.target.files?.[0])}
-            />
-          </div>
-        </div>
+        )}
 
         {error && (
           <p role="alert" className="error-text">
@@ -373,9 +388,7 @@ function StoryComposer({
           disabled={busy}
           className="btn-cta mt-4 w-full text-sm disabled:opacity-60"
         >
-          {busy
-            ? t('در حال ثبت…', 'Publishing...')
-            : t('انتشار استوری', 'Publish story')}
+          {busy ? t('در حال ثبت…', 'Publishing...') : t('انتشار استوری', 'Publish story')}
         </button>
       </div>
     </div>

@@ -4,17 +4,20 @@ import Link from 'next/link';
 import { useRouter, useSearchParams } from 'next/navigation';
 import { useEffect, useState, type FormEvent } from 'react';
 import {
-  ACCOUNT_TYPE_LABELS,
+  BUSINESS_TYPE_LABELS,
+  PROFILE_MODE_LABELS,
   accountTypes,
+  businessTypes,
   safeNextPath,
   type AccountType,
+  type BusinessType,
 } from '@alisales/schemas';
 import { Icon } from './Icon';
 import { useI18n } from '@/lib/i18n';
 
 const ACCOUNT_TYPE_EN: Record<AccountType, string> = {
-  individual: 'Individual',
-  showroom: 'Showroom',
+  individual: 'Personal account',
+  showroom: 'Business account',
 };
 
 /**
@@ -49,6 +52,7 @@ export function LoginForm() {
   const [demoCode, setDemoCode] = useState<string | null>(null);
   const [displayName, setDisplayName] = useState('');
   const [accountType, setAccountType] = useState<AccountType>('individual');
+  const [businessType, setBusinessType] = useState<BusinessType>('car-dealer');
   const [needsProfile, setNeedsProfile] = useState(false);
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -137,6 +141,7 @@ export function LoginForm() {
         code,
         displayName: needsProfile ? displayName : undefined,
         accountType: needsProfile ? accountType : undefined,
+        businessType: needsProfile && accountType === 'showroom' ? businessType : undefined,
       });
       if (status === 200) {
         // Never bounce back into the login screen (a `?next=/login` hand-off
@@ -370,10 +375,34 @@ export function LoginForm() {
                         checked={accountType === type}
                         onChange={() => setAccountType(type)}
                       />
-                      {t(ACCOUNT_TYPE_LABELS[type], ACCOUNT_TYPE_EN[type])}
+                      {t(
+                        type === 'showroom'
+                          ? PROFILE_MODE_LABELS.business
+                          : PROFILE_MODE_LABELS.personal,
+                        ACCOUNT_TYPE_EN[type],
+                      )}
                     </label>
                   ))}
                 </div>
+                {accountType === 'showroom' && (
+                  <div className="mt-3">
+                    <label className="label" htmlFor="business-type">
+                      {t('نوع کسب‌وکار', 'Business type')}
+                    </label>
+                    <select
+                      id="business-type"
+                      className="field"
+                      value={businessType}
+                      onChange={(e) => setBusinessType(e.target.value as BusinessType)}
+                    >
+                      {businessTypes.map((type) => (
+                        <option key={type} value={type}>
+                          {t(BUSINESS_TYPE_LABELS[type], type)}
+                        </option>
+                      ))}
+                    </select>
+                  </div>
+                )}
               </fieldset>
             </div>
           )}

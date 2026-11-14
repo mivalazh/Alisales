@@ -5,21 +5,20 @@ import { Icon } from './Icon';
 import { useI18n } from '@/lib/i18n';
 
 /**
- * «نوبت‌دهی کارشناسی فنی در تعمیرگاه شمس‌اله» — the platform-level offer.
- *
- * Rendered under the seller card on every listing and on /inspection. The
- * modal is deliberately short (name, phone, date, time, vehicle) because this
- * is a lead form filled on a phone, often at the side of the road; everything
- * else is optional. The booking lands in the /admin inspection queue.
+ * Pre-purchase inspection booking. The workshop name is shown only where the
+ * buyer is already looking at a specific car (the listing detail page); the
+ * generic booking page stays brand-neutral.
  */
 export function InspectionOffer({
   listingSlug,
   listingTitle,
   compact = false,
+  showWorkshopName = false,
 }: {
   listingSlug?: string | null;
   listingTitle?: string | null;
   compact?: boolean;
+  showWorkshopName?: boolean;
 }) {
   const { t } = useI18n();
   const [open, setOpen] = useState(false);
@@ -31,10 +30,12 @@ export function InspectionOffer({
           <span className="flex h-8 w-8 items-center justify-center rounded-full bg-[#F98513] text-white">
             <Icon name="shieldCheck" size={17} />
           </span>
-          {t(
-            'نوبت‌دهی کارشناسی فنی در تعمیرگاه شمس‌اله',
-            'Technical inspection booking at Shamsollah Workshop',
-          )}
+          {showWorkshopName
+            ? t(
+                'نوبت‌دهی کارشناسی فنی در تعمیرگاه شمس‌اله',
+                'Technical inspection booking at Shamsollah Workshop',
+              )
+            : t('رزرو کارشناسی فنی پیش از خرید', 'Book a pre-purchase inspection')}
         </p>
         <p className="mt-2 text-xs leading-6 text-ink/80">
           {t('آفر ویژه کاربران سایت:', 'Special offer for site members:')}{' '}
@@ -73,10 +74,15 @@ export function InspectionOffer({
           )}
         </button>
         <p className="mt-2 text-[10px] text-faint">
-          {t(
-            'پاسخ‌گویی شنبه تا پنجشنبه، ۹ تا ۱۸ — تعمیرگاه تخصصی شمس‌اله، کیش.',
-            'Saturday to Thursday, 09:00–18:00 — Shamsollah Specialist Workshop, Kish.',
-          )}
+          {showWorkshopName
+            ? t(
+                'پاسخ‌گویی شنبه تا پنجشنبه، ۹ تا ۱۸ — تعمیرگاه تخصصی شمس‌اله، کیش.',
+                'Saturday to Thursday, 09:00–18:00 — Shamsollah Specialist Workshop, Kish.',
+              )
+            : t(
+                'پاسخ‌گویی شنبه تا پنجشنبه، ۹ تا ۱۸ — کیش.',
+                'Saturday to Thursday, 09:00–18:00 — Kish.',
+              )}
         </p>
       </section>
 
@@ -84,6 +90,7 @@ export function InspectionOffer({
         <BookingModal
           listingSlug={listingSlug ?? null}
           listingTitle={listingTitle ?? null}
+          showWorkshopName={showWorkshopName}
           onClose={() => setOpen(false)}
         />
       )}
@@ -94,10 +101,12 @@ export function InspectionOffer({
 function BookingModal({
   listingSlug,
   listingTitle,
+  showWorkshopName,
   onClose,
 }: {
   listingSlug: string | null;
   listingTitle: string | null;
+  showWorkshopName: boolean;
   onClose: () => void;
 }) {
   const { t } = useI18n();
@@ -169,7 +178,9 @@ function BookingModal({
             <Icon name="shieldCheck" size={18} />
           </span>
           <h2 className="text-sm font-extrabold">
-            {t('رزرو کارشناسی تعمیرگاه شمس‌اله', 'Shamsollah Workshop inspection booking')}
+            {showWorkshopName
+              ? t('رزرو کارشناسی تعمیرگاه شمس‌اله', 'Shamsollah Workshop inspection booking')
+              : t('رزرو کارشناسی پیش از خرید', 'Pre-purchase inspection booking')}
           </h2>
           <button
             type="button"
@@ -185,8 +196,8 @@ function BookingModal({
           <div className="mt-4 space-y-2 text-sm">
             <p className="rounded-field border border-ok/40 bg-ok/10 px-3 py-2 font-bold text-ok">
               {t(
-                'نوبت شما ثبت شد؛ کارشناس تعمیرگاه برای تأیید ساعت با شما تماس می‌گیرد.',
-                'Your appointment is booked; the workshop specialist will call you to confirm the time.',
+                'نوبت شما ثبت شد؛ کارشناس برای تأیید ساعت با شما تماس می‌گیرد.',
+                'Your appointment is booked; the specialist will call you to confirm the time.',
               )}
             </p>
             <p className="text-xs leading-6 text-muted">

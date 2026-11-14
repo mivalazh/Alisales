@@ -6,12 +6,12 @@ import { getLanguage, serverT } from '@/lib/i18n/server';
 
 export const generateMetadata = localizedMetadata(
   {
-    title: 'کارشناسی خودرو تعمیرگاه شمس‌اله',
+    title: 'کارشناسی خودرو پیش از خرید',
     description:
       'کارشناسی فنی کامل موتور، گیربکس، بدنه و دیاگ تخصصی پیش از خرید در کیش — با ۲۰٪ تخفیف ویژه کاربران Ali Sales و صدور برگه ضمانت کارشناسی.',
   },
   {
-    title: 'Shamsollah Workshop Vehicle Inspection',
+    title: 'Pre-purchase vehicle inspection',
     description:
       'A full pre-purchase mechanical, gearbox, body and diagnostics inspection in Kish — 20% off for Ali Sales users, with a written inspection guarantee.',
   },
@@ -66,18 +66,15 @@ export default async function InspectionPage() {
       <section className="rounded-3xl border border-line bg-[#111144] px-5 py-7 text-white shadow-lg sm:px-8 sm:py-9">
         <p className="flex items-center gap-2 text-[11px] font-extrabold text-[#DEF434]">
           <Icon name="shieldCheck" size={16} />
-          {t(
-            'زیرمجموعه رسمی تعمیرگاه تخصصی شمس‌اله',
-            'Official subsidiary of Shamsollah Specialist Workshop',
-          )}
+          {t('کارشناسی مستقل پیش از خرید', 'Independent pre-purchase inspection')}
         </p>
         <h1 className="mt-3 max-w-2xl text-2xl font-black leading-tight sm:text-4xl">
           {t('کارشناسی فنی خودرو پیش از خرید در کیش', 'Pre-purchase vehicle inspections in Kish')}
         </h1>
         <p className="mt-3 max-w-2xl text-sm leading-7 text-white/80">
           {t(
-            'همان کارگاهی که آگهی‌های کارشناسی‌شده را تأیید می‌کند، پیش از پرداخت پول خودرو را برای شما بررسی می‌کند.',
-            'The workshop that certifies inspected listings checks the car for you before you pay.',
+            'پیش از پرداخت پول، خودرو را از نزدیک و با چشم کارشناس بررسی می‌کنیم تا با خیال راحت تصمیم بگیرید.',
+            'Before you pay, we inspect the car up close with an expert so you can decide with confidence.',
           )}
         </p>
       </section>

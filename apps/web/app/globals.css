@@ -460,7 +460,13 @@ html.app-standalone button {
 @keyframes car-wheel-spin {
   to { transform: rotate(360deg); }
 }
+.car-speed {
+  animation: car-speed-slide 1s linear infinite;
+}
+@keyframes car-speed-slide {
+  to { stroke-dashoffset: -48; }
+}
 
 @media (prefers-reduced-motion: reduce) {
-  .ai-orb, .ai-orb-eye, .car-wheel { animation: none !important; }
+  .ai-orb, .ai-orb-eye, .car-wheel, .car-speed { animation: none !important; }
 }

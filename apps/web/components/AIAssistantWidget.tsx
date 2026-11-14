@@ -28,7 +28,7 @@ const SEED_FAQS = [
   'چه ماشینی بخرم؟',
   'خودروی ارزان کیش',
   'فرق پلاک منطقه آزاد و گذر موقت',
-  'کارشناسی تعمیرگاه شمس‌اله',
+  'چک‌لیست کارشناسی پیش از خرید',
   'قطعات استوک اصل',
   'چک‌لیست خرید خودرو',
 ];
@@ -135,7 +135,7 @@ export function AIAssistantWidget() {
         <div
           role="dialog"
           aria-label={t('دستیار هوشمند Ali Sales')}
-          className="fixed bottom-36 right-4 z-50 flex max-h-[70vh] w-[min(92vw,370px)] flex-col overflow-hidden rounded-2xl border border-line bg-card shadow-2xl sm:bottom-24 sm:right-6"
+          className="fixed bottom-24 right-3 z-50 flex h-[520px] max-h-[80dvh] w-[calc(100vw-1.5rem)] flex-col overflow-hidden rounded-2xl border border-line bg-card shadow-2xl sm:right-6 sm:w-[420px] md:w-[450px]"
         >
           <div className="flex items-center gap-2 bg-[#111144] px-3 py-2.5 text-white">
             <span className="ai-orb ai-orb-sm shrink-0" aria-hidden="true">
@@ -272,22 +272,20 @@ export function AIAssistantWidget() {
         </div>
       )}
 
-      <button
-        type="button"
-        onClick={() => setOpen((v) => !v)}
-        aria-expanded={open}
-        aria-label={open ? t('بستن دستیار هوشمند') : t('باز کردن دستیار هوشمند')}
-        className="ai-fab fixed bottom-20 right-4 z-40 flex h-14 w-14 items-center justify-center rounded-full border-2 border-[#F98513]/70 bg-[#111144] shadow-[0_12px_30px_-4px_rgba(249,133,19,0.5),0_6px_16px_-2px_rgba(17,17,68,0.4)] ring-2 ring-[#F98513]/70 transition-all duration-200 hover:-translate-y-1 sm:bottom-6 sm:right-6"
-      >
-        {open ? (
-          <Icon name="close" size={22} className="text-white" />
-        ) : (
+      {!open && (
+        <button
+          type="button"
+          onClick={() => setOpen(true)}
+          aria-expanded={false}
+          aria-label={t('باز کردن دستیار هوشمند')}
+          className="ai-fab fixed bottom-20 right-4 z-40 flex h-14 w-14 items-center justify-center rounded-full border-2 border-[#F98513]/70 bg-[#111144] shadow-[0_12px_30px_-4px_rgba(249,133,19,0.5),0_6px_16px_-2px_rgba(17,17,68,0.4)] ring-2 ring-[#F98513]/70 transition-all duration-200 hover:-translate-y-1 sm:bottom-6 sm:right-6"
+        >
           <span className="ai-orb" aria-hidden="true">
             <span className="ai-orb-eye" />
             <span className="ai-orb-eye" />
           </span>
-        )}
-      </button>
+        </button>
+      )}
     </>
   );
 }

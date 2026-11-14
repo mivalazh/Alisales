@@ -1,17 +1,21 @@
 import { NextResponse } from 'next/server';
 import {
+  businessTypes,
   isOtpCode,
   isValidMobile,
   normalizePhone,
   otpStatus,
   otpStatusMessage,
   profileSchema,
+  profileModeFor,
+  type BusinessType,
 } from '@alisales/schemas';
 import { authSecret, createSessionToken, setSessionCookie } from '@/lib/auth/session';
 import { bumpOtpAttempts, deleteOtp, getOtp, verifyOtpHash } from '@/lib/auth/otp-store';
 import { clearDemoOtpCookie, demoOtpCookieMatches } from '@/lib/auth/otp-cookie';
 import { demoAuthMode } from '@/lib/config/mode';
 import { createUser, findUserByPhone } from '@/lib/data/s2-store';
+import { profileCustomization, saveProfileCustomization } from '@/lib/data/social-store';
 
 /**
  * POST /api/auth/verify — { phone, code, displayName?, accountType? }
@@ -43,6 +47,7 @@ export async function POST(request: Request): Promise<NextResponse> {
     code?: unknown;
     displayName?: unknown;
     accountType?: unknown;
+    businessType?: unknown;
   };
 
   const phoneRaw = typeof body.phone === 'string' ? body.phone : '';
@@ -95,6 +100,18 @@ export async function POST(request: Request): Promise<NextResponse> {
       phone,
       displayName: parsed.data.displayName,
       accountType: parsed.data.accountType,
+    });
+  }
+
+  if (!profileCustomization(account.id)) {
+    const requestedBusiness =
+      typeof body.businessType === 'string' &&
+      businessTypes.includes(body.businessType as never)
+        ? (body.businessType as BusinessType)
+        : null;
+    saveProfileCustomization(account.id, {
+      profileMode: profileModeFor(account.accountType),
+      businessType: requestedBusiness,
     });
   }
 

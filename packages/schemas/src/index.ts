@@ -220,11 +220,16 @@ export type { OtpStatus } from './otp';
 export {
   accountTypes,
   ACCOUNT_TYPE_LABELS,
+  profileModes,
+  PROFILE_MODE_LABELS,
+  businessTypes,
+  BUSINESS_TYPE_LABELS,
   displayNameSchema,
   profileSchema,
   accountTypeLabel,
+  profileModeFor,
 } from './profile';
-export type { AccountType, ProfileInput } from './profile';
+export type { AccountType, ProfileInput, ProfileMode, BusinessType } from './profile';
 
 // Open-redirect guard for ?next= (S2 security rule)
 export { DEFAULT_NEXT_PATH, safeNextPath, loginHref } from './safe-next';

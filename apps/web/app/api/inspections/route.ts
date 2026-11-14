@@ -4,7 +4,7 @@ import { addInspection } from '@/lib/data/platform-store';
 import { normalizePhone } from '@alisales/schemas';
 
 /**
- * POST /api/inspections — book a Shamsollah workshop inspection.
+ * POST /api/inspections — book a pre-purchase inspection.
  *
  * Open to guests on purpose: the offer is a lead magnet at the bottom of a
  * listing, and an account wall there loses most of the bookings. The request

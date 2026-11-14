@@ -1,3 +1,4 @@
+import type { BusinessType, ProfileMode } from '@alisales/schemas';
 import { readJson, writeJson } from '../storage/demo-store';
 
 /**
@@ -23,6 +24,10 @@ export interface ProfileCustomization {
   avatarUrl: string | null;
   /** Absolute or data URL; null keeps the default gradient banner. */
   coverUrl: string | null;
+  /** Personal profiles stay private; business profiles are public storefronts. */
+  profileMode?: ProfileMode | null;
+  /** Business sub-type (car dealer, parts store, workshop, rental). */
+  businessType?: BusinessType | null;
   updatedAt: string;
 }
 
@@ -91,7 +96,13 @@ export const IMAGE_MAX_CHARS = 240_000;
 
 export function saveProfileCustomization(
   sellerId: string,
-  next: { bio?: string; avatarUrl?: string | null; coverUrl?: string | null },
+  next: {
+    bio?: string;
+    avatarUrl?: string | null;
+    coverUrl?: string | null;
+    profileMode?: ProfileMode | null;
+    businessType?: BusinessType | null;
+  },
 ): ProfileCustomization {
   const data = read();
   const previous = data.profiles[sellerId];
@@ -99,6 +110,9 @@ export function saveProfileCustomization(
     bio: (next.bio ?? previous?.bio ?? '').trim().slice(0, BIO_MAX),
     avatarUrl: next.avatarUrl === undefined ? (previous?.avatarUrl ?? null) : next.avatarUrl,
     coverUrl: next.coverUrl === undefined ? (previous?.coverUrl ?? null) : next.coverUrl,
+    profileMode: next.profileMode === undefined ? (previous?.profileMode ?? null) : next.profileMode,
+    businessType:
+      next.businessType === undefined ? (previous?.businessType ?? null) : next.businessType,
     updatedAt: new Date().toISOString(),
   };
   data.profiles[sellerId] = saved;

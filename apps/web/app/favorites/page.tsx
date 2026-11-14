@@ -57,9 +57,6 @@ export default async function FavoritesPage({
   return (
     <div className="mx-auto max-w-2xl space-y-4 bg-[#F4F1EC] dark:bg-[#0B0D1E]">
       <h1 className="text-xl font-extrabold dark:text-white">{t('ذخیره‌شده‌ها', 'Saved')}</h1>
-      <p className="text-xs text-muted">
-        {t('ذخیره‌شده روی حساب شما.', 'Saved to your account.')}
-      </p>
 
       {items.length === 0 ? (
         <ListEmptyState

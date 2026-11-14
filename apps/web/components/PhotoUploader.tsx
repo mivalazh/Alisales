@@ -9,6 +9,7 @@ import {
   type ProcessedPhoto,
 } from '@/lib/photos';
 import { useI18n } from '@/lib/i18n';
+import { GalleryPermissionDialog, useGalleryPicker } from './GalleryPermission';
 
 function isVideoFile(file: File): boolean {
   return file.type.startsWith('video/');
@@ -50,6 +51,7 @@ export function PhotoUploader({
   const [busy, setBusy] = useState(false);
   const [chooserOpen, setChooserOpen] = useState(false);
   const [localError, setLocalError] = useState<string | null>(null);
+  const galleryPermission = useGalleryPicker();
 
   const remaining = MAX_PHOTOS - photos.length;
 
@@ -258,6 +260,10 @@ export function PhotoUploader({
                 type="button"
                 onClick={() => {
                   setChooserOpen(false);
+                  if (source.key === 'gallery') {
+                    galleryPermission.request(() => source.ref.current?.click());
+                    return;
+                  }
                   source.ref.current?.click();
                 }}
                 className="flex w-full items-center justify-between rounded-field px-3 py-3 text-start text-sm font-bold text-ink transition hover:bg-cta-soft"
@@ -314,6 +320,12 @@ export function PhotoUploader({
         multiple
         hidden
         onChange={(e) => void handleFiles(e.target.files)}
+      />
+
+      <GalleryPermissionDialog
+        open={galleryPermission.pending}
+        onAllow={galleryPermission.allow}
+        onCancel={galleryPermission.cancel}
       />
 
       {busy && (

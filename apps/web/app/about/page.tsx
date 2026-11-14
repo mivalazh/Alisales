@@ -25,8 +25,8 @@ const VALUES: ReadonlyArray<{
   {
     fa: 'اصالت و کارشناسی فنی',
     en: 'Authenticity and technical inspection',
-    bodyFa: 'کارشناسی تعمیرگاه شمس‌اله، رنگ، شاسی و مدارک را پیش از خرید روشن می‌کند.',
-    bodyEn: 'Shamsollah workshop inspection makes paint, chassis and documents clear before purchase.',
+    bodyFa: 'وضعیت رنگ، شاسی و مدارک را پیش از خرید روشن می‌کنیم و جای ابهام نمی‌گذاریم.',
+    bodyEn: 'We make paint, chassis and document status clear before purchase.',
     icon: 'shieldCheck',
   },
   {
@@ -37,10 +37,10 @@ const VALUES: ReadonlyArray<{
     icon: 'clock',
   },
   {
-    fa: 'پشتیبانی تخصصی تعمیرگاه شمس‌اله',
-    en: 'Shamsollah workshop expertise',
-    bodyFa: 'پشت Ali Sales یک تعمیرگاه واقعی در کیش است، نه فقط یک فهرست آگهی.',
-    bodyEn: 'Ali Sales is backed by a real Kish workshop, not just a listing board.',
+    fa: 'پشتیبانی تخصصی و انسانی',
+    en: 'Specialist human support',
+    bodyFa: 'تیم پشتیبانی با دانش خودرویی در کنار شماست، نه فقط یک فهرست آگهی.',
+    bodyEn: 'A support team with real automotive knowledge, not just a listing board.',
     icon: 'gear',
   },
 ];
@@ -66,16 +66,16 @@ export default async function AboutPage() {
           </h1>
           <p className="mt-3 max-w-xl text-sm leading-7 text-white/80 sm:text-base sm:leading-8">
             {t(
-              'Ali Sales از دل تعمیرگاه تخصصی شمس‌اله در کیش شکل گرفت؛ جایی که هر خودرو پیش از معامله از نزدیک دیده می‌شود. حالا همان تجربه، فهرست خودرو و قطعات کیش را قابل اعتمادتر می‌کند.',
-              'Ali Sales grew out of Shamsollah Specialist Workshop in Kish, where every car is seen up close before a deal. That same experience now makes Kish’s vehicle and parts marketplace more trustworthy.',
+              'Ali Sales با تجربه‌ی دیدن خودرو از نزدیک و شناخت بازار کیش ساخته شد؛ جایی که شفافیت و بررسی فنی، بخشی از معامله است. حالا همان تجربه، فهرست خودرو و قطعات کیش را قابل اعتمادتر می‌کند.',
+              'Ali Sales was built from hands-on vehicle experience and a deep understanding of the Kish market, where transparency and inspection are part of every deal. That experience now makes the island’s vehicle and parts marketplace more trustworthy.',
             )}
           </p>
           <div className="mt-5 flex flex-wrap gap-2">
             <Link href="/cars" className="rounded-full bg-[#DEF434] px-4 py-2 text-sm font-extrabold text-[#111144] transition hover:bg-white">
               {t('دیدن خودروها', 'Browse vehicles')}
             </Link>
-            <Link href="/inspection" className="rounded-full border border-white/25 px-4 py-2 text-sm font-bold text-white transition hover:bg-white/10">
-              {t('کارشناسی پیش از خرید', 'Pre-purchase inspection')}
+            <Link href="/guide" className="rounded-full border border-white/25 px-4 py-2 text-sm font-bold text-white transition hover:bg-white/10">
+              {t('راهنمای خرید', 'Buying guide')}
             </Link>
           </div>
         </div>

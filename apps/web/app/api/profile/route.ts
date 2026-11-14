@@ -1,4 +1,5 @@
 import { NextResponse } from 'next/server';
+import { businessTypes, profileModes } from '@alisales/schemas';
 import { getSession } from '@/lib/auth/session';
 import {
   BIO_MAX,
@@ -46,7 +47,13 @@ export async function PUT(request: Request): Promise<NextResponse> {
     return NextResponse.json({ error: 'بدنه درخواست نامعتبر است.' }, { status: 400 });
   }
 
-  const body = (raw ?? {}) as { bio?: unknown; avatarUrl?: unknown; coverUrl?: unknown };
+  const body = (raw ?? {}) as {
+    bio?: unknown;
+    avatarUrl?: unknown;
+    coverUrl?: unknown;
+    profileMode?: unknown;
+    businessType?: unknown;
+  };
   if (body.bio !== undefined && typeof body.bio !== 'string') {
     return NextResponse.json({ error: 'متن بایو باید متن باشد.' }, { status: 400 });
   }
@@ -55,6 +62,17 @@ export async function PUT(request: Request): Promise<NextResponse> {
       { error: `بایو حداکثر ${BIO_MAX} نویسه است.` },
       { status: 400 },
     );
+  }
+
+  if (body.profileMode !== undefined && !profileModes.includes(body.profileMode as never)) {
+    return NextResponse.json({ error: 'نوع پروفایل نامعتبر است.' }, { status: 400 });
+  }
+  if (
+    body.businessType !== undefined &&
+    body.businessType !== null &&
+    !businessTypes.includes(body.businessType as never)
+  ) {
+    return NextResponse.json({ error: 'نوع کسب‌وکار نامعتبر است.' }, { status: 400 });
   }
 
   const avatarUrl = cleanImage(body.avatarUrl);
@@ -73,6 +91,12 @@ export async function PUT(request: Request): Promise<NextResponse> {
     bio: typeof body.bio === 'string' ? body.bio : undefined,
     avatarUrl: avatarUrl as string | null | undefined,
     coverUrl: coverUrl as string | null | undefined,
+    profileMode:
+      body.profileMode === undefined ? undefined : (body.profileMode as 'personal' | 'business'),
+    businessType:
+      body.businessType === undefined
+        ? undefined
+        : (body.businessType as 'car-dealer' | 'parts-store' | 'workshop' | 'rental' | null),
   });
   return NextResponse.json({ ok: true, profile: saved });
 }

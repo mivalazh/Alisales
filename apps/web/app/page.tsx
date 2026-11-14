@@ -119,14 +119,6 @@ export default async function HomePage({
                 '@type': 'Offer',
                 itemOffered: { '@type': 'Service', name: 'Vehicle marketplace' },
               },
-              {
-                '@type': 'Offer',
-                itemOffered: {
-                  '@type': 'Service',
-                  name: 'Shamsollah workshop pre-purchase inspection',
-                  url: absoluteUrl('/inspection'),
-                },
-              },
             ],
           }).replace(/</g, '\\u003c'),
         }}

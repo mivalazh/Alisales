@@ -1,7 +1,9 @@
 import { localizedMetadata } from '@/lib/i18n/metadata';
 import Link from 'next/link';
 import { redirect } from 'next/navigation';
-import { ACCOUNT_TYPE_LABELS, maskPhone } from '@alisales/schemas';
+import { maskPhone, profileModeFor } from '@alisales/schemas';
+import { profileCustomization } from '@/lib/data/social-store';
+import { AccountModeForm } from '@/components/AccountModeForm';
 import { getSession } from '@/lib/auth/session';
 import { hasPassword } from '@/lib/auth/password';
 import { LogoutButton } from '@/components/LogoutButton';
@@ -27,6 +29,8 @@ export default async function SettingsPage() {
   const t = (fa: string, en: string) => serverT(lang, fa, en);
 
   const passwordReady = hasPassword(session.phone);
+  const custom = profileCustomization(session.sub);
+  const profileMode = custom?.profileMode ?? profileModeFor(session.accountType);
 
   return (
     <div className="space-y-4">
@@ -50,16 +54,20 @@ export default async function SettingsPage() {
             </dd>
           </div>
           <div>
-            <dt className="text-xs text-faint">{t('نوع حساب', 'Account type')}</dt>
+            <dt className="text-xs text-faint">{t('نوع پروفایل', 'Profile type')}</dt>
             <dd className="font-bold">
-              {t(
-                ACCOUNT_TYPE_LABELS[session.accountType],
-                session.accountType === 'showroom' ? 'Showroom' : 'Individual',
-              )}
+              {profileMode === 'business'
+                ? t('حساب کسب‌وکار', 'Business account')
+                : t('حساب شخصی', 'Personal account')}
             </dd>
           </div>
         </dl>
       </section>
+
+      <AccountModeForm
+        initialMode={profileMode}
+        initialBusinessType={custom?.businessType ?? null}
+      />
 
       <section className="rounded-card border border-line bg-card p-4">
         <h2 className="font-extrabold">{t('رمز عبور', 'Password')}</h2>

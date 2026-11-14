@@ -43,7 +43,6 @@ export default async function MyListingsPage({
   const mine = (await readMyListings()).filter((l) => l.sellerId === session.sub);
   const listings = mergeMyListings(mine, await listingsBySeller(session.sub));
   const shown = listings.filter((l) => l.state === activeTab);
-  const activeCount = listings.filter((l) => l.state === 'active').length;
 
   return (
     <div className="space-y-4">
@@ -53,13 +52,6 @@ export default async function MyListingsPage({
           {t('ثبت آگهی', 'Post ad')}
         </Link>
       </div>
-
-      <p className="text-xs text-muted">
-        {t(
-          `آگهی‌های فعال: ${activeCount} — در دوره راه‌اندازی، ثبت آگهی رایگان و بدون محدودیت است.`,
-          `Active listings: ${activeCount} — posting is free and uncapped during launch.`,
-        )}
-      </p>
 
       <nav
         aria-label={t('وضعیت آگهی‌ها', 'Listing status')}
@@ -86,12 +78,14 @@ export default async function MyListingsPage({
           <p className="font-extrabold">
             {t('در این بخش آگهی‌ای نیست.', 'There are no listings in this section.')}
           </p>
-          <p className="mt-1 text-sm text-muted">
-            {t(
-              'آگهی‌های بایگانی‌شده همان آگهی‌های متوقف‌شده هستند و هر زمان قابل بازفعال‌سازی‌اند.',
-              'Archived listings are paused listings and can be reactivated at any time.',
-            )}
-          </p>
+          {activeTab === 'paused' && (
+            <p className="mt-1 text-sm text-muted">
+              {t(
+                'آگهی‌های بایگانی‌شده همان آگهی‌های متوقف‌شده هستند و هر زمان قابل بازفعال‌سازی‌اند.',
+                'Archived listings are paused listings and can be reactivated at any time.',
+              )}
+            </p>
+          )}
         </div>
       ) : (
         <ul className="flex flex-col gap-3">

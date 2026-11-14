@@ -36,10 +36,10 @@ const PLATE_ANSWER =
   'پلاک منطقه آزاد کیش برای تردد در جزیره است و سند آن با خریدار جابه‌جا می‌شود. گذر موقت برای خودروی وارداتی است که هنوز پلاک دائمی نگرفته و باید در مهلت مجاز تمدید شود. برای خروج خودرو از کیش، وضعیت پلاک، عوارض گمرکی و مهلت گذر موقت را قبل از خرید مکتوب بگیرید.';
 
 const WORKSHOP_ANSWER =
-  'کارشناسی تعمیرگاه تخصصی شمس‌اله شامل موتور، گیربکس، بدنه، شاسی و دیاگ تخصصی است و برای کاربران سایت ۲۰٪ تخفیف دارد؛ با صدور برگه ضمانت کارشناسی. برخلاف برچسب «کارشناسی‌شده» روی آگهی‌ها، این بازرسی با حضور خریدار و به‌صورت حضوری انجام می‌شود. از صفحه‌ی کارشناسی یا دکمه‌ی رزرو نوبت، تاریخ و ساعت را انتخاب کنید.';
+  'کارشناسی پیش از خرید شامل موتور، گیربکس، بدنه، شاسی و دیاگ تخصصی است و برای کاربران سایت ۲۰٪ تخفیف دارد؛ با صدور برگه ضمانت کارشناسی. این بازرسی با حضور خریدار و به‌صورت حضوری انجام می‌شود. از صفحه‌ی هر آگهی، دکمه‌ی رزرو کارشناسی را بزنید و تاریخ و ساعت را انتخاب کنید.';
 
 const BUYING_CHECKLIST =
-  'چک‌لیست خرید در کیش: ۱) تطابق شماره شاسی و VIN با سند، ۲) وضعیت شاسی (پلمپ جلو و عقب) و رنگ‌شدگی، ۳) بیمه شخص ثالث و بدنه و باقی‌مانده آن، ۴) معاینه فنی معتبر، ۵) کارکرد واقعی و سرویس‌های نمایندگی، ۶) وضعیت پلاک کیش یا مهلت گذر موقت، ۷) مالیات و عوارض منطقه آزاد. اگر فروشنده برگه کارشناسی دارد، باز هم قبل از پرداخت، کارشناسی حضوری شمس‌اله را بگیرید.';
+  'چک‌لیست خرید در کیش: ۱) تطابق شماره شاسی و VIN با سند، ۲) وضعیت شاسی (پلمپ جلو و عقب) و رنگ‌شدگی، ۳) بیمه شخص ثالث و بدنه و باقی‌مانده آن، ۴) معاینه فنی معتبر، ۵) کارکرد واقعی و سرویس‌های نمایندگی، ۶) وضعیت پلاک کیش یا مهلت گذر موقت، ۷) مالیات و عوارض منطقه آزاد. اگر فروشنده برگه کارشناسی دارد، باز هم قبل از پرداخت، کارشناسی حضوری را بگیرید.';
 
 const INSURANCE_ANSWER =
   'برای خودروی وارداتی، بیمه شخص ثالث اجباری است و بدنه ارزش خودرو را پوشش می‌دهد. باقی‌مانده بیمه را روی برگه ببینید؛ خودرویی که «بیمه دارد» ولی دو ماه تا انقضا دارد، هزینه تمدید را به قیمت اضافه می‌کند. در فیلترها می‌توانید «بیمه شخص ثالث دارد» یا «بیمه بدنه دارد» را انتخاب کنید و در مشخصات تکمیلی آگهی، وضعیت رنگ و شاسی را ببینید.';
@@ -58,9 +58,9 @@ const EN = {
   plate:
     'A Kish Free Zone plate is for driving on the island and its registration transfers to the buyer. Temporary entry is for an imported vehicle that does not yet have a permanent plate and must be renewed within the allowed window. Before buying, get the plate status, customs duties and the temporary-entry deadline in writing.',
   workshop:
-    'The Shamsollah Specialist Workshop inspection covers the engine, gearbox, body, chassis and a specialist diagnostic, and site members get 20% off with an inspection warranty sheet. Unlike an “inspected” badge on an ad, this inspection is carried out in person with the buyer present. Book a date and time from the inspection page.',
+    'A pre-purchase inspection covers the engine, gearbox, body, chassis and a specialist diagnostic, and site members get 20% off with an inspection warranty sheet. Unlike an “inspected” badge on an ad, this inspection is carried out in person with the buyer present. Open any listing and tap Book inspection to choose a date and time.',
   checklist:
-    'Buying checklist for Kish: 1) chassis number and VIN match the documents, 2) chassis condition (front and rear sealed) and any repainting, 3) third-party and body insurance and their remaining term, 4) a valid technical inspection, 5) genuine mileage and dealership service history, 6) Kish plate status or temporary-entry deadline, 7) free-zone taxes and duties. Even if the seller has an inspection sheet, take a Shamsollah in-person inspection before paying.',
+    'Buying checklist for Kish: 1) chassis number and VIN match the documents, 2) chassis condition (front and rear sealed) and any repainting, 3) third-party and body insurance and their remaining term, 4) a valid technical inspection, 5) genuine mileage and dealership service history, 6) Kish plate status or temporary-entry deadline, 7) free-zone taxes and duties. Even if the seller has an inspection sheet, take an in-person inspection before paying.',
   insurance:
     'For an imported car, third-party insurance is mandatory and body insurance covers the vehicle’s value. Check the remaining term on the document; a car that “has insurance” but expires in two months adds the renewal cost to the price. Use the filters for “Third-party insurance” or “Body insurance”, and check the paint and chassis details in the listing’s supplementary specs.',
   rental:
@@ -363,14 +363,14 @@ export async function POST(request: Request): Promise<NextResponse> {
 
   // Workshop / inspection.
   if (/کارشناسی|شمس|دیاگ|inspection|برگه/.test(text)) {
-    trackFaq('کارشناسی تعمیرگاه شمس‌اله');
+    trackFaq('چک‌لیست کارشناسی پیش از خرید');
     return NextResponse.json({
       reply: english ? EN.workshop : WORKSHOP_ANSWER,
       listings: [],
       faqs: topFaqTopics(),
       cta: {
-        label: english ? 'Book an inspection with 20% off' : 'رزرو کارشناسی با ۲۰٪ تخفیف',
-        href: '/inspection',
+        label: english ? 'View the buying guide' : 'مشاهده راهنمای خرید',
+        href: '/guide',
       },
     });
   }

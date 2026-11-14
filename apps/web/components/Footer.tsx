@@ -23,17 +23,16 @@ const QUICK_LINKS = [
 
 const GUIDE_LINKS = [
   { href: '/about', label: 'درباره‌ی ما', en: 'About us' },
-  { href: '/inspection', label: 'کارشناسی تعمیرگاه شمس‌اله', en: 'Shamsollah workshop inspection' },
   { href: '/guide', label: 'راهنمای ثبت آگهی', en: 'Posting guide' },
   { href: '/terms', label: 'قوانین و حریم خصوصی', en: 'Terms & privacy' },
 ] as const;
 
-/** Official sub-brand credit — one line, repeated in the footer and /about. */
+/** Brand credit — kept without a workshop sub-brand reference. */
 export const WORKSHOP_CREDIT =
-  'Ali Sales؛ زیرمجموعه رسمی تعمیرگاه تخصصی شمس‌اله — مرجع خرید، فروش و کارشناسی تخصصی خودرو در کیش';
+  'Ali Sales — مرجع خرید، فروش و کارشناسی خودرو در کیش';
 
 export const WORKSHOP_CREDIT_EN =
-  'Ali Sales — the official subsidiary of Shamsollah Specialist Workshop, Kish’s reference for vehicle sales and inspection.';
+  'Ali Sales — Kish’s reference for buying, selling and inspecting vehicles.';
 
 const SUPPORT_LINKS = [
   { href: '/support', label: 'تماس با پشتیبانی', en: 'Contact support' },

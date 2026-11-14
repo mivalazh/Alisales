@@ -1,3 +1,6 @@
+'use client';
+
+import { useI18n } from '@/lib/i18n';
 import type { ListingCardData } from '@/lib/data/listings';
 import { RESULTS_ID } from '@/lib/scroll';
 import { ListingCard } from './ListingCard';
@@ -11,15 +14,19 @@ export function ListingGrid({
   listings: ListingCardData[];
   view?: ViewMode;
 }) {
+  const { t } = useI18n();
   if (listings.length === 0) {
     return (
       <div
         id={RESULTS_ID}
         className="scroll-mt-24 rounded-card border border-dashed border-line-strong bg-card px-6 py-12 text-center"
       >
-        <p className="font-extrabold">هنوز آگهی‌ای با این فیلترها یافت نشد.</p>
+        <p className="font-extrabold">{t('هنوز آگهی‌ای با این فیلترها یافت نشد.', 'No listings match these filters yet')}</p>
         <p className="mt-1 text-sm text-muted">
-          فیلترها را ساده‌تر کنید یا اولین آگهی را شما ثبت کنید.
+          {t(
+            'فیلترها را ساده‌تر کنید یا اولین آگهی را شما ثبت کنید.',
+            'Try broadening your filters or post the first listing.',
+          )}
         </p>
       </div>
     );

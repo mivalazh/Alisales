@@ -3,6 +3,7 @@
 import { useState } from 'react';
 import { useI18n } from '@/lib/i18n';
 import { CarLoader } from './CarLoader';
+import { CustomSelect } from './CustomSelect';
 import { pushLocalNotification } from '@/lib/local-notifications';
 
 type Kind = 'brand' | 'ticket';
@@ -10,7 +11,7 @@ export type SupportTopic = 'technical' | 'advertising' | 'suggestion' | 'report'
 
 const TOPICS: ReadonlyArray<{ value: SupportTopic; fa: string; en: string }> = [
   { value: 'technical', fa: 'پشتیبانی و سوال فنی', en: 'Technical support' },
-  { value: 'advertising', fa: 'درخواست همکاری و تبلیغات در سایت', en: 'Partnership & advertising' },
+  { value: 'advertising', fa: 'همکاری و تبلیغات', en: 'Partnership & advertising' },
   { value: 'suggestion', fa: 'پیشنهاد برند یا قابلیت جدید', en: 'Suggest a brand or feature' },
   { value: 'report', fa: 'گزارش مشکل آگهی', en: 'Report a listing problem' },
 ];
@@ -38,20 +39,21 @@ export function SupportForm({
   const [status, setStatus] = useState<'idle' | 'sending' | 'done' | 'error'>('idle');
   const [error, setError] = useState('');
   const [result, setResult] = useState<{ code: string; reply: string | null } | null>(null);
+  const [topic, setTopic] = useState<SupportTopic>(initialTopic ?? 'technical');
+  const [partnership, setPartnership] = useState(false);
 
   async function onSubmit(event: React.FormEvent<HTMLFormElement>) {
     event.preventDefault();
     if (status === 'sending') return;
     const formEl = event.currentTarget;
     const form = new FormData(formEl);
-    const topic: SupportTopic =
-      kind === 'brand'
-        ? 'suggestion'
-        : (String(form.get('topic') ?? 'technical') as SupportTopic);
+    const selectedTopic: SupportTopic =
+      kind === 'brand' ? 'suggestion' : partnership ? 'advertising' : topic;
+    const isPartnership = kind === 'ticket' && partnership;
     const payload = {
       kind,
-      topic,
-      name: String(form.get('name') ?? '').trim(),
+      topic: selectedTopic,
+      name: isPartnership ? 'همکاری با ما' : String(form.get('name') ?? '').trim(),
       contact: String(form.get('contact') ?? '').trim(),
       model: String(form.get('model') ?? '').trim(),
       message: String(form.get('message') ?? '').trim(),
@@ -103,7 +105,9 @@ export function SupportForm({
             <span className="text-lg">✓</span>
           </span>
           <div>
-            <p className="font-extrabold text-ink">{t('تیکت شما ثبت شد', 'Your ticket is in')}</p>
+            <p className="font-extrabold text-ink">
+              {partnership ? t('درخواست همکاری ثبت شد', 'Partnership request received') : t('تیکت شما ثبت شد', 'Your ticket is in')}
+            </p>
             {result?.code && (
               <p className="mt-0.5 text-[11px] font-bold text-muted" dir="ltr">
                 {result.code}
@@ -118,56 +122,101 @@ export function SupportForm({
         )}
         <p className="mt-2 text-xs leading-6 text-muted">
           {t(
-            'کد پیگیری را نگه دارید؛ همین تیکت و پاسخ آن در بخش «تیکت‌های من» پایین همین صفحه قابل مشاهده است.',
-            'Keep the code; this ticket and its reply appear in My tickets below.',
+            'کد پیگیری را نگه دارید؛ همین درخواست و پاسخ آن در بخش «تیکت‌های من» قابل مشاهده است.',
+            'Keep the code; this request and its reply appear in My tickets.',
           )}
         </p>
         <button type="button" onClick={() => setStatus('idle')} className="btn-ghost mt-4 text-sm">
-          {t('ثبت تیکت دیگر', 'Submit another ticket')}
+          {t('ثبت درخواست دیگر', 'Submit another request')}
         </button>
       </div>
     );
   }
 
+  const isPartnership = kind === 'ticket' && partnership;
+
   return (
     <form id="ticket" onSubmit={onSubmit} className="scroll-mt-24 space-y-3.5 rounded-card border border-line bg-card p-4 sm:p-6">
-      <div>
-        <p className="text-sm font-extrabold text-ink">
-          {kind === 'brand' ? t('پیشنهاد برند یا قابلیت', 'Suggest a brand or feature') : t('ثبت تیکت و درخواست', 'Open a ticket')}
-        </p>
-        <p className="mt-1 text-xs leading-6 text-muted">
-          {t(
-            'هر تیکت یک کد پیگیری می‌گیرد و پاسخ تیم پشتیبانی همین‌جا ثبت می‌شود.',
-            'Every ticket gets a tracking code and the reply appears right here.',
-          )}
-        </p>
+      <div className="flex flex-wrap items-start justify-between gap-2">
+        <div>
+          <h1 className="text-lg font-extrabold text-ink">
+            {kind === 'brand'
+              ? t('پیشنهاد برند یا قابلیت', 'Suggest a brand or feature')
+              : isPartnership
+                ? t('همکاری با ما', 'Partner with us')
+                : t('ثبت تیکت پشتیبانی', 'Open a support ticket')}
+          </h1>
+          <p className="mt-1 text-xs leading-6 text-muted">
+            {isPartnership
+              ? t('موضوع، شماره تماس و متن پیام را بنویسید.', 'Tell us the subject, phone and message.')
+              : t(
+                  'هر تیکت یک کد پیگیری می‌گیرد و پاسخ تیم پشتیبانی همین‌جا ثبت می‌شود.',
+                  'Every ticket gets a tracking code and the reply appears right here.',
+                )}
+          </p>
+        </div>
+        {kind === 'ticket' && !isPartnership && (
+          <button
+            type="button"
+            onClick={() => {
+              setPartnership(true);
+              setTopic('advertising');
+            }}
+            className="rounded-[var(--radius-pill)] border border-cta bg-cta-soft px-3 py-1.5 text-xs font-extrabold text-ink transition hover:bg-cta/20"
+          >
+            {t('همکاری با ما', 'Partner with us')}
+          </button>
+        )}
+        {isPartnership && (
+          <button
+            type="button"
+            onClick={() => setPartnership(false)}
+            className="rounded-[var(--radius-pill)] border border-line px-3 py-1.5 text-xs font-bold text-muted transition hover:border-line-strong hover:text-ink"
+          >
+            {t('بازگشت به تیکت پشتیبانی', 'Back to support ticket')}
+          </button>
+        )}
       </div>
 
-      {kind === 'ticket' && (
+      {kind === 'ticket' && !isPartnership && (
         <div>
-          <label className="label" htmlFor="support-topic">
-            {t('موضوع درخواست', 'Request topic')}
-          </label>
-          <select id="support-topic" name="topic" className="field" defaultValue={initialTopic ?? 'technical'}>
-            {TOPICS.map((topic) => (
-              <option key={topic.value} value={topic.value}>
-                {lang === 'en' ? topic.en : topic.fa}
-              </option>
-            ))}
-          </select>
+          <span className="label">{t('موضوع درخواست', 'Request topic')}</span>
+          <CustomSelect
+            value={topic}
+            onChange={(next) => setTopic(next as SupportTopic)}
+            ariaLabel={t('موضوع درخواست', 'Request topic')}
+            options={TOPICS.map((item) => ({
+              value: item.value,
+              label: lang === 'en' ? item.en : item.fa,
+            }))}
+          />
+          <input type="hidden" name="topic" value={topic} />
         </div>
       )}
 
-      <div className="grid gap-3 sm:grid-cols-2">
-        <div>
-          <label className="label" htmlFor="support-name">{t('نام و نام خانوادگی', 'Full name')}</label>
-          <input id="support-name" name="name" required minLength={2} maxLength={80} className="field" />
+      {isPartnership ? (
+        <div className="grid gap-3 sm:grid-cols-2">
+          <div>
+            <label className="label" htmlFor="support-subject">{t('موضوع', 'Subject')}</label>
+            <input id="support-subject" name="model" required minLength={2} maxLength={80} className="field" />
+          </div>
+          <div>
+            <label className="label" htmlFor="support-contact">{t('شماره تماس', 'Phone number')}</label>
+            <input id="support-contact" name="contact" required minLength={5} maxLength={80} dir="ltr" className="field" />
+          </div>
         </div>
-        <div>
-          <label className="label" htmlFor="support-contact">{t('موبایل یا ایمیل', 'Mobile or email')}</label>
-          <input id="support-contact" name="contact" required minLength={5} maxLength={80} dir="ltr" className="field" />
+      ) : (
+        <div className="grid gap-3 sm:grid-cols-2">
+          <div>
+            <label className="label" htmlFor="support-name">{t('نام و نام خانوادگی', 'Full name')}</label>
+            <input id="support-name" name="name" required minLength={2} maxLength={80} className="field" />
+          </div>
+          <div>
+            <label className="label" htmlFor="support-contact">{t('موبایل یا ایمیل', 'Mobile or email')}</label>
+            <input id="support-contact" name="contact" required minLength={5} maxLength={80} dir="ltr" className="field" />
+          </div>
         </div>
-      </div>
+      )}
 
       {kind === 'brand' && (
         <div>
@@ -189,6 +238,8 @@ export function SupportForm({
             <CarLoader size="sm" label={t('در حال ارسال', 'Sending')} />
             {t('در حال ارسال…', 'Sending...')}
           </>
+        ) : isPartnership ? (
+          t('ارسال درخواست همکاری', 'Send partnership request')
         ) : (
           t('ارسال و دریافت کد پیگیری', 'Send and get a tracking code')
         )}

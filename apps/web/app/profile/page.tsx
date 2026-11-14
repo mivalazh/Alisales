@@ -1,20 +1,21 @@
 import { localizedMetadata } from '@/lib/i18n/metadata';
 import Link from 'next/link';
 import { redirect } from 'next/navigation';
-import { ACCOUNT_TYPE_LABELS, formatAmountLatin, maskPhone } from '@alisales/schemas';
-import { getSession } from '@/lib/auth/session';
 import {
-  conversationsForUser,
-  getUser,
-  listFavoriteIds,
-  listingsBySeller,
-} from '@/lib/data/s2-store';
+  BUSINESS_TYPE_LABELS,
+  formatAmountLatin,
+  maskPhone,
+  profileModeFor,
+} from '@alisales/schemas';
+import { getSession } from '@/lib/auth/session';
+import { getUser, listFavoriteIds, listingsBySeller } from '@/lib/data/s2-store';
 import { averageRating, reviewsFor } from '@/lib/data/reviews';
 import { followedSellerIds, profileCustomization } from '@/lib/data/social-store';
 import { storiesFrom } from '@/lib/stories';
 import { Icon, type IconName } from '@/components/Icon';
 import { LogoutButton } from '@/components/LogoutButton';
 import { ProfileCustomizer } from '@/components/ProfileCustomizer';
+import { ProfileMediaButton } from '@/components/ProfileMediaButton';
 import { getLanguage } from '@/lib/i18n/server';
 import { serverT } from '@/lib/i18n/server';
 
@@ -23,139 +24,137 @@ export const generateMetadata = localizedMetadata(
   { title: 'Profile' },
 );
 
+type Shortcut = {
+  href: string;
+  label: string;
+  hint: string;
+  icon: IconName;
+};
+
 /**
- * Profile — identity at the top, then the four things a member actually uses:
- * live listings, saved ads, rating & reviews, and stories. Followed showrooms
- * get their own strip, because the follow is the reason their stock and stories
- * are pushed to the front of the feeds.
+ * Profile — a private personal hub or a public-facing business storefront.
+ *
+ * Personal accounts keep only listings, saved ads, stories, settings and
+ * logout. Business accounts additionally expose their public page, inventory
+ * count, stories, followers and rating.
  */
 export default async function ProfilePage() {
   const [session, lang] = await Promise.all([getSession(), getLanguage()]);
   if (!session) redirect('/login?next=/profile');
   const t = (fa: string, en?: string) => serverT(lang, fa, en);
 
-  const [listings, favoriteIds, conversations, reviews, custom] = await Promise.all([
+  const [listings, favoriteIds, reviews, custom, account] = await Promise.all([
     listingsBySeller(session.sub),
     listFavoriteIds(session.sub),
-    conversationsForUser(session.sub),
     reviewsFor(session.sub),
     Promise.resolve(profileCustomization(session.sub)),
+    getUser(session.sub),
   ]);
+  const profileMode = custom?.profileMode ?? profileModeFor(account?.accountType ?? session.accountType);
+  const isBusiness = profileMode === 'business';
   const active = listings.filter((listing) => listing.state === 'active');
   const rating = averageRating(reviews);
   const stories = storiesFrom(active, [], [], 8);
   const initial = (session.displayName ?? '?').trim().charAt(0) || '?';
 
-  const followedIds = followedSellerIds(session.sub);
+  const followedIds = isBusiness ? followedSellerIds(session.sub) : [];
   const followed = await Promise.all(
     followedIds.slice(0, 12).map(async (id) => {
-      const account = await getUser(id);
-      return { id, name: account?.displayName?.trim() || t('نمایشگاه', 'Showroom') };
+      const followedAccount = await getUser(id);
+      return { id, name: followedAccount?.displayName?.trim() || t('کسب‌وکار', 'Business') };
     }),
   );
 
-  const shortcuts: ReadonlyArray<{
-    href: string;
-    label: string;
-    hint: string;
-    icon: IconName;
-  }> = [
+  const baseShortcuts: Shortcut[] = [
     {
       href: '/profile/listings',
-      label: t('آگهی‌های فعال', 'Active listings'),
-      hint: t(
-        `${active.length} فعال از ${listings.length}`,
-        `${active.length} active of ${listings.length}`,
-      ),
+      label: t('آگهی‌های من'),
+      hint: t(`${listings.length} آگهی · ${active.length} فعال`),
       icon: 'tag',
     },
     {
       href: '/favorites',
-      label: t('ذخیره‌شده‌ها', 'Saved'),
-      hint: t(
-        `${favoriteIds.length} آگهی ذخیره‌شده`,
-        `${favoriteIds.length} saved listings`,
-      ),
+      label: t('ذخیره‌شده‌ها'),
+      hint: t(`${favoriteIds.length} آگهی ذخیره‌شده`),
       icon: 'bookmark',
     },
     {
-      href: `/seller/${session.sub}?tab=reviews`,
-      label: t('امتیاز و نظرات', 'Rating & reviews'),
-      hint:
-        rating === null
-          ? t('هنوز امتیازی ثبت نشده', 'No ratings yet')
-          : t(`${rating} از ۵ · ${reviews.length} نظر`, `${rating} of 5 · ${reviews.length} reviews`),
-      icon: 'badgeCheck',
-    },
-    {
       href: `/seller/${session.sub}?tab=stories`,
-      label: t('استوری‌ها', 'Stories'),
-      hint: t(
-        `${stories.length} استوری از آگهی‌های شما`,
-        `${stories.length} stories from your listings`,
-      ),
+      label: t('استوری‌های من'),
+      hint: t(`${stories.length} استوری از آگهی‌های شما`),
       icon: 'camera',
-    },
-    {
-      href: '/chats',
-      label: t('پیام‌ها', 'Messages'),
-      hint: t(`${conversations.length} گفتگو`, `${conversations.length} conversations`),
-      icon: 'message',
-    },
-    {
-      href: '/inspection',
-      label: t('کارشناسی تعمیرگاه شمس‌اله'),
-      hint: t(
-        'رزرو نوبت با ۲۰٪ تخفیف ویژه کاربران سایت',
-        'Book an inspection with 20% off for site members',
-      ),
-      icon: 'shieldCheck',
     },
     {
       href: '/profile/settings',
       label: t('تنظیمات حساب'),
-      hint: t('نام نمایشی، رمز عبور و شماره تماس', 'Display name, password and phone number'),
+      hint: t('نوع حساب، نام نمایشی و رمز عبور'),
       icon: 'gear',
     },
   ];
 
+  const shortcuts: Shortcut[] = isBusiness
+    ? [
+        {
+          href: `/seller/${session.sub}`,
+          label: t('مشاهده صفحه عمومی'),
+          hint: t('کاور، بایو، آگهی‌ها، استوری و امتیاز'),
+          icon: 'badgeCheck',
+        },
+        ...baseShortcuts.slice(0, 3),
+        {
+          href: `/seller/${session.sub}?tab=reviews`,
+          label: t('امتیاز و نظرات'),
+          hint:
+            rating === null
+              ? t('هنوز امتیازی ثبت نشده')
+              : t(`${rating} از ۵ · ${reviews.length} نظر`),
+          icon: 'sparkle',
+        },
+        ...baseShortcuts.slice(3),
+      ]
+    : baseShortcuts;
+
   return (
     <div className="mx-auto max-w-2xl space-y-4">
       <section className="overflow-hidden rounded-3xl border border-line bg-card shadow-sm">
-        {/* Interactive hero: cover, overlapping avatar with a camera badge to the
-            editor, then the bio and the account line. */}
         <div className="relative h-32 bg-gradient-to-br from-[#111144] via-[#0F7FC4] to-[#57c7a3] sm:h-40">
           {custom?.coverUrl ? (
             // eslint-disable-next-line @next/next/no-img-element
             <img
               src={custom.coverUrl}
-              alt={t('کاور پروفایل', 'Profile cover')}
+              alt={t('کاور پروفایل')}
               className="h-full w-full object-cover"
             />
           ) : (
             <div className="absolute inset-0 opacity-40 [background-image:radial-gradient(circle_at_20%_20%,#DEF434_0,transparent_35%),radial-gradient(circle_at_80%_60%,#ffffff_0,transparent_30%)]" />
           )}
+          <ProfileMediaButton kind="cover" label={t('تغییر کاور پروفایل')} />
         </div>
         <div className="px-4 pb-4 sm:px-5">
           <div className="flex items-end gap-3">
-            <a
-              href="#profile-editor"
-              aria-label={t('ویرایش عکس پروفایل', 'Edit profile photo')}
-              className="group relative -mt-9 flex h-20 w-20 shrink-0 items-center justify-center overflow-hidden rounded-full border-4 border-card bg-cta-soft text-2xl font-extrabold text-ink shadow-lg sm:-mt-11 sm:h-24 sm:w-24"
-            >
-              {custom?.avatarUrl ? (
-                // eslint-disable-next-line @next/next/no-img-element
-                <img src={custom.avatarUrl} alt="" className="h-full w-full object-cover" />
-              ) : (
-                initial
-              )}
-            </a>
+            <div className="relative -mt-9 shrink-0 sm:-mt-11">
+              <div className="flex h-20 w-20 items-center justify-center overflow-hidden rounded-full border-4 border-card bg-cta-soft text-2xl font-extrabold text-ink shadow-lg sm:h-24 sm:w-24">
+                {custom?.avatarUrl ? (
+                  // eslint-disable-next-line @next/next/no-img-element
+                  <img src={custom.avatarUrl} alt="" className="h-full w-full object-cover" />
+                ) : (
+                  initial
+                )}
+              </div>
+              <ProfileMediaButton kind="avatar" label={t('تغییر عکس پروفایل')} />
+            </div>
             <div className="min-w-0 flex-1 pb-1">
               <h1 className="truncate text-lg font-extrabold sm:text-xl">{session.displayName}</h1>
               <p className="mt-0.5 text-xs text-muted sm:text-sm">
                 <span dir="ltr">{maskPhone(session.phone)}</span>
                 <span className="mx-1.5 text-faint">·</span>
-                {t(ACCOUNT_TYPE_LABELS[session.accountType])}
+                {isBusiness ? t('حساب کسب‌وکار') : t('حساب شخصی')}
+                {isBusiness && custom?.businessType && (
+                  <>
+                    <span className="mx-1.5 text-faint">·</span>
+                    {t(BUSINESS_TYPE_LABELS[custom.businessType])}
+                  </>
+                )}
               </p>
             </div>
           </div>
@@ -171,67 +170,59 @@ export default async function ProfilePage() {
             initial={{
               bio: custom?.bio ?? '',
               avatarUrl: custom?.avatarUrl ?? null,
-              coverUrl: custom?.coverUrl ?? null,
             }}
-            displayName={session.displayName ?? ''}
-            initials={initial}
           />
         </div>
 
-        <dl className="grid grid-cols-2 gap-2 border-t border-line bg-page/60 p-3 sm:grid-cols-4 sm:p-4">
-          {[
-            {
-              label: t('آگهی‌های فعال', 'Active listings'),
-              value: formatAmountLatin(active.length),
-              href: '/profile/listings',
-              tone: 'text-[#0F7FC4]',
-            },
-            {
-              label: t('ذخیره‌شده‌ها', 'Saved'),
-              value: formatAmountLatin(favoriteIds.length),
-              href: '/favorites',
-              tone: 'text-[#F98513]',
-            },
-            {
-              label: t('استوری‌های من', 'My stories'),
-              value: formatAmountLatin(stories.length),
-              href: `/seller/${session.sub}?tab=stories`,
-              tone: 'text-amber-500',
-            },
-            {
-              label: t('نمایشگاه‌های دنبال‌شده', 'Followed showrooms'),
-              value: formatAmountLatin(followedIds.length),
-              href: '#followed-showrooms',
-              tone: 'text-emerald-600',
-            },
-          ].map((stat) => (
-            <Link
-              key={stat.label}
-              href={stat.href}
-              className="rounded-2xl border border-line bg-card px-2 py-3 text-center transition hover:-translate-y-0.5 hover:border-line-strong hover:shadow-sm"
-            >
-              <dt className="text-[10px] font-bold text-muted">{stat.label}</dt>
-              <dd className={`mt-1 text-lg font-extrabold ${stat.tone}`}>{stat.value}</dd>
-              {stat.href === '#followed-showrooms' && rating !== null && (
-                <dd className="mt-0.5 text-[9px] font-bold text-faint">
-                  {t(`امتیاز شما ${rating} از ۵`, `Your rating: ${rating} of 5`)}
-                </dd>
-              )}
-            </Link>
-          ))}
-        </dl>
+        {isBusiness && (
+          <dl className="grid grid-cols-2 gap-2 border-t border-line bg-page/60 p-3 sm:grid-cols-4 sm:p-4">
+            {[
+              {
+                label: t('آگهی‌های فعال'),
+                value: formatAmountLatin(active.length),
+                href: '/profile/listings',
+                tone: 'text-[#0F7FC4]',
+              },
+              {
+                label: t('ذخیره‌شده‌ها'),
+                value: formatAmountLatin(favoriteIds.length),
+                href: '/favorites',
+                tone: 'text-[#F98513]',
+              },
+              {
+                label: t('استوری‌ها'),
+                value: formatAmountLatin(stories.length),
+                href: `/seller/${session.sub}?tab=stories`,
+                tone: 'text-amber-500',
+              },
+              {
+                label: t('دنبال‌کننده‌ها'),
+                value: formatAmountLatin(followedIds.length),
+                href: '#followed-businesses',
+                tone: 'text-emerald-600',
+              },
+            ].map((stat) => (
+              <Link
+                key={stat.label}
+                href={stat.href}
+                className="rounded-2xl border border-line bg-card px-2 py-3 text-center transition hover:-translate-y-0.5 hover:border-line-strong hover:shadow-sm"
+              >
+                <dt className="text-[10px] font-bold text-muted">{stat.label}</dt>
+                <dd className={`mt-1 text-lg font-extrabold ${stat.tone}`}>{stat.value}</dd>
+              </Link>
+            ))}
+          </dl>
+        )}
       </section>
 
-      {followed.length > 0 && (
+      {isBusiness && followed.length > 0 && (
         <section
-          id="followed-showrooms"
-          aria-label={t('نمایشگاه‌های دنبال‌شده', 'Followed showrooms')}
+          id="followed-businesses"
+          aria-label={t('کسب‌وکارهای دنبال‌شده')}
           className="scroll-mt-24 rounded-card border border-line bg-card p-4"
         >
           <div className="flex items-center justify-between gap-2">
-            <h2 className="text-sm font-extrabold">
-              {t('نمایشگاه‌های دنبال‌شده', 'Followed showrooms')}
-            </h2>
+            <h2 className="text-sm font-extrabold">{t('کسب‌وکارهای دنبال‌شده')}</h2>
             <span className="text-[11px] font-bold text-faint">{followedIds.length}</span>
           </div>
           <ul className="mt-2 flex flex-wrap gap-2">
@@ -247,12 +238,6 @@ export default async function ProfilePage() {
               </li>
             ))}
           </ul>
-          <p className="mt-2 text-[11px] text-muted">
-            {t(
-              'آگهی‌ها و استوری‌های این نمایشگاه‌ها در ابتدای فیدها و ریل استوری نمایش داده می‌شود.',
-              'Their listings and stories appear first in your feeds and story rail.',
-            )}
-          </p>
         </section>
       )}
 
@@ -280,15 +265,7 @@ export default async function ProfilePage() {
       </section>
 
       <section className="rounded-card border border-line bg-card p-4">
-        <div className="flex items-center justify-between gap-2">
-          <h2 className="text-sm font-extrabold">{t('حساب', 'Account')}</h2>
-          <Link href="/guide" className="text-xs font-bold text-muted underline">
-            {t('راهنمای ثبت آگهی')}
-          </Link>
-        </div>
-        <div className="mt-3">
-          <LogoutButton />
-        </div>
+        <LogoutButton />
       </section>
     </div>
   );
