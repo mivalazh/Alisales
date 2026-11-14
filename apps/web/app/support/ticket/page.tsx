@@ -1,7 +1,7 @@
 import { localizedMetadata } from '@/lib/i18n/metadata';
 import Link from 'next/link';
 import { Icon } from '@/components/Icon';
-import { SupportForm } from '@/components/SupportForm';
+import { SupportForm, type SupportTopic } from '@/components/SupportForm';
 import { getLanguage } from '@/lib/i18n/server';
 import { serverT } from '@/lib/i18n/server';
 
@@ -10,7 +10,19 @@ export const generateMetadata = localizedMetadata(
   { title: 'Submit a ticket' },
 );
 
-export default async function SupportTicketPage() {
+const TOPICS: readonly SupportTopic[] = ['technical', 'advertising', 'suggestion', 'report'];
+
+function parseTopic(value: string | string[] | undefined): SupportTopic | undefined {
+  const raw = Array.isArray(value) ? value[0] : value;
+  return TOPICS.find((topic) => topic === raw);
+}
+
+export default async function SupportTicketPage({
+  searchParams,
+}: {
+  searchParams: Promise<Record<string, string | string[] | undefined>>;
+}) {
+  const params = await searchParams;
   const lang = await getLanguage();
   const t = (fa: string, en?: string) => serverT(lang, fa, en);
   return (
@@ -33,7 +45,7 @@ export default async function SupportTicketPage() {
           )}
         </p>
       </div>
-      <SupportForm kind="ticket" />
+      <SupportForm kind="ticket" initialTopic={parseTopic(params.topic)} />
     </article>
   );
 }

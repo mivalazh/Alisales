@@ -6,9 +6,9 @@ import { CarLoader } from './CarLoader';
 import { pushLocalNotification } from '@/lib/local-notifications';
 
 type Kind = 'brand' | 'ticket';
-type Topic = 'technical' | 'advertising' | 'suggestion' | 'report';
+export type SupportTopic = 'technical' | 'advertising' | 'suggestion' | 'report';
 
-const TOPICS: ReadonlyArray<{ value: Topic; fa: string; en: string }> = [
+const TOPICS: ReadonlyArray<{ value: SupportTopic; fa: string; en: string }> = [
   { value: 'technical', fa: 'پشتیبانی و سوال فنی', en: 'Technical support' },
   { value: 'advertising', fa: 'درخواست همکاری و تبلیغات در سایت', en: 'Partnership & advertising' },
   { value: 'suggestion', fa: 'پیشنهاد برند یا قابلیت جدید', en: 'Suggest a brand or feature' },
@@ -32,7 +32,7 @@ export function SupportForm({
   initialTopic,
 }: {
   kind: Kind;
-  initialTopic?: Topic;
+  initialTopic?: SupportTopic;
 }) {
   const { t, lang } = useI18n();
   const [status, setStatus] = useState<'idle' | 'sending' | 'done' | 'error'>('idle');
@@ -44,10 +44,10 @@ export function SupportForm({
     if (status === 'sending') return;
     const formEl = event.currentTarget;
     const form = new FormData(formEl);
-    const topic: Topic =
+    const topic: SupportTopic =
       kind === 'brand'
         ? 'suggestion'
-        : (String(form.get('topic') ?? 'technical') as Topic);
+        : (String(form.get('topic') ?? 'technical') as SupportTopic);
     const payload = {
       kind,
       topic,

@@ -43,7 +43,7 @@ export default async function SupportPage() {
               <li>• {t('پوشش قطعات و خدمات تخصصی', 'Parts and specialist-service coverage')}</li>
               <li>• {t('همکاری در پورتال رنت خودرو کیش', 'Kish rental portal partnerships')}</li>
             </ul>
-            <a href="#ticket" className="mt-4 inline-flex items-center gap-2 rounded-full bg-[#111144] px-4 py-2 text-xs font-extrabold text-white transition hover:bg-[#1b1b57]">
+            <a href="/support/ticket?topic=advertising" className="mt-4 inline-flex items-center gap-2 rounded-full bg-[#111144] px-4 py-2 text-xs font-extrabold text-white transition hover:bg-[#1b1b57]">
               {t('شروع گفتگوی همکاری', 'Start a partnership chat')}
               <Icon name="arrowLeft" size={14} />
             </a>

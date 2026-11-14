@@ -46,7 +46,7 @@ const GUIDES: ReadonlyArray<{
     titleEn: 'Advertising and banner partnerships',
     bodyFa: 'برای نمایشگاه‌ها، تامین‌کنندگان قطعات و همکاران تجاری.',
     bodyEn: 'For showrooms, parts suppliers and commercial partners.',
-    href: '#partnership',
+    href: '/support/ticket?topic=advertising',
     icon: 'badgeCheck',
     tone: 'bg-[#DEF434]/25 text-[#111144] dark:text-[#DEF434]',
   },
