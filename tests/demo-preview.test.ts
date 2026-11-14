@@ -1,4 +1,5 @@
-import { existsSync } from 'node:fs';
+import { existsSync, mkdtempSync, rmSync, writeFileSync } from 'node:fs';
+import { tmpdir } from 'node:os';
 import { join } from 'node:path';
 import { afterEach, beforeEach, describe, expect, it } from 'vitest';
 import { AED_TO_IRR, DEFAULT_FILTERS, irrToAED, irrToToman, postingAgeLabel } from '@alisales/schemas';
@@ -23,6 +24,7 @@ const ENV_KEYS = [
   'SMS_API_URL',
   'REQUIRE_HOSTED_SERVICES',
   'NEXT_PUBLIC_DEMO_OTP_HINT',
+  'DEMO_DATA_DIR',
 ] as const;
 
 const saved = new Map<string, string | undefined>();
@@ -83,8 +85,20 @@ describe('cloud fallback without hosted credentials', () => {
 
   it('the demo store lives in a writable directory', () => {
     const dir = demoDataDir();
-    expect(dir === join(process.cwd(), '.dev-data') || dir.includes('alisales-demo-data')).toBe(true);
-    expect(existsSync(dir)).toBe(true);
+    const probe = join(dir, '.write-probe');
+    writeFileSync(probe, '1');
+    expect(existsSync(probe)).toBe(true);
+    rmSync(probe, { force: true });
+  });
+
+  it('honours an explicit DEMO_DATA_DIR override', () => {
+    const dir = mkdtempSync(join(tmpdir(), 'alisales-mode-override-'));
+    try {
+      process.env.DEMO_DATA_DIR = dir;
+      expect(demoDataDir()).toBe(dir);
+    } finally {
+      rmSync(dir, { recursive: true, force: true });
+    }
   });
 });
 
