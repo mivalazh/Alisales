@@ -3,9 +3,11 @@
 import Link from 'next/link';
 import { useEffect, useRef, useState } from 'react';
 import { useI18n } from '@/lib/i18n';
+import { useDelayedBusy } from '@/lib/useDelayedBusy';
 import { Icon, type IconName } from './Icon';
 import {
   LOCAL_NOTIFICATIONS_EVENT,
+  pushLocalNotification,
   readLocalNotifications,
   type LocalNotification,
 } from '@/lib/local-notifications';
@@ -19,19 +21,37 @@ interface ServerNotification {
   createdAt: string;
 }
 
-type Item = (ServerNotification | LocalNotification) & {
-  kind: ServerNotification['kind'] | LocalNotification['kind'] | 'saved';
-};
+/** Current account-favorite prices, used only to detect a real price drop. */
+interface WatchedListing {
+  id: string;
+  slug: string;
+  title: string;
+  priceIRR: number;
+  state: string;
+}
+
+type Item = ServerNotification | LocalNotification;
 
 const READ_KEY = 'alisales-notifications-read-at';
+const PRICE_WATCH_KEY = 'alisales-favorite-price-watch';
 
 const ICON_FOR: Record<string, IconName> = {
-  saved: 'bookmark',
   saved_sold: 'bookmarkFilled',
   followed: 'sparkle',
   inspection: 'shieldCheck',
   ticket_reply: 'message',
+  price_drop: 'tag',
 };
+
+interface PriceWatchRow {
+  priceIRR: number;
+  slug: string;
+  title: string;
+}
+
+function toman(value: number): string {
+  return Math.round(value / 10).toLocaleString('en-US');
+}
 
 function relative(iso: string, lang: 'fa' | 'en'): string {
   const diff = Date.now() - Date.parse(iso);
@@ -51,8 +71,11 @@ export function NotificationBell({ authed }: { authed: boolean }) {
   const [serverItems, setServerItems] = useState<ServerNotification[]>([]);
   const [localItems, setLocalItems] = useState<LocalNotification[]>([]);
   const [loading, setLoading] = useState(false);
+  const [watched, setWatched] = useState<WatchedListing[]>([]);
   const [readAt, setReadAt] = useState<string | null>(null);
   const root = useRef<HTMLDivElement>(null);
+  const priceSync = useRef('');
+  const showLoading = useDelayedBusy(loading);
 
   useEffect(() => {
     try {
@@ -72,8 +95,10 @@ export function NotificationBell({ authed }: { authed: boolean }) {
     setLoading(true);
     fetch('/api/notifications', { cache: 'no-store' })
       .then((res) => (res.ok ? res.json() : null))
-      .then((data: { items?: ServerNotification[] } | null) => {
-        if (!cancelled && Array.isArray(data?.items)) setServerItems(data.items);
+      .then((data: { items?: ServerNotification[]; watched?: WatchedListing[] } | null) => {
+        if (cancelled) return;
+        if (Array.isArray(data?.items)) setServerItems(data.items);
+        if (Array.isArray(data?.watched)) setWatched(data.watched);
       })
       .catch(() => undefined)
       .finally(() => {
@@ -83,6 +108,49 @@ export function NotificationBell({ authed }: { authed: boolean }) {
       cancelled = true;
     };
   }, [authed]);
+
+  // Price-drop watch: the first fetch seeds the baseline, later fetches raise
+  // one notification per real decrease. No save confirmation is ever created.
+  useEffect(() => {
+    if (watched.length === 0) return;
+    const signature = JSON.stringify(watched);
+    if (priceSync.current === signature) return;
+    priceSync.current = signature;
+    try {
+      const raw: unknown = JSON.parse(localStorage.getItem(PRICE_WATCH_KEY) ?? '{}');
+      const previous =
+        raw && typeof raw === 'object' ? (raw as Record<string, PriceWatchRow>) : {};
+      const next: Record<string, PriceWatchRow> = { ...previous };
+      for (const listing of watched) {
+        const before = previous[listing.id];
+        if (
+          before &&
+          listing.state !== 'sold' &&
+          listing.priceIRR > 0 &&
+          before.priceIRR > listing.priceIRR
+        ) {
+          pushLocalNotification({
+            id: `price-drop-${listing.id}-${listing.priceIRR}`,
+            kind: 'price_drop',
+            title: t('کاهش قیمت آگهی ذخیره‌شده', 'Saved listing price dropped'),
+            body: t(
+              `${listing.title}: از ${toman(before.priceIRR)} به ${toman(listing.priceIRR)} تومان`,
+              `${listing.title}: from ${toman(before.priceIRR)} to ${toman(listing.priceIRR)} Toman`,
+            ),
+            href: `/listing/${listing.slug}`,
+          });
+        }
+        next[listing.id] = {
+          priceIRR: listing.priceIRR,
+          slug: listing.slug,
+          title: listing.title,
+        };
+      }
+      localStorage.setItem(PRICE_WATCH_KEY, JSON.stringify(next));
+    } catch {
+      // private mode — the bell simply has no price baseline to compare
+    }
+  }, [t, watched]);
 
   useEffect(() => {
     if (!open) return;
@@ -127,7 +195,7 @@ export function NotificationBell({ authed }: { authed: boolean }) {
       >
         <Icon name="bell" size={20} />
         {unread > 0 && (
-          <span className="absolute end-1.5 top-1.5 flex h-4 min-w-4 items-center justify-center rounded-full bg-[#F98513] px-1 text-[9px] font-black text-[#111144] ring-2 ring-card">
+          <span className="pointer-events-none absolute -right-1 -top-1 flex h-[18px] min-w-[18px] items-center justify-center rounded-full bg-[#F98513] px-1 text-[10px] font-extrabold leading-none text-white ring-2 ring-[#F4F1EC] dark:ring-[#111144]">
             {unread > 9 ? '9+' : unread}
           </span>
         )}
@@ -149,7 +217,7 @@ export function NotificationBell({ authed }: { authed: boolean }) {
           </div>
 
           <div className="max-h-80 overflow-y-auto">
-            {loading && items.length === 0 ? (
+            {showLoading && items.length === 0 ? (
               <div className="space-y-2 p-3" aria-busy="true">
                 <span className="skeleton block h-12 rounded-xl" />
                 <span className="skeleton block h-12 rounded-xl" />
@@ -161,7 +229,10 @@ export function NotificationBell({ authed }: { authed: boolean }) {
                 </span>
                 <p className="mt-2 text-sm font-extrabold text-ink">{t('اعلان تازه‌ای ندارید', 'You are all caught up')}</p>
                 <p className="mt-1 text-[11px] leading-5 text-muted">
-                  {t('با ذخیره یک آگهی یا ثبت تیکت، اعلانش همین‌جا ظاهر می‌شود.', 'Save a listing or send a ticket and its update appears here.')}
+                  {t(
+                    'خبرهای مهم مثل فروش آگهی ذخیره‌شده، کاهش قیمت، پاسخ تیکت و تأیید کارشناسی اینجا می‌آید.',
+                    'Important updates such as sold or reduced saved listings, ticket replies and confirmed inspections appear here.',
+                  )}
                 </p>
               </div>
             ) : (
@@ -177,7 +248,7 @@ export function NotificationBell({ authed }: { authed: boolean }) {
                         <span className="min-w-0 flex-1">
                           <span className="flex items-start gap-1.5">
                             <span className="min-w-0 flex-1 text-xs font-extrabold text-ink">{item.title}</span>
-                            {unreadItem && <span className="mt-1 h-1.5 w-1.5 shrink-0 rounded-full bg-[#F98513]" />}
+                            {unreadItem && <span className="mt-1 h-1.5 w-1.5 shrink-0 rounded-full bg-[#F98513]" aria-label={t('خوانده نشده', 'Unread')} />}
                           </span>
                           <span className="mt-0.5 line-clamp-2 text-[11px] leading-5 text-muted">{item.body}</span>
                           <span className="mt-1 block text-[10px] font-bold text-faint">{relative(item.createdAt, lang)}</span>

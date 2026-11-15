@@ -4,8 +4,8 @@ import { getSession } from '@/lib/auth/session';
 import { getLanguage, serverT } from '@/lib/i18n/server';
 import { listFavoriteIds, listingById } from '@/lib/data/s2-store';
 import { searchListings } from '@/lib/data/listings';
-import { followedSellerIds, profileCustomization } from '@/lib/data/social-store';
-import { listInspections, listStories } from '@/lib/data/platform-store';
+import { followedSellerIds } from '@/lib/data/social-store';
+import { listInspections } from '@/lib/data/platform-store';
 
 type NotificationKind = 'saved_sold' | 'followed' | 'inspection';
 
@@ -18,11 +18,23 @@ interface NotificationItem {
   createdAt: string;
 }
 
+interface WatchedListing {
+  id: string;
+  slug: string;
+  title: string;
+  priceIRR: number;
+  state: string;
+}
+
 /**
  * Account-specific notifications, derived on read:
  *  - a saved listing that is now sold,
- *  - a new listing or story from a followed showroom,
- *  - a workshop inspection booking update.
+ *  - a new listing from a followed showroom,
+ *  - a confirmed workshop inspection booking.
+ *
+ * Bookmarking itself never creates an event. Current favorite prices ride
+ * along in `watched` so the browser can detect a real decrease against its
+ * previous baseline without a write queue.
  *
  * Read state is deliberately device-local (the bell's «خواندن همه» marker), so
  * the endpoint never needs a write queue just to show an unread dot.
@@ -44,9 +56,18 @@ export async function GET(): Promise<NextResponse> {
   const items: NotificationItem[] = [];
 
   const saved = await Promise.all(favoriteIds.map((id) => listingById(id)));
+  const watched: WatchedListing[] = [];
   for (const listing of saved) {
-    if (!listing || listing.state !== 'sold') continue;
+    if (!listing) continue;
     const title = listing.part ? listing.part.title : `${listing.model}${listing.trim ? ` ${listing.trim}` : ''}`;
+    watched.push({
+      id: listing.id,
+      slug: listing.slug,
+      title,
+      priceIRR: listing.priceIRR,
+      state: listing.state,
+    });
+    if (listing.state !== 'sold') continue;
     items.push({
       id: `saved-sold-${listing.id}`,
       kind: 'saved_sold',
@@ -73,44 +94,19 @@ export async function GET(): Promise<NextResponse> {
     });
   }
 
-  const [approvedStories, bookings] = await Promise.all([
-    listStories('approved'),
-    listInspections(),
-  ]);
-  const followedStories = approvedStories
-    .filter((story) => followed.has(story.authorId))
+  const bookings = await listInspections();
+  const confirmedBookings = bookings
+    .filter(
+      (booking) =>
+        booking.phone === session.phone &&
+        (booking.status === 'confirmed' || booking.status === 'done'),
+    )
     .slice(0, 4);
-  const storyModes = await Promise.all(
-    followedStories.map((story) => profileCustomization(story.authorId)),
-  );
-  followedStories.forEach((story, index) => {
-    const publicAuthor = storyModes[index]?.profileMode === 'business';
-    items.push({
-      id: `followed-story-${story.id}`,
-      kind: 'followed',
-      title: t('استوری تازه از نمایشگاه دنبال‌شده', 'New story from a followed showroom'),
-      body: t(`${story.title} منتشر شد.`, `${story.title} was just posted.`),
-      // A personal author has no public seller URL; send the reader home.
-      href: story.listingSlug
-        ? `/listing/${story.listingSlug}`
-        : publicAuthor
-          ? `/seller/${story.authorId}?tab=stories`
-          : '/',
-      createdAt: story.createdAt,
-    });
-  });
-
-  const ownBookings = bookings
-    .filter((booking) => booking.phone === session.phone && booking.status !== 'cancelled')
-    .slice(0, 4);
-  for (const booking of ownBookings) {
-    const confirmed = booking.status === 'confirmed' || booking.status === 'done';
+  for (const booking of confirmedBookings) {
     items.push({
       id: `inspection-${booking.id}-${booking.status}`,
       kind: 'inspection',
-      title: confirmed
-        ? t('نوبت کارشناسی تأیید شد', 'Inspection appointment confirmed')
-        : t('وضعیت نوبت کارشناسی', 'Workshop inspection update'),
+      title: t('نوبت کارشناسی تأیید شد', 'Inspection appointment confirmed'),
       body: t(
         `${booking.vehicle} — ${booking.date} ساعت ${booking.time}`,
         `${booking.vehicle} — ${booking.date} at ${booking.time}`,
@@ -121,5 +117,5 @@ export async function GET(): Promise<NextResponse> {
   }
 
   items.sort((a, b) => b.createdAt.localeCompare(a.createdAt));
-  return NextResponse.json({ items: items.slice(0, 14) });
+  return NextResponse.json({ items: items.slice(0, 14), watched });
 }

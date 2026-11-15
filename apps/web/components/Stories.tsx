@@ -143,7 +143,7 @@ export function Stories({ stories, label = 'داستان‌های آگهی' }: {
         aria-label={t(label)}
         className="flex snap-x snap-mandatory items-start gap-3 overflow-x-auto overflow-y-visible px-0.5 py-2.5 pt-3 [scrollbar-width:none] [&::-webkit-scrollbar]:hidden"
       >
-        <AddStoryTile displayName={displayName} onClick={openAdd} />
+        <AddStoryTile onClick={openAdd} />
         {rail.map((story, index) => (
           <StoryTile key={story.slug} story={story} onOpen={() => setOpenIndex(index)} />
         ))}
@@ -206,32 +206,31 @@ interface StoryDraft {
   height: number;
 }
 
-/** Circular «+» entry point: avatar (or initial) with an orange plus badge. */
-function AddStoryTile({
-  displayName,
-  onClick,
-}: {
-  displayName: string | null;
-  onClick: () => void;
-}) {
+/**
+ * Unified «افزودن استوری» entry point.
+ *
+ * Every browse page shares this single tile: a dashed gradient ring around a
+ * camera-plus glyph, with the orange plus badge on the lower corner. It never
+ * falls back to an initial letter or a silhouette.
+ */
+function AddStoryTile({ onClick }: { onClick: () => void }) {
   const { t } = useI18n();
-  const initial = displayName?.trim().charAt(0) || null;
   return (
     <li className="shrink-0 snap-start">
       <button
         type="button"
         onClick={onClick}
+        aria-label={t('افزودن استوری', 'Add Story')}
         className="flex w-[80px] flex-col items-center gap-1.5 transition active:scale-95"
       >
-        <span className="relative flex h-[72px] w-[72px] items-center justify-center rounded-full border-2 border-dashed border-line-strong bg-page">
-          {initial ? (
-            <span className="flex h-12 w-12 items-center justify-center rounded-full bg-cta-soft text-lg font-extrabold text-ink">
-              {initial}
-            </span>
-          ) : (
-            <Icon name="user" size={26} className="text-muted" />
-          )}
-          <span className="absolute -bottom-0.5 -start-0.5 flex h-6 w-6 items-center justify-center rounded-full border-2 border-[color:var(--color-surface)] bg-[#F98513] text-white">
+        <span
+          className="relative flex h-[72px] w-[72px] items-center justify-center rounded-full p-[2.5px]"
+          style={{ background: 'linear-gradient(135deg, #111144 0%, #F98513 100%)' }}
+        >
+          <span className="flex h-full w-full items-center justify-center rounded-full border-2 border-dashed border-white/75 bg-page text-ink dark:border-white/35">
+            <Icon name="cameraPlus" size={27} className="text-[#111144] dark:text-white" />
+          </span>
+          <span className="absolute -bottom-0.5 -start-0.5 flex h-6 w-6 items-center justify-center rounded-full border-2 border-[color:var(--color-surface)] bg-[#F98513] text-white shadow-sm">
             <Icon name="plus" size={14} />
           </span>
         </span>
@@ -376,7 +375,7 @@ function StoryComposer({
             type="button"
             onClick={onClose}
             aria-label={t('بستن', 'Close')}
-            className="ms-auto flex h-8 w-8 items-center justify-center rounded-full text-muted hover:bg-cta-soft hover:text-ink"
+            className="ms-auto flex h-10 w-10 items-center justify-center rounded-full text-muted hover:bg-cta-soft hover:text-ink"
           >
             <Icon name="close" size={16} />
           </button>

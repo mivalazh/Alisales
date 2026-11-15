@@ -4,6 +4,7 @@ import { useState } from 'react';
 import { useI18n } from '@/lib/i18n';
 import { CarLoader } from './CarLoader';
 import { CustomSelect } from './CustomSelect';
+import { useDelayedBusy } from '@/lib/useDelayedBusy';
 import { TicketHistoryModal } from './TicketHistoryModal';
 import { pushLocalNotification } from '@/lib/local-notifications';
 
@@ -41,6 +42,7 @@ export function SupportForm({
   const [error, setError] = useState('');
   const [result, setResult] = useState<{ code: string; reply: string | null } | null>(null);
   const [topic, setTopic] = useState<SupportTopic>(initialTopic ?? 'technical');
+  const showSendingLoader = useDelayedBusy(status === 'sending');
 
   async function onSubmit(event: React.FormEvent<HTMLFormElement>) {
     event.preventDefault();
@@ -78,15 +80,17 @@ export function SupportForm({
       rememberCode(data.code);
       setResult({ code: data.code, reply: data.reply ?? null });
       setStatus('done');
-      pushLocalNotification({
-        kind: 'ticket_reply',
-        title: t('پاسخ تیکت پشتیبانی شما ثبت شد', 'Your support ticket has a reply'),
-        body: t(
-          `کد پیگیری ${data.code} — پاسخ تیم پشتیبانی آماده است.`,
-          `Tracking code ${data.code} — the support team replied.`,
-        ),
-        href: '/support#my-tickets',
-      });
+      if (data.reply) {
+        pushLocalNotification({
+          kind: 'ticket_reply',
+          title: t('پاسخ جدید به تیکت پشتیبانی', 'New support ticket reply'),
+          body: t(
+            `کد پیگیری ${data.code} — پاسخ تیم پشتیبانی آماده است.`,
+            `Tracking code ${data.code} — the support team replied.`,
+          ),
+          href: '/support',
+        });
+      }
       window.dispatchEvent(new CustomEvent('alisales:ticket-created'));
       formEl.reset();
     } catch {
@@ -193,7 +197,7 @@ export function SupportForm({
       <button type="submit" className="btn-cta flex w-full items-center justify-center gap-2 text-sm" disabled={status === 'sending'}>
         {status === 'sending' ? (
           <>
-            <CarLoader size="sm" label={t('در حال ارسال', 'Sending')} />
+            {showSendingLoader && <CarLoader size="sm" label={t('در حال ارسال', 'Sending')} />}
             {t('در حال ارسال…', 'Sending...')}
           </>
         ) : (

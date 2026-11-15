@@ -21,6 +21,7 @@ import { SortControl, ViewModeToggle, type ViewMode } from './SortControl';
 import { Stories, type StoryItem } from './Stories';
 import { Icon } from './Icon';
 import { CarLoader } from './CarLoader';
+import { useDelayedBusy } from '@/lib/useDelayedBusy';
 import { useI18n } from '@/lib/i18n';
 
 const VIEW_KEY = 'alisales-view';
@@ -108,6 +109,7 @@ export function Catalog({
   const [sheetOpen, setSheetOpen] = useState(false);
   const [view, setView] = useState<ViewMode>('grid');
   const [isPending, startTransition] = useTransition();
+  const showPending = useDelayedBusy(isPending);
 
   useEffect(() => {
     try {
@@ -159,7 +161,7 @@ export function Catalog({
       type="button"
       onClick={() => setPanelOpen((v) => !v)}
       aria-expanded={panelOpen}
-      className="flex shrink-0 items-center gap-1.5 rounded-[var(--radius-pill)] border border-line bg-card px-3 py-2 text-xs font-extrabold text-ink transition hover:border-line-strong"
+      className="flex min-h-10 shrink-0 items-center gap-1.5 rounded-[var(--radius-pill)] border border-line bg-card px-3 py-2 text-xs font-extrabold text-ink transition hover:border-line-strong"
     >
       <Icon name="sliders" size={15} />
       {t('فیلترها', 'Filters')}
@@ -173,7 +175,7 @@ export function Catalog({
 
   return (
     <div className="space-y-4">
-      {isPending && (
+      {showPending && (
         <div className="pointer-events-none fixed inset-x-0 top-20 z-30 flex justify-center" role="status" aria-label={t('در حال به‌روزرسانی نتایج', 'Updating results')}>
           <span className="rounded-full border border-line bg-card/95 px-4 py-2 shadow-lg backdrop-blur">
             <CarLoader size="sm" label={t('در حال به‌روزرسانی نتایج', 'Updating results')} />

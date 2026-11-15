@@ -11,6 +11,7 @@ import {
   tomanToIRR,
   toPersianDigits,
 } from '@alisales/schemas';
+import { Icon } from './Icon';
 import { PhotoUploader } from './PhotoUploader';
 import type { ProcessedPhoto } from '@/lib/photos';
 import type { OwnerPhotoMeta } from '@/lib/data/listings';
@@ -201,51 +202,62 @@ export function EditListingForm({
           {t('قیمت و تماس', 'Price and contact')}
         </h2>
 
-        <div
-          className="mb-2 flex items-center gap-2"
-          role="group"
-          aria-label={t('واحد قیمت', 'Price currency')}
-        >
-          {(
-            [
-              { key: 'toman', label: t('تومان', 'Toman') },
-              { key: 'aed', label: t('درهم (AED)', 'AED') },
-            ] as const
-          ).map((option) => (
-            <button
-              key={option.key}
-              type="button"
-              aria-pressed={unit === option.key}
-              onClick={() => switchUnit(option.key)}
-              className={`rounded-[var(--radius-pill)] border px-3 py-1.5 text-xs font-extrabold transition ${
-                unit === option.key
-                  ? 'border-cta bg-cta-soft text-ink'
-                  : 'border-line bg-card text-muted hover:border-line-strong'
-              }`}
-            >
-              {option.label}
-            </button>
-          ))}
-        </div>
-
         <label className="label" htmlFor="price">
           {t(
             `قیمت (${unit === 'toman' ? 'تومان' : 'درهم'})`,
             `Price (${unit === 'toman' ? 'Toman' : 'AED'})`,
           )}
         </label>
-        <input
-          id="price"
-          inputMode="numeric"
-          className="field"
-          value={price}
-          onChange={(e) => setPrice(e.target.value)}
-          placeholder={
-            unit === 'toman'
-              ? t('مثلاً ۱٬۱۰۰٬۰۰۰٬۰۰۰', 'e.g. 1,100,000,000')
-              : t('مثلاً ۴۰٬۰۰۰', 'e.g. 40,000')
-          }
-        />
+        <div className="flex min-h-11 items-stretch gap-1 rounded-field border border-line-strong bg-card p-0.5 ps-3 transition focus-within:border-cta">
+          <input
+            id="price"
+            inputMode="numeric"
+            className="min-w-0 flex-1 bg-transparent text-sm text-ink outline-none placeholder:text-faint"
+            value={price}
+            onChange={(e) => setPrice(e.target.value)}
+            placeholder={
+              unit === 'toman'
+                ? t('مثلاً ۱٬۱۰۰٬۰۰۰٬۰۰۰', 'e.g. 1,100,000,000')
+                : t('مثلاً ۴۰٬۰۰۰', 'e.g. 40,000')
+            }
+          />
+          {price && (
+            <button
+              type="button"
+              onClick={() => setPrice('')}
+              aria-label={t('پاک کردن قیمت', 'Clear price')}
+              className="flex h-10 w-10 shrink-0 items-center justify-center rounded-full text-muted transition hover:bg-page hover:text-ink"
+            >
+              <Icon name="close" size={15} />
+            </button>
+          )}
+          <span
+            role="group"
+            aria-label={t('واحد قیمت', 'Price currency')}
+            className="flex shrink-0 items-center rounded-full bg-page p-0.5"
+          >
+            {(
+              [
+                { key: 'toman', label: t('تومان', 'Toman') },
+                { key: 'aed', label: t('درهم', 'AED') },
+              ] as const
+            ).map((option) => (
+              <button
+                key={option.key}
+                type="button"
+                aria-pressed={unit === option.key}
+                onClick={() => switchUnit(option.key)}
+                className={`flex h-10 min-w-11 items-center justify-center rounded-full px-2 text-[11px] font-extrabold transition ${
+                  unit === option.key
+                    ? 'bg-cta text-[color:var(--color-text-on-accent)] shadow-xs'
+                    : 'text-muted hover:text-ink'
+                }`}
+              >
+                {option.label}
+              </button>
+            ))}
+          </span>
+        </div>
         <p className="hint">
           {irrPreview !== null
             ? t(

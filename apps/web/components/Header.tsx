@@ -266,7 +266,7 @@ export function Header({
                 type="button"
                 onClick={() => setMenuOpen(false)}
                 aria-label={t('بستن منو', 'Close menu')}
-                className="flex h-9 w-9 items-center justify-center rounded-full border border-line text-ink transition hover:border-line-strong"
+                className="flex h-10 w-10 items-center justify-center rounded-full border border-line text-ink transition hover:border-line-strong"
               >
                 <Icon name="close" size={18} />
               </button>
@@ -399,7 +399,7 @@ export function Header({
                     onClick={toggleLanguage}
                     aria-label={lang === 'fa' ? 'Switch to English' : 'تغییر به زبان فارسی'}
                     title={lang === 'fa' ? 'English' : 'فارسی'}
-                    className="flex h-9 w-9 shrink-0 items-center justify-center rounded-full border border-line bg-page text-[11px] font-extrabold tracking-wide text-ink transition hover:border-cta hover:text-cta"
+                    className="flex h-10 w-10 shrink-0 items-center justify-center rounded-full border border-line bg-page text-[11px] font-extrabold tracking-wide text-ink transition hover:border-cta hover:text-cta"
                   >
                     {lang === 'fa' ? 'EN' : 'FA'}
                   </button>

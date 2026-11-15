@@ -122,7 +122,7 @@ export function StoryViewer({
             type="button"
             onClick={onClose}
             aria-label={t('بستن استوری', 'Close story')}
-            className="flex h-8 w-8 items-center justify-center rounded-full bg-white/15 text-white"
+            className="flex h-10 w-10 items-center justify-center rounded-full bg-white/15 text-white"
           >
             <Icon name="close" size={16} />
           </button>

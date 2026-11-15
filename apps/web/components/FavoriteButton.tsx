@@ -3,9 +3,9 @@
 import { useEffect, useRef, useState } from 'react';
 import { Icon } from './Icon';
 import { useI18n } from '@/lib/i18n';
-import { pushLocalNotification } from '@/lib/local-notifications';
 
 export const FAVORITES_KEY = 'alisales-favorites';
+export const FAVORITES_EVENT = 'alisales:favorites';
 
 /** Compact snapshot kept with each favorite so the page can render offline. */
 export interface FavoriteSnapshot {
@@ -56,6 +56,7 @@ export function writeFavorites(items: FavoriteSnapshot[]): void {
   } catch {
     // private mode — the in-memory state still reflects the tap
   }
+  window.dispatchEvent(new Event(FAVORITES_EVENT));
 }
 
 /** Merge one snapshot into the device list, keeping the newest fields. */
@@ -146,18 +147,9 @@ export function FavoriteButton({
     }
     const nowActive = !isSaved;
     setActive(nowActive);
-
-    if (nowActive) {
-      const text = [snapshot?.model, snapshot?.year].filter(Boolean).join(' ');
-      pushLocalNotification({
-        kind: 'saved',
-        title: t('آگهی ذخیره شد', 'Listing saved'),
-        body: text
-          ? t(`${text} به ذخیره‌شده‌های شما اضافه شد.`, `${text} was added to your saved listings.`)
-          : t('این آگهی به ذخیره‌شده‌های شما اضافه شد.', 'This listing was added to your saved listings.'),
-        href: `/listing/${slug}`,
-      });
-    }
+    // No notification here by design: the bookmark filling orange is the
+    // complete feedback. The bell only carries sold, price-drop, ticket-reply
+    // and booking events.
 
     if (listingId) {
       void (nowActive
@@ -184,7 +176,7 @@ export function FavoriteButton({
             ? t('حذف از ذخیره‌شده‌ها', 'Remove from saved')
             : t('ذخیره آگهی', 'Save listing')
         }
-        className={`flex h-9 w-9 items-center justify-center rounded-full shadow-md backdrop-blur transition active:scale-95 ${className}`}
+        className={`flex h-10 w-10 items-center justify-center rounded-full shadow-md backdrop-blur transition active:scale-95 ${className}`}
         style={{
           backgroundColor: 'rgba(255, 255, 255, 0.88)',
           color: active ? '#F98513' : '#111144',

@@ -53,7 +53,7 @@ export function SortControl({
         aria-haspopup="listbox"
         aria-expanded={open}
         onClick={() => setOpen((v) => !v)}
-        className="flex items-center gap-1.5 whitespace-nowrap rounded-[var(--radius-pill)] border border-line bg-card px-3 py-2 text-xs font-extrabold text-ink transition hover:border-line-strong"
+        className="flex min-h-10 items-center gap-1.5 whitespace-nowrap rounded-[var(--radius-pill)] border border-line bg-card px-3 py-2 text-xs font-extrabold text-ink transition hover:border-line-strong"
       >
         <span className="text-muted">{t('مرتب‌سازی:', 'Sort:')}</span>
         <span>{t(SORT_LABELS[value], EN_SORT[value] ?? SORT_LABELS[value])}</span>
@@ -80,7 +80,7 @@ export function SortControl({
                     onChange(key);
                     setOpen(false);
                   }}
-                  className={`flex w-full items-center justify-between gap-2 rounded-xl px-3 py-2 text-xs font-extrabold transition ${
+                  className={`flex min-h-10 w-full items-center justify-between gap-2 rounded-xl px-3 py-2 text-xs font-extrabold transition ${
                     active ? 'bg-cta-soft text-ink' : 'text-muted hover:bg-sunken hover:text-ink'
                   }`}
                 >
@@ -126,7 +126,7 @@ export function ViewModeToggle({
           aria-pressed={value === mode}
           aria-label={label}
           title={label}
-          className={`flex h-9 w-9 items-center justify-center rounded-full transition ${
+          className={`flex h-10 w-10 items-center justify-center rounded-full transition ${
             value === mode ? 'bg-cta-soft text-ink' : 'text-faint hover:text-ink'
           }`}
         >

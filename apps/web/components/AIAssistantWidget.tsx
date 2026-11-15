@@ -7,6 +7,7 @@ import { useEffect, useRef, useState } from 'react';
 import { useI18n } from '@/lib/i18n';
 import { Icon } from './Icon';
 import { CarLoader } from './CarLoader';
+import { useDelayedBusy } from '@/lib/useDelayedBusy';
 
 interface MessageListing {
   slug: string;
@@ -47,6 +48,7 @@ export function AIAssistantWidget() {
   const [open, setOpen] = useState(false);
   const [input, setInput] = useState('');
   const [busy, setBusy] = useState(false);
+  const showBusy = useDelayedBusy(busy);
   const [faqs, setFaqs] = useState<string[]>(SEED_FAQS);
   const [messages, setMessages] = useState<Message[]>([
     {
@@ -233,7 +235,7 @@ export function AIAssistantWidget() {
                 </div>
               ),
             )}
-            {busy && (
+            {showBusy && (
               <div
                 role="status"
                 aria-live="polite"
@@ -265,7 +267,7 @@ export function AIAssistantWidget() {
               type="submit"
               disabled={busy || !input.trim()}
               aria-label={t('ارسال', 'Send')}
-              className="flex h-9 w-9 shrink-0 items-center justify-center rounded-full bg-[#F98513] text-white transition hover:bg-[#e0770f] disabled:opacity-50"
+              className="flex h-10 w-10 shrink-0 items-center justify-center rounded-full bg-[#F98513] text-white transition hover:bg-[#e0770f] disabled:opacity-50"
             >
               <Icon name="chevronLeft" size={17} />
             </button>

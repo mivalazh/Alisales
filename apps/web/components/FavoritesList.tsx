@@ -2,18 +2,48 @@
 
 import Image from 'next/image';
 import Link from 'next/link';
-import { useEffect, useState } from 'react';
-import { FAVORITES_KEY, readFavorites, writeFavorites, type FavoriteSnapshot } from './FavoriteButton';
+import { useEffect, useState, useSyncExternalStore } from 'react';
+import {
+  FAVORITES_EVENT,
+  FAVORITES_KEY,
+  readFavorites,
+  writeFavorites,
+  type FavoriteSnapshot,
+} from './FavoriteButton';
 import { Icon } from './Icon';
 import { PriceText } from './PriceText';
 import { ViewModeToggle, type ViewMode } from './SortControl';
 import { ListEmptyState } from './ListEmptyState';
-import { CarLoader } from './CarLoader';
 import { isPreSizedSource } from '@/lib/images';
 import { useI18n } from '@/lib/i18n';
 import { translateListingContentToEn } from '@/lib/i18n/content';
 
 const VIEW_KEY = 'alisales-favorites-view';
+
+/**
+ * Device favorites are synchronous. A tiny external store lets the list render
+ * them immediately after hydration with no artificial loading state; the
+ * server snapshot is empty because localStorage does not exist there.
+ */
+let favoritesCache: FavoriteSnapshot[] | null = null;
+
+function favoritesSnapshot(): FavoriteSnapshot[] {
+  if (favoritesCache === null) favoritesCache = readFavorites();
+  return favoritesCache;
+}
+
+function subscribeFavorites(onChange: () => void): () => void {
+  const refresh = () => {
+    favoritesCache = null;
+    onChange();
+  };
+  window.addEventListener(FAVORITES_EVENT, refresh);
+  window.addEventListener('storage', refresh);
+  return () => {
+    window.removeEventListener(FAVORITES_EVENT, refresh);
+    window.removeEventListener('storage', refresh);
+  };
+}
 
 /**
  * Device-local favorites for guests — a two-column phone / four-column desktop
@@ -24,11 +54,10 @@ export function FavoritesList() {
   const { t, lang } = useI18n();
   const displayTitle = (item: FavoriteSnapshot) =>
     lang === 'en' ? translateListingContentToEn(item.model || item.slug) : item.model || item.slug;
-  const [items, setItems] = useState<FavoriteSnapshot[] | null>(null);
+  const items = useSyncExternalStore(subscribeFavorites, favoritesSnapshot, () => null);
   const [view, setView] = useState<ViewMode>('grid');
 
   useEffect(() => {
-    setItems(readFavorites());
     try {
       const stored = localStorage.getItem(VIEW_KEY);
       if (stored === 'grid' || stored === 'row') setView(stored);
@@ -47,18 +76,12 @@ export function FavoritesList() {
   };
 
   const remove = (slug: string) => {
-    const next = readFavorites().filter((f) => f.slug !== slug);
-    writeFavorites(next);
-    setItems(next);
+    writeFavorites(readFavorites().filter((f) => f.slug !== slug));
   };
 
-  if (items === null) {
-    return (
-      <div className="flex min-h-[40vh] items-center justify-center">
-        <CarLoader label={t('در حال بارگذاری', 'loading...')} />
-      </div>
-    );
-  }
+  // Server render has no localStorage. Leave the space stable for one frame,
+  // then the device list appears synchronously after hydration.
+  if (items === null) return <div className="min-h-[40vh]" aria-hidden="true" />;
 
   if (items.length === 0) {
     return (
@@ -159,7 +182,7 @@ function RemoveButton({ onClick }: { onClick: () => void }) {
       type="button"
       aria-label={t('حذف از ذخیره‌شده‌ها', 'Remove from saved')}
       onClick={onClick}
-      className="flex h-9 w-9 shrink-0 items-center justify-center rounded-full shadow-md backdrop-blur transition hover:opacity-90"
+      className="flex h-10 w-10 shrink-0 items-center justify-center rounded-full shadow-md backdrop-blur transition hover:opacity-90"
       style={{ backgroundColor: 'rgba(255, 255, 255, 0.88)', color: '#111144' }}
     >
       <Icon name="close" size={16} />

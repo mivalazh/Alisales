@@ -824,7 +824,7 @@ export function FilterSheet({
             type="button"
             onClick={onClose}
             aria-label={t('بستن فیلترها', 'Close filters')}
-            className="flex h-9 w-9 items-center justify-center rounded-full text-muted transition hover:bg-cta-soft hover:text-ink"
+            className="flex h-10 w-10 items-center justify-center rounded-full text-muted transition hover:bg-cta-soft hover:text-ink"
           >
             <Icon name="close" size={18} />
           </button>

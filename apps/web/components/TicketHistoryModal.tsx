@@ -5,6 +5,7 @@ import { createPortal } from 'react-dom';
 import { useI18n } from '@/lib/i18n';
 import { CarLoader } from './CarLoader';
 import { Icon } from './Icon';
+import { useDelayedBusy } from '@/lib/useDelayedBusy';
 
 interface Ticket {
   code: string;
@@ -48,6 +49,7 @@ export function TicketHistoryModal() {
   const [mounted, setMounted] = useState(false);
   const [tickets, setTickets] = useState<Ticket[]>([]);
   const [loading, setLoading] = useState(false);
+  const showLoading = useDelayedBusy(loading);
 
   useEffect(() => setMounted(true), []);
 
@@ -139,14 +141,14 @@ export function TicketHistoryModal() {
             type="button"
             onClick={() => setOpen(false)}
             aria-label={t('بستن تیکت‌ها', 'Close tickets')}
-            className="flex h-8 w-8 items-center justify-center rounded-full text-white/80 transition hover:bg-white/10"
+            className="flex h-10 w-10 items-center justify-center rounded-full text-white/80 transition hover:bg-white/10"
           >
             <Icon name="close" size={16} />
           </button>
         </div>
 
         <div className="flex-1 overflow-y-auto p-3 sm:p-4">
-          {loading ? (
+          {showLoading ? (
             <div className="flex justify-center py-8">
               <CarLoader size="sm" label={t('در حال بارگذاری تیکت‌ها', 'Loading tickets')} />
             </div>
