@@ -13,7 +13,8 @@ import {
 import { authSecret, createSessionToken, setSessionCookie } from '@/lib/auth/session';
 import { bumpOtpAttempts, deleteOtp, getOtp, verifyOtpHash } from '@/lib/auth/otp-store';
 import { clearDemoOtpCookie, demoOtpCookieMatches } from '@/lib/auth/otp-cookie';
-import { demoAuthMode } from '@/lib/config/mode';
+import { smsConfigured } from '@/lib/auth/sms';
+import { demoAuthMode, instantOtpAllowedFor } from '@/lib/config/mode';
 import { createUser, findUserByPhone } from '@/lib/data/s2-store';
 import { profileCustomization, saveProfileCustomization } from '@/lib/data/social-store';
 
@@ -55,6 +56,15 @@ export async function POST(request: Request): Promise<NextResponse> {
     return NextResponse.json({ error: 'شماره موبایل معتبر نیست.' }, { status: 400 });
   }
   const phone = normalizePhone(phoneRaw);
+
+  // Verify is gated too: a code or signed cookie from elsewhere must never
+  // bypass the production allowlist for the instant OTP flow.
+  if (!smsConfigured() && !instantOtpAllowedFor(phone)) {
+    return NextResponse.json(
+      { error: 'ورود آزمایشی برای این شماره فعال نیست؛ با پشتیبانی تماس بگیرید.' },
+      { status: 403 },
+    );
+  }
 
   const code = typeof body.code === 'string' ? body.code : '';
   if (!isOtpCode(code)) {

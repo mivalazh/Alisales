@@ -8,6 +8,7 @@ import { CustomSelect } from './CustomSelect';
 import { GalleryPermissionDialog, useGalleryPicker } from './GalleryPermission';
 import { Icon } from './Icon';
 import { isPreSizedSource } from '@/lib/images';
+import { storyImageFallback } from '@/lib/story-images';
 import { mediaExtension } from '@/lib/media-rules';
 import { processListingMedia } from '@/lib/photos';
 import { useI18n } from '@/lib/i18n';
@@ -453,7 +454,9 @@ function StoryComposer({
 
 /** One 72px circle: gradient ring, photo, one-line label. */
 function StoryTile({ story, onOpen }: { story: StoryItem; onOpen: () => void }) {
+  const fallback = storyImageFallback(story.slug);
   const [loaded, setLoaded] = useState(false);
+  const [src, setSrc] = useState(story.coverUrl || fallback);
   const accent = emblemInk(story.brand);
 
   return (
@@ -475,12 +478,21 @@ function StoryTile({ story, onOpen }: { story: StoryItem; onOpen: () => void }) 
               />
             )}
             <Image
-              src={story.coverUrl}
+              src={src}
               alt={story.title}
               fill
               sizes="72px"
-              unoptimized={isPreSizedSource(story.coverUrl)}
+              referrerPolicy="no-referrer"
+              unoptimized={isPreSizedSource(src)}
               onLoad={() => setLoaded(true)}
+              onError={() => {
+                if (src !== fallback) {
+                  setLoaded(false);
+                  setSrc(fallback);
+                } else {
+                  setLoaded(true);
+                }
+              }}
               className={`object-cover transition-opacity duration-300 ${loaded ? 'opacity-100' : 'opacity-0'}`}
             />
             {story.videoUrl && (

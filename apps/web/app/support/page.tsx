@@ -1,7 +1,6 @@
 import { localizedMetadata } from '@/lib/i18n/metadata';
-import Link from 'next/link';
 import { Icon } from '@/components/Icon';
-import { SupportForm } from '@/components/SupportForm';
+import { SupportTicketCenter } from '@/components/SupportTicketCenter';
 import { SupportHelpCenter } from '@/components/SupportHelpCenter';
 import { getLanguage, serverT } from '@/lib/i18n/server';
 
@@ -16,19 +15,7 @@ export default async function SupportPage() {
 
   return (
     <article className="mx-auto max-w-4xl space-y-5">
-      <SupportForm kind="ticket" />
-
-      <section
-        id="partnership"
-        className="flex items-center justify-end rounded-card border border-line bg-card p-4 sm:p-5"
-      >
-        <Link
-          href="/support/ticket?topic=advertising"
-          className="bg-[#F98513] hover:bg-[#e0760c] text-white font-extrabold rounded-xl px-5 py-3 shadow-sm"
-        >
-          {t('همکاری با ما', 'Partner with us')}
-        </Link>
-      </section>
+      <SupportTicketCenter />
 
       <SupportHelpCenter />
 

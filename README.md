@@ -108,25 +108,28 @@ grid reads the shared `search_listings` RPC and mutations are RLS-gated.
 
 **Development fixtures** (`apps/web/lib/config/mode.ts`): `next dev` without
 Supabase credentials serves the fixture store and can print the OTP to the
-server log; `NEXT_PUBLIC_DEMO_OTP_HINT=true` also shows it on the OTP step.
-Production is always strict: it requires Supabase, an SMS provider and a real
-`AUTH_SECRET`, never accepts demo OTP, and answers 503 when a service is
-missing. The production secret names are:
+server log and show it on the OTP step. Production requires a real
+`AUTH_SECRET`. With an SMS provider it sends real codes; without one, instant
+OTP is available only for numbers listed in `INSTANT_OTP_ALLOWLIST` (empty
+blocks it entirely), so missing SMS credentials cannot create accounts for
+arbitrary phones. The production names are:
 
 ```
 SUPABASE_URL
 NEXT_PUBLIC_SUPABASE_URL
 SUPABASE_SERVICE_ROLE_KEY
 NEXT_PUBLIC_SUPABASE_ANON_KEY
-SMS_API_KEY
+SMS_IR_API_KEY              # preferred: SMS.ir Fast Verification
+SMS_IR_TEMPLATE_ID          # default 100000
+SMS_API_KEY                 # generic adapter / legacy SMS.ir key
 SMS_SENDER
 SMS_API_URL
 AUTH_SECRET                 # ≥16 random characters
-REQUIRE_HOSTED_SERVICES     # optional; production is already strict
+INSTANT_OTP_ALLOWLIST       # comma-separated launch numbers when SMS is unset
+REQUIRE_HOSTED_SERVICES     # optional; production data is already strict
 ```
 
-Do not set `NEXT_PUBLIC_DEMO_OTP_HINT` in production. After deploying with the
-secrets, run `npm run auth:e2e -- --url=https://<preview-host>` and enter the
+After deploying with the secrets, run `npm run auth:e2e -- --url=https://<preview-host>` and enter the
 SMS code when prompted; it verifies the real OTP, session cookie, `/api/auth/me`
 and logout, and fails if the demo route or demo code is still available.
 Fixture cards use the SVG illustrations in `apps/web/public/covers/`

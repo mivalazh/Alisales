@@ -23,8 +23,11 @@ const ENV_KEYS = [
   'SMS_API_KEY',
   'SMS_SENDER',
   'SMS_API_URL',
+  'SMS_IR_API_KEY',
+  'SMS_IR_TEMPLATE_ID',
   'REQUIRE_HOSTED_SERVICES',
   'NEXT_PUBLIC_DEMO_OTP_HINT',
+  'INSTANT_OTP_ALLOWLIST',
   'DEMO_DATA_DIR',
 ] as const;
 
@@ -56,7 +59,8 @@ describe('production auth cutover', () => {
       expect(requireHostedServices()).toBe(true);
       expect(fixtureMode()).toBe(false);
       expect(demoAuthMode()).toBe(true);
-      expect(demoOtpHintEnabled()).toBe(true);
+      // No production allowlist configured yet: no instant code is shown.
+      expect(demoOtpHintEnabled()).toBe(false);
       expect(authSecret()).toBeNull();
 
       process.env.AUTH_SECRET = 'production-secret-at-least-16-chars';

@@ -33,9 +33,11 @@ function rememberCode(code: string): void {
 export function SupportForm({
   kind,
   initialTopic,
+  showHistory = true,
 }: {
   kind: Kind;
   initialTopic?: SupportTopic;
+  showHistory?: boolean;
 }) {
   const { t, lang } = useI18n();
   const [status, setStatus] = useState<'idle' | 'sending' | 'done' | 'error'>('idle');
@@ -150,7 +152,7 @@ export function SupportForm({
             </p>
           )}
         </div>
-        {kind === 'ticket' && <TicketHistoryModal />}
+        {kind === 'ticket' && showHistory && <TicketHistoryModal />}
       </div>
 
       {kind === 'ticket' && (

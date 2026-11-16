@@ -3,8 +3,13 @@ import { isValidMobile, normalizePhone, otpRequestSchema } from '@alisales/schem
 import { authSecret } from '@/lib/auth/session';
 import { deleteOtp, generateOtp, resendWaitSeconds, saveOtp } from '@/lib/auth/otp-store';
 import { setDemoOtpCookie } from '@/lib/auth/otp-cookie';
-import { sendOtpSms } from '@/lib/auth/sms';
-import { demoAuthMode, demoOtpHintEnabled } from '@/lib/config/mode';
+import { sendOtpSms, smsConfigured } from '@/lib/auth/sms';
+import {
+  demoAuthMode,
+  demoOtpHintEnabled,
+  instantOtpAllowedFor,
+  instantOtpFallbackAllowedFor,
+} from '@/lib/config/mode';
 import { findUserByPhone } from '@/lib/data/s2-store';
 import { rateLimit } from '@/lib/security/rate-limit';
 
@@ -18,8 +23,9 @@ import { rateLimit } from '@/lib/security/rate-limit';
  *
  * Without an SMS provider the six-digit code is returned as `devCode` (and the
  * legacy `demoCode` alias), stored in a signed HTTP-only cookie, and printed to
- * the server log. This works in production too so a missing SMS key never
- * blocks sign-in. With an SMS provider configured no code is returned.
+ * the server log. Development allows every number; production allows only the
+ * exact `INSTANT_OTP_ALLOWLIST`, so this path cannot create accounts for
+ * arbitrary phones. With an SMS provider configured no code is returned.
  */
 export async function POST(request: Request): Promise<NextResponse> {
   const limited = rateLimit({
@@ -58,6 +64,15 @@ export async function POST(request: Request): Promise<NextResponse> {
   }
   const phone = normalizePhone(parsed.data.phone);
 
+  // Refuse before issuing or storing anything: without SMS, production may only
+  // use instant OTP for the operator's launch accounts.
+  if (!smsConfigured() && !instantOtpAllowedFor(phone)) {
+    return NextResponse.json(
+      { error: 'ورود آزمایشی برای این شماره فعال نیست؛ با پشتیبانی تماس بگیرید.' },
+      { status: 403 },
+    );
+  }
+
   const wait = resendWaitSeconds(phone);
   if (wait > 0) {
     return NextResponse.json(
@@ -72,25 +87,32 @@ export async function POST(request: Request): Promise<NextResponse> {
 
   const delivery = await sendOtpSms(phone, code);
   const demo = demoAuthMode();
+  // SMS.ir can reject an unverified/sandbox account before delivery. Do not
+  // lock launch users out: fall back to the allowlisted instant code.
+  const sandboxFallback =
+    !delivery.delivered &&
+    delivery.reason === 'sandbox' &&
+    instantOtpFallbackAllowedFor(phone);
+
   if (!delivery.delivered) {
-    if (delivery.reason === 'provider_error') {
+    if (delivery.reason === 'provider_error' || (delivery.reason === 'sandbox' && !sandboxFallback)) {
       deleteOtp(phone);
       return NextResponse.json(
         { error: 'ارسال پیامک ناموفق بود؛ دوباره تلاش کنید.' },
         { status: 502 },
       );
     }
-    if (!demo) {
-      // Hosted deployment (or REQUIRE_HOSTED_SERVICES=true) with no provider:
-      // refuse instead of issuing a code nobody can receive.
+    if (!demo && !sandboxFallback) {
+      // Hosted deployment with no provider: refuse instead of issuing a code
+      // nobody can receive.
       deleteOtp(phone);
       return NextResponse.json(
         { error: 'ارسال پیامک در حال حاضر در دسترس نیست؛ بعداً تلاش کنید.' },
         { status: 503 },
       );
     }
-    // Development / fixture-demo mode: the code is written to the server
-    // console; the browser response only carries it behind the demo flag.
+    // Development / demo / SMS.ir sandbox fallback: the code is written to the
+    // server console and handed to this browser.
     console.info(`[alisales][otp] login code for ${phone}: ${code}`);
   }
 
@@ -98,14 +120,14 @@ export async function POST(request: Request): Promise<NextResponse> {
     ok: true,
     needsProfile: !existing,
   };
-  if (!delivery.delivered && demoOtpHintEnabled()) {
+  if (!delivery.delivered && (demoOtpHintEnabled(phone) || sandboxFallback)) {
     body.devCode = code;
     body.demoCode = code;
   }
 
-  // Demo auth: hand the code to this browser too, so the verify request still
-  // works when a different isolate (no shared memory) serves it.
-  if (demo) await setDemoOtpCookie(phone, code);
+  // Hand the code to this browser too, so verify still works when a different
+  // isolate (no shared memory) serves the next request.
+  if (demo || sandboxFallback) await setDemoOtpCookie(phone, code);
 
   return NextResponse.json(body, { status: 202 });
 }

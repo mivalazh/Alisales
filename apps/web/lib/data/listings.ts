@@ -374,10 +374,11 @@ export async function searchListings(
     const rows = ((data ?? []) as unknown as ListingCardRow[])
       .map(mapRow)
       .filter((l) => inBrowseCategory(l, category));
-    // An empty hosted catalogue must still render a useful marketplace.
-    if (rows.length === 0 && category === undefined && filters === DEFAULT_FILTERS) {
-      return fixtureSearchListings(filters, category);
-    }
+    // An empty hosted result must still render a useful marketplace. This now
+    // covers every category page (/cars, /motorcycles, /parts, /heavy) and any
+    // filter set, not just the unfiltered home grid. The same filters are
+    // applied to the seeded rows, so a genuine no-match still stays empty.
+    if (rows.length === 0) return fixtureSearchListings(filters, category);
     // The hosted view has no category column yet, so every vehicle row reads as a
     // car; keeping the narrowing here means the three category pages share one
     // code path online and offline.

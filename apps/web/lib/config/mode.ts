@@ -1,4 +1,5 @@
 import { join } from 'node:path';
+import { isValidMobile, normalizePhone } from '@alisales/schemas';
 import { smsConfigured } from '../auth/sms';
 import { nodeFs } from '../storage/node-fs';
 
@@ -13,9 +14,10 @@ import { nodeFs } from '../storage/node-fs';
  *     always strict and answers 503 instead of serving fixture data. On a
  *     runtime with no filesystem (Workers) the development store is isolate
  *     memory; see `lib/storage/demo-store.ts`.
- *  2. Whether demo affordances are allowed. When no SMS provider is configured,
- *     instant OTP stays available even in production so sign-in never blocks
- *     the launch. Configuring an SMS provider turns the demo path off.
+ *  2. Whether instant OTP is available. Development without SMS allows every
+ *     number. Production without SMS allows only the explicitly configured
+ *     `INSTANT_OTP_ALLOWLIST`, so a missing provider never turns arbitrary
+ *     phone numbers into accounts. Configuring SMS disables instant OTP.
  *
  * `REQUIRE_HOSTED_SERVICES=true` remains available to force strict mode in a
  * non-production environment, but it is no longer required for production.
@@ -80,18 +82,54 @@ export function fixtureMode(): boolean {
 }
 
 /**
- * Instant OTP mode: no SMS provider is configured, so the code is issued to the
- * browser (signed cookie + response) instead of a handset. This intentionally
- * works in production too: a missing SMS key must not lock every account out.
- * As soon as an SMS provider is configured, real delivery takes over.
+ * Instant OTP path exists when no SMS provider is configured. This only says
+ * the flow is possible; `instantOtpAllowedFor()` decides which phone may use it.
  */
 export function demoAuthMode(): boolean {
   return !smsConfigured();
 }
 
-/** Show the instant code exactly when SMS delivery is not configured. */
-export function demoOtpHintEnabled(): boolean {
-  return demoAuthMode();
+/**
+ * Phone numbers explicitly allowed to use instant OTP in production.
+ * Comma/space/semicolon separated; Persian digits, `+98` and `0098` normalize.
+ * There is deliberately no wildcard or allow-all switch.
+ */
+function instantOtpAllowlist(): ReadonlySet<string> {
+  const entries = String(process.env.INSTANT_OTP_ALLOWLIST ?? '')
+    .split(/[,;\n]+/)
+    .map((value) => value.trim())
+    .filter(Boolean)
+    .map(normalizePhone)
+    .filter(isValidMobile);
+  return new Set(entries);
+}
+
+/**
+ * Whether a phone may use the instant/devCode fallback when the gateway is
+ * unavailable or rejects an unverified/sandbox account. Development allows
+ * every number; production still requires the exact launch allowlist, so an
+ * SMS.ir failure cannot turn arbitrary phones into accounts.
+ */
+export function instantOtpFallbackAllowedFor(rawPhone: string): boolean {
+  if (process.env.NODE_ENV !== 'production') return true;
+  return instantOtpAllowlist().has(normalizePhone(rawPhone));
+}
+
+/**
+ * Authorize the no-SMS instant flow for one phone. A configured SMS provider
+ * always wins and disables this path; its sandbox fallback is checked through
+ * `instantOtpFallbackAllowedFor()` instead.
+ */
+export function instantOtpAllowedFor(rawPhone: string): boolean {
+  if (smsConfigured()) return false;
+  return instantOtpFallbackAllowedFor(rawPhone);
+}
+
+/** Whether the instant code can be shown at all (optionally for one phone). */
+export function demoOtpHintEnabled(phone?: string): boolean {
+  if (!demoAuthMode()) return false;
+  if (phone) return instantOtpAllowedFor(phone);
+  return process.env.NODE_ENV !== 'production' || instantOtpAllowlist().size > 0;
 }
 
 const PRIMARY_DIR = join(process.cwd(), '.dev-data');

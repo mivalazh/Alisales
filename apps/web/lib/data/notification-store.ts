@@ -180,6 +180,17 @@ export async function markNotificationsRead(userId: string): Promise<string> {
   } catch (error) {
     console.warn('[alisales] notification read rpc unavailable:', error);
   }
-  // Last-resort fallback keeps the bell usable; GET still normalizes the value.
-  return new Date().toISOString();
+
+  // The RPC arrives with migration 0012; before it is applied (or if execute is
+  // missing) write the same one-row marker directly so read state still sticks.
+  const readAt = new Date().toISOString();
+  try {
+    const { error } = await sb
+      .from('notification_reads')
+      .upsert({ user_id: userId, read_at: readAt }, { onConflict: 'user_id' });
+    if (error) console.warn('[alisales] notification read marker was not stored:', error.message);
+  } catch (error) {
+    console.warn('[alisales] notification read marker unavailable:', error);
+  }
+  return readAt;
 }

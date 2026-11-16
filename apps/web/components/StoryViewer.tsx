@@ -5,6 +5,7 @@ import { useCallback, useEffect, useRef, useState } from 'react';
 import { isPreSizedSource } from '@/lib/images';
 import { useI18n } from '@/lib/i18n';
 import type { StoryItem } from './Stories';
+import { storyImageFallback } from '@/lib/story-images';
 import { Icon } from './Icon';
 
 const STORY_MS = 5200;
@@ -31,6 +32,12 @@ export function StoryViewer({
   const [muted, setMuted] = useState(true);
   const timer = useRef<number | null>(null);
   const active = stories[index];
+  const fallback = active ? storyImageFallback(active.slug) : '';
+  const [imageSrc, setImageSrc] = useState(active?.coverUrl || fallback);
+
+  useEffect(() => {
+    setImageSrc(active?.coverUrl || fallback);
+  }, [active?.coverUrl, fallback]);
 
   const next = useCallback(() => {
     setIndex((current) => {
@@ -139,11 +146,15 @@ export function StoryViewer({
           />
         ) : (
           <Image
-            src={active.coverUrl}
+            src={imageSrc}
             alt={active.title}
             fill
             sizes="420px"
-            unoptimized={isPreSizedSource(active.coverUrl)}
+            referrerPolicy="no-referrer"
+            unoptimized={isPreSizedSource(imageSrc)}
+            onError={() => {
+              if (imageSrc !== fallback) setImageSrc(fallback);
+            }}
             className="object-cover"
           />
         )}

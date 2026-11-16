@@ -57,6 +57,8 @@ export async function generateMetadata(): Promise<Metadata> {
     },
     formatDetection: { telephone: false },
     other: {
+      // Official eNamad domain-verification tag (also served as a root file).
+      enamad: '34868514',
       'mobile-web-app-capable': 'yes',
       'apple-mobile-web-app-capable': 'yes',
       'apple-mobile-web-app-status-bar-style': 'black-translucent',
