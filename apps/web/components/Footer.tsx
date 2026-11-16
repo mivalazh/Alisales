@@ -80,10 +80,10 @@ function FooterColumn({
  * verification snippet once their licence is issued; the container id and
  * dimensions stay stable so the seal never shifts the footer.
  */
-function EnamadSeal() {
+function EnamadSeal({ id = 'enamad-seal-slot' }: { id?: string }) {
   const { t } = useI18n();
   return (
-    <div id="enamad-seal-slot" className="shrink-0">
+    <div id={id} className="shrink-0">
       <a
         href="https://www.enamad.ir/"
         target="_blank"
@@ -149,7 +149,7 @@ export function SiteFooter() {
             <FooterAccordion />
           </div>
           <div className="mt-3 flex justify-center">
-            <EnamadSeal />
+            <EnamadSeal id="enamad-seal-slot-mobile" />
           </div>
         </div>
 
