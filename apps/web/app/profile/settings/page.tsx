@@ -5,7 +5,7 @@ import { maskPhone, profileModeFor } from '@alisales/schemas';
 import { profileCustomization } from '@/lib/data/social-store';
 import { AccountModeForm } from '@/components/AccountModeForm';
 import { getSession } from '@/lib/auth/session';
-import { hasPassword } from '@/lib/auth/password';
+import { hasAccountPassword } from '@/lib/auth/password';
 import { LogoutButton } from '@/components/LogoutButton';
 import { PasswordForm } from '@/components/PasswordForm';
 import { getLanguage, serverT } from '@/lib/i18n/server';
@@ -28,7 +28,7 @@ export default async function SettingsPage() {
   if (!session) redirect('/login?next=/profile/settings');
   const t = (fa: string, en: string) => serverT(lang, fa, en);
 
-  const passwordReady = hasPassword(session.phone);
+  const passwordReady = await hasAccountPassword(session.sub, session.phone);
   const custom = await profileCustomization(session.sub);
   const profileMode = custom?.profileMode ?? profileModeFor(session.accountType);
 

@@ -1,5 +1,7 @@
+import { createClient } from '@supabase/supabase-js';
 import { readJson, writeJson } from '../storage/demo-store';
 import { normalizePhone } from '@alisales/schemas';
+import { admin } from '../data/s2-store';
 
 /**
  * Optional password login, next to the SMS code.
@@ -12,13 +14,11 @@ import { normalizePhone } from '@alisales/schemas';
  * done with Web Crypto so the same code runs on Node and on Workers. The format
  * is `pbkdf2$<iterations>$<salt>$<hash>`, all base64url.
  *
- * Storage: Supabase's `users` table has no password column and touching the
- * schema is out of scope, so the hash lives in the demo credential store. In a
- * hosted deployment that store is isolate memory — a password set on one
- * isolate may not be visible on the next, which is exactly why the SMS path
- * remains the guaranteed way in. `setAccountPassword` also writes the password
- * into Supabase Auth when the account exists there, so a hosted project with
- * `SUPABASE_ANON_KEY` verifies through Supabase itself.
+ * Storage: hosted accounts write the password to Supabase Auth itself (the
+ * durable source across Worker isolates), with `password_set` in user metadata
+ * so settings can show the real state without a schema change. The local hash
+ * remains the fixture-mode store and the immediate fallback when a deployment
+ * has no Supabase credentials. The SMS path stays available either way.
  */
 
 export const PASSWORD_MIN = 8;
@@ -118,6 +118,87 @@ export async function verifyStoredPassword(phone: string, password: string): Pro
   const row = readRows().find((entry) => entry.phone === normalized);
   if (!row) return false;
   return verifyPasswordHash(password, row.hash);
+}
+
+/**
+ * Persists a password for a real account. Supabase Auth is authoritative in a
+ * hosted deployment; the local hash keeps fixture mode and local previews
+ * working. Returns false only when a hosted write was attempted and failed.
+ */
+export async function saveAccountPassword(
+  accountId: string,
+  phone: string,
+  password: string,
+): Promise<boolean> {
+  const hash = await hashPassword(password);
+  const sb = admin();
+  if (!sb) {
+    savePasswordHash(phone, hash);
+    return true;
+  }
+  try {
+    const existing = await sb.auth.admin.getUserById(accountId);
+    const metadata = {
+      ...((existing.data.user?.user_metadata ?? {}) as Record<string, unknown>),
+      password_set: true,
+    };
+    const { error } = await sb.auth.admin.updateUserById(accountId, {
+      password,
+      user_metadata: metadata,
+    });
+    if (error) {
+      console.warn('[alisales] auth password update failed:', error.message);
+      return false;
+    }
+    savePasswordHash(phone, hash);
+    return true;
+  } catch (error) {
+    console.warn('[alisales] auth password update unavailable:', error);
+    return false;
+  }
+}
+
+/** Whether this account already has a durable password. */
+export async function hasAccountPassword(
+  accountId: string,
+  phone: string,
+): Promise<boolean> {
+  if (hasPassword(phone)) return true;
+  const sb = admin();
+  if (!sb) return false;
+  try {
+    const { data } = await sb.auth.admin.getUserById(accountId);
+    const metadata = (data.user?.user_metadata ?? {}) as Record<string, unknown>;
+    return metadata.password_set === true;
+  } catch (error) {
+    console.warn('[alisales] auth password state unavailable:', error);
+    return false;
+  }
+}
+
+/**
+ * Verifies a password across isolates: local hash first, then Supabase Auth.
+ * Supabase's sign-in is used only as a verifier; its session is discarded and
+ * the app keeps issuing its own signed cookie.
+ */
+export async function verifyAccountPassword(
+  phone: string,
+  password: string,
+): Promise<boolean> {
+  if (await verifyStoredPassword(phone, password)) return true;
+  const url = process.env.NEXT_PUBLIC_SUPABASE_URL;
+  const anon = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY;
+  if (!url || !anon) return false;
+  try {
+    const sb = createClient(url, anon, { auth: { persistSession: false } });
+    const normalized = normalizePhone(phone);
+    const e164 = normalized.startsWith('0') ? `+98${normalized.slice(1)}` : normalized;
+    const { error } = await sb.auth.signInWithPassword({ phone: e164, password });
+    return !error;
+  } catch (error) {
+    console.warn('[alisales] hosted password verification unavailable:', error);
+    return false;
+  }
 }
 
 /** Simple in-memory throttle: 8 wrong tries per phone per 15 minutes. */

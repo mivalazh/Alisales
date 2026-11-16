@@ -5,7 +5,6 @@ import { useRouter, useSearchParams } from 'next/navigation';
 import { useEffect, useState, type FormEvent } from 'react';
 import {
   BUSINESS_TYPE_LABELS,
-  PROFILE_MODE_LABELS,
   accountTypes,
   businessTypes,
   safeNextPath,
@@ -17,7 +16,12 @@ import { useI18n } from '@/lib/i18n';
 
 const ACCOUNT_TYPE_EN: Record<AccountType, string> = {
   individual: 'Personal account',
-  showroom: 'Business account',
+  showroom: 'Business / showroom account',
+};
+
+const ACCOUNT_TYPE_FA: Record<AccountType, string> = {
+  individual: 'حساب شخصی',
+  showroom: 'حساب کسب‌وکار / نمایشگاهی',
 };
 
 /**
@@ -42,11 +46,12 @@ export function LoginForm() {
   // Open-redirect guard: only internal paths survive; anything else goes to /.
   const next = safeNextPath(params.get('next'));
 
-  const [step, setStep] = useState<'phone' | 'code'>('phone');
+  const [step, setStep] = useState<'phone' | 'code' | 'reset'>('phone');
   // «ورود با رمز عبور» is the fast path for a returning user; the SMS code
   // stays one tab away and is still the only way to create an account.
   const [mode, setMode] = useState<'otp' | 'password'>('otp');
   const [password, setPassword] = useState('');
+  const [resetConfirm, setResetConfirm] = useState('');
   const [phone, setPhone] = useState('');
   const [code, setCode] = useState('');
   const [demoCode, setDemoCode] = useState<string | null>(null);
@@ -108,6 +113,111 @@ export function LoginForm() {
             t('ارسال کد ناموفق بود؛ دوباره تلاش کنید.', 'Could not send the code; try again.'),
         ),
       );
+    } catch {
+      setError(t('ارتباط با سرور برقرار نشد.', 'Could not connect to the server.'));
+    } finally {
+      setBusy(false);
+    }
+  }
+
+  async function forgotPassword(): Promise<void> {
+    if (busy) return;
+    setError(null);
+    setNotice(null);
+    if (!phone.trim()) {
+      setError(t('برای بازیابی رمز، شماره موبایل را وارد کنید.', 'Enter your mobile number to reset the password.'));
+      return;
+    }
+    setBusy(true);
+    try {
+      const { status, data } = await post('/api/auth/otp', { phone });
+      if (status === 202) {
+        if (data.needsProfile) {
+          setError(t('حسابی با این شماره پیدا نشد.', 'No account was found for this number.'));
+          return;
+        }
+        const hint =
+          typeof data.devCode === 'string'
+            ? data.devCode
+            : typeof data.demoCode === 'string'
+              ? data.demoCode
+              : null;
+        setDemoCode(hint);
+        setCode(hint ?? '');
+        setPassword('');
+        setResetConfirm('');
+        setStep('reset');
+        setNotice(
+          hint
+            ? t('کد بازیابی آزمایشی آماده است.', 'Test reset code ready.')
+            : t('کد بازیابی ارسال شد.', 'Reset code sent.'),
+        );
+        setWait(60);
+        return;
+      }
+      setError(
+        String(
+          data.error ??
+            t('ارسال کد بازیابی ناموفق بود؛ دوباره تلاش کنید.', 'Could not send the reset code; try again.'),
+        ),
+      );
+    } catch {
+      setError(t('ارتباط با سرور برقرار نشد.', 'Could not connect to the server.'));
+    } finally {
+      setBusy(false);
+    }
+  }
+
+  async function resetPassword(event: FormEvent<HTMLFormElement>): Promise<void> {
+    event.preventDefault();
+    if (busy) return;
+    setError(null);
+    setNotice(null);
+    if (password !== resetConfirm) {
+      setError(t('تکرار رمز عبور یکسان نیست.', 'The passwords do not match.'));
+      return;
+    }
+    setBusy(true);
+    try {
+      const { status, data } = await post('/api/auth/password/reset', {
+        phone,
+        code,
+        password,
+      });
+      if (status === 200) {
+        router.push(next.startsWith('/login') ? '/' : next);
+        router.refresh();
+        return;
+      }
+      setError(String(data.error ?? t('بازیابی رمز انجام نشد.', 'Could not reset the password.')));
+    } catch {
+      setError(t('ارتباط با سرور برقرار نشد.', 'Could not connect to the server.'));
+    } finally {
+      setBusy(false);
+    }
+  }
+
+  async function resendResetCode(): Promise<void> {
+    if (busy || wait > 0) return;
+    setError(null);
+    setNotice(null);
+    setBusy(true);
+    try {
+      const { status, data } = await post('/api/auth/otp', { phone });
+      if (status === 202) {
+        const hint =
+          typeof data.devCode === 'string'
+            ? data.devCode
+            : typeof data.demoCode === 'string'
+              ? data.demoCode
+              : null;
+        setDemoCode(hint);
+        if (hint) setCode(hint);
+        setNotice(t('کد بازیابی دوباره ارسال شد.', 'Reset code sent again.'));
+        setWait(60);
+        return;
+      }
+      setError(String(data.error ?? t('ارسال دوباره کد ناموفق بود.', 'Could not resend the code.')));
     } catch {
       setError(t('ارتباط با سرور برقرار نشد.', 'Could not connect to the server.'));
     } finally {
@@ -199,6 +309,7 @@ export function LoginForm() {
               setError(null);
               setNotice(null);
               setStep('phone');
+              setResetConfirm('');
               setDemoCode(null);
             }}
             className={`min-h-10 rounded-field px-3 py-2 text-sm font-extrabold transition ${
@@ -211,7 +322,126 @@ export function LoginForm() {
       </div>
 
       {mode === 'password' ? (
-        <form onSubmit={(e) => void passwordLogin(e)} className="mt-6 space-y-4" noValidate>
+        step === 'reset' ? (
+          <form onSubmit={(e) => void resetPassword(e)} className="mt-6 space-y-4" noValidate>
+            <div>
+              <p className="text-sm font-extrabold">{t('بازیابی رمز عبور', 'Reset password')}</p>
+              <p className="mt-1 text-xs leading-6 text-muted">
+                {t('کد تأیید ارسال‌شده به', 'Enter the verification code sent to')}{' '}
+                <span dir="ltr" className="font-bold text-ink">{phone}</span>{' '}
+                {t('و رمز عبور جدید را وارد کنید.', 'and choose a new password.')}
+              </p>
+            </div>
+
+            <div>
+              <label htmlFor="reset-code" className="label">
+                {t('کد تأیید', 'Verification code')}
+              </label>
+              <input
+                id="reset-code"
+                dir="ltr"
+                inputMode="numeric"
+                autoComplete="one-time-code"
+                maxLength={6}
+                className="field text-center text-xl tracking-[0.5em]"
+                value={code}
+                onChange={(e) => setCode(e.target.value)}
+                placeholder="------"
+                required
+              />
+            </div>
+
+            {demoCode && (
+              <div
+                role="status"
+                className="rounded-field border border-dashed border-cta bg-cta-soft px-3 py-2 text-xs font-bold leading-6 text-ink"
+              >
+                {t('کد بازیابی آزمایشی:', 'Test reset code:')}{' '}
+                <span dir="ltr" className="tracking-[0.3em]">
+                  {demoCode}
+                </span>
+              </div>
+            )}
+
+            <div>
+              <label htmlFor="reset-password" className="label">
+                {t('رمز عبور جدید', 'New password')}
+              </label>
+              <input
+                id="reset-password"
+                type="password"
+                dir="ltr"
+                autoComplete="new-password"
+                className="field text-center tracking-widest"
+                value={password}
+                onChange={(e) => setPassword(e.target.value)}
+                placeholder="••••••••"
+                required
+              />
+              <p className="hint mt-1">
+                {t('حداقل ۸ نویسه، شامل حرف و رقم.', 'At least 8 characters, including a letter and a number.')}
+              </p>
+            </div>
+
+            <div>
+              <label htmlFor="reset-confirm" className="label">
+                {t('تکرار رمز عبور جدید', 'Confirm new password')}
+              </label>
+              <input
+                id="reset-confirm"
+                type="password"
+                dir="ltr"
+                autoComplete="new-password"
+                className="field text-center tracking-widest"
+                value={resetConfirm}
+                onChange={(e) => setResetConfirm(e.target.value)}
+                placeholder="••••••••"
+                required
+              />
+            </div>
+
+            {notice && <p className="text-xs font-bold text-note">{notice}</p>}
+            {error && (
+              <p className="error-text" role="alert">
+                {error}
+              </p>
+            )}
+
+            <button type="submit" disabled={busy} className="btn-cta w-full text-sm disabled:opacity-60">
+              {busy
+                ? t('در حال ذخیره…', 'Saving…')
+                : t('تعیین رمز جدید و ورود', 'Set new password & sign in')}
+            </button>
+
+            <button
+              type="button"
+              onClick={() => void resendResetCode()}
+              disabled={busy || wait > 0}
+              className="flex min-h-10 w-full items-center justify-center text-center text-xs font-bold text-muted disabled:opacity-60"
+            >
+              {wait > 0
+                ? t(`ارسال دوباره کد تا ${wait} ثانیه`, `Resend code in ${wait} seconds`)
+                : t('ارسال دوباره کد', 'Resend code')}
+            </button>
+
+            <button
+              type="button"
+              onClick={() => {
+                setStep('phone');
+                setCode('');
+                setPassword('');
+                setResetConfirm('');
+                setDemoCode(null);
+                setError(null);
+                setNotice(null);
+              }}
+              className="flex min-h-10 w-full items-center justify-center text-center text-xs font-bold text-faint"
+            >
+              {t('بازگشت به ورود با رمز عبور', 'Back to password sign-in')}
+            </button>
+          </form>
+        ) : (
+          <form onSubmit={(e) => void passwordLogin(e)} className="mt-6 space-y-4" noValidate>
           <div>
             <label htmlFor="pw-phone" className="label">
               {t('شماره موبایل', 'Mobile number')}
@@ -263,13 +493,23 @@ export function LoginForm() {
               : t('ورود با رمز عبور', 'Sign in with password')}
           </button>
 
+          <button
+            type="button"
+            onClick={() => void forgotPassword()}
+            disabled={busy}
+            className="flex min-h-10 w-full items-center justify-center text-center text-xs font-extrabold text-cta underline underline-offset-4 disabled:opacity-60"
+          >
+            {t('رمز عبور خود را فراموش کرده‌اید؟', 'Forgot password?')}
+          </button>
+
           <Link
             href="/profile/settings"
             className="flex min-h-10 items-center justify-center text-center text-xs font-bold text-muted underline"
           >
             {t('تعیین یا تغییر رمز عبور', 'Set or change password')}
           </Link>
-        </form>
+          </form>
+        )
       ) : step === 'phone' ? (
         <form onSubmit={(e) => void requestCode(e)} className="mt-6 space-y-4" noValidate>
           <div>
@@ -378,12 +618,7 @@ export function LoginForm() {
                         checked={accountType === type}
                         onChange={() => setAccountType(type)}
                       />
-                      {t(
-                        type === 'showroom'
-                          ? PROFILE_MODE_LABELS.business
-                          : PROFILE_MODE_LABELS.personal,
-                        ACCOUNT_TYPE_EN[type],
-                      )}
+                      {t(ACCOUNT_TYPE_FA[type], ACCOUNT_TYPE_EN[type])}
                     </label>
                   ))}
                 </div>

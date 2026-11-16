@@ -50,4 +50,25 @@ describe('empty hosted catalogue fallback by category', () => {
 
     expect(rows.some((row) => row.kind === 'part')).toBe(true);
   });
+
+  it('keeps a filtered no-match empty when hosted listings exist', async () => {
+    supabase.rpc.mockImplementation(
+      (_name: string, args: { p_filters: Record<string, unknown> }) => {
+        if (args.p_filters.q) return Promise.resolve({ data: [], error: null });
+        return Promise.resolve({ data: [{ id: 'hosted-listing' }], error: null });
+      },
+    );
+
+    const rows = await searchListings(
+      { ...DEFAULT_FILTERS, q: 'no-such-hosted-listing' },
+      'car',
+    );
+
+    expect(rows).toEqual([]);
+    expect(supabase.rpc).toHaveBeenCalledTimes(2);
+    const probe = supabase.rpc.mock.calls[1]?.[1] as {
+      p_filters: Record<string, unknown>;
+    };
+    expect(probe.p_filters.q).toBeUndefined();
+  });
 });

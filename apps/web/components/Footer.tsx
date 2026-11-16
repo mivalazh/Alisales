@@ -19,6 +19,7 @@ import { Icon } from './Icon';
 const QUICK_LINKS = [
   { href: '/cars', label: 'خودروها', en: 'Cars' },
   { href: '/motorcycles', label: 'موتور و اسکوتر برقی', en: 'Bikes & scooters' },
+  { href: '/heavy', label: 'ماشین‌آلات سنگین', en: 'Heavy machinery' },
   { href: '/parts', label: 'قطعات و لوازم یدکی', en: 'Spare parts' },
 ] as const;
 
@@ -139,8 +140,8 @@ function FooterAccordion() {
 export function SiteFooter() {
   const { t } = useI18n();
   return (
-    <footer className="site-footer mt-12 border-t border-line bg-card pb-28 sm:pb-0">
-      <div className="mx-auto w-full max-w-[var(--content-max)] px-4 py-8 sm:px-6 sm:py-10">
+    <footer className="site-footer mt-12 border-t border-line bg-card pb-28 sm:pb-6">
+      <div className="mx-auto w-full max-w-[var(--content-max)] px-4 py-8 sm:px-6">
         {/* Phone: compact identity + accordion */}
         <div className="sm:hidden">
           <BrandLockup size="md" />
@@ -166,7 +167,7 @@ export function SiteFooter() {
           </div>
         </div>
 
-        <div className="mt-8 flex flex-col items-center justify-between gap-4 border-t border-line pt-6 sm:mt-10 sm:flex-row sm:items-end">
+        <div className="mt-6 flex flex-col items-center justify-between gap-4 border-t border-line pt-5 sm:mt-8 sm:flex-row sm:items-center sm:pr-24">
           <div className="flex flex-col items-center gap-3 sm:flex-row sm:items-center">
             <EnamadSeal />
             <p className="max-w-md text-center text-xs leading-6 text-faint sm:text-start">
@@ -183,9 +184,10 @@ export function SiteFooter() {
             rel="noopener noreferrer"
             aria-label="Created by Miva Tech — opens in a new tab"
             dir="ltr"
-            className="inline-flex min-h-10 shrink-0 items-center rounded-[var(--radius-pill)] border border-line bg-page px-3 py-1 text-xs font-semibold tracking-wide text-muted transition hover:border-[#F98513]/60 hover:text-ink hover:shadow-[0_0_0_3px_rgba(249,133,19,0.12)]"
+            className="inline-flex min-h-10 shrink-0 items-center gap-1 rounded-[var(--radius-pill)] border border-line bg-page px-3 py-1 text-xs font-semibold tracking-wide text-muted transition hover:border-[#F98513]/60 hover:text-ink hover:shadow-[0_0_0_3px_rgba(249,133,19,0.12)]"
           >
-            Created by <span className="font-extrabold text-cta">Miva Tech</span>
+            <span>Created by</span>
+            <span className="font-extrabold text-cta">Miva Tech</span>
           </a>
         </div>
       </div>

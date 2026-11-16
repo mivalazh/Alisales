@@ -21,6 +21,7 @@ import { SortControl, ViewModeToggle, type ViewMode } from './SortControl';
 import { Stories, type StoryItem } from './Stories';
 import { Icon } from './Icon';
 import { CarLoader } from './CarLoader';
+import { EndOfFeed } from './EndOfFeed';
 import { useDelayedBusy } from '@/lib/useDelayedBusy';
 import { useI18n } from '@/lib/i18n';
 
@@ -200,9 +201,9 @@ export function Catalog({
 
       {filterStrip && <div className={category ? 'lg:hidden' : undefined}>{filterStrip(ctx)}</div>}
 
-      {/* One bar under the stories: filters, removable active chips, result
-          count, sort and the grid/list switch — never a second stacked strip. */}
-      <div className="flex flex-wrap items-center gap-x-2 gap-y-2 rounded-card border border-line bg-card px-2.5 py-2">
+      {/* One compact row under the stories: filters, sort and the grid/list
+          switch. The result count lives in the results themselves. */}
+      <div className="flex items-center justify-between gap-2 rounded-2xl border border-line bg-card p-2">
         {category && (
           <FilterBar
             category={category}
@@ -214,10 +215,7 @@ export function Catalog({
         )}
         {!category && !filterStrip && genericFilterButton}
 
-        <div className="ms-auto flex shrink-0 items-center gap-2">
-          <p className="text-xs font-bold text-muted" aria-live="polite">
-            {listings.length} {t('آگهی', 'ads')}
-          </p>
+        <div className="ms-auto flex min-w-0 shrink-0 items-center gap-2">
           <SortControl value={sort} onChange={(key) => commit(filters, key)} />
           <ViewModeToggle value={view} onChange={changeView} />
         </div>
@@ -256,6 +254,8 @@ export function Catalog({
       ) : (
         <ListingGrid listings={sortedListings} view={view} />
       )}
+
+      <EndOfFeed count={sortedListings.length} />
 
       {category && (
         <FilterSheet

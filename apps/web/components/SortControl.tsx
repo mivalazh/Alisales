@@ -53,9 +53,9 @@ export function SortControl({
         aria-haspopup="listbox"
         aria-expanded={open}
         onClick={() => setOpen((v) => !v)}
-        className="flex min-h-10 items-center gap-1.5 whitespace-nowrap rounded-[var(--radius-pill)] border border-line bg-card px-3 py-2 text-xs font-extrabold text-ink transition hover:border-line-strong"
+        className="flex min-h-9 items-center gap-1 whitespace-nowrap rounded-[var(--radius-pill)] border border-line bg-card px-2.5 py-1.5 text-[11px] font-extrabold text-ink transition hover:border-line-strong sm:min-h-10 sm:gap-1.5 sm:px-3 sm:py-2 sm:text-xs"
       >
-        <span className="text-muted">{t('مرتب‌سازی:', 'Sort:')}</span>
+        <span className="hidden text-muted sm:inline">{t('مرتب‌سازی:', 'Sort:')}</span>
         <span>{t(SORT_LABELS[value], EN_SORT[value] ?? SORT_LABELS[value])}</span>
         <Icon
           name="chevronDown"
@@ -111,7 +111,7 @@ export function ViewModeToggle({
     <div
       role="group"
       aria-label={t('نحوه نمایش')}
-      className="flex items-center rounded-[var(--radius-pill)] border border-line bg-card p-1"
+      className="flex shrink-0 items-center rounded-[var(--radius-pill)] border border-line bg-card p-0.5 sm:p-1"
     >
       {(
         [
@@ -126,7 +126,7 @@ export function ViewModeToggle({
           aria-pressed={value === mode}
           aria-label={label}
           title={label}
-          className={`flex h-10 w-10 items-center justify-center rounded-full transition ${
+          className={`flex h-8 w-8 items-center justify-center rounded-full transition sm:h-10 sm:w-10 ${
             value === mode ? 'bg-cta-soft text-ink' : 'text-faint hover:text-ink'
           }`}
         >

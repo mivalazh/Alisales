@@ -8,10 +8,46 @@ export const generateMetadata = localizedMetadata(
   { title: 'About us' },
 );
 
-const PILLS: ReadonlyArray<{ fa: string; en: string; icon: IconName }> = [
-  { fa: 'خودروهای لوکس', en: 'Luxury cars', icon: 'car' },
-  { fa: 'اسکوتر و موتور برقی', en: 'Electric scooters & bikes', icon: 'sparkle' },
-  { fa: 'قطعات اورجینال', en: 'Original spare parts', icon: 'gear' },
+const CATEGORIES: ReadonlyArray<{
+  href: string;
+  titleFa: string;
+  titleEn: string;
+  detailFa: string;
+  detailEn: string;
+  icon: IconName;
+}> = [
+  {
+    href: '/cars',
+    titleFa: 'خودروها',
+    titleEn: 'Cars',
+    detailFa: 'لوکس، گذر موقت و پلاک منطقه آزاد کیش',
+    detailEn: 'Luxury cars, temporary transit and Kish free-zone plates',
+    icon: 'car',
+  },
+  {
+    href: '/motorcycles',
+    titleFa: 'موتور و اسکوتر برقی',
+    titleEn: 'Bikes & electric scooters',
+    detailFa: 'مخصوص تردد شهری و تفریحی جزیره',
+    detailEn: 'Built for island commuting and leisure',
+    icon: 'sparkle',
+  },
+  {
+    href: '/heavy',
+    titleFa: 'ماشین‌آلات سنگین',
+    titleEn: 'Heavy machinery',
+    detailFa: 'راه‌سازی، تجاری و پروژه‌ای',
+    detailEn: 'Road-building, commercial and project machinery',
+    icon: 'gear',
+  },
+  {
+    href: '/parts',
+    titleFa: 'قطعات و لوازم یدکی',
+    titleEn: 'Spare parts & accessories',
+    detailFa: 'اورجینال، استوک و کمیاب',
+    detailEn: 'Original, stock and rare parts',
+    icon: 'shieldCheck',
+  },
 ];
 
 export default async function AboutPage() {
@@ -22,57 +58,60 @@ export default async function AboutPage() {
     <article className="mx-auto w-full max-w-5xl">
       <section className="relative overflow-hidden rounded-3xl bg-[#111144] px-5 py-8 text-white shadow-xl sm:px-8 sm:py-10">
         <div className="absolute inset-0 opacity-70 [background-image:radial-gradient(circle_at_12%_16%,#F98513_0,transparent_30%),radial-gradient(circle_at_88%_82%,#DEF434_0,transparent_25%)]" />
-        <div className="relative grid gap-7 lg:grid-cols-[minmax(0,1.15fr)_minmax(280px,0.85fr)] lg:items-center">
+        <div className="relative grid gap-7 lg:grid-cols-[minmax(0,1.15fr)_minmax(300px,0.85fr)] lg:items-center">
           <div>
             <p className="inline-flex items-center gap-1.5 rounded-full border border-white/15 bg-white/10 px-3 py-1 text-[11px] font-bold text-white/85 backdrop-blur">
               <Icon name="pin" size={13} />
-              {t('کیش، ایران', 'Kish Island, Iran')}
+              {t(
+                'پلتفرم تخصصی آگهی و معرفی در جزیره کیش',
+                'Specialist listing and showcase platform in Kish Island',
+              )}
             </p>
 
             <h1 className="mt-4 max-w-2xl text-2xl font-black leading-tight sm:text-4xl">
               {t(
-                'مرجع خودرو، موتور برقی و قطعات کیش.',
-                'Kish Island’s home for cars, electric scooters and spare parts.',
+                'ویترین اول خودرو، موتور برقی، ماشین‌آلات سنگین و قطعات در کیش.',
+                'Kish’s first showcase for cars, electric bikes, heavy machinery and parts.',
               )}
             </h1>
 
-            <p className="mt-3 max-w-xl text-sm leading-7 text-white/80 sm:text-base sm:leading-8">
+            <p className="mt-4 max-w-xl text-sm leading-7 text-white/80 sm:text-base sm:leading-8">
               {t(
-                'علی سیلز بازار خودروهای لوکس، اسکوترهای برقی، ماشین‌آلات سنگین و قطعات اورجینال را در یک جای روشن و قابل‌اعتماد جمع کرده است. آگهی‌ها را ببینید، مقایسه کنید و مستقیم با فروشنده حرف بزنید.',
-                'Ali Sales brings luxury cars, electric scooters, heavy machinery and original spare parts into one clear, trusted marketplace. Browse, compare and talk directly to the seller.',
+                'علی سیلز (Ali Sales) مرجع تخصصی ثبت آگهی و ارتباط مستقیم خریداران و فروشندگان در منطقه آزاد کیش است. ما واسطه‌ها را حذف کرده‌ایم تا بهترین آگهی‌های جزیره را با قیمت شفاف (تومان و درهم) ببینید، مقایسه کنید و بی‌واسطه با صاحب آگهی معامله کنید.',
+                'Ali Sales is Kish Free Zone’s specialist marketplace for listing ads and connecting buyers and sellers directly. We have removed the middlemen so you can see the island’s best listings with transparent pricing in Toman and AED, compare them, and deal directly with the owner.',
               )}
             </p>
           </div>
 
           <div className="rounded-2xl border border-white/15 bg-white/10 p-4 backdrop-blur">
             <p className="text-[11px] font-extrabold text-[#DEF434]">
-              {t('همه‌چیز در یک بازار', 'Everything in one marketplace')}
+              {t('۴ بخش تخصصی پلتفرم', '4 specialist platform sections')}
             </p>
             <div className="mt-3 space-y-2">
-              {PILLS.map((pill) => (
-                <span
-                  key={pill.fa}
-                  className="flex items-center gap-2 rounded-xl border border-white/15 bg-white/10 px-3 py-2 text-xs font-bold text-white"
+              {CATEGORIES.map((category) => (
+                <Link
+                  key={category.href}
+                  href={category.href}
+                  className="group flex items-center gap-2.5 rounded-xl border border-white/15 bg-white/10 px-3 py-2.5 text-white transition hover:border-[#DEF434]/70 hover:bg-white/[0.16]"
                 >
-                  <Icon name={pill.icon} size={15} className="text-[#DEF434]" />
-                  {t(pill.fa, pill.en)}
-                </span>
+                  <span className="flex h-8 w-8 shrink-0 items-center justify-center rounded-lg bg-white/10 text-[#DEF434]">
+                    <Icon name={category.icon} size={16} />
+                  </span>
+                  <span className="min-w-0 flex-1">
+                    <span className="block text-xs font-extrabold">
+                      {t(category.titleFa, category.titleEn)}
+                    </span>
+                    <span className="mt-0.5 block text-[10px] leading-4 text-white/65">
+                      {t(category.detailFa, category.detailEn)}
+                    </span>
+                  </span>
+                  <Icon
+                    name="chevronLeft"
+                    size={14}
+                    className="shrink-0 text-white/45 transition group-hover:text-[#DEF434]"
+                  />
+                </Link>
               ))}
-            </div>
-
-            <div className="mt-4 grid gap-2">
-              <Link
-                href="/cars"
-                className="rounded-xl bg-[#F98513] px-5 py-2.5 text-center text-sm font-extrabold text-white transition hover:bg-[#e0760c]"
-              >
-                {t('دیدن خودروها', 'Browse cars')}
-              </Link>
-              <Link
-                href="/parts"
-                className="rounded-xl border border-white/25 px-5 py-2.5 text-center text-sm font-bold text-white transition hover:bg-white/10"
-              >
-                {t('قطعات و لوازم یدکی', 'Spare parts')}
-              </Link>
             </div>
           </div>
         </div>

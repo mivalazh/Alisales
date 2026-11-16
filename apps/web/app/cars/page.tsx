@@ -1,5 +1,4 @@
 import { localizedMetadata } from '@/lib/i18n/metadata';
-import Link from 'next/link';
 import { CategoryCatalog } from '@/components/CategoryCatalog';
 import { CategorySwitch } from '@/components/CategorySwitch';
 import { filterByBodyType, parseBodyType } from '@/lib/browse';
@@ -42,14 +41,8 @@ export default async function CarsPage({
 
   return (
     <div className="space-y-4">
-      <div className="flex flex-wrap items-center justify-between gap-2">
+      <div>
         <h1 className="text-xl font-extrabold sm:text-2xl">{t('خودروها', 'Vehicles')}</h1>
-        <Link
-          href="/parts"
-          className="inline-flex min-h-10 items-center text-sm font-bold text-muted transition hover:text-ink"
-        >
-          {t('قطعات و لوازم یدکی')}
-        </Link>
       </div>
 
       <CategorySwitch />

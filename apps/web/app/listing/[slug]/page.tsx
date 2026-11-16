@@ -46,7 +46,7 @@ export async function generateMetadata({
   params: Promise<{ slug: string }>;
 }): Promise<Metadata> {
   const { slug } = await params;
-  const [listing, lang] = await Promise.all([getListing(slug), getLanguage()]);
+  const [listing, lang] = await Promise.all([safeListing(slug), safeLanguage()]);
   if (!listing) return { title: 'Listing not found' };
   const isEn = lang === 'en';
   const rawTitle = listing.part ? listing.part.title : vehicleTitle(listing);
@@ -82,6 +82,65 @@ const STATE_BADGE: Record<string, BadgeKey> = {
 };
 
 /**
+ * Detail-page reads are individually isolated. A broken RPC, a missing
+ * production column or a transient database failure must degrade one card's
+ * optional data — never turn the whole listing into the global error screen.
+ */
+async function safeListing(slug: string) {
+  try {
+    return await getListing(slug);
+  } catch (error) {
+    console.warn('[alisales] listing detail read failed:', error);
+    return null;
+  }
+}
+
+async function safeLanguage() {
+  try {
+    return await getLanguage();
+  } catch (error) {
+    console.warn('[alisales] listing language read failed:', error);
+    return 'fa' as const;
+  }
+}
+
+async function safeSellerPhone(listingId: string) {
+  try {
+    return await getSellerPhone(listingId);
+  } catch (error) {
+    console.warn('[alisales] seller phone read failed:', error);
+    return null;
+  }
+}
+
+async function safeSellerProfile(sellerId: string) {
+  try {
+    return await profileCustomization(sellerId);
+  } catch (error) {
+    console.warn('[alisales] seller profile read failed:', error);
+    return null;
+  }
+}
+
+async function safeSession() {
+  try {
+    return await getSession();
+  } catch (error) {
+    console.warn('[alisales] listing session read failed:', error);
+    return null;
+  }
+}
+
+async function safeRecordView(listingId: string, viewerId: string) {
+  try {
+    await recordView(listingId, viewerId);
+  } catch (error) {
+    // View analytics is best-effort and must never block a listing page.
+    console.warn('[alisales] listing view record failed:', error);
+  }
+}
+
+/**
  * Listing detail (desktop re-architecture).
  *
  * Two columns on `lg`, read right-to-left: the 7-span column on the right holds
@@ -98,14 +157,14 @@ export default async function ListingDetailPage({
   params: Promise<{ slug: string }>;
 }) {
   const { slug } = await params;
-  const [listing, lang] = await Promise.all([getListing(slug), getLanguage()]);
+  const [listing, lang] = await Promise.all([safeListing(slug), safeLanguage()]);
   if (!listing) notFound();
   const t = (fa: string, en?: string) => serverT(lang, fa, en);
 
   // Server guarantees: null for sold / non-revealed phones.
   const [phone, sellerCustom] = await Promise.all([
-    getSellerPhone(listing.id),
-    profileCustomization(listing.sellerId),
+    safeSellerPhone(listing.id),
+    safeSellerProfile(listing.sellerId),
   ]);
   const sellerIsBusiness = isPublicSellerProfile(
     resolveSellerProfileMode(sellerCustom?.profileMode, null, [listing]),
@@ -127,9 +186,9 @@ export default async function ListingDetailPage({
 
   // Owner statistics (C2): one unique view per visitor; the owner's own visit
   // never counts, so posting age and «بازدید» stay honest.
-  const session = await getSession();
-  if (shouldRecordView(session?.sub, listing.sellerId)) {
-    await recordView(listing.id, session!.sub);
+  const session = await safeSession();
+  if (session && shouldRecordView(session.sub, listing.sellerId)) {
+    await safeRecordView(listing.id, session.sub);
   }
 
   const badges: BadgeKey[] = [];

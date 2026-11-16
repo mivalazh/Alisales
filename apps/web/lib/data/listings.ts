@@ -374,11 +374,19 @@ export async function searchListings(
     const rows = ((data ?? []) as unknown as ListingCardRow[])
       .map(mapRow)
       .filter((l) => inBrowseCategory(l, category));
-    // An empty hosted result must still render a useful marketplace. This now
-    // covers every category page (/cars, /motorcycles, /parts, /heavy) and any
-    // filter set, not just the unfiltered home grid. The same filters are
-    // applied to the seeded rows, so a genuine no-match still stays empty.
-    if (rows.length === 0) return fixtureSearchListings(filters, category);
+    if (rows.length === 0) {
+      // Only an actually empty hosted catalogue may use seeded rows. A second
+      // unfiltered, one-row probe distinguishes that from a filter no-match,
+      // which must stay empty even when hosted listings exist elsewhere.
+      const probe = await supabase.rpc('search_listings', {
+        p_filters: filtersToRpcPayload(launchFilters(DEFAULT_FILTERS)),
+        p_limit: 1,
+        p_offset: 0,
+      });
+      if (probe.error) throw new Error(probe.error.message);
+      const hostedHasRows = Array.isArray(probe.data) && probe.data.length > 0;
+      return hostedHasRows ? [] : fixtureSearchListings(filters, category);
+    }
     // The hosted view has no category column yet, so every vehicle row reads as a
     // car; keeping the narrowing here means the three category pages share one
     // code path online and offline.
@@ -391,14 +399,41 @@ export async function searchListings(
   }
 }
 
+const UUID_RE =
+  /^[0-9a-f]{8}-[0-9a-f]{4}-[1-8][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i;
+
+/**
+ * A listing URL may arrive raw, percent-encoded once or twice (Persian slugs
+ * and shared links both occur). Resolve every sensible representation so a
+ * valid listing never 404s because of URL encoding alone.
+ */
+function slugCandidates(raw: string): string[] {
+  const candidates: string[] = [];
+  let current = raw.trim();
+  for (let pass = 0; pass < 3 && current; pass += 1) {
+    if (!candidates.includes(current)) candidates.push(current);
+    try {
+      const decoded = decodeURIComponent(current);
+      if (decoded === current) break;
+      current = decoded;
+    } catch {
+      break;
+    }
+  }
+  return candidates;
+}
+
 /**
  * Listing detail by slug — null when missing or not public (the view's RLS
  * enforces visibility, so sold shows and drafts/hidden 404 honestly).
  */
 async function fixtureListing(slug: string): Promise<ListingDetailData | null> {
+  const candidates = slugCandidates(slug);
   const mine = await readMyListings();
   const all = mergeMyListings(mine, visibleCatalog(fixtureListings, devListings()));
-  const found = applyListingOverrides(all).find((l) => l.slug === slug);
+  const found = applyListingOverrides(all).find(
+    (l) => candidates.includes(l.slug) || candidates.includes(l.id),
+  );
   // Owner-removed listings are gone from the public site, not just the grid.
   if (!found || found.state === 'rejected') return null;
   // Fixture sellers do write descriptions; the detail page shows them like
@@ -407,30 +442,58 @@ async function fixtureListing(slug: string): Promise<ListingDetailData | null> {
 }
 
 export async function getListing(slug: string): Promise<ListingDetailData | null> {
+  const candidates = slugCandidates(slug);
   const supabase = supabaseClient();
   if (!supabase) return fixtureListing(slug);
 
   try {
-    const { data, error } = await supabase
-      .from('listing_cards')
-      .select('*')
-      .eq('slug', slug)
-      .maybeSingle();
-    if (error) throw new Error(error.message);
+    let data: unknown = null;
+    for (const candidate of candidates) {
+      const bySlug = await supabase
+        .from('listing_cards')
+        .select('*')
+        .eq('slug', candidate)
+        .maybeSingle();
+      if (bySlug.error) throw new Error(bySlug.error.message);
+      if (bySlug.data) {
+        data = bySlug.data;
+        break;
+      }
+      // Shared/detail links may carry the listing UUID instead of its slug.
+      if (UUID_RE.test(candidate)) {
+        const byId = await supabase
+          .from('listing_cards')
+          .select('*')
+          .eq('id', candidate)
+          .maybeSingle();
+        if (byId.error) throw new Error(byId.error.message);
+        if (byId.data) {
+          data = byId.data;
+          break;
+        }
+      }
+    }
     if (!data) return fixtureListing(slug);
 
     // Gallery rows live in listing_photos (RLS: readable whenever the listing is);
-    // ordered by position so position 0 stays the cover.
-    const { data: photoRows } = await supabase
-      .from('listing_photos')
-      .select('storage_path')
-      .eq('listing_id', (data as { id: string }).id)
-      .order('position', { ascending: true });
-    const photos = ((photoRows ?? []) as Array<{ storage_path: string }>)
-      .map((row) => publicPhotoUrl(row.storage_path))
-      .filter((url): url is string => Boolean(url));
+    // ordered by position so position 0 stays the cover. A gallery failure
+    // keeps the already-resolved hosted listing and falls back to its cover.
+    let photos: string[] = [];
+    try {
+      const { data: photoRows, error: photoError } = await supabase
+        .from('listing_photos')
+        .select('storage_path')
+        .eq('listing_id', (data as { id: string }).id)
+        .order('position', { ascending: true });
+      if (photoError) throw new Error(photoError.message);
+      photos = ((photoRows ?? []) as Array<{ storage_path: string }>)
+        .map((row) => publicPhotoUrl(row.storage_path))
+        .filter((url): url is string => Boolean(url));
+    } catch (photoError) {
+      console.warn('[alisales] listing gallery read failed; using cover:', photoError);
+    }
 
-    return { ...mapRow(data as unknown as ListingCardRow), photos };
+    return { ...mapRow(data as ListingCardRow), photos };
   } catch (error) {
     console.warn('[alisales] listing detail fell back to local rows:', error);
     return fixtureListing(slug);

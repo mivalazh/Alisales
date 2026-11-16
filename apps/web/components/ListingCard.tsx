@@ -27,7 +27,7 @@ import { isPreSizedSource } from '@/lib/images';
 /** Sold text tone — muted so the carmine badge carries the emphasis. */
 const SOLD_TEXT = '#64748B';
 /** Horizontal travel (px) that counts as a photo swipe rather than a tap. */
-const SWIPE_THRESHOLD = 36;
+const SWIPE_THRESHOLD = 35;
 
 function Badge({ badgeKey }: { badgeKey: BadgeKey }) {
   const { t } = useI18n();
@@ -104,22 +104,31 @@ export function ListingCard({ listing }: { listing: ListingCardData }) {
   const [index, setIndex] = useState(0);
   const current = photos[index] ?? null;
   const touchX = useRef<number | null>(null);
+  const touchDelta = useRef(0);
   const swiped = useRef(false);
 
   const go = (step: number) => setIndex((i) => (i + step + count) % count);
 
   const onTouchStart = (event: TouchEvent<HTMLLIElement>) => {
     touchX.current = event.touches[0]?.clientX ?? null;
+    touchDelta.current = 0;
     swiped.current = false;
+  };
+
+  const onTouchMove = (event: TouchEvent<HTMLLIElement>) => {
+    const start = touchX.current;
+    const current = event.touches[0]?.clientX;
+    if (start === null || current === undefined) return;
+    touchDelta.current = current - start;
   };
 
   const onTouchEnd = (event: TouchEvent<HTMLLIElement>) => {
     const start = touchX.current;
     const end = event.changedTouches[0]?.clientX;
+    const dx = touchDelta.current || (start !== null && end !== undefined ? end - start : 0);
     touchX.current = null;
-    if (start === null || end === undefined || count < 2) return;
-    const dx = end - start;
-    if (Math.abs(dx) < SWIPE_THRESHOLD) return;
+    touchDelta.current = 0;
+    if (count < 2 || Math.abs(dx) < SWIPE_THRESHOLD) return;
     go(dx > 0 ? -1 : 1);
     swiped.current = true;
   };
@@ -133,8 +142,9 @@ export function ListingCard({ listing }: { listing: ListingCardData }) {
 
   return (
     <li
-      className="group relative flex h-full min-w-0 touch-manipulation flex-col overflow-hidden rounded-card border border-line bg-card transition hover:border-line-strong hover:shadow-lg active:scale-[0.98]"
+      className="group relative flex h-full min-w-0 touch-pan-y flex-col overflow-hidden rounded-card border border-line bg-card transition hover:border-line-strong hover:shadow-lg active:scale-[0.98]"
       onTouchStart={onTouchStart}
+      onTouchMove={onTouchMove}
       onTouchEnd={onTouchEnd}
     >
       <div className="relative aspect-[var(--photo-aspect)] bg-sunken">
@@ -159,17 +169,17 @@ export function ListingCard({ listing }: { listing: ListingCardData }) {
               type="button"
               onClick={() => go(-1)}
               aria-label={t('عکس قبلی', 'Previous photo')}
-              className="absolute start-2 top-1/2 z-20 flex h-10 w-10 -translate-y-1/2 items-center justify-center rounded-full bg-white/90 text-[#111144] shadow-md transition hover:bg-white sm:opacity-0 sm:group-hover:opacity-100 sm:group-focus-within:opacity-100"
+              className="absolute start-2 top-1/2 z-20 hidden h-7 w-7 -translate-y-1/2 items-center justify-center rounded-full bg-white/90 text-[#111144] shadow-md transition-opacity duration-150 hover:bg-white md:flex md:opacity-0 md:group-hover:opacity-100 md:group-focus-within:opacity-100"
             >
-              <Icon name="chevronRight" size={16} />
+              <Icon name="chevronRight" size={14} />
             </button>
             <button
               type="button"
               onClick={() => go(1)}
               aria-label={t('عکس بعدی', 'Next photo')}
-              className="absolute end-2 top-1/2 z-20 flex h-10 w-10 -translate-y-1/2 items-center justify-center rounded-full bg-white/90 text-[#111144] shadow-md transition hover:bg-white sm:opacity-0 sm:group-hover:opacity-100 sm:group-focus-within:opacity-100"
+              className="absolute end-2 top-1/2 z-20 hidden h-7 w-7 -translate-y-1/2 items-center justify-center rounded-full bg-white/90 text-[#111144] shadow-md transition-opacity duration-150 hover:bg-white md:flex md:opacity-0 md:group-hover:opacity-100 md:group-focus-within:opacity-100"
             >
-              <Icon name="chevronLeft" size={16} />
+              <Icon name="chevronLeft" size={14} />
             </button>
             <span className="absolute inset-x-0 bottom-2 z-20 flex justify-center gap-1">
               {photos.slice(0, 6).map((url, i) => (

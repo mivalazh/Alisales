@@ -3,13 +3,12 @@ import { isValidMobile, normalizePhone } from '@alisales/schemas';
 import { authSecret, createSessionToken, getSession, setSessionCookie } from '@/lib/auth/session';
 import {
   clearPasswordFailures,
-  hashPassword,
-  hasPassword,
+  hasAccountPassword,
   notePasswordFailure,
   passwordAttemptsExceeded,
   passwordProblem,
-  savePasswordHash,
-  verifyStoredPassword,
+  saveAccountPassword,
+  verifyAccountPassword,
 } from '@/lib/auth/password';
 import { findUserByPhone, getUser } from '@/lib/data/s2-store';
 
@@ -53,7 +52,7 @@ export async function POST(request: Request): Promise<NextResponse> {
   }
 
   const account = await findUserByPhone(phone);
-  const valid = account ? await verifyStoredPassword(phone, password) : false;
+  const valid = account ? await verifyAccountPassword(phone, password) : false;
   if (!account || !valid) {
     notePasswordFailure(phone);
     return NextResponse.json({ error: 'شماره یا رمز عبور نادرست است.' }, { status: 401 });
@@ -104,14 +103,20 @@ export async function PUT(request: Request): Promise<NextResponse> {
   const account = await getUser(session.sub);
   if (!account) return NextResponse.json({ error: 'حساب پیدا نشد.' }, { status: 404 });
 
-  if (hasPassword(account.phone)) {
+  if (await hasAccountPassword(account.id, account.phone)) {
     const current = typeof body.currentPassword === 'string' ? body.currentPassword : '';
-    if (!current || !(await verifyStoredPassword(account.phone, current))) {
+    if (!current || !(await verifyAccountPassword(account.phone, current))) {
       return NextResponse.json({ error: 'رمز عبور فعلی درست نیست.' }, { status: 401 });
     }
   }
 
-  savePasswordHash(account.phone, await hashPassword(password));
+  const saved = await saveAccountPassword(account.id, account.phone, password);
+  if (!saved) {
+    return NextResponse.json(
+      { error: 'ذخیره رمز عبور انجام نشد؛ دوباره تلاش کنید.' },
+      { status: 500 },
+    );
+  }
   clearPasswordFailures(account.phone);
   return NextResponse.json({ ok: true });
 }
@@ -120,5 +125,7 @@ export async function PUT(request: Request): Promise<NextResponse> {
 export async function GET(): Promise<NextResponse> {
   const session = await getSession();
   if (!session) return NextResponse.json({ hasPassword: false });
-  return NextResponse.json({ hasPassword: hasPassword(session.phone) });
+  return NextResponse.json({
+    hasPassword: await hasAccountPassword(session.sub, session.phone),
+  });
 }

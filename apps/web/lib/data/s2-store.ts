@@ -165,7 +165,11 @@ export async function createUser(input: {
 
   // Hosted mode: the public.users row references auth.users, so the auth
   // identity is created first (phone already verified by our OTP check).
-  const created = await sb.auth.admin.createUser({ phone: input.phone, phone_confirm: true });
+  // Supabase Auth expects E.164, while public.users keeps the local 09 form.
+  const authPhone = input.phone.startsWith('0')
+    ? `+98${input.phone.slice(1)}`
+    : input.phone;
+  const created = await sb.auth.admin.createUser({ phone: authPhone, phone_confirm: true });
   if (created.error || !created.data.user) {
     throw new Error(`create auth user failed: ${created.error?.message ?? 'unknown'}`);
   }
