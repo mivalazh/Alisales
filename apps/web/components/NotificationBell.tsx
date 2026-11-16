@@ -7,33 +7,22 @@ import { useDelayedBusy } from '@/lib/useDelayedBusy';
 import { Icon, type IconName } from './Icon';
 import {
   LOCAL_NOTIFICATIONS_EVENT,
-  pushLocalNotification,
   readLocalNotifications,
   type LocalNotification,
 } from '@/lib/local-notifications';
 
 interface ServerNotification {
   id: string;
-  kind: 'saved_sold' | 'followed' | 'inspection';
+  kind: 'saved_sold' | 'price_drop' | 'followed' | 'inspection';
   title: string;
   body: string;
   href: string;
   createdAt: string;
 }
 
-/** Current account-favorite prices, used only to detect a real price drop. */
-interface WatchedListing {
-  id: string;
-  slug: string;
-  title: string;
-  priceIRR: number;
-  state: string;
-}
-
 type Item = ServerNotification | LocalNotification;
 
 const READ_KEY = 'alisales-notifications-read-at';
-const PRICE_WATCH_KEY = 'alisales-favorite-price-watch';
 
 const ICON_FOR: Record<string, IconName> = {
   saved_sold: 'bookmarkFilled',
@@ -43,14 +32,20 @@ const ICON_FOR: Record<string, IconName> = {
   price_drop: 'tag',
 };
 
-interface PriceWatchRow {
-  priceIRR: number;
-  slug: string;
-  title: string;
+const SERVER_KINDS = new Set<ServerNotification['kind']>([
+  'saved_sold',
+  'price_drop',
+  'followed',
+  'inspection',
+]);
+
+function isServerItem(item: Item): item is ServerNotification {
+  return SERVER_KINDS.has(item.kind as ServerNotification['kind']);
 }
 
-function toman(value: number): string {
-  return Math.round(value / 10).toLocaleString('en-US');
+function timeValue(iso: string): number {
+  const time = Date.parse(iso);
+  return Number.isFinite(time) ? time : 0;
 }
 
 function relative(iso: string, lang: 'fa' | 'en'): string {
@@ -71,15 +66,14 @@ export function NotificationBell({ authed }: { authed: boolean }) {
   const [serverItems, setServerItems] = useState<ServerNotification[]>([]);
   const [localItems, setLocalItems] = useState<LocalNotification[]>([]);
   const [loading, setLoading] = useState(false);
-  const [watched, setWatched] = useState<WatchedListing[]>([]);
-  const [readAt, setReadAt] = useState<string | null>(null);
+  const [localReadAt, setLocalReadAt] = useState<string | null>(null);
+  const [serverReadAt, setServerReadAt] = useState<string | null>(null);
   const root = useRef<HTMLDivElement>(null);
-  const priceSync = useRef('');
   const showLoading = useDelayedBusy(loading);
 
   useEffect(() => {
     try {
-      setReadAt(window.localStorage.getItem(READ_KEY));
+      setLocalReadAt(window.localStorage.getItem(READ_KEY));
     } catch {
       // private mode
     }
@@ -95,10 +89,10 @@ export function NotificationBell({ authed }: { authed: boolean }) {
     setLoading(true);
     fetch('/api/notifications', { cache: 'no-store' })
       .then((res) => (res.ok ? res.json() : null))
-      .then((data: { items?: ServerNotification[]; watched?: WatchedListing[] } | null) => {
+      .then((data: { items?: ServerNotification[]; readAt?: string | null } | null) => {
         if (cancelled) return;
         if (Array.isArray(data?.items)) setServerItems(data.items);
-        if (Array.isArray(data?.watched)) setWatched(data.watched);
+        if (data && 'readAt' in data) setServerReadAt(data.readAt ?? null);
       })
       .catch(() => undefined)
       .finally(() => {
@@ -108,49 +102,6 @@ export function NotificationBell({ authed }: { authed: boolean }) {
       cancelled = true;
     };
   }, [authed]);
-
-  // Price-drop watch: the first fetch seeds the baseline, later fetches raise
-  // one notification per real decrease. No save confirmation is ever created.
-  useEffect(() => {
-    if (watched.length === 0) return;
-    const signature = JSON.stringify(watched);
-    if (priceSync.current === signature) return;
-    priceSync.current = signature;
-    try {
-      const raw: unknown = JSON.parse(localStorage.getItem(PRICE_WATCH_KEY) ?? '{}');
-      const previous =
-        raw && typeof raw === 'object' ? (raw as Record<string, PriceWatchRow>) : {};
-      const next: Record<string, PriceWatchRow> = { ...previous };
-      for (const listing of watched) {
-        const before = previous[listing.id];
-        if (
-          before &&
-          listing.state !== 'sold' &&
-          listing.priceIRR > 0 &&
-          before.priceIRR > listing.priceIRR
-        ) {
-          pushLocalNotification({
-            id: `price-drop-${listing.id}-${listing.priceIRR}`,
-            kind: 'price_drop',
-            title: t('کاهش قیمت آگهی ذخیره‌شده', 'Saved listing price dropped'),
-            body: t(
-              `${listing.title}: از ${toman(before.priceIRR)} به ${toman(listing.priceIRR)} تومان`,
-              `${listing.title}: from ${toman(before.priceIRR)} to ${toman(listing.priceIRR)} Toman`,
-            ),
-            href: `/listing/${listing.slug}`,
-          });
-        }
-        next[listing.id] = {
-          priceIRR: listing.priceIRR,
-          slug: listing.slug,
-          title: listing.title,
-        };
-      }
-      localStorage.setItem(PRICE_WATCH_KEY, JSON.stringify(next));
-    } catch {
-      // private mode — the bell simply has no price baseline to compare
-    }
-  }, [t, watched]);
 
   useEffect(() => {
     if (!open) return;
@@ -169,18 +120,30 @@ export function NotificationBell({ authed }: { authed: boolean }) {
   }, [open]);
 
   const items = [...localItems, ...serverItems]
-    .sort((a, b) => b.createdAt.localeCompare(a.createdAt))
+    .sort((a, b) => timeValue(b.createdAt) - timeValue(a.createdAt))
     .slice(0, 12) as Item[];
-  const unread = items.filter((item) => !readAt || item.createdAt > readAt).length;
+  const isUnread = (item: Item): boolean =>
+    isServerItem(item)
+      ? !serverReadAt || timeValue(item.createdAt) > timeValue(serverReadAt)
+      : !localReadAt || timeValue(item.createdAt) > timeValue(localReadAt);
+  const unread = items.filter(isUnread).length;
 
   function markAllRead(): void {
     const now = new Date().toISOString();
-    setReadAt(now);
+    setLocalReadAt(now);
+    setServerReadAt(now);
     try {
       window.localStorage.setItem(READ_KEY, now);
     } catch {
       // session-only clear
     }
+    if (!authed) return;
+    fetch('/api/notifications', { method: 'POST', cache: 'no-store' })
+      .then((res) => (res.ok ? res.json() : null))
+      .then((data: { readAt?: string } | null) => {
+        if (data?.readAt) setServerReadAt(data.readAt);
+      })
+      .catch(() => undefined);
   }
 
   return (
@@ -205,7 +168,7 @@ export function NotificationBell({ authed }: { authed: boolean }) {
         <div
           role="dialog"
           aria-label={t('اعلان‌ها', 'Notifications')}
-          className="fixed left-3 right-3 top-[4.5rem] z-50 max-w-[calc(100vw-1.5rem)] overflow-hidden rounded-2xl border border-line bg-card shadow-2xl sm:absolute sm:left-auto sm:right-0 sm:top-full sm:mt-2 sm:w-96"
+          className="fixed left-3 right-3 top-20 z-50 max-w-[calc(100vw-1.5rem)] overflow-hidden rounded-2xl border border-line bg-card shadow-2xl sm:absolute sm:left-auto sm:right-0 sm:top-full sm:mt-2 sm:w-96"
         >
           <div className="flex items-center justify-between gap-2 border-b border-line px-3 py-2.5">
             <p className="text-sm font-extrabold text-ink">{t('اعلان‌ها', 'Notifications')}</p>
@@ -238,7 +201,7 @@ export function NotificationBell({ authed }: { authed: boolean }) {
             ) : (
               <ul className="divide-y divide-line">
                 {items.map((item) => {
-                  const unreadItem = !readAt || item.createdAt > readAt;
+                  const unreadItem = isUnread(item);
                   return (
                     <li key={item.id}>
                       <Link href={item.href} onClick={() => setOpen(false)} className="flex gap-2.5 px-3 py-2.5 transition hover:bg-cta-soft">

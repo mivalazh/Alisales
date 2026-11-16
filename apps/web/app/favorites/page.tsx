@@ -35,16 +35,6 @@ export default async function FavoritesPage({
     return (
       <div className="mx-auto max-w-2xl space-y-4 bg-[#F4F1EC] dark:bg-[#0B0D1E]">
         <h1 className="text-xl font-extrabold dark:text-white">{t('ذخیره‌شده‌ها', 'Saved')}</h1>
-        <p className="text-xs text-muted">
-          {t('این فهرست روی همین دستگاه ذخیره شده است.', 'This list is stored on this device.')}{' '}
-          <Link href="/login?next=/favorites" className="font-bold underline">
-            {t('وارد شوید', 'Sign in')}
-          </Link>{' '}
-          {t(
-            'تا ذخیره‌شده‌ها روی حساب شما بماند.',
-            'to keep your saved listings on your account.',
-          )}
-        </p>
         <FavoritesList />
       </div>
     );
@@ -67,7 +57,7 @@ export default async function FavoritesPage({
             'Save listings with the bookmark and they will appear here.',
           )}
           actionHref="/"
-          actionLabel={t('مرور آگهی‌ها', 'Browse listings')}
+          actionLabel={t('مشاهده آگهی‌ها', 'View listings')}
         />
       ) : (
         <>

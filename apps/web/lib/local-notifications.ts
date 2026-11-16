@@ -1,4 +1,4 @@
-export type LocalNotificationKind = 'ticket_reply' | 'price_drop';
+export type LocalNotificationKind = 'ticket_reply';
 
 export interface LocalNotification {
   id: string;
@@ -20,10 +20,9 @@ export function readLocalNotifications(): LocalNotification[] {
           (row): row is LocalNotification =>
             Boolean(row) &&
             typeof (row as LocalNotification).id === 'string' &&
-            // Bookmark confirmations from older builds are purged on read: the
-            // bell is reserved for sold/price-drop, replies and booking news.
-            ((row as LocalNotification).kind === 'ticket_reply' ||
-              (row as LocalNotification).kind === 'price_drop'),
+            // Older bookmark/price-drop rows are purged on read: price drops
+            // now come from the server event history, and bookmarking is silent.
+            (row as LocalNotification).kind === 'ticket_reply',
         )
       : [];
   } catch {

@@ -66,7 +66,7 @@ export function InspectionOffer({
         <button
           type="button"
           onClick={() => setOpen(true)}
-          className="mt-4 inline-flex w-full items-center justify-center gap-2 rounded-[var(--radius-pill)] bg-[#111144] px-4 py-2.5 text-sm font-extrabold text-white transition hover:bg-[#1b1b5c] sm:w-auto"
+          className="mt-4 inline-flex min-h-10 w-full items-center justify-center gap-2 rounded-[var(--radius-pill)] bg-[#111144] px-4 py-2.5 text-sm font-extrabold text-white transition hover:bg-[#1b1b5c] sm:w-auto"
         >
           {t(
             'رزرو نوبت کارشناسی با آفر ویژه',

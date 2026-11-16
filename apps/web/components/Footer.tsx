@@ -111,7 +111,7 @@ function FooterAccordion() {
     <div className="divide-y divide-line rounded-card border border-line bg-page">
       {SECTIONS.map((section) => (
         <details key={section.title} className="group px-3 py-2.5">
-          <summary className="flex cursor-pointer list-none items-center justify-between gap-2 text-sm font-extrabold text-ink [&::-webkit-details-marker]:hidden">
+          <summary className="flex min-h-10 cursor-pointer list-none items-center justify-between gap-2 text-sm font-extrabold text-ink [&::-webkit-details-marker]:hidden">
             {t(section.title, section.en)}
             <span aria-hidden className="text-faint transition group-open:rotate-180">
               ⌄
@@ -122,7 +122,7 @@ function FooterAccordion() {
               <li key={link.href}>
                 <Link
                   href={link.href}
-                  className="block text-sm font-semibold text-muted transition hover:text-ink"
+                  className="flex min-h-10 items-center text-sm font-semibold text-muted transition hover:text-ink"
                 >
                   {t(link.label, link.en)}
                 </Link>
@@ -138,7 +138,7 @@ function FooterAccordion() {
 export function SiteFooter() {
   const { t } = useI18n();
   return (
-    <footer className="site-footer mt-12 border-t border-line bg-card pb-20 sm:pb-0">
+    <footer className="site-footer mt-12 border-t border-line bg-card pb-28 sm:pb-0">
       <div className="mx-auto w-full max-w-[var(--content-max)] px-4 py-8 sm:px-6 sm:py-10">
         {/* Phone: compact identity + accordion */}
         <div className="sm:hidden">
@@ -182,7 +182,7 @@ export function SiteFooter() {
             rel="noopener noreferrer"
             aria-label="Created by Miva Tech — opens in a new tab"
             dir="ltr"
-            className="shrink-0 rounded-[var(--radius-pill)] border border-line bg-page px-3 py-1 text-xs font-semibold tracking-wide text-muted transition hover:border-[#F98513]/60 hover:text-ink hover:shadow-[0_0_0_3px_rgba(249,133,19,0.12)]"
+            className="inline-flex min-h-10 shrink-0 items-center rounded-[var(--radius-pill)] border border-line bg-page px-3 py-1 text-xs font-semibold tracking-wide text-muted transition hover:border-[#F98513]/60 hover:text-ink hover:shadow-[0_0_0_3px_rgba(249,133,19,0.12)]"
           >
             Created by <span className="font-extrabold text-cta">Miva Tech</span>
           </a>

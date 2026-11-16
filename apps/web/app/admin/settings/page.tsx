@@ -31,7 +31,7 @@ export default async function AdminSettingsPage() {
         </div>
         <Link
           href="/admin"
-          className="inline-flex items-center gap-1.5 text-sm font-bold text-muted transition hover:text-ink"
+          className="inline-flex min-h-10 items-center gap-1.5 text-sm font-bold text-muted transition hover:text-ink"
         >
           <Icon name="arrowLeft" size={16} />
           پنل مدیریت

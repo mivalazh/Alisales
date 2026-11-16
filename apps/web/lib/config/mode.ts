@@ -13,8 +13,9 @@ import { nodeFs } from '../storage/node-fs';
  *     always strict and answers 503 instead of serving fixture data. On a
  *     runtime with no filesystem (Workers) the development store is isolate
  *     memory; see `lib/storage/demo-store.ts`.
- *  2. Whether demo affordances are allowed. Demo OTP is development-only; a
- *     production build never prints, echoes or accepts a demo code.
+ *  2. Whether demo affordances are allowed. When no SMS provider is configured,
+ *     instant OTP stays available even in production so sign-in never blocks
+ *     the launch. Configuring an SMS provider turns the demo path off.
  *
  * `REQUIRE_HOSTED_SERVICES=true` remains available to force strict mode in a
  * non-production environment, but it is no longer required for production.
@@ -79,36 +80,18 @@ export function fixtureMode(): boolean {
 }
 
 /**
- * Demo OTP mode: there is no real data store and no SMS provider, so login
- * codes are printed to the server console instead of being sent.
- *
- * Deliberately requires BOTH: a hosted deployment without SMS stays 503 (that
- * combination means real users and no delivery channel), and an SMS-configured
- * deployment always sends for real.
+ * Instant OTP mode: no SMS provider is configured, so the code is issued to the
+ * browser (signed cookie + response) instead of a handset. This intentionally
+ * works in production too: a missing SMS key must not lock every account out.
+ * As soon as an SMS provider is configured, real delivery takes over.
  */
 export function demoAuthMode(): boolean {
-  // Demo auth is a development affordance only. A production build must always
-  // use a real SMS code, even if someone accidentally leaves a fixture flag on.
-  if (process.env.NODE_ENV === 'production') return false;
-  return fixtureMode() && !smsConfigured();
+  return !smsConfigured();
 }
 
-/** Workers runtime (Cloudflare / wrangler dev / a Sites preview). */
-function onWorkersRuntime(): boolean {
-  const g = globalThis as { WebSocketPair?: unknown; navigator?: { userAgent?: string } };
-  return typeof g.WebSocketPair === 'function' || g.navigator?.userAgent === 'Cloudflare-Workers';
-}
-
-/**
- * Public, documented demo switch. When on in a development fixture session,
- * the OTP step also shows the code that was written to the server log.
- *
- * Production never reaches this branch: `demoAuthMode()` is false there, so a
- * missing SMS provider returns 503 rather than leaking a code.
- */
+/** Show the instant code exactly when SMS delivery is not configured. */
 export function demoOtpHintEnabled(): boolean {
-  if (!demoAuthMode()) return false;
-  return flagOn(process.env.NEXT_PUBLIC_DEMO_OTP_HINT) || onWorkersRuntime();
+  return demoAuthMode();
 }
 
 const PRIMARY_DIR = join(process.cwd(), '.dev-data');

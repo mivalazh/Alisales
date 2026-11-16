@@ -67,7 +67,7 @@ export function ReportListingButton({ listingId }: { listingId: string }) {
           setError(null);
         }}
         aria-expanded={open}
-        className="w-full rounded-[var(--radius-pill)] border border-line px-3 py-1.5 text-xs font-bold text-muted transition hover:border-line-strong hover:text-ink"
+        className="min-h-10 w-full rounded-[var(--radius-pill)] border border-line px-3 py-1.5 text-xs font-bold text-muted transition hover:border-line-strong hover:text-ink"
       >
         {t('گزارش آگهی', 'Report listing')}
       </button>

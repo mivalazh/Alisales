@@ -46,7 +46,7 @@ export default async function CarsPage({
         <h1 className="text-xl font-extrabold sm:text-2xl">{t('خودروها', 'Vehicles')}</h1>
         <Link
           href="/parts"
-          className="text-sm font-bold text-muted transition hover:text-ink"
+          className="inline-flex min-h-10 items-center text-sm font-bold text-muted transition hover:text-ink"
         >
           {t('قطعات و لوازم یدکی')}
         </Link>

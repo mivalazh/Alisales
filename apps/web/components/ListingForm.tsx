@@ -551,7 +551,7 @@ function InspectionSheetField({
               href={value}
               target="_blank"
               rel="noreferrer"
-              className="text-xs font-bold text-cta underline"
+              className="inline-flex min-h-10 items-center text-xs font-bold text-cta underline"
             >
               {t('مشاهده برگه', 'View sheet')}
             </a>

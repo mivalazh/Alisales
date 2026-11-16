@@ -1,7 +1,7 @@
 import { NextResponse } from 'next/server';
 import { safeNextPath } from '@alisales/schemas';
 import { createSessionToken, setSessionCookie } from '@/lib/auth/session';
-import { demoAuthMode } from '@/lib/config/mode';
+import { demoAuthMode, fixtureMode } from '@/lib/config/mode';
 import { createUser, findUserByPhone } from '@/lib/data/s2-store';
 
 /**
@@ -24,7 +24,9 @@ export async function GET(request: Request): Promise<NextResponse> {
   const url = new URL(request.url);
   const next = safeNextPath(url.searchParams.get('next'), '/new');
 
-  if (!demoAuthMode()) {
+  // Only the credential-free fixture deployment may auto-provision this seller;
+  // a hosted production installation must go through instant OTP instead.
+  if (!demoAuthMode() || !fixtureMode()) {
     return NextResponse.json({ error: 'not available' }, { status: 404 });
   }
 

@@ -338,79 +338,102 @@ function soldLastThenRecency(a: ListingCardData, b: ListingCardData): number {
  * implementation the mobile app uses, RLS-checked). Without them the seeded
  * local fixtures are served so the UI is fully reviewable offline.
  */
+async function fixtureSearchListings(
+  filters: SearchFilters,
+  category?: VehicleCategory,
+): Promise<ListingCardData[]> {
+  const overlay = moderationOverlay();
+  // The seller's own just-published cards ride in a signed cookie so they are
+  // visible even when the demo store lives in another Workers isolate.
+  const mine = await readMyListings();
+  const local = applyModeration(
+    applyListingOverrides(mergeMyListings(mine, visibleCatalog(fixtureListings, devListings()))),
+    {
+      hidden: overlay.hidden,
+      verifiedSellers: overlay.verifiedSellers,
+    },
+  );
+  return applyFiltersLocally(local, filters, category);
+}
+
 export async function searchListings(
   filters: SearchFilters = DEFAULT_FILTERS,
   category?: VehicleCategory,
 ): Promise<ListingCardData[]> {
   const effective = launchFilters(filters);
   const supabase = supabaseClient();
-  if (!supabase) {
-    const overlay = moderationOverlay();
-    // The seller's own just-published cards ride in a signed cookie so they are
-    // visible even when the demo store lives in another Workers isolate.
-    const mine = await readMyListings();
-    const local = applyModeration(
-      applyListingOverrides(mergeMyListings(mine, visibleCatalog(fixtureListings, devListings()))),
-      {
-        hidden: overlay.hidden,
-        verifiedSellers: overlay.verifiedSellers,
-      },
-    );
-    return applyFiltersLocally(local, filters, category);
-  }
+  if (!supabase) return fixtureSearchListings(filters, category);
 
-  const { data, error } = await supabase.rpc('search_listings', {
-    p_filters: filtersToRpcPayload(effective),
-    p_limit: 48,
-    p_offset: 0,
-  });
-  if (error) throw new Error(`search_listings RPC failed: ${error.message}`);
-  // The hosted view has no category column yet, so every vehicle row reads as a
-  // car; keeping the narrowing here means the three category pages share one
-  // code path online and offline.
-  return rankSearch(
-    (data as unknown as ListingCardRow[]).map(mapRow).filter((l) => inBrowseCategory(l, category)),
-    filters.q,
-  );
+  try {
+    const { data, error } = await supabase.rpc('search_listings', {
+      p_filters: filtersToRpcPayload(effective),
+      p_limit: 48,
+      p_offset: 0,
+    });
+    if (error) throw new Error(error.message);
+    const rows = ((data ?? []) as unknown as ListingCardRow[])
+      .map(mapRow)
+      .filter((l) => inBrowseCategory(l, category));
+    // An empty hosted catalogue must still render a useful marketplace.
+    if (rows.length === 0 && category === undefined && filters === DEFAULT_FILTERS) {
+      return fixtureSearchListings(filters, category);
+    }
+    // The hosted view has no category column yet, so every vehicle row reads as a
+    // car; keeping the narrowing here means the three category pages share one
+    // code path online and offline.
+    return rankSearch(rows, filters.q);
+  } catch (error) {
+    // Missing table/column, PostgREST or RLS failure: keep the public catalogue
+    // alive with the seeded/signed-cookie rows instead of throwing to error.tsx.
+    console.warn('[alisales] catalog read fell back to local rows:', error);
+    return fixtureSearchListings(filters, category);
+  }
 }
 
 /**
  * Listing detail by slug — null when missing or not public (the view's RLS
  * enforces visibility, so sold shows and drafts/hidden 404 honestly).
  */
+async function fixtureListing(slug: string): Promise<ListingDetailData | null> {
+  const mine = await readMyListings();
+  const all = mergeMyListings(mine, visibleCatalog(fixtureListings, devListings()));
+  const found = applyListingOverrides(all).find((l) => l.slug === slug);
+  // Owner-removed listings are gone from the public site, not just the grid.
+  if (!found || found.state === 'rejected') return null;
+  // Fixture sellers do write descriptions; the detail page shows them like
+  // any other listing (empty only when the seller truly left it blank).
+  return { ...found, description: found.description ?? null, photos: found.photos ?? [] };
+}
+
 export async function getListing(slug: string): Promise<ListingDetailData | null> {
   const supabase = supabaseClient();
-  if (!supabase) {
-    const mine = await readMyListings();
-    const all = mergeMyListings(mine, visibleCatalog(fixtureListings, devListings()));
-    const found = applyListingOverrides(all).find((l) => l.slug === slug);
-    // Owner-removed listings are gone from the public site, not just the grid.
-    if (!found || found.state === 'rejected') return null;
-    // Fixture sellers do write descriptions; the detail page shows them like
-    // any other listing (empty only when the seller truly left it blank).
-    return { ...found, description: found.description ?? null, photos: found.photos ?? [] };
+  if (!supabase) return fixtureListing(slug);
+
+  try {
+    const { data, error } = await supabase
+      .from('listing_cards')
+      .select('*')
+      .eq('slug', slug)
+      .maybeSingle();
+    if (error) throw new Error(error.message);
+    if (!data) return fixtureListing(slug);
+
+    // Gallery rows live in listing_photos (RLS: readable whenever the listing is);
+    // ordered by position so position 0 stays the cover.
+    const { data: photoRows } = await supabase
+      .from('listing_photos')
+      .select('storage_path')
+      .eq('listing_id', (data as { id: string }).id)
+      .order('position', { ascending: true });
+    const photos = ((photoRows ?? []) as Array<{ storage_path: string }>)
+      .map((row) => publicPhotoUrl(row.storage_path))
+      .filter((url): url is string => Boolean(url));
+
+    return { ...mapRow(data as unknown as ListingCardRow), photos };
+  } catch (error) {
+    console.warn('[alisales] listing detail fell back to local rows:', error);
+    return fixtureListing(slug);
   }
-
-  const { data, error } = await supabase
-    .from('listing_cards')
-    .select('*')
-    .eq('slug', slug)
-    .maybeSingle();
-  if (error) throw new Error(`listing_cards query failed: ${error.message}`);
-  if (!data) return null;
-
-  // Gallery rows live in listing_photos (RLS: readable whenever the listing is);
-  // ordered by position so position 0 stays the cover.
-  const { data: photoRows } = await supabase
-    .from('listing_photos')
-    .select('storage_path')
-    .eq('listing_id', (data as { id: string }).id)
-    .order('position', { ascending: true });
-  const photos = ((photoRows ?? []) as Array<{ storage_path: string }>)
-    .map((row) => publicPhotoUrl(row.storage_path))
-    .filter((url): url is string => Boolean(url));
-
-  return { ...mapRow(data as unknown as ListingCardRow), photos };
 }
 
 /** Owner-visible photo metadata (edit form prefill: paths, order, sizes). */

@@ -183,14 +183,24 @@ export async function listStories(
       .sort((a, b) => b.createdAt.localeCompare(a.createdAt))
       .slice(0, 200);
   }
-  let query = sb
-    .from('story_submissions')
-    .select(STORY_COLUMNS)
-    .order('created_at', { ascending: false })
-    .limit(200);
-  if (status) query = query.eq('status', status);
-  const { data } = await query;
-  return ((data ?? []) as StoryRow[]).map(mapStory);
+  try {
+    let query = sb
+      .from('story_submissions')
+      .select(STORY_COLUMNS)
+      .order('created_at', { ascending: false })
+      .limit(200);
+    if (status) query = query.eq('status', status);
+    const { data, error } = await query;
+    if (error) throw new Error(error.message);
+    return ((data ?? []) as StoryRow[]).map(mapStory);
+  } catch (error) {
+    // Missing story table/column must not blank the catalogue or crash the page.
+    console.warn('[alisales] story store unavailable; using local stories:', error);
+    const all = read().stories;
+    return (status ? all.filter((s) => s.status === status) : all)
+      .sort((a, b) => b.createdAt.localeCompare(a.createdAt))
+      .slice(0, 200);
+  }
 }
 
 export async function addStory(
@@ -364,23 +374,31 @@ export async function trackFaq(topic: string): Promise<void> {
     write(data);
     return;
   }
-  const { error } = await sb.rpc('increment_faq_topic', { topic_name: topic });
-  if (error) throw new Error(`track faq failed: ${error.message}`);
+  try {
+    const { error } = await sb.rpc('increment_faq_topic', { topic_name: topic });
+    if (error) console.warn('[alisales] faq counter unavailable:', error.message);
+  } catch (error) {
+    console.warn('[alisales] faq counter unavailable:', error);
+  }
 }
 
 /** Most-asked analysed topics, seeded so the chip bar is useful on day one. */
 export async function topFaqTopics(limit = 5): Promise<string[]> {
   const sb = admin();
-  const counts: Record<string, number> = !sb
-    ? read().faqs
-    : (((await sb.from('ai_faq_counts').select('topic, count')).data ??
-        []) as Array<{ topic: string; count: number }>).reduce<Record<string, number>>(
-        (acc, row) => {
-          acc[row.topic] = Number(row.count);
-          return acc;
-        },
-        {},
-      );
+  let counts: Record<string, number> = read().faqs;
+  if (sb) {
+    try {
+      const { data } = await sb.from('ai_faq_counts').select('topic, count');
+      counts = ((data ?? []) as Array<{ topic: string; count: number }>).reduce<
+        Record<string, number>
+      >((acc, row) => {
+        acc[row.topic] = Number(row.count);
+        return acc;
+      }, {});
+    } catch {
+      counts = read().faqs;
+    }
+  }
   return Object.entries({ ...SEEDED_FAQ, ...counts })
     .sort((a, b) => b[1] - a[1])
     .slice(0, limit)

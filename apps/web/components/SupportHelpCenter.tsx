@@ -56,20 +56,9 @@ export function SupportHelpCenter() {
 
   return (
     <section className="space-y-4">
-      <div className="flex flex-wrap items-end justify-between gap-2">
-        <div>
-          <p className="text-[11px] font-extrabold text-cta">{t('مرکز راهنما', 'Help center')}</p>
-          <h2 className="mt-1 text-lg font-extrabold text-ink sm:text-xl">
-            {t('راهنمای کاربردی', 'Practical guides')}
-          </h2>
-        </div>
-        <p className="max-w-sm text-xs leading-6 text-muted">
-          {t(
-            'پاسخ‌های ضروری برای خرید، فروش و استفاده از سایت — بدون تکرار.',
-            'The essential answers for buying, selling and using the site — without repetition.',
-          )}
-        </p>
-      </div>
+      <h2 className="text-lg font-extrabold text-ink sm:text-xl">
+        {t('راهنمای کاربردی', 'Practical guides')}
+      </h2>
 
       <div className="grid gap-2.5 sm:grid-cols-2">
         {GUIDES.map((guide) => (

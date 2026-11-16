@@ -105,7 +105,7 @@ export function TicketHistoryModal() {
     <button
       type="button"
       onClick={() => setOpen(true)}
-      className="bg-[#0F7FC4] hover:bg-[#0d6ead] text-white font-bold rounded-xl px-3.5 py-2 text-xs sm:text-sm shadow-xs"
+      className="inline-flex min-h-10 items-center justify-center rounded-xl bg-[#0F7FC4] px-3.5 py-2 text-xs font-bold text-white shadow-xs hover:bg-[#0d6ead] sm:text-sm"
     >
       {t('مشاهده تیکت‌ها و پاسخ پشتیبانی', 'View my tickets & support replies')}
     </button>

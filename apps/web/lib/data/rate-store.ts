@@ -70,10 +70,16 @@ function normalize(raw: Partial<AedRate> | undefined): AedRate | null {
 export async function getAedRate(): Promise<AedRate> {
   if (cached && Date.now() - cached.at < CACHE_MS) return cached.value;
 
-  const stored = normalize(readSettings().rate);
-  const value = stored ?? (await autoRate()) ?? DEFAULT_AED_RATE;
-  cached = { value, at: Date.now() };
-  return value;
+  try {
+    const stored = normalize(readSettings().rate);
+    const value = stored ?? (await autoRate()) ?? DEFAULT_AED_RATE;
+    cached = { value, at: Date.now() };
+    return value;
+  } catch (error) {
+    console.warn('[alisales] AED rate unavailable; using default:', error);
+    cached = { value: DEFAULT_AED_RATE, at: Date.now() };
+    return DEFAULT_AED_RATE;
+  }
 }
 
 /** Admin-saved Toman-per-AED value (stored as rial). */

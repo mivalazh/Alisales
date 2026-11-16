@@ -62,7 +62,7 @@ export default async function MyListingsPage({
             key={item.key}
             href={`/profile/listings?tab=${item.key}`}
             aria-current={activeTab === item.key ? 'page' : undefined}
-            className={`rounded-[var(--radius-pill)] border px-3 py-1.5 text-sm font-bold transition ${
+            className={`inline-flex min-h-10 items-center rounded-[var(--radius-pill)] border px-3 py-1.5 text-sm font-bold transition ${
               activeTab === item.key
                 ? 'border-cta bg-cta-soft text-ink'
                 : 'border-line bg-card text-muted hover:border-line-strong'

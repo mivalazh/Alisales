@@ -6,6 +6,7 @@ import { forgetMyListing } from '@/lib/data/my-listings-cookie';
 import { updateHostedListing, type ListingPatch } from '@/lib/data/publish-store';
 import { isOwnedPhotoPath } from '@/lib/data/photo-rules';
 import { removeDevListing, updateDevListing } from '@/lib/data/dev-store';
+import { recordListingEvent } from '@/lib/data/notification-store';
 
 /**
  * PATCH /api/listings/{id} — edit a listing (owner only).
@@ -97,6 +98,11 @@ export async function PATCH(
         .map((photo) => `/api/photos/${photo.path}`)
     : existing.photos;
 
+  const priceDropped =
+    patch.priceIRR !== undefined &&
+    existing.priceIRR > 0 &&
+    patch.priceIRR < existing.priceIRR;
+
   updateDevListing(id, {
     ...(patch.priceIRR !== undefined ? { priceIRR: patch.priceIRR } : {}),
     ...(patch.description !== undefined ? { description: patch.description } : {}),
@@ -109,6 +115,15 @@ export async function PATCH(
       ? { photos: nextPhotos, ...(nextPhotos.length > 0 ? { coverUrl: nextPhotos[0] } : {}) }
       : {}),
   });
+
+  if (priceDropped && patch.priceIRR !== undefined) {
+    await recordListingEvent({
+      listingId: id,
+      kind: 'price_drop',
+      previousPriceIRR: existing.priceIRR,
+      priceIRR: patch.priceIRR,
+    });
+  }
 
   return NextResponse.json({ ok: true });
 }

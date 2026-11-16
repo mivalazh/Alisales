@@ -86,11 +86,17 @@ export function LoginForm() {
       if (status === 202) {
         setStep('code');
         setNeedsProfile(Boolean(data.needsProfile));
-        const hint = typeof data.demoCode === 'string' ? data.demoCode : null;
+        const hint =
+          typeof data.devCode === 'string'
+            ? data.devCode
+            : typeof data.demoCode === 'string'
+              ? data.demoCode
+              : null;
         setDemoCode(hint);
+        if (hint) setCode(hint);
         setNotice(
           hint
-            ? t('کد ورود دمو ساخته شد.', 'Demo sign-in code created.')
+            ? t('کد ورود آزمایشی آماده است.', 'Test sign-in code ready.')
             : t('کد تأیید ارسال شد.', 'Verification code sent.'),
         );
         setWait(60);
@@ -195,7 +201,7 @@ export function LoginForm() {
               setStep('phone');
               setDemoCode(null);
             }}
-            className={`rounded-field px-3 py-2 text-sm font-extrabold transition ${
+            className={`min-h-10 rounded-field px-3 py-2 text-sm font-extrabold transition ${
               mode === tab.key ? 'bg-cta-soft text-ink' : 'text-muted hover:text-ink'
             }`}
           >
@@ -259,7 +265,7 @@ export function LoginForm() {
 
           <Link
             href="/profile/settings"
-            className="block text-center text-xs font-bold text-muted underline"
+            className="flex min-h-10 items-center justify-center text-center text-xs font-bold text-muted underline"
           >
             {t('تعیین یا تغییر رمز عبور', 'Set or change password')}
           </Link>
@@ -328,10 +334,7 @@ export function LoginForm() {
               role="status"
               className="rounded-field border border-dashed border-cta bg-cta-soft px-3 py-2 text-xs leading-6 font-bold text-ink"
             >
-              {t(
-                'حالت دمو — پیامک واقعی ارسال نمی‌شود. کد ورود:',
-                'Demo mode — no real SMS is sent. Sign-in code:',
-              )}{' '}
+              {t('کد ورود آزمایشی:', 'Test sign-in code:')}{' '}
               <span dir="ltr" className="tracking-[0.3em]">
                 {demoCode}
               </span>
@@ -422,7 +425,7 @@ export function LoginForm() {
             type="button"
             onClick={() => void requestCode()}
             disabled={busy || wait > 0}
-            className="w-full text-center text-xs font-bold text-muted disabled:opacity-60"
+            className="flex min-h-10 w-full items-center justify-center text-center text-xs font-bold text-muted disabled:opacity-60"
           >
             {wait > 0
               ? t(
@@ -441,7 +444,7 @@ export function LoginForm() {
               setError(null);
               setNotice(null);
             }}
-            className="w-full text-center text-xs font-bold text-faint"
+            className="flex min-h-10 w-full items-center justify-center text-center text-xs font-bold text-faint"
           >
             {t('تغییر شماره موبایل', 'Change mobile number')}
           </button>

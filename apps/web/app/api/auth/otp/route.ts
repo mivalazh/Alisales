@@ -16,12 +16,10 @@ import { rateLimit } from '@/lib/security/rate-limit';
  * not configured (hosted/strict deployment without SMS credentials, or missing
  * AUTH_SECRET).
  *
- * Without an SMS provider the code is NEVER in the body: in development — and
- * on a fixture/demo deployment (no Supabase credentials) — it is printed to
- * the server console only (C4). The single exception is the explicit public
- * `NEXT_PUBLIC_DEMO_OTP_HINT=true` preview switch, which adds `demoCode` so the
- * owner can sign in on a preview link; it is off by default and refused
- * whenever the deployment has hosted data or an SMS provider.
+ * Without an SMS provider the six-digit code is returned as `devCode` (and the
+ * legacy `demoCode` alias), stored in a signed HTTP-only cookie, and printed to
+ * the server log. This works in production too so a missing SMS key never
+ * blocks sign-in. With an SMS provider configured no code is returned.
  */
 export async function POST(request: Request): Promise<NextResponse> {
   const limited = rateLimit({
@@ -96,11 +94,14 @@ export async function POST(request: Request): Promise<NextResponse> {
     console.info(`[alisales][otp] login code for ${phone}: ${code}`);
   }
 
-  const body: { ok: true; needsProfile: boolean; demoCode?: string } = {
+  const body: { ok: true; needsProfile: boolean; devCode?: string; demoCode?: string } = {
     ok: true,
     needsProfile: !existing,
   };
-  if (!delivery.delivered && demoOtpHintEnabled()) body.demoCode = code;
+  if (!delivery.delivered && demoOtpHintEnabled()) {
+    body.devCode = code;
+    body.demoCode = code;
+  }
 
   // Demo auth: hand the code to this browser too, so the verify request still
   // works when a different isolate (no shared memory) serves it.

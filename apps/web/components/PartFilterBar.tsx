@@ -52,7 +52,7 @@ function Chip({
       type="button"
       aria-pressed={active}
       onClick={onClick}
-      className={`whitespace-nowrap rounded-[var(--radius-pill)] border px-3 py-1.5 text-xs font-extrabold transition ${
+      className={`inline-flex min-h-10 items-center whitespace-nowrap rounded-[var(--radius-pill)] border px-3 py-1.5 text-xs font-extrabold transition ${
         active
           ? 'border-cta bg-cta-soft text-ink'
           : 'border-line bg-card text-muted hover:border-line-strong hover:text-ink'
@@ -177,7 +177,7 @@ export function PartFilterBar({
                     setParam('compat', null);
                     setCompatOpen(false);
                   }}
-                  className="text-[11px] font-bold text-muted underline"
+                  className="inline-flex min-h-10 items-center text-[11px] font-bold text-muted underline"
                 >
                   {t('حذف', 'Remove')}
                 </button>
@@ -205,7 +205,7 @@ export function PartFilterBar({
               const qs = next.toString();
               router.push(qs ? `${basePath}?${qs}` : basePath);
             }}
-            className="ms-auto text-[11px] font-bold text-muted underline"
+            className="ms-auto inline-flex min-h-10 items-center text-[11px] font-bold text-muted underline"
           >
             {t('پاک کردن فیلترها', 'Clear filters')}
           </button>

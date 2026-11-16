@@ -3,6 +3,7 @@ import { canTransition, listingStateChangeSchema, type ListingState } from '@ali
 import { getSession } from '@/lib/auth/session';
 import { admin, listingById } from '@/lib/data/s2-store';
 import { updateDevListing } from '@/lib/data/dev-store';
+import { recordListingEvent } from '@/lib/data/notification-store';
 
 /**
  * POST /api/listings/{id}/state — owner lifecycle actions.
@@ -55,10 +56,10 @@ export async function POST(
         { status: 400 },
       );
     }
-    const fields: Record<string, unknown> =
-      next === 'sold'
-        ? { state: 'sold', sold_at: new Date().toISOString() }
-        : { state: next };
+    const soldAt = next === 'sold' ? new Date().toISOString() : null;
+    const fields: Record<string, unknown> = soldAt
+      ? { state: 'sold', sold_at: soldAt }
+      : { state: next };
     const updated = await sb.from('listings').update(fields).eq('id', id);
     if (updated.error) {
       return NextResponse.json(
@@ -66,6 +67,7 @@ export async function POST(
         { status: 500 },
       );
     }
+    // Hosted mode records the sold event atomically in the database trigger.
     return NextResponse.json({ ok: true, state: next });
   }
 
@@ -78,5 +80,8 @@ export async function POST(
     return NextResponse.json({ error: 'این تغییر وضعیت برای آگهی مجاز نیست.' }, { status: 400 });
   }
   updateDevListing(id, { state: next });
+  if (next === 'sold') {
+    await recordListingEvent({ listingId: id, kind: 'sold' });
+  }
   return NextResponse.json({ ok: true, state: next });
 }

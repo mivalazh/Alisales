@@ -243,7 +243,7 @@ export function FilterChips({
           key={chip.id}
           type="button"
           onClick={() => onChange(chip.clear(filters))}
-          className="flex items-center gap-1.5 rounded-[var(--radius-pill)] border border-line bg-cta-soft px-3 py-1.5 text-xs font-bold text-ink transition hover:border-line-strong"
+          className="flex min-h-10 items-center gap-1.5 rounded-[var(--radius-pill)] border border-line bg-cta-soft px-3 py-1.5 text-xs font-bold text-ink transition hover:border-line-strong"
         >
           {chip.label}
           <Icon name="close" size={14} />
@@ -284,7 +284,7 @@ export function FilterChips({
             q: '',
           })
         }
-        className="text-xs font-bold text-muted underline transition hover:text-ink"
+        className="inline-flex min-h-10 items-center text-xs font-bold text-muted underline transition hover:text-ink"
       >
         {t('حذف همه', 'Clear All')}
       </button>

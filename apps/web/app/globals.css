@@ -250,6 +250,26 @@
 }
 
 /**
+ * Fitts's Law floor for touch layouts.
+ *
+ * Every button, select and text field is at least 40×40 on phones, including
+ * compact icon controls and chips declared with a smaller height. The floor
+ * only enlarges the hit target; colours, order and hierarchy are untouched.
+ * Checkboxes and radios stay at their native size inside a larger label.
+ */
+@media (max-width: 767px) {
+  button {
+    min-width: 40px;
+    min-height: 40px;
+  }
+
+  input:not([type='checkbox']):not([type='radio']),
+  select {
+    min-height: 40px;
+  }
+}
+
+/**
  * Dark theme — the header toggle writes `data-theme` on <html> (and `.dark`,
  * for the class-based convention). Overriding the semantic tokens here is all
  * it takes: every component already reads those through the `@theme` mapping,

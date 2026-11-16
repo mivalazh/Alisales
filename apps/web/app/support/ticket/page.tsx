@@ -29,7 +29,7 @@ export default async function SupportTicketPage({
     <article className="mx-auto max-w-2xl space-y-4">
       <Link
         href="/support"
-        className="inline-flex items-center gap-1.5 text-sm font-bold text-muted transition hover:text-ink"
+        className="inline-flex min-h-10 items-center gap-1.5 text-sm font-bold text-muted transition hover:text-ink"
       >
         <Icon name="arrowLeft" size={18} />
         {t('بازگشت به پشتیبانی', 'Back to support')}

@@ -440,7 +440,7 @@ export default async function ListingDetailPage({
       />
       <Link
         href="/"
-        className="inline-flex items-center gap-1.5 text-sm font-bold text-muted transition hover:text-ink"
+        className="inline-flex min-h-10 items-center gap-1.5 text-sm font-bold text-muted transition hover:text-ink"
       >
         <Icon name="arrowLeft" size={18} />
         {t('بازگشت به آگهی‌ها')}
@@ -562,7 +562,7 @@ export default async function ListingDetailPage({
             {sellerIsBusiness && (
               <Link
                 href={`/seller/${listing.sellerId}`}
-                className="mt-2 inline-flex items-center gap-1 text-xs font-bold text-muted underline transition hover:text-ink"
+                className="mt-2 inline-flex min-h-10 items-center gap-1 text-xs font-bold text-muted underline transition hover:text-ink"
               >
                 <Icon name="user" size={14} />
                 {t('مشاهده‌ی پروفایل فروشنده', 'View seller profile')}

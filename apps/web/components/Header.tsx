@@ -56,7 +56,7 @@ function DrawerLink({
       <Link
         href={href}
         aria-current={active ? 'page' : undefined}
-        className={`flex items-center gap-3 rounded-field px-3 py-2.5 text-sm transition hover:bg-cta-soft ${
+        className={`flex min-h-10 items-center gap-3 rounded-field px-3 py-2.5 text-sm transition hover:bg-cta-soft ${
           active ? 'font-extrabold text-ink' : 'font-semibold text-muted hover:text-ink'
         }`}
       >
@@ -89,7 +89,7 @@ function DrawerAccordion({
     <li>
       <details className="group">
         <summary
-          className={`flex cursor-pointer list-none items-center gap-3 rounded-field px-3 py-2.5 text-sm transition hover:bg-cta-soft ${
+          className={`flex min-h-10 cursor-pointer list-none items-center gap-3 rounded-field px-3 py-2.5 text-sm transition hover:bg-cta-soft ${
             active ? 'font-extrabold text-ink' : 'font-semibold text-muted hover:text-ink'
           }`}
         >
@@ -105,7 +105,7 @@ function DrawerAccordion({
           <li>
             <Link
               href={href}
-              className="flex items-center justify-between rounded-field px-2 py-1.5 text-xs font-bold text-muted transition hover:bg-cta-soft hover:text-ink"
+              className="flex min-h-10 items-center justify-between rounded-field px-2 py-1.5 text-xs font-bold text-muted transition hover:bg-cta-soft hover:text-ink"
             >
               {allLabel}
               <Icon name="chevronLeft" size={12} className="text-faint" />
@@ -115,7 +115,7 @@ function DrawerAccordion({
             <li key={link.href}>
               <Link
                 href={link.href}
-                className="flex items-center justify-between rounded-field px-2 py-1.5 text-xs font-semibold text-muted transition hover:bg-cta-soft hover:text-ink"
+                className="flex min-h-10 items-center justify-between rounded-field px-2 py-1.5 text-xs font-semibold text-muted transition hover:bg-cta-soft hover:text-ink"
               >
                 {link.label}
                 <Icon name="chevronLeft" size={12} className="text-faint" />
@@ -208,7 +208,7 @@ export function Header({
             <Link
               href="/"
               aria-label="Ali Sales — صفحه اصلی"
-              className="flex h-9 shrink-0 items-center overflow-hidden [&>svg]:h-9 [&>svg]:w-auto"
+              className="flex min-h-10 shrink-0 items-center overflow-hidden [&>svg]:h-9 [&>svg]:w-auto"
               dangerouslySetInnerHTML={{ __html: logoSvgDocument(LOCKUP, 'Ali Sales') }}
             />
           </div>

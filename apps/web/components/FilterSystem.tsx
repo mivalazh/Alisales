@@ -77,7 +77,7 @@ function Group({
 }) {
   return (
     <details open={open} className="group border-b border-line py-2 last:border-b-0">
-      <summary className="flex cursor-pointer list-none items-center justify-between gap-2 py-1 text-sm font-extrabold text-ink">
+      <summary className="flex min-h-10 cursor-pointer list-none items-center justify-between gap-2 py-1 text-sm font-extrabold text-ink">
         {title}
         <Icon
           name="chevronDown"
@@ -102,7 +102,7 @@ function CheckOption({
   onToggle: () => void;
 }) {
   return (
-    <label className="flex cursor-pointer items-center gap-2 rounded-field py-1 text-sm font-semibold text-muted transition hover:text-ink">
+    <label className="flex min-h-10 cursor-pointer items-center gap-2 rounded-field py-1 text-sm font-semibold text-muted transition hover:text-ink">
       <input
         type="checkbox"
         checked={checked}
@@ -190,7 +190,7 @@ function YearGrid({
         onClick={() => setOpen((v) => !v)}
         aria-expanded={open}
         aria-haspopup="dialog"
-        className={`flex w-full items-center justify-between gap-2 rounded-field border px-3 py-2 text-xs font-bold transition ${
+        className={`flex min-h-10 w-full items-center justify-between gap-2 rounded-field border px-3 py-2 text-xs font-bold transition ${
           active
             ? 'border-cta bg-cta-soft text-ink'
             : 'border-line bg-card text-muted hover:border-line-strong hover:text-ink'
@@ -218,7 +218,7 @@ function YearGrid({
               type="button"
               onClick={() => setActiveBound('from')}
               aria-pressed={activeBound === 'from'}
-              className={`min-w-0 flex-1 rounded-field border px-2 py-1.5 text-start transition ${
+              className={`min-h-10 min-w-0 flex-1 rounded-field border px-2 py-1.5 text-start transition ${
                 activeBound === 'from'
                   ? 'border-[#F98513]/50 bg-[#F98513]/10 text-ink'
                   : 'border-line bg-page text-muted hover:border-line-strong'
@@ -235,7 +235,7 @@ function YearGrid({
               type="button"
               onClick={() => setActiveBound('to')}
               aria-pressed={activeBound === 'to'}
-              className={`min-w-0 flex-1 rounded-field border px-2 py-1.5 text-start transition ${
+              className={`min-h-10 min-w-0 flex-1 rounded-field border px-2 py-1.5 text-start transition ${
                 activeBound === 'to'
                   ? 'border-[#F98513]/50 bg-[#F98513]/10 text-ink'
                   : 'border-line bg-page text-muted hover:border-line-strong'
@@ -250,7 +250,7 @@ function YearGrid({
               <button
                 type="button"
                 onClick={reset}
-                className="shrink-0 px-1 text-[10px] font-bold text-cta underline"
+                className="inline-flex min-h-10 shrink-0 items-center px-2 text-[10px] font-bold text-cta underline"
               >
                 {t('پاک کردن', 'Clear')}
               </button>
@@ -272,7 +272,7 @@ function YearGrid({
                   type="button"
                   onClick={() => pick(year)}
                   aria-pressed={isFrom || isTo}
-                  className={`rounded-field border py-1.5 text-xs font-extrabold tabular-nums transition ${
+                  className={`min-h-10 rounded-field border py-1.5 text-xs font-extrabold tabular-nums transition ${
                     isFrom || isTo
                       ? 'border-[#F98513] bg-[#F98513] text-white'
                       : between
@@ -313,7 +313,7 @@ function RangePair({
       <p className="mb-1 text-[11px] font-bold text-faint">{label}</p>
       <div className="grid grid-cols-2 gap-2">
         <input
-          className="field h-9 text-xs"
+          className="field text-xs"
           inputMode="numeric"
           value={from ?? ''}
           onChange={(e) => onFrom(intOrUndefined(e.target.value))}
@@ -321,7 +321,7 @@ function RangePair({
           aria-label={`${label} از`}
         />
         <input
-          className="field h-9 text-xs"
+          className="field text-xs"
           inputMode="numeric"
           value={to ?? ''}
           onChange={(e) => onTo(intOrUndefined(e.target.value))}
@@ -365,7 +365,7 @@ function BrandModelPicker({
         </p>
       )}
       <input
-        className="field h-9 text-xs"
+        className="field text-xs"
         value={value}
         onChange={(e) => onChange(e.target.value)}
         placeholder={t('یا نام مدل را بنویسید…', 'Or type the model name...')}
@@ -405,7 +405,7 @@ export function FilterGroups({
       <Group title={t('قیمت (تومان)', 'Price (Toman)')} open>
         <div className="grid grid-cols-2 gap-2">
           <input
-            className="field h-9 text-xs"
+            className="field text-xs"
             inputMode="numeric"
             value={filters.priceFrom !== undefined ? irrToToman(filters.priceFrom) : ''}
             onChange={(e) => {
@@ -416,7 +416,7 @@ export function FilterGroups({
             aria-label={t('قیمت از', 'Price from')}
           />
           <input
-            className="field h-9 text-xs"
+            className="field text-xs"
             inputMode="numeric"
             value={filters.priceTo !== undefined ? irrToToman(filters.priceTo) : ''}
             onChange={(e) => {
@@ -443,7 +443,7 @@ export function FilterGroups({
       <Group title={t('کارکرد (کیلومتر)', 'Mileage (km)')} open>
         <div className="grid grid-cols-2 gap-2">
           <input
-            className="field h-9 text-xs"
+            className="field text-xs"
             inputMode="numeric"
             value={filters.mileageMin !== undefined ? filters.mileageMin.toLocaleString('en-US') : ''}
             onChange={(e) => set({ mileageMin: intOrUndefined(e.target.value) })}
@@ -451,7 +451,7 @@ export function FilterGroups({
             aria-label={t('کارکرد از', 'Mileage from')}
           />
           <input
-            className="field h-9 text-xs"
+            className="field text-xs"
             inputMode="numeric"
             value={filters.mileageMax !== undefined ? filters.mileageMax.toLocaleString('en-US') : ''}
             onChange={(e) => set({ mileageMax: intOrUndefined(e.target.value) })}
@@ -482,7 +482,7 @@ export function FilterGroups({
       {category === 'heavy' && (
         <Group title={t('ساعت کارکرد', 'Working hours')} open>
           <input
-            className="field h-9 text-xs"
+            className="field text-xs"
             inputMode="numeric"
             value={filters.workingHoursMax ?? ''}
             onChange={(e) => set({ workingHoursMax: intOrUndefined(e.target.value) })}
@@ -494,7 +494,7 @@ export function FilterGroups({
 
       <Group title={t('برند', 'Brand')} open>
         <input
-          className="field h-9 text-xs"
+          className="field text-xs"
           value={brandQuery}
           onChange={(e) => setBrandQuery(e.target.value)}
           placeholder={t('جستجوی برند…', 'Search brands...')}
@@ -522,7 +522,7 @@ export function FilterGroups({
           <button
             type="button"
             onClick={() => setShowAllBrands((v) => !v)}
-            className="mt-1 text-[11px] font-bold text-cta underline"
+            className="mt-1 inline-flex min-h-10 items-center text-[11px] font-bold text-cta underline"
           >
             {showAllBrands
               ? t('نمایش کمتر', 'Show less')
@@ -755,7 +755,7 @@ export function FilterSidebar({
         <button
           type="button"
           onClick={onClear}
-          className="mt-2 w-full rounded-field border border-line py-2 text-xs font-bold text-muted transition hover:border-line-strong hover:text-ink"
+          className="mt-2 min-h-10 w-full rounded-field border border-line py-2 text-xs font-bold text-muted transition hover:border-line-strong hover:text-ink"
         >
           {t('پاک کردن همه', 'Clear all')}
         </button>
@@ -876,7 +876,7 @@ export function FilterSheet({
               }));
               onClear();
             }}
-            className="text-xs font-bold text-muted underline"
+            className="inline-flex min-h-10 items-center text-xs font-bold text-muted underline"
           >
             {t('پاک کردن همه', 'Clear all')}
           </button>
@@ -936,7 +936,7 @@ export function FilterBar({
       <button
         type="button"
         onClick={onOpen}
-        className="flex shrink-0 items-center gap-1.5 rounded-[var(--radius-pill)] border border-line bg-card px-3 py-2 text-xs font-extrabold text-ink transition hover:border-line-strong"
+        className="flex min-h-10 shrink-0 items-center gap-1.5 rounded-[var(--radius-pill)] border border-line bg-card px-3 py-2 text-xs font-extrabold text-ink transition hover:border-line-strong"
       >
         <Icon name="sliders" size={15} />
         {t('فیلترها', 'Filters')}

@@ -56,7 +56,7 @@ export default async function OwnerStatsPage({
     <div className="space-y-4">
       <div className="flex flex-wrap items-center justify-between gap-2">
         <h1 className="text-xl font-extrabold">{t('آمار آگهی‌ها', 'Listing analytics')}</h1>
-        <Link href="/profile" className="text-xs font-bold text-muted underline">
+        <Link href="/profile" className="inline-flex min-h-10 items-center text-xs font-bold text-muted underline">
           {t('بازگشت به پروفایل', 'Back to profile')}
         </Link>
       </div>
@@ -81,7 +81,7 @@ export default async function OwnerStatsPage({
             key={key}
             href={`/profile/stats?sort=${key}`}
             aria-current={sort === key ? 'page' : undefined}
-            className={`rounded-[var(--radius-pill)] border px-3 py-1.5 text-xs font-bold transition ${
+            className={`inline-flex min-h-10 items-center rounded-[var(--radius-pill)] border px-3 py-1.5 text-xs font-bold transition ${
               sort === key
                 ? 'border-cta bg-cta-soft text-ink'
                 : 'border-line bg-card text-muted hover:border-line-strong'

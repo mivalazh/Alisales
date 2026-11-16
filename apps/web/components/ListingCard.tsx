@@ -159,7 +159,7 @@ export function ListingCard({ listing }: { listing: ListingCardData }) {
               type="button"
               onClick={() => go(-1)}
               aria-label={t('عکس قبلی', 'Previous photo')}
-              className="absolute start-2 top-1/2 z-20 flex h-8 w-8 -translate-y-1/2 items-center justify-center rounded-full bg-white/90 text-[#111144] shadow-md transition hover:bg-white sm:opacity-0 sm:group-hover:opacity-100 sm:group-focus-within:opacity-100"
+              className="absolute start-2 top-1/2 z-20 flex h-10 w-10 -translate-y-1/2 items-center justify-center rounded-full bg-white/90 text-[#111144] shadow-md transition hover:bg-white sm:opacity-0 sm:group-hover:opacity-100 sm:group-focus-within:opacity-100"
             >
               <Icon name="chevronRight" size={16} />
             </button>
@@ -167,7 +167,7 @@ export function ListingCard({ listing }: { listing: ListingCardData }) {
               type="button"
               onClick={() => go(1)}
               aria-label={t('عکس بعدی', 'Next photo')}
-              className="absolute end-2 top-1/2 z-20 flex h-8 w-8 -translate-y-1/2 items-center justify-center rounded-full bg-white/90 text-[#111144] shadow-md transition hover:bg-white sm:opacity-0 sm:group-hover:opacity-100 sm:group-focus-within:opacity-100"
+              className="absolute end-2 top-1/2 z-20 flex h-10 w-10 -translate-y-1/2 items-center justify-center rounded-full bg-white/90 text-[#111144] shadow-md transition hover:bg-white sm:opacity-0 sm:group-hover:opacity-100 sm:group-focus-within:opacity-100"
             >
               <Icon name="chevronLeft" size={16} />
             </button>

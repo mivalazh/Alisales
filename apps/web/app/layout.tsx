@@ -81,6 +81,7 @@ export const viewport: Viewport = {
   // Native controls and the mobile browser chrome follow the same dark switch
   // as the tokens instead of staying cream on a dark page.
   colorScheme: 'light dark',
+  viewportFit: 'cover',
   // Installed app chrome and the browser tab both use the brand navy; the
   // page surface stays cream via the theme tokens.
   themeColor: '#111144',

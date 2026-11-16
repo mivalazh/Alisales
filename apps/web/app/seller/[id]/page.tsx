@@ -219,7 +219,7 @@ export default async function SellerPage({
               key={item.key}
               href={`/seller/${profile.id}?tab=${item.key}`}
               aria-current={active ? 'page' : undefined}
-              className={`flex-1 rounded-field px-2 py-2 text-center text-xs font-extrabold transition sm:text-sm ${
+              className={`flex min-h-10 flex-1 items-center justify-center rounded-field px-2 py-2 text-center text-xs font-extrabold transition sm:text-sm ${
                 active ? 'bg-cta-soft text-ink' : 'text-muted hover:text-ink'
               }`}
             >

@@ -36,7 +36,7 @@ function CheckRow({
   onToggle: () => void;
 }) {
   return (
-    <label className="flex cursor-pointer items-center gap-2 py-1 text-sm font-semibold text-muted">
+    <label className="flex min-h-10 cursor-pointer items-center gap-2 py-1 text-sm font-semibold text-muted">
       <input
         type="checkbox"
         checked={checked}

@@ -50,7 +50,7 @@ export function InspectionSheetLightbox({
       <button
         type="button"
         onClick={() => setOpen(true)}
-        className="mt-2.5 inline-flex items-center gap-1.5 rounded-lg bg-[#111144] px-3 py-2 text-[11px] font-extrabold text-white transition hover:bg-[#1b1b57] active:scale-[0.98] dark:bg-[#F98512] dark:text-[#111144] dark:hover:bg-[#ffa13d]"
+        className="mt-2.5 inline-flex min-h-10 items-center gap-1.5 rounded-lg bg-[#111144] px-3 py-2 text-[11px] font-extrabold text-white transition hover:bg-[#1b1b57] active:scale-[0.98] dark:bg-[#F98512] dark:text-[#111144] dark:hover:bg-[#ffa13d]"
       >
         <Icon name="shieldCheck" size={14} />
         {label}

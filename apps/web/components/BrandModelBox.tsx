@@ -140,7 +140,7 @@ export function BrandModelBox({
                 onPick('');
                 setQuery('');
               }}
-              className="inline-flex items-center gap-1.5 rounded-[var(--radius-pill)] border border-line bg-page px-3 py-1.5 text-xs font-extrabold text-ink transition hover:border-line-strong"
+              className="inline-flex min-h-10 items-center gap-1.5 rounded-[var(--radius-pill)] border border-line bg-page px-3 py-1.5 text-xs font-extrabold text-ink transition hover:border-line-strong"
             >
               <Icon name="arrowLeft" size={14} />
               {t('بازگشت به همه برندها', 'Back to all brands')}
@@ -190,7 +190,7 @@ export function BrandModelBox({
             <h2 className="text-sm font-extrabold text-ink">{t(CATEGORY_TITLE[category])}</h2>
             <Link
               href="/support/brand-request"
-              className="text-xs font-bold text-muted underline transition hover:text-ink"
+              className="inline-flex min-h-10 items-center text-xs font-bold text-muted underline transition hover:text-ink"
             >
               {t('ثبت برند جدید', 'Request New Brand')}
             </Link>
@@ -210,7 +210,7 @@ export function BrandModelBox({
                 type="button"
                 onClick={() => setQuery('')}
                 aria-label={t('پاک کردن جستجوی برند', 'Clear brand search')}
-                className="text-faint transition hover:text-ink"
+                className="flex h-10 w-10 items-center justify-center text-faint transition hover:text-ink"
               >
                 <Icon name="close" size={16} />
               </button>

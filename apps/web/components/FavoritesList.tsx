@@ -93,7 +93,7 @@ export function FavoritesList() {
           'Save listings with the bookmark and they will appear here.',
         )}
         actionHref="/"
-        actionLabel={t('مرور آگهی‌ها', 'Browse listings')}
+        actionLabel={t('مشاهده آگهی‌ها', 'View listings')}
       />
     );
   }

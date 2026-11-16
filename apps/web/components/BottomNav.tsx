@@ -42,9 +42,9 @@ export function BottomNav() {
     <nav
       aria-label={t('ناوبری اصلی', 'Main navigation')}
       className="app-bottom-nav fixed inset-x-0 bottom-0 z-40 border-t border-line bg-card/80 backdrop-blur-2xl backdrop-saturate-150 sm:hidden"
-      style={{ paddingBottom: 'env(safe-area-inset-bottom)' }}
+      style={{ paddingBottom: 'max(14px, env(safe-area-inset-bottom))' }}
     >
-      <ul dir="ltr" className="mx-auto flex h-16 w-full max-w-lg items-stretch">
+      <ul dir="ltr" className="mx-auto flex h-14 w-full max-w-lg items-stretch pt-1">
         {NAV_ITEMS.map((item) => {
           const active = isActive(item.href);
           const label = t(item.label, EN_LABELS[item.key] ?? item.label);

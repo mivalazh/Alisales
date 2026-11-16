@@ -2,12 +2,17 @@ import { NextResponse } from 'next/server';
 import { DEFAULT_FILTERS } from '@alisales/schemas';
 import { getSession } from '@/lib/auth/session';
 import { getLanguage, serverT } from '@/lib/i18n/server';
-import { listFavoriteIds, listingById } from '@/lib/data/s2-store';
+import { listFavoriteRows, listingById } from '@/lib/data/s2-store';
 import { searchListings } from '@/lib/data/listings';
 import { followedSellerIds } from '@/lib/data/social-store';
 import { listInspections } from '@/lib/data/platform-store';
+import {
+  listListingEvents,
+  markNotificationsRead,
+  notificationReadAt,
+} from '@/lib/data/notification-store';
 
-type NotificationKind = 'saved_sold' | 'followed' | 'inspection';
+type NotificationKind = 'saved_sold' | 'price_drop' | 'followed' | 'inspection';
 
 interface NotificationItem {
   id: string;
@@ -18,26 +23,25 @@ interface NotificationItem {
   createdAt: string;
 }
 
-interface WatchedListing {
-  id: string;
-  slug: string;
-  title: string;
-  priceIRR: number;
-  state: string;
+function toman(value: number): string {
+  return Math.round(value / 10).toLocaleString('en-US');
+}
+
+function timeValue(iso: string): number {
+  const time = Date.parse(iso);
+  return Number.isFinite(time) ? time : 0;
 }
 
 /**
- * Account-specific notifications, derived on read:
- *  - a saved listing that is now sold,
- *  - a new listing from a followed showroom,
- *  - a confirmed workshop inspection booking.
+ * Account-specific notifications.
  *
- * Bookmarking itself never creates an event. Current favorite prices ride
- * along in `watched` so the browser can detect a real decrease against its
- * previous baseline without a write queue.
+ * Sold and price-drop items come from the server-side `listing_events`
+ * history, scoped to listings this account saved before the event happened.
+ * The read marker is also server-side, so another device sees the same unread
+ * dot instead of trusting this browser's last local sync.
  *
- * Read state is deliberately device-local (the bell's «خواندن همه» marker), so
- * the endpoint never needs a write queue just to show an unread dot.
+ * Followed-showroom and inspection items stay derived from their own durable
+ * rows. Bookmarking itself never creates an event.
  */
 export async function GET(): Promise<NextResponse> {
   const session = await getSession();
@@ -45,36 +49,60 @@ export async function GET(): Promise<NextResponse> {
     return NextResponse.json({ error: 'برای دیدن اعلان‌ها وارد حساب شوید.' }, { status: 401 });
   }
 
-  const [lang, favoriteIds, followedIds, allListings] = await Promise.all([
+  const [lang, favorites, followedIds, allListings, readAt] = await Promise.all([
     getLanguage(),
-    listFavoriteIds(session.sub),
+    listFavoriteRows(session.sub),
     followedSellerIds(session.sub),
     searchListings(DEFAULT_FILTERS),
+    notificationReadAt(session.sub),
   ]);
   const t = (fa: string, en: string) => serverT(lang, fa, en);
   const followed = new Set(followedIds);
   const items: NotificationItem[] = [];
 
-  const saved = await Promise.all(favoriteIds.map((id) => listingById(id)));
-  const watched: WatchedListing[] = [];
-  for (const listing of saved) {
+  const favoriteAt = new Map(favorites.map((favorite) => [favorite.listingId, favorite.createdAt]));
+  const favoriteIds = favorites.map((favorite) => favorite.listingId);
+  const [saved, events] = await Promise.all([
+    Promise.all(favoriteIds.map((id) => listingById(id))),
+    listListingEvents(favoriteIds),
+  ]);
+  const savedById = new Map(
+    saved.filter((listing): listing is NonNullable<typeof listing> => Boolean(listing)).map((listing) => [listing.id, listing]),
+  );
+
+  for (const event of events) {
+    const listing = savedById.get(event.listingId);
     if (!listing) continue;
-    const title = listing.part ? listing.part.title : `${listing.model}${listing.trim ? ` ${listing.trim}` : ''}`;
-    watched.push({
-      id: listing.id,
-      slug: listing.slug,
-      title,
-      priceIRR: listing.priceIRR,
-      state: listing.state,
-    });
-    if (listing.state !== 'sold') continue;
+    const savedAt = favoriteAt.get(event.listingId);
+    // Only the accounts that had already saved the listing get the event.
+    if (savedAt && timeValue(event.createdAt) < timeValue(savedAt)) continue;
+    const title = listing.part
+      ? listing.part.title
+      : `${listing.model}${listing.trim ? ` ${listing.trim}` : ''}`;
+
+    if (event.kind === 'sold') {
+      items.push({
+        id: `listing-event-${event.id}`,
+        kind: 'saved_sold',
+        title: t('آگهی ذخیره‌شده فروخته شد', 'A saved listing was sold'),
+        body: t(`${title} اکنون به‌عنوان فروخته‌شده علامت خورده است.`, `${title} is now marked as sold.`),
+        href: `/listing/${listing.slug}`,
+        createdAt: event.createdAt,
+      });
+      continue;
+    }
+
+    if (event.previousPriceIRR === null || event.priceIRR === null) continue;
     items.push({
-      id: `saved-sold-${listing.id}`,
-      kind: 'saved_sold',
-      title: t('آگهی ذخیره‌شده فروخته شد', 'A saved listing was sold'),
-      body: t(`${title} اکنون به‌عنوان فروخته‌شده علامت خورده است.`, `${title} is now marked as sold.`),
+      id: `listing-event-${event.id}`,
+      kind: 'price_drop',
+      title: t('کاهش قیمت آگهی ذخیره‌شده', 'Saved listing price dropped'),
+      body: t(
+        `${title}: از ${toman(event.previousPriceIRR)} به ${toman(event.priceIRR)} تومان`,
+        `${title}: from ${toman(event.previousPriceIRR)} to ${toman(event.priceIRR)} Toman`,
+      ),
       href: `/listing/${listing.slug}`,
-      createdAt: listing.publishedAt ?? new Date().toISOString(),
+      createdAt: event.createdAt,
     });
   }
 
@@ -116,6 +144,16 @@ export async function GET(): Promise<NextResponse> {
     });
   }
 
-  items.sort((a, b) => b.createdAt.localeCompare(a.createdAt));
-  return NextResponse.json({ items: items.slice(0, 14), watched });
+  items.sort((a, b) => timeValue(b.createdAt) - timeValue(a.createdAt));
+  return NextResponse.json({ items: items.slice(0, 14), readAt });
+}
+
+/** Mark all of this account's bell items as read on every device. */
+export async function POST(): Promise<NextResponse> {
+  const session = await getSession();
+  if (!session) {
+    return NextResponse.json({ error: 'برای تغییر اعلان‌ها وارد حساب شوید.' }, { status: 401 });
+  }
+  const readAt = await markNotificationsRead(session.sub);
+  return NextResponse.json({ ok: true, readAt });
 }

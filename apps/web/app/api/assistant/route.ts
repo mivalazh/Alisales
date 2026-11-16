@@ -274,7 +274,7 @@ function adviceAnswer(
     : `برای انتخاب درست، سه چیز را بگویید: بودجه‌ی تقریبی، کاربری (شهری، خانواده، آفرود یا مسافت بلند) و اینکه پلاک کیش می‌خواهید یا گذر موقت. با همین سه مورد، از کاتالوگ زنده دقیق‌ترین گزینه‌ها را جدا می‌کنم.`;
 }
 
-export async function POST(request: Request): Promise<NextResponse> {
+async function handlePost(request: Request): Promise<NextResponse> {
   let raw: unknown;
   try {
     raw = await request.json();
@@ -533,3 +533,36 @@ export async function POST(request: Request): Promise<NextResponse> {
     cta: { label: english ? 'All listings' : 'همه‌ی آگهی‌ها', href: '/' },
   });
 }
+
+/**
+ * Public entry point. Even an unexpected catalogue/provider/storage failure
+ * returns a useful answer, never a 500 that turns the chip into an error bubble.
+ */
+export async function POST(request: Request): Promise<NextResponse> {
+  let english = false;
+  try {
+    const body = (await request.clone().json()) as { lang?: unknown };
+    english = body?.lang === 'en';
+  } catch {
+    // The handler below returns the precise 400 for a malformed body.
+  }
+  try {
+    return await handlePost(request);
+  } catch (error) {
+    console.error('[alisales] assistant fallback:', error);
+    return NextResponse.json({
+      reply: english
+        ? 'Tell me your budget, use case (city, family, off-road or long distance) and plate preference, and I will shortlist the live catalogue for you.'
+        : 'برای انتخاب دقیق، بودجه، کاربری (شهری، خانواده، آفرود یا مسافت بلند) و نوع پلاک را بگویید تا از کاتالوگ زنده بهترین گزینه‌ها را جدا کنم.',
+      listings: [],
+      faqs: SEED_FAQS,
+    });
+  }
+}
+
+const SEED_FAQS = [
+  'چه موتوری برای مسافت بلند خوبه؟',
+  'چه ماشینی بخرم؟',
+  'خودروی ارزان کیش',
+  'فرق پلاک منطقه آزاد و گذر موقت',
+];

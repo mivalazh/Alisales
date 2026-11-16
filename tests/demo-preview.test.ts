@@ -46,7 +46,7 @@ afterEach(() => {
 });
 
 describe('production auth cutover', () => {
-  it('is strict, disables demo OTP and never uses the demo signing key', () => {
+  it('keeps instant OTP available without SMS and never invents a signing key', () => {
     const previousNodeEnv = process.env.NODE_ENV;
     const previousSecret = process.env.AUTH_SECRET;
     process.env.NODE_ENV = 'production';
@@ -55,8 +55,8 @@ describe('production auth cutover', () => {
     try {
       expect(requireHostedServices()).toBe(true);
       expect(fixtureMode()).toBe(false);
-      expect(demoAuthMode()).toBe(false);
-      expect(demoOtpHintEnabled()).toBe(false);
+      expect(demoAuthMode()).toBe(true);
+      expect(demoOtpHintEnabled()).toBe(true);
       expect(authSecret()).toBeNull();
 
       process.env.AUTH_SECRET = 'production-secret-at-least-16-chars';
@@ -82,15 +82,16 @@ describe('cloud fallback without hosted credentials', () => {
     process.env.SUPABASE_SERVICE_ROLE_KEY = 'service-role';
     expect(hostedDataConfigured()).toBe(true);
     expect(fixtureMode()).toBe(false);
-    expect(demoAuthMode()).toBe(false);
+    // No SMS provider yet: instant OTP must still let users sign in.
+    expect(demoAuthMode()).toBe(true);
   });
 
   it('REQUIRE_HOSTED_SERVICES=true refuses the fallback', () => {
     process.env.REQUIRE_HOSTED_SERVICES = 'true';
     expect(requireHostedServices()).toBe(true);
     expect(fixtureMode()).toBe(false);
-    expect(demoAuthMode()).toBe(false);
-    expect(demoOtpHintEnabled()).toBe(false);
+    expect(demoAuthMode()).toBe(true);
+    expect(demoOtpHintEnabled()).toBe(true);
   });
 
   it('a configured SMS provider disables the demo login path', () => {
@@ -101,11 +102,13 @@ describe('cloud fallback without hosted credentials', () => {
     expect(demoAuthMode()).toBe(false);
   });
 
-  it('the OTP hint needs the explicit public flag', () => {
-    expect(demoOtpHintEnabled()).toBe(false);
+  it('shows the OTP hint until an SMS provider is configured', () => {
+    expect(demoOtpHintEnabled()).toBe(true);
     process.env.NEXT_PUBLIC_DEMO_OTP_HINT = 'true';
     expect(demoOtpHintEnabled()).toBe(true);
-    process.env.REQUIRE_HOSTED_SERVICES = '1';
+    process.env.SMS_API_KEY = 'key';
+    process.env.SMS_SENDER = '1000';
+    process.env.SMS_API_URL = 'https://sms.example';
     expect(demoOtpHintEnabled()).toBe(false);
   });
 
