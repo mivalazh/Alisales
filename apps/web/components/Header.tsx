@@ -171,7 +171,7 @@ export function Header({
 
   return (
     <>
-      <header className="sticky top-0 z-40 border-b border-line bg-card">
+      <header className="sticky top-0 z-50 w-full border-b border-line bg-[#F4F1EC]/95 backdrop-blur-md dark:bg-[#111144]/95">
         <div className="mx-auto flex h-16 w-full max-w-[var(--content-max)] items-center gap-2 px-4 sm:px-6">
           <div className="flex items-center gap-2">
             <button
@@ -246,7 +246,7 @@ export function Header({
       </header>
 
       {menuOpen && (
-        <div id="site-menu" className="fixed inset-0 z-50">
+        <div id="site-menu" className="fixed inset-0 z-[60]">
           <button
             type="button"
             aria-label={t('بستن منو', 'Close menu')}

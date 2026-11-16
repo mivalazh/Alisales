@@ -67,8 +67,9 @@
     --logo-fg: #111144;
     /* «A ALI SALES» lockup inks: the navy pillar flips to platinum in dark
        mode, the accent stays Habañero in both. */
-    --logo-navy: #16235a;
+    --logo-navy: #142874;
     --logo-accent: #f98513;
+    --logo-sales: #f34405;
   }
 
   html {
@@ -296,7 +297,8 @@ html.dark {
   --color-accent-soft: #3d2c15;
   --color-focus-ring: #f98513;
   --logo-fg: #f4f1ec;
-  --logo-navy: #f4f1ec;
+  --logo-navy: #ffffff;
+  --logo-sales: #f98513;
   /* Canonical palette (tokens.css) — kept in step with the aliases above. */
   --bg: #0c0f1c;
   --surface: #171b2c;
@@ -507,4 +509,46 @@ html.app-standalone button {
 
 @media (prefers-reduced-motion: reduce) {
   .ai-orb, .ai-orb-eye, .car-wheel, .car-speed, .car-dots > span { animation: none !important; }
+}
+
+/* ── Launch splash ─────────────────────────────────────────────────────── */
+html[data-splash-seen] .app-splash {
+  display: none;
+}
+.app-splash {
+  position: fixed;
+  inset: 0;
+  z-index: 200;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: var(--color-page);
+  opacity: 1;
+  transition: opacity 180ms ease-out;
+}
+.app-splash.is-leaving {
+  opacity: 0;
+  pointer-events: none;
+}
+.app-splash-mark {
+  animation: splash-mark-in 520ms cubic-bezier(0.22, 1, 0.36, 1) both;
+}
+.app-splash-word {
+  display: inline-block;
+  animation: splash-word-in 300ms ease-out both;
+}
+.app-splash-word:nth-child(2) {
+  animation-delay: 180ms;
+}
+@keyframes splash-mark-in {
+  from { opacity: 0; transform: scale(0.72) rotate(-4deg); }
+  to { opacity: 1; transform: scale(1) rotate(0); }
+}
+@keyframes splash-word-in {
+  from { opacity: 0; transform: translateY(7px); }
+  to { opacity: 1; transform: translateY(0); }
+}
+@media (prefers-reduced-motion: reduce) {
+  .app-splash-mark, .app-splash-word { animation: none; }
+  .app-splash { transition: none; }
 }

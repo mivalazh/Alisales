@@ -54,7 +54,7 @@ export function AvatarPicker({ currentUrl }: { currentUrl: string | null }) {
             }`}
           >
             {/* eslint-disable-next-line @next/next/no-img-element */}
-            <img src={avatar.url} alt="" className="h-full w-full object-cover" />
+            <img src={avatar.url} alt="" width={256} height={256} className="h-full w-full object-cover" />
             {busy === avatar.id && (
               <span className="absolute inset-0 flex items-center justify-center bg-black/40 text-[9px] font-bold text-white">
                 …

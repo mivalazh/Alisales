@@ -89,17 +89,28 @@ export async function POST(request: Request): Promise<NextResponse> {
   const demo = demoAuthMode();
   // SMS.ir can reject an unverified/sandbox account before delivery. Do not
   // lock launch users out: fall back to the allowlisted instant code.
+  // A pending template or a temporarily unavailable gateway must not lock out
+  // the operator's explicitly allowlisted launch numbers. Arbitrary numbers
+  // still never receive a code they did not prove control of by SMS.
+  const fallbackAllowed = instantOtpFallbackAllowedFor(phone);
   const sandboxFallback =
     !delivery.delivered &&
-    delivery.reason === 'sandbox' &&
-    instantOtpFallbackAllowedFor(phone);
+    (delivery.reason === 'sandbox' || delivery.reason === 'provider_error') &&
+    fallbackAllowed;
 
   if (!delivery.delivered) {
-    if (delivery.reason === 'provider_error' || (delivery.reason === 'sandbox' && !sandboxFallback)) {
+    if (delivery.reason === 'provider_error' && !sandboxFallback) {
       deleteOtp(phone);
       return NextResponse.json(
         { error: 'ارسال پیامک ناموفق بود؛ دوباره تلاش کنید.' },
         { status: 502 },
+      );
+    }
+    if (delivery.reason === 'sandbox' && !sandboxFallback) {
+      deleteOtp(phone);
+      return NextResponse.json(
+        { error: 'ارسال پیامک در حال حاضر در دسترس نیست؛ بعداً تلاش کنید.' },
+        { status: 503 },
       );
     }
     if (!demo && !sandboxFallback) {

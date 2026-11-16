@@ -1,5 +1,7 @@
 # Alisales — بازار آگهی خودرو
 
+Designed and maintained by **Mahsa Sadr / Miva Tech**.
+
 High-performance classifieds marketplace for new & used vehicles, launched on
 **Kish Island**. Trust, transparency and a frictionless mobile-first UX are the
 core product values. Showrooms subscribe for more listings and visibility;

@@ -583,8 +583,7 @@ export default async function ListingDetailPage({
             <dl className="mt-4 grid grid-cols-2 gap-2">
               {specs.map((spec) => (
                 <div key={spec.label} className="rounded-field border border-line bg-page p-2.5">
-                  <dt className="flex items-center gap-1.5 text-[11px] font-bold text-muted">
-                    <Icon name={spec.icon} size={14} />
+                  <dt className="text-[11px] font-bold text-muted">
                     {spec.label}
                   </dt>
                   <dd className="mt-1 text-xs font-extrabold leading-5 text-ink">{spec.value}</dd>

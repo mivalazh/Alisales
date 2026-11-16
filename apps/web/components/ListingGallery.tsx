@@ -208,6 +208,9 @@ export function ListingGallery({
             <img
               src={current}
               alt={alt}
+              width={1600}
+              height={1200}
+              style={{ maxWidth: '100%', height: 'auto' }}
               onClick={() => setZoomed((value) => !value)}
               className={`max-h-full max-w-full cursor-zoom-in object-contain transition-transform duration-300 ${zoomed ? 'scale-[2] cursor-zoom-out' : 'scale-100'}`}
             />

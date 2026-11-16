@@ -125,6 +125,8 @@ export default async function ProfilePage() {
             <img
               src={custom.coverUrl}
               alt={t('کاور پروفایل')}
+              width={1600}
+              height={480}
               className="h-full w-full object-cover"
             />
           ) : (
@@ -138,7 +140,7 @@ export default async function ProfilePage() {
               <div className="flex h-20 w-20 items-center justify-center overflow-hidden rounded-full border-4 border-card bg-cta-soft text-2xl font-extrabold text-ink shadow-lg sm:h-24 sm:w-24">
                 {custom?.avatarUrl ? (
                   // eslint-disable-next-line @next/next/no-img-element
-                  <img src={custom.avatarUrl} alt="" className="h-full w-full object-cover" />
+                  <img src={custom.avatarUrl} alt="" width={512} height={512} className="h-full w-full object-cover" />
                 ) : (
                   initial
                 )}

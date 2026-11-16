@@ -108,6 +108,7 @@ export function Catalog({
   const { t } = useI18n();
   const [panelOpen, setPanelOpen] = useState(false);
   const [sheetOpen, setSheetOpen] = useState(false);
+  const [filterStripOpen, setFilterStripOpen] = useState(false);
   const [view, setView] = useState<ViewMode>('grid');
   const [isPending, startTransition] = useTransition();
   const showPending = useDelayedBusy(isPending);
@@ -162,7 +163,7 @@ export function Catalog({
       type="button"
       onClick={() => setPanelOpen((v) => !v)}
       aria-expanded={panelOpen}
-      className="flex min-h-10 shrink-0 items-center gap-1.5 rounded-[var(--radius-pill)] border border-line bg-card px-3 py-2 text-xs font-extrabold text-ink transition hover:border-line-strong"
+      className="flex min-h-9 shrink-0 items-center gap-1.5 rounded-[var(--radius-pill)] border border-line bg-card px-2.5 py-1.5 text-[11px] font-extrabold text-ink transition hover:border-line-strong sm:min-h-10 sm:px-3 sm:py-2 sm:text-xs"
     >
       <Icon name="sliders" size={15} />
       {t('فیلترها', 'Filters')}
@@ -173,6 +174,25 @@ export function Catalog({
       )}
     </button>
   );
+
+  /** Parts has its own strip: one trigger opens that same panel, never a copy. */
+  const partsFilterButton = filterStrip ? (
+    <button
+      type="button"
+      onClick={() => setFilterStripOpen((open) => !open)}
+      aria-expanded={filterStripOpen}
+      aria-controls="catalog-filter-strip"
+      className="flex min-h-9 shrink-0 items-center gap-1.5 rounded-[var(--radius-pill)] border border-line bg-card px-2.5 py-1.5 text-[11px] font-extrabold text-ink transition hover:border-line-strong sm:min-h-10 sm:px-3 sm:py-2 sm:text-xs lg:hidden"
+    >
+      <Icon name="sliders" size={15} />
+      {t('فیلترها', 'Filters')}
+      <Icon
+        name="chevronDown"
+        size={14}
+        className={`text-faint transition-transform ${filterStripOpen ? 'rotate-180' : ''}`}
+      />
+    </button>
+  ) : null;
 
   return (
     <div className="space-y-4">
@@ -199,8 +219,6 @@ export function Catalog({
           and view are the last thing seen before the grid on every page. */}
       {showStories && <Stories stories={stories} label={storiesLabel} />}
 
-      {filterStrip && <div className={category ? 'lg:hidden' : undefined}>{filterStrip(ctx)}</div>}
-
       {/* One compact row under the stories: filters, sort and the grid/list
           switch. The result count lives in the results themselves. */}
       <div className="flex items-center justify-between gap-2 rounded-2xl border border-line bg-card p-2">
@@ -214,12 +232,24 @@ export function Catalog({
           />
         )}
         {!category && !filterStrip && genericFilterButton}
+        {partsFilterButton}
 
         <div className="ms-auto flex min-w-0 shrink-0 items-center gap-2">
           <SortControl value={sort} onChange={(key) => commit(filters, key)} />
           <ViewModeToggle value={view} onChange={changeView} />
         </div>
       </div>
+
+      {filterStrip && (
+        <div
+          id="catalog-filter-strip"
+          className={`${category ? 'lg:hidden' : ''} ${
+            filterStripOpen ? 'block' : 'hidden lg:block'
+          }`}
+        >
+          {filterStrip(ctx)}
+        </div>
+      )}
 
       {/* Active filter chips get their own wrapping row below the control bar.
           Keeping them out of the sort box means a long chip list can never

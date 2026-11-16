@@ -23,14 +23,11 @@ interface Message {
   cta?: { label: string; href: string };
 }
 
-const SEED_FAQS = [
-  'چه موتوری برای مسافت بلند خوبه؟',
-  'چه ماشینی بخرم؟',
-  'خودروی ارزان کیش',
-  'فرق پلاک منطقه آزاد و گذر موقت',
-  'چک‌لیست کارشناسی پیش از خرید',
-  'قطعات استوک اصل',
-  'چک‌لیست خرید خودرو',
+const SMART_CHIPS = [
+  'راهنمای خرید خودرو مناسب بودجه من',
+  'مقایسه پلاک منطقه آزاد کیش و گذر موقت',
+  'بهترین اسکوتر برقی برای تردد در کیش',
+  'نکات مهم کارشناسی و سلامت شاسی',
 ];
 
 /**
@@ -48,7 +45,6 @@ export function AIAssistantWidget() {
   const [input, setInput] = useState('');
   const [busy, setBusy] = useState(false);
   const showBusy = useDelayedBusy(busy);
-  const [faqs, setFaqs] = useState<string[]>(SEED_FAQS);
   const [messages, setMessages] = useState<Message[]>([
     {
       role: 'assistant',
@@ -107,7 +103,6 @@ export function AIAssistantWidget() {
         ]);
         return;
       }
-      if (body.faqs?.length) setFaqs(body.faqs);
       setMessages((current) => [
         ...current,
         {
@@ -145,7 +140,6 @@ export function AIAssistantWidget() {
             </span>
             <div className="min-w-0 flex-1">
               <p className="text-xs font-extrabold">{t('دستیار هوشمند Ali Sales')}</p>
-              <p className="text-[9px] text-white/60">{t('جستجو در کاتالوگ زنده — همیشه بیدار')}</p>
             </div>
             <button
               type="button"
@@ -155,22 +149,6 @@ export function AIAssistantWidget() {
             >
               <Icon name="close" size={15} />
             </button>
-          </div>
-
-          <div className="border-b border-line px-2.5 py-2">
-            <p className="mb-1.5 text-[10px] font-extrabold text-faint">{t('سوالات پرتکرار کاربران')}</p>
-            <div className="flex gap-1.5 overflow-x-auto pb-0.5 [scrollbar-width:none] [&::-webkit-scrollbar]:hidden">
-              {faqs.map((faq) => (
-                <button
-                  key={faq}
-                  type="button"
-                  onClick={() => void ask(faq)}
-                  className="shrink-0 whitespace-nowrap rounded-[var(--radius-pill)] border border-line bg-page px-2.5 py-1 text-[10px] font-bold text-muted transition hover:border-cta hover:text-ink"
-                >
-                  {t(faq)}
-                </button>
-              ))}
-            </div>
           </div>
 
           <div ref={scroller} className="flex-1 space-y-2.5 overflow-y-auto px-3 py-3">
@@ -249,6 +227,23 @@ export function AIAssistantWidget() {
               </div>
             )}
           </div>
+
+          {!messages.some((message) => message.role === 'user') && (
+            <div className="shrink-0 border-t border-line px-2.5 py-2">
+              <div className="flex gap-1.5 overflow-x-auto pb-0.5 [scrollbar-width:none] [&::-webkit-scrollbar]:hidden">
+                {SMART_CHIPS.map((chip) => (
+                  <button
+                    key={chip}
+                    type="button"
+                    onClick={() => void ask(chip)}
+                    className="shrink-0 whitespace-nowrap rounded-[var(--radius-pill)] border border-line bg-page px-2.5 py-1.5 text-[10px] font-bold text-muted transition hover:border-cta hover:text-ink"
+                  >
+                    {t(chip)}
+                  </button>
+                ))}
+              </div>
+            </div>
+          )}
 
           <form
             onSubmit={(event) => {

@@ -388,7 +388,7 @@ function StoryComposer({
               <video src={media.previewUrl} muted loop autoPlay playsInline className="h-full w-full object-cover" />
             ) : (
               // eslint-disable-next-line @next/next/no-img-element
-              <img src={media.previewUrl} alt={t('پیش‌نمایش استوری', 'Story preview')} className="h-full w-full object-cover" />
+              <img src={media.previewUrl} alt={t('پیش‌نمایش استوری', 'Story preview')} width={320} height={448} className="h-full w-full object-cover" />
             )}
           </div>
           <div className="min-w-0 flex-1">

@@ -107,6 +107,8 @@ export default async function SellerPage({
             <img
               src={profile.coverUrl}
               alt=""
+              width={1600}
+              height={480}
               className="absolute inset-0 h-full w-full object-cover"
             />
           )}
@@ -119,7 +121,7 @@ export default async function SellerPage({
             >
               {profile.avatarUrl ? (
                 // eslint-disable-next-line @next/next/no-img-element
-                <img src={profile.avatarUrl} alt="" className="h-full w-full object-cover" />
+                <img src={profile.avatarUrl} alt="" width={512} height={512} className="h-full w-full object-cover" />
               ) : (
                 profile.initials
               )}

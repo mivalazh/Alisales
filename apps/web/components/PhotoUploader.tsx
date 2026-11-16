@@ -166,6 +166,8 @@ export function PhotoUploader({
                   `پیش‌نمایش عکس ${toPersianDigits(index + 1)}`,
                   `Photo preview ${index + 1}`,
                 )}
+                width={640}
+                height={480}
                 className="h-full w-full object-cover"
               />
             )}

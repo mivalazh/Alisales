@@ -42,6 +42,33 @@ function fromBase64Url(value: string): Uint8Array {
   return bytes;
 }
 
+const AUTH_SECRET_MIN_LENGTH = 16;
+
+/** A configured production-grade key, or null when unset/too short. */
+function configuredAuthSecret(): string | null {
+  const configured = process.env.AUTH_SECRET;
+  return configured && configured.length >= AUTH_SECRET_MIN_LENGTH ? configured : null;
+}
+
+/**
+ * Non-sensitive readiness state for `/api/health`.
+ *
+ * It deliberately exposes only a reason code, never the value or its length.
+ * Production never uses the fallback, so a missing or short key is a failing
+ * check there; development keeps working with the fixed local demo key.
+ */
+export type AuthSecretReadiness =
+  | { ok: true; source: 'configured' | 'development-fallback' }
+  | { ok: false; reason: 'missing' | 'too_short' };
+
+export function authSecretReadiness(): AuthSecretReadiness {
+  if (configuredAuthSecret()) return { ok: true, source: 'configured' };
+  if (process.env.NODE_ENV !== 'production') {
+    return { ok: true, source: 'development-fallback' };
+  }
+  return { ok: false, reason: process.env.AUTH_SECRET ? 'too_short' : 'missing' };
+}
+
 /**
  * The signing secret. A production build never falls back to the labelled demo
  * secret — a known key would let anyone forge a session. Missing or too-short
@@ -49,8 +76,8 @@ function fromBase64Url(value: string): Uint8Array {
  * tests use the fixed local secret so a fresh checkout works without setup.
  */
 export function authSecret(): string | null {
-  const configured = process.env.AUTH_SECRET;
-  if (configured && configured.length >= 16) return configured;
+  const configured = configuredAuthSecret();
+  if (configured) return configured;
   if (process.env.NODE_ENV === 'production') return null;
   return DEMO_AUTH_SECRET;
 }

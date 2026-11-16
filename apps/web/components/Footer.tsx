@@ -140,44 +140,42 @@ function FooterAccordion() {
 export function SiteFooter() {
   const { t } = useI18n();
   return (
-    <footer className="site-footer mt-12 border-t border-line bg-card pb-28 sm:pb-6">
-      <div className="mx-auto w-full max-w-[var(--content-max)] px-4 py-8 sm:px-6">
-        {/* Phone: compact identity + accordion */}
+    <footer className="site-footer mt-8 border-t border-line bg-card pb-24 sm:pb-6">
+      <div className="mx-auto w-full max-w-[var(--content-max)] px-4 py-7 sm:px-6">
+        {/* Phone: the standalone emblem, compact accordion, then the seal. */}
         <div className="sm:hidden">
-          <BrandLockup size="md" />
+          <BrandLockup size="lg" wordmark={false} />
           <div className="mt-3">
             <FooterAccordion />
           </div>
-        </div>
-
-        {/* Tablet and up: the full four-column layout */}
-        <div className="hidden gap-8 sm:grid lg:grid-cols-4">
-          <div className="lg:col-span-1">
-            <BrandLockup size="md" />
-          </div>
-
-          <div className="grid grid-cols-2 gap-x-4 gap-y-6 sm:grid-cols-3 lg:col-span-3">
-            {SECTIONS.map((section) => (
-              <FooterColumn
-                key={section.title}
-                title={t(section.title, section.en)}
-                links={section.links}
-              />
-            ))}
-          </div>
-        </div>
-
-        <div className="mt-6 flex flex-col items-center justify-between gap-4 border-t border-line pt-5 sm:mt-8 sm:flex-row sm:items-center sm:pr-24">
-          <div className="flex flex-col items-center gap-3 sm:flex-row sm:items-center">
+          <div className="mt-3 flex justify-center">
             <EnamadSeal />
-            <p className="max-w-md text-center text-xs leading-6 text-faint sm:text-start">
-              © {new Date().getFullYear()} Ali Sales —{' '}
-              {t(
-                'تمامی حقوق محفوظ است. مسئولیت اعلام وضعیت پلاک و صحت اطلاعات آگهی بر عهده فروشنده است.',
-                'All rights reserved. The seller is responsible for plate status and ad accuracy.',
-              )}
-            </p>
           </div>
+        </div>
+
+        {/* Tablet and up: four compact columns, with the seal inside the grid. */}
+        <div className="hidden gap-x-6 gap-y-5 sm:grid sm:grid-cols-2 lg:grid-cols-[auto_repeat(3,minmax(0,1fr))_auto] lg:items-start">
+          <div className="flex items-start">
+            <BrandLockup size="lg" wordmark={false} />
+          </div>
+          {SECTIONS.map((section) => (
+            <FooterColumn
+              key={section.title}
+              title={t(section.title, section.en)}
+              links={section.links}
+            />
+          ))}
+          <EnamadSeal />
+        </div>
+
+        <div className="mt-5 flex flex-col items-center justify-between gap-3 border-t border-line pt-4 sm:flex-row sm:items-center">
+          <p className="max-w-md text-center text-xs leading-6 text-faint sm:text-start">
+            © {new Date().getFullYear()} Ali Sales —{' '}
+            {t(
+              'تمامی حقوق محفوظ است. مسئولیت اعلام وضعیت پلاک و صحت اطلاعات آگهی بر عهده فروشنده است.',
+              'All rights reserved. The seller is responsible for plate status and ad accuracy.',
+            )}
+          </p>
           <a
             href={process.env.NEXT_PUBLIC_CREATOR_URL || 'https://mivatech.ir'}
             target="_blank"

@@ -98,6 +98,9 @@ export function InspectionSheetLightbox({
                 <img
                   src={src}
                   alt={label}
+                  width={1600}
+                  height={1200}
+                  style={{ maxWidth: '100%', height: 'auto' }}
                   className={
                     zoomed
                       ? 'mx-auto max-w-none cursor-zoom-out'

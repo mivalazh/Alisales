@@ -27,9 +27,11 @@ const isDev = process.env.NODE_ENV !== 'production';
 const contentSecurityPolicy = [
   "default-src 'self'",
   `script-src 'self' 'unsafe-inline'${isDev ? " 'unsafe-eval'" : ''}`,
-  "style-src 'self' 'unsafe-inline'",
+  // Inline critical styles are required by the theme bootstrap and by iOS
+  // Safari's first paint. HTTPS also covers assets rewritten by the CDN.
+  "style-src 'self' 'unsafe-inline' https:",
   "img-src 'self' data: blob: https:",
-  "font-src 'self' data:",
+  "font-src 'self' data: https:",
   `connect-src 'self' https: wss:${isDev ? ' ws:' : ''}`,
   "media-src 'self' https: blob:",
   "manifest-src 'self'",
@@ -56,6 +58,19 @@ const nextConfig: NextConfig = {
             key: 'Permissions-Policy',
             value: 'camera=(), microphone=(), geolocation=(self), payment=()',
           },
+          // HTML must revalidate so an edge node never keeps an old document
+          // pointing at a CSS hash that no longer exists.
+          {
+            key: 'Cache-Control',
+            value: 'public, max-age=0, must-revalidate',
+          },
+          {
+            key: 'CDN-Cache-Control',
+            value: 'public, max-age=0, must-revalidate',
+          },
+          // The HTML carries the signed-in header state; never let one visitor's
+          // document be reused for another at a shared edge cache.
+          { key: 'Vary', value: 'Cookie, Accept-Encoding' },
           ...(isDev
             ? []
             : [
@@ -64,6 +79,22 @@ const nextConfig: NextConfig = {
                   value: 'max-age=31536000; includeSubDomains',
                 },
               ]),
+        ],
+      },
+      // Hashed build output is the only immutable layer.
+      {
+        source: '/_next/static/:path*',
+        headers: [
+          { key: 'Cache-Control', value: 'public, max-age=31536000, immutable' },
+          { key: 'CDN-Cache-Control', value: 'public, max-age=31536000, immutable' },
+        ],
+      },
+      // API responses are user/config sensitive and must not be cached.
+      {
+        source: '/api/:path*',
+        headers: [
+          { key: 'Cache-Control', value: 'private, no-store, max-age=0, must-revalidate' },
+          { key: 'CDN-Cache-Control', value: 'no-store' },
         ],
       },
     ];

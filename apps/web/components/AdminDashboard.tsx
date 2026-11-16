@@ -315,7 +315,7 @@ export function AdminDashboard({ data }: { data: AdminCenterData }) {
                         <video src={story.mediaUrl} muted className="h-full w-full object-cover" />
                       ) : (
                         // eslint-disable-next-line @next/next/no-img-element
-                        <img src={story.mediaUrl} alt={story.title} className="h-full w-full object-cover" />
+                        <img src={story.mediaUrl} alt={story.title} width={512} height={512} className="h-full w-full object-cover" />
                       )}
                     </span>
                     <div className="min-w-0 flex-1">

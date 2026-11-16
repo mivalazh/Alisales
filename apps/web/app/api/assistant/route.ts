@@ -81,7 +81,7 @@ const EN = {
   modelMissing:
     'That exact model is not in today’s active stock, and I will not invent one. I have brought the closest real options in the catalogue; tell me your brand, budget range or use case to narrow it further.',
   generic:
-    'To guide you precisely, tell me your budget, use case (city, family, off-road or long distance) and plate type. In the meantime, here are the newest active listings in the catalogue.',
+    'To guide you precisely, tell me your budget, use case (city, family, off-road or long distance) and plate type. With those I can give you a focused shortlist instead of a generic catalogue dump.',
   adviceBikeLong: (stock: string) =>
     `For long distances, judge real range rather than advertised range. The NIU NQi GT with a 72 V battery and two swappable packs does roughly 90–100 km of city range in Eco; the Super Soco TC Max is faster and feels better on intercity stretches, but its range drops faster under hard riding. In Kish, a removable battery and charging network matter more than top speed. ${stock} Before buying, get the battery health, charge-cycle count and pack warranty in writing.`,
   adviceBike:
@@ -134,24 +134,52 @@ function compactCatalogue(
     .join('\n');
 }
 
-const ADVISOR_SYSTEM = `You are the senior buying consultant for Ali Sales, a Kish Free Zone (Iran) automotive marketplace.
+const ADVISOR_SYSTEM = `You are the senior automotive and Kish Free Zone market consultant for Ali Sales.
 Answer in the language of the buyer's question (Persian by default, fluent C1 English if asked in English).
-Be concrete and practical: recommend body types/engine choices, battery range for electric bikes, plate and customs implications in Kish, and what to inspect before purchase.
-Use ONLY the live catalogue below for specific stock, prices and availability. If the exact model the buyer names is absent, say so clearly and suggest the closest real in-stock alternatives.
-Never invent a listing, price or specification. Keep the answer under 120 words, conversational, and finish with one useful next step.
+Be warm, analytical and conversational. Lead with a direct answer, then explain the trade-offs a senior buyer would care about: budget fit, running costs, body/engine choice, battery range, plate and customs implications in Kish, and what to inspect before purchase.
+Ask at most one useful clarifying question about budget or daily use when it would materially improve the advice.
+Do NOT dump a list of vehicles or parts on every reply. Only discuss specific stock when the buyer explicitly asks for suggestions, options, comparisons or a shortlist.
+Use ONLY the live catalogue below for specific stock, prices and availability. If the exact model the buyer names is absent, say so plainly and never invent a listing, price or specification.
+Keep the answer under 160 words. Do not use markdown headings or bullet dumps; write like a trusted consultant.
 LIVE CATALOGUE:
 `;
 
 async function llmReply(message: string, rows: Awaited<ReturnType<typeof searchListings>>): Promise<string | null> {
-  const openai = process.env.OPENAI_API_KEY;
   const gemini = process.env.GEMINI_API_KEY;
-  if (!openai && !gemini) return null;
+  const openai = process.env.OPENAI_API_KEY;
+  if (!gemini && !openai) return null;
 
   const context = compactCatalogue(rows);
   const prompt = `${ADVISOR_SYSTEM}${context}\n\nBUYER: ${message}`;
 
-  try {
-    if (openai) {
+  if (gemini) {
+    try {
+      const res = await fetch(
+        `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash:generateContent?key=${gemini}`,
+        {
+          method: 'POST',
+          headers: { 'content-type': 'application/json' },
+          body: JSON.stringify({
+            contents: [{ parts: [{ text: prompt }] }],
+            generationConfig: { temperature: 0.55, maxOutputTokens: 420 },
+          }),
+          signal: AbortSignal.timeout(9000),
+        },
+      );
+      if (res.ok) {
+        const body = (await res.json()) as {
+          candidates?: Array<{ content?: { parts?: Array<{ text?: string }> } }>;
+        };
+        const text = body.candidates?.[0]?.content?.parts?.[0]?.text?.trim();
+        if (text) return text;
+      }
+    } catch {
+      // Fall through to the optional secondary provider.
+    }
+  }
+
+  if (openai) {
+    try {
       const res = await fetch('https://api.openai.com/v1/chat/completions', {
         method: 'POST',
         headers: {
@@ -160,41 +188,25 @@ async function llmReply(message: string, rows: Awaited<ReturnType<typeof searchL
         },
         body: JSON.stringify({
           model: process.env.OPENAI_MODEL ?? 'gpt-4o-mini',
-          temperature: 0.4,
-          max_tokens: 260,
+          temperature: 0.55,
+          max_tokens: 360,
           messages: [{ role: 'user', content: prompt }],
         }),
         signal: AbortSignal.timeout(9000),
       });
-      if (!res.ok) return null;
-      const body = (await res.json()) as {
-        choices?: Array<{ message?: { content?: string } }>;
-      };
-      const text = body.choices?.[0]?.message?.content?.trim();
-      return text || null;
+      if (res.ok) {
+        const body = (await res.json()) as {
+          choices?: Array<{ message?: { content?: string } }>;
+        };
+        const text = body.choices?.[0]?.message?.content?.trim();
+        if (text) return text;
+      }
+    } catch {
+      // The deterministic expert below is the final fallback.
     }
-
-    const res = await fetch(
-      `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.0-flash:generateContent?key=${gemini}`,
-      {
-        method: 'POST',
-        headers: { 'content-type': 'application/json' },
-        body: JSON.stringify({
-          contents: [{ parts: [{ text: prompt }] }],
-          generationConfig: { temperature: 0.4, maxOutputTokens: 320 },
-        }),
-        signal: AbortSignal.timeout(9000),
-      },
-    );
-    if (!res.ok) return null;
-    const body = (await res.json()) as {
-      candidates?: Array<{ content?: { parts?: Array<{ text?: string }> } }>;
-    };
-    return body.candidates?.[0]?.content?.parts?.[0]?.text?.trim() || null;
-  } catch {
-    // A slow or unavailable provider falls through to the deterministic expert.
-    return null;
   }
+
+  return null;
 }
 
 function adviceMatches(
@@ -296,6 +308,12 @@ async function handlePost(request: Request): Promise<NextResponse> {
   }
 
   const text = toAsciiDigits(message).toLowerCase();
+  // Cards are a deliberate CTA, not decoration on every answer. Attach them
+  // only when the buyer asks for options, a shortlist, a comparison or parts.
+  const wantsListingSuggestions =
+    /پیشنهاد|گزینه|گزینه‌ها|لیست|کدام|چه (ماشین|خودرو|موتور|اسکوتر)|چی بخرم|بخرم|بودجه|ارزان|اقتصادی|زیر|تا \d|مقایسه|انتخاب|بهترین|option|recommend|suggest|which|compare|budget|under|best/i.test(
+      text,
+    );
 
   if (isAbusive(text)) {
     return NextResponse.json({
@@ -411,7 +429,7 @@ async function handlePost(request: Request): Promise<NextResponse> {
     await trackFaq('مشاوره خرید خودرو');
     return NextResponse.json({
       reply: llm ?? adviceAnswer(text, rows, english),
-      listings: pickListings(rows),
+      listings: wantsListingSuggestions ? pickListings(rows) : [],
       faqs: await topFaqTopics(),
       cta: {
         label: /موتور|اسکوتر|bike|scooter/.test(text)
@@ -468,8 +486,15 @@ async function handlePost(request: Request): Promise<NextResponse> {
   }
 
   if (budgetIRR !== null || /ارزان|budget|قیمت مناسب|اقتصادی/.test(text)) {
+    const wantsCar = /خودرو|ماشین|سواری|car|sedan|suv|vehicle/.test(text);
+    const wantsBike = /موتور|اسکوتر|bike|scooter/.test(text);
     const cars = active
       .filter((listing) => listing.kind !== 'part')
+      .filter((listing) => {
+        if (wantsCar) return listing.category === 'car';
+        if (wantsBike) return listing.category === 'motorcycle';
+        return true;
+      })
       .filter((listing) => (budgetIRR === null ? true : listing.priceIRR <= budgetIRR))
       .sort((a, b) => a.priceIRR - b.priceIRR)
       .slice(0, 3);
@@ -483,7 +508,7 @@ async function handlePost(request: Request): Promise<NextResponse> {
           : english
             ? EN.budgetNone
             : 'در این بودجه خودروی فعالی پیدا نکردم؛ بودجه را کمی بالاتر ببرید یا فیلترها را در صفحه‌ی خودروها ببینید.',
-      listings: pickListings(cars),
+      listings: wantsListingSuggestions ? pickListings(cars) : [],
       faqs: await topFaqTopics(),
       cta: {
         label: english ? 'Search vehicles by price' : 'جستجوی خودرو با فیلتر قیمت',
@@ -527,8 +552,11 @@ async function handlePost(request: Request): Promise<NextResponse> {
             : 'این مدل خاص در موجودی فعال امروز نیست و چیزی از خودم نمی‌سازم. نزدیک‌ترین گزینه‌های موجود در کاتالوگ را برایتان آورده‌ام؛ برند، بازه‌ی بودجه یا کاربری را هم بگویید تا دقیق‌تر محدود کنم.'
           : english
             ? EN.generic
-            : 'برای اینکه دقیق راهنمایی کنم، بودجه، کاربری (شهری، خانواده، آفرود یا مسافت بلند) و نوع پلاک را بگویید. تا آن موقع، تازه‌ترین آگهی‌های فعال کاتالوگ را ببینید.',
-    listings: pickListings(rows.length > 0 ? rows : active.slice(0, 3)),
+            : 'برای اینکه دقیق راهنمایی کنم، بودجه، کاربری (شهری، خانواده، آفرود یا مسافت بلند) و نوع پلاک را بگویید؛ با همین چند مورد، به‌جای ریختن کل کاتالوگ، چند گزینه‌ی دقیق را جدا می‌کنم.',
+    listings:
+      wantsListingSuggestions || namedModel
+        ? pickListings(rows.length > 0 ? rows : active.slice(0, 3))
+        : [],
     faqs: await topFaqTopics(),
     cta: { label: english ? 'All listings' : 'همه‌ی آگهی‌ها', href: '/' },
   });

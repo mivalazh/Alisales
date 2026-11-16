@@ -50,18 +50,19 @@ export function ListingRow({
 
   return (
     <li className="relative min-w-0 overflow-hidden rounded-card border border-line bg-card transition hover:border-line-strong hover:shadow-lg">
-      <Link href={`/listing/${listing.slug}`} className="flex items-stretch gap-3 p-3 sm:gap-4 sm:p-4">
-        <div className="relative h-20 w-24 shrink-0 overflow-hidden rounded-field bg-sunken">
+      <Link href={`/listing/${listing.slug}`} className="relative flex items-stretch gap-3 p-3 sm:gap-4 sm:p-4">
+        <div className="relative h-28 w-28 shrink-0 overflow-hidden rounded-xl bg-sunken sm:h-28 sm:w-32">
           {hasPhoto && listing.coverUrl ? (
             <Image
               src={listing.coverUrl}
               alt={part ? title : `${translateListingContentToEn(listing.model)} ${listing.year}`}
-              fill
+              width={128}
+              height={112}
               sizes="128px"
               unoptimized={isPreSizedSource(listing.coverUrl)}
               loading="lazy"
               decoding="async"
-              className={`object-cover ${sold ? 'opacity-60 grayscale' : ''}`}
+              className={`h-full w-full object-cover ${sold ? 'opacity-60 grayscale' : ''}`}
             />
           ) : (
             <div className="flex h-full w-full items-center justify-center text-faint">
@@ -131,15 +132,18 @@ export function ListingRow({
             )}
           </p>
 
-          <div className="mt-auto flex items-center justify-between gap-2">
+          <div className="mt-auto flex items-end justify-between gap-2 pe-16">
             <PriceText irr={listing.priceIRR} sold={sold} hideAed={listing.hideAed} />
-            <time dateTime={listing.publishedAt ?? undefined} className="text-xs text-faint">
-              {lang === 'en'
-                ? postingAgeEnglish(listing.publishedAt ?? Date.now())
-                : postingAgeLabel(listing.publishedAt ?? Date.now())}
-            </time>
           </div>
         </div>
+        <time
+          dateTime={listing.publishedAt ?? undefined}
+          className="absolute bottom-3 left-3 text-[11px] font-medium text-slate-400"
+        >
+          {lang === 'en'
+            ? postingAgeEnglish(listing.publishedAt ?? Date.now())
+            : postingAgeLabel(listing.publishedAt ?? Date.now())}
+        </time>
       </Link>
       <FavoriteButton
         slug={listing.slug}

@@ -1,6 +1,5 @@
 'use client';
 
-import Link from 'next/link';
 import { useRouter, useSearchParams } from 'next/navigation';
 import { useEffect, useState, type FormEvent } from 'react';
 import {
@@ -501,13 +500,6 @@ export function LoginForm() {
           >
             {t('رمز عبور خود را فراموش کرده‌اید؟', 'Forgot password?')}
           </button>
-
-          <Link
-            href="/profile/settings"
-            className="flex min-h-10 items-center justify-center text-center text-xs font-bold text-muted underline"
-          >
-            {t('تعیین یا تغییر رمز عبور', 'Set or change password')}
-          </Link>
           </form>
         )
       ) : step === 'phone' ? (
@@ -527,9 +519,6 @@ export function LoginForm() {
               placeholder="09123456789"
               required
             />
-            <p className="hint mt-1">
-              {t('ارقام فارسی یا انگلیسی، با یا بدون +98', 'Persian or Latin digits, with or without +98')}
-            </p>
           </div>
 
           {error && (

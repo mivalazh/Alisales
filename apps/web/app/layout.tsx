@@ -5,6 +5,7 @@ import './globals.css';
 import { Header } from '@/components/Header';
 import { AppFooter } from '@/components/AppFooter';
 import { BottomNav } from '@/components/BottomNav';
+import { AppSplashIntro } from '@/components/AppSplashIntro';
 import { DeferredAssistant } from '@/components/DeferredAssistant';
 import { AppRuntime } from '@/components/AppRuntime';
 import { themeBootstrapScript } from '@/components/ThemeToggle';
@@ -49,6 +50,9 @@ export async function generateMetadata(): Promise<Metadata> {
       ? 'New and used vehicle listings in Kish and across Iran, with a verified workshop inspection report.'
       : 'بازار آگهی خودروهای نو و کارکرده در جزیره کیش و سراسر ایران؛ همراه با گزارش بازرسی معتبر کارگاه.',
     applicationName: 'Ali Sales',
+    authors: [{ name: 'Mahsa Sadr', url: 'https://mivatech.ir' }],
+    creator: 'Mahsa Sadr / Miva Tech',
+    publisher: 'Miva Tech',
     manifest: '/manifest.webmanifest',
     appleWebApp: {
       capable: true,
@@ -102,11 +106,26 @@ export default async function RootLayout({ children }: { children: ReactNode }) 
   return (
     <html lang={lang} dir={lang === 'fa' ? 'rtl' : 'ltr'} suppressHydrationWarning>
       <head>
-        {/* Apply the stored theme before paint (no light flash) */}
+        {/* Even if the external stylesheet is slow or blocked, raw photos can
+            never render at their intrinsic full-screen size. */}
+        <style
+          dangerouslySetInnerHTML={{
+            __html: 'img,video{max-width:100%;height:auto}',
+          }}
+        />
+        {/* Apply the stored theme before paint (no light flash). */}
         <script dangerouslySetInnerHTML={{ __html: themeBootstrapScript }} />
+        {/* Repeat pages in the same session skip the launch overlay pre-paint. */}
+        <script
+          dangerouslySetInnerHTML={{
+            __html:
+              "try{if(sessionStorage.getItem('alisales-splash-seen'))document.documentElement.dataset.splashSeen='1'}catch(e){}",
+          }}
+        />
       </head>
       <body className="flex min-h-screen flex-col bg-page font-sans text-ink antialiased">
         <LocaleProvider initialLang={lang}>
+        <AppSplashIntro />
         <AppRuntime />
         <RateProvider rate={aedRate}>
           <PriceUnitProvider>
