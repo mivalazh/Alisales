@@ -3,9 +3,10 @@
 import Link from 'next/link';
 import { usePathname } from 'next/navigation';
 import { useEffect, useState, type ReactNode } from 'react';
-import { LOCKUP, logoSvgDocument, type IconName } from '@studio/design';
+import type { IconName } from '@studio/design';
 import { useI18n } from '@/lib/i18n';
 import { NAV_ITEMS, type NavItem } from '@/lib/nav';
+import { BrandLockup } from './BrandLockup';
 import { CitySelect } from './CitySelect';
 import { Icon } from './Icon';
 import { LogoutButton } from './LogoutButton';
@@ -202,15 +203,13 @@ export function Header({
           </div>
 
           <div className="ms-auto flex min-w-0 items-center gap-2">
-            {/* The lockup ships fixed 460×180 attributes; this box clips it to
-                the 36px header mark so a stylesheet hiccup can never let the
-                mark spill over the buttons on a narrow phone. */}
             <Link
               href="/"
               aria-label="Ali Sales — صفحه اصلی"
-              className="flex min-h-10 shrink-0 items-center overflow-hidden [&>svg]:h-9 [&>svg]:w-auto"
-              dangerouslySetInnerHTML={{ __html: logoSvgDocument(LOCKUP, 'Ali Sales') }}
-            />
+              className="flex min-h-10 shrink-0 items-center"
+            >
+              <BrandLockup />
+            </Link>
           </div>
         </div>
 

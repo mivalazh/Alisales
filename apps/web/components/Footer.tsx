@@ -2,6 +2,7 @@
 
 import Link from 'next/link';
 import { useI18n } from '@/lib/i18n';
+import { BrandLockup } from './BrandLockup';
 import { Icon } from './Icon';
 
 /**
@@ -142,7 +143,7 @@ export function SiteFooter() {
       <div className="mx-auto w-full max-w-[var(--content-max)] px-4 py-8 sm:px-6 sm:py-10">
         {/* Phone: compact identity + accordion */}
         <div className="sm:hidden">
-          <p className="text-base font-extrabold text-ink">Ali Sales</p>
+          <BrandLockup size="md" />
           <div className="mt-3">
             <FooterAccordion />
           </div>
@@ -151,7 +152,7 @@ export function SiteFooter() {
         {/* Tablet and up: the full four-column layout */}
         <div className="hidden gap-8 sm:grid lg:grid-cols-4">
           <div className="lg:col-span-1">
-            <p className="text-base font-extrabold text-ink">Ali Sales</p>
+            <BrandLockup size="md" />
           </div>
 
           <div className="grid grid-cols-2 gap-x-4 gap-y-6 sm:grid-cols-3 lg:col-span-3">
