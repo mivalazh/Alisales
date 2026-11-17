@@ -38,16 +38,26 @@ export interface CatalogContext {
 }
 
 /**
+ * A complete alternate filter surface. `/parts` uses this to render the same
+ * desktop sidebar and mobile drawer geometry as `/cars` while keeping its own
+ * category/origin/condition URL params.
+ */
+export interface CatalogFilterSlots {
+  activeCount: number;
+  sidebar: (ctx: CatalogContext) => ReactNode;
+  sheet: (props: { open: boolean; onClose: () => void }) => ReactNode;
+}
+
+/**
  * Catalog container — server renders the listings from the one search
  * implementation; this client shell owns the brand box, the filter system,
  * the story rail, sort/view UX and commits changes to the URL so the server
  * re-runs that same search.
  *
- * Reading order on every browse page: search → optional brand box or parts
- * strip → stories → one control bar (فیلترها, active filter chips, count,
- * sort, grid/list) → results. The condition quick-chips that used to float
- * above the rail are gone; the filters live in the bar exactly where the
- * buyer expects them, directly above the grid.
+ * Reading order on every browse page: search → optional brand box → stories →
+ * one control bar (فیلترها, active filter chips, count, sort, grid/list) →
+ * results. The filters live in the bar exactly where the buyer expects them,
+ * directly above the grid.
  *
  * `basePath` keeps the same controls on the dedicated category pages
  * (`/cars`, `/motorcycles`, `/heavy`, `/parts`): every commit pushes to that
@@ -65,11 +75,11 @@ export function Catalog({
   showCategories = true,
   showStories = true,
   searchPlaceholder,
-  filterStrip,
   brandBox,
   storiesLabel,
   pool,
   category,
+  filterSystem,
   sortBar: _sortBar = 'top',
 }: {
   listings: ListingCardData[];
@@ -83,11 +93,6 @@ export function Catalog({
   showCategories?: boolean;
   showStories?: boolean;
   searchPlaceholder?: string;
-  /**
-   * Category-specific filter strip (parts page). It replaces the generic
-   * filter system and receives the shared commit handles.
-   */
-  filterStrip?: (ctx: CatalogContext) => ReactNode;
   /** The brand/model box — vehicles only, above the filters. */
   brandBox?: (ctx: CatalogContext) => ReactNode;
   hideQuickChips?: boolean;
@@ -98,8 +103,10 @@ export function Catalog({
    * to the rendered listings, which is right on the home page.
    */
   pool?: ListingCardData[];
-  /** Enables the sidebar/sheet filter system for this vehicle category. */
+  /** Enables the built-in sidebar/sheet filter system for this vehicle category. */
   category?: VehicleCategory;
+  /** A custom sidebar/sheet pair, currently used by the parts catalog. */
+  filterSystem?: CatalogFilterSlots;
   /** Kept for page compatibility; the redundant heading is no longer shown. */
   heading?: string;
   sortBar?: 'top' | 'bottom';
@@ -108,7 +115,6 @@ export function Catalog({
   const { t } = useI18n();
   const [panelOpen, setPanelOpen] = useState(false);
   const [sheetOpen, setSheetOpen] = useState(false);
-  const [filterStripOpen, setFilterStripOpen] = useState(false);
   const [view, setView] = useState<ViewMode>('grid');
   const [isPending, startTransition] = useTransition();
   const showPending = useDelayedBusy(isPending);
@@ -175,34 +181,35 @@ export function Catalog({
     </button>
   );
 
-  /** Parts has its own strip: one trigger opens that same panel, never a copy. */
-  const partsFilterButton = filterStrip ? (
+  const customFilterButton = filterSystem ? (
     <button
       type="button"
-      onClick={() => setFilterStripOpen((open) => !open)}
-      aria-expanded={filterStripOpen}
-      aria-controls="catalog-filter-strip"
+      onClick={() => setSheetOpen(true)}
+      aria-expanded={sheetOpen}
       className="flex min-h-9 shrink-0 items-center gap-1.5 rounded-[var(--radius-pill)] border border-line bg-card px-2.5 py-1.5 text-[11px] font-extrabold text-ink transition hover:border-line-strong sm:min-h-10 sm:px-3 sm:py-2 sm:text-xs lg:hidden"
     >
       <Icon name="sliders" size={15} />
       {t('فیلترها', 'Filters')}
-      <Icon
-        name="chevronDown"
-        size={14}
-        className={`text-faint transition-transform ${filterStripOpen ? 'rotate-180' : ''}`}
-      />
+      {filterSystem.activeCount > 0 && (
+        <span className="flex h-4 min-w-4 items-center justify-center rounded-full bg-cta px-1 text-[10px] font-extrabold text-[color:var(--color-text-on-accent)]">
+          {filterSystem.activeCount}
+        </span>
+      )}
     </button>
   ) : null;
 
   return (
     <div className="space-y-4">
       {showPending && (
-        <div className="pointer-events-none fixed inset-x-0 top-20 z-30 flex justify-center" role="status" aria-label={t('در حال به‌روزرسانی نتایج', 'Updating results')}>
-          <span className="rounded-full border border-line bg-card/95 px-4 py-2 shadow-lg backdrop-blur">
-            <CarLoader size="sm" label={t('در حال به‌روزرسانی نتایج', 'Updating results')} />
-          </span>
+        <div
+          className="pointer-events-none fixed inset-0 z-30 flex items-center justify-center"
+          role="status"
+          aria-label={t('در حال به‌روزرسانی نتایج', 'Updating results')}
+        >
+          <CarLoader size="md" label={t('در حال به‌روزرسانی نتایج', 'Updating results')} />
         </div>
       )}
+
       {/* A pick from the suggestion panel is a fresh search: it replaces the
           filters instead of stacking another brand on top of them. */}
       <SearchBar
@@ -231,25 +238,14 @@ export function Catalog({
             onChange={(next) => commit(next, sort)}
           />
         )}
-        {!category && !filterStrip && genericFilterButton}
-        {partsFilterButton}
+        {!category && !filterSystem && genericFilterButton}
+        {customFilterButton}
 
         <div className="ms-auto flex min-w-0 shrink-0 items-center gap-2">
           <SortControl value={sort} onChange={(key) => commit(filters, key)} />
           <ViewModeToggle value={view} onChange={changeView} />
         </div>
       </div>
-
-      {filterStrip && (
-        <div
-          id="catalog-filter-strip"
-          className={`${category ? 'lg:hidden' : ''} ${
-            filterStripOpen ? 'block' : 'hidden lg:block'
-          }`}
-        >
-          {filterStrip(ctx)}
-        </div>
-      )}
 
       {/* Active filter chips get their own wrapping row below the control bar.
           Keeping them out of the sort box means a long chip list can never
@@ -268,15 +264,19 @@ export function Catalog({
         />
       )}
 
-      {category ? (
+      {category || filterSystem ? (
         <div className="flex flex-col gap-4 lg:flex-row lg:items-start">
-          <FilterSidebar
-            category={category}
-            filters={filters}
-            onChange={(next) => commit(next, sort)}
-            onClear={() => commit({ ...DEFAULT_FILTERS, q: filters.q }, sort)}
-            pool={filterPool}
-          />
+          {filterSystem ? (
+            filterSystem.sidebar(ctx)
+          ) : (
+            <FilterSidebar
+              category={category!}
+              filters={filters}
+              onChange={(next) => commit(next, sort)}
+              onClear={() => commit({ ...DEFAULT_FILTERS, q: filters.q }, sort)}
+              pool={filterPool}
+            />
+          )}
           <div className="min-w-0 flex-1">
             <ListingGrid listings={sortedListings} view={view} />
           </div>
@@ -287,20 +287,25 @@ export function Catalog({
 
       <EndOfFeed count={sortedListings.length} />
 
-      {category && (
-        <FilterSheet
-          open={sheetOpen}
-          category={category}
-          filters={filters}
-          pool={filterPool}
-          onApply={(next) => {
-            commit(next, sort);
-            setSheetOpen(false);
-          }}
-          onClear={() => commit({ ...DEFAULT_FILTERS, q: filters.q }, sort)}
-          onClose={() => setSheetOpen(false)}
-        />
-      )}
+      {filterSystem
+        ? filterSystem.sheet({
+            open: sheetOpen,
+            onClose: () => setSheetOpen(false),
+          })
+        : category && (
+            <FilterSheet
+              open={sheetOpen}
+              category={category}
+              filters={filters}
+              pool={filterPool}
+              onApply={(next) => {
+                commit(next, sort);
+                setSheetOpen(false);
+              }}
+              onClear={() => commit({ ...DEFAULT_FILTERS, q: filters.q }, sort)}
+              onClose={() => setSheetOpen(false)}
+            />
+          )}
     </div>
   );
 }

@@ -36,7 +36,7 @@ export default async function SettingsPage() {
     <div className="space-y-4">
       <div className="flex items-center justify-between gap-2">
         <h1 className="text-xl font-extrabold">{t('تنظیمات حساب', 'Account settings')}</h1>
-        <Link href="/profile" className="inline-flex min-h-10 items-center text-xs font-bold text-muted underline">
+        <Link href="/profile" className="inline-flex min-h-9 items-center rounded-full border border-line bg-card px-3 py-1.5 text-xs font-bold text-ink transition hover:border-line-strong">
           {t('بازگشت به پروفایل', 'Back to profile')}
         </Link>
       </div>

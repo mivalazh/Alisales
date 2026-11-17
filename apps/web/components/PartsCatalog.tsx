@@ -4,15 +4,19 @@ import type { SearchFilters } from '@alisales/schemas';
 import type { ListingCardData } from '@/lib/data/listings';
 import type { SortKey } from '@/lib/sort';
 import { Catalog } from './Catalog';
-import { PartFilterBar } from './PartFilterBar';
+import {
+  PartsFilterSheet,
+  PartsFilterSidebar,
+  activePartFilterCount,
+  type PartFilterValues,
+} from './PartFilterBar';
 import type { StoryItem } from './Stories';
 import { useI18n } from '@/lib/i18n';
 
 /**
- * Client shell for the parts page: the spare-parts strip needs its own URL
- * params (category / origin / warranty / compatibility) and the catalog's
- * filter commit, so the wiring lives on the client while the page keeps doing
- * the server-side search, scoping and metadata.
+ * Client shell for the parts page: category / origin / warranty / compatibility
+ * live in their own URL params, so they are passed into the shared catalog
+ * filter slots rather than rendered as a horizontal strip.
  */
 export function PartsCatalog({
   listings,
@@ -38,6 +42,14 @@ export function PartsCatalog({
   condition: string | null;
 }) {
   const { t } = useI18n();
+  const partValues: PartFilterValues = {
+    category,
+    origin,
+    warranty,
+    compatibility,
+    condition,
+  };
+
   return (
     <Catalog
       listings={listings}
@@ -55,18 +67,18 @@ export function PartsCatalog({
         'جستجوی قطعه، شماره فنی یا نام خودرو...',
         'Search parts, part numbers or vehicle models...',
       )}
-      filterStrip={({ filters: current, commitFilters }) => (
-        <PartFilterBar
-          basePath="/parts"
-          category={category}
-          origin={origin}
-          warranty={warranty}
-          compatibility={compatibility}
-          condition={condition}
-          filters={current}
-          onChange={commitFilters}
-        />
-      )}
+      filterSystem={{
+        activeCount: activePartFilterCount(partValues),
+        sidebar: () => <PartsFilterSidebar basePath="/parts" value={partValues} />,
+        sheet: ({ open, onClose }) => (
+          <PartsFilterSheet
+            open={open}
+            basePath="/parts"
+            value={partValues}
+            onClose={onClose}
+          />
+        ),
+      }}
     />
   );
 }

@@ -36,7 +36,7 @@ Rules locked by tests (`packages/design/tests/tokens.test.ts`):
 - Tokens live in `tokens.ts` ⇄ `tokens.css` (parity-tested); badges keep fixed
   semantic colors; all text pairs pass WCAG AA.
 - Motion stays minimal: bottom sheets 250 ms, press feedback only, 44 px minimum
-  touch targets, photos 4:3 with lazy loading + skeleton placeholders.
+  touch targets, photos 4:3 with lazy loading and a single centered orange route loader.
 
 ## Brand assets (SVG)
 

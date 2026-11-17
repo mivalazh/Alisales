@@ -162,7 +162,7 @@ export default async function HomePage({
           <span className="rounded-[var(--radius-pill)] border border-cta bg-cta-soft px-3 py-1.5 text-xs font-extrabold text-ink">
             {groupLabel ?? kindLabel}
           </span>
-          <Link href="/" className="inline-flex min-h-10 items-center text-xs font-bold text-muted underline">
+          <Link href="/" className="inline-flex min-h-9 items-center rounded-full border border-line bg-card px-3 py-1.5 text-xs font-bold text-ink transition hover:border-line-strong">
             {t('حذف دسته‌بندی', 'Clear category')}
           </Link>
         </div>

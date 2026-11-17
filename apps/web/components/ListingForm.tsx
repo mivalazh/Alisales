@@ -551,14 +551,14 @@ function InspectionSheetField({
               href={value}
               target="_blank"
               rel="noreferrer"
-              className="inline-flex min-h-10 items-center text-xs font-bold text-cta underline"
+              className="inline-flex min-h-9 items-center rounded-full bg-cta-soft px-3 py-1.5 text-xs font-extrabold text-ink"
             >
               {t('مشاهده برگه', 'View sheet')}
             </a>
             <button
               type="button"
               onClick={() => onChange('')}
-              className="text-xs font-bold text-muted underline"
+              className="rounded-full border border-line px-3 py-1.5 text-xs font-bold text-muted transition hover:border-line-strong hover:text-ink"
             >
               {t('حذف', 'Remove')}
             </button>

@@ -1,6 +1,13 @@
-import { ChatThreadSkeleton } from '@/components/ChatThread';
+import { CarLoader } from '@/components/CarLoader';
 
-/** Route-level loading state: the messenger's own skeleton, not a spinner. */
 export default function ChatLoading() {
-  return <ChatThreadSkeleton />;
+  return (
+    <div
+      className="flex min-h-[calc(100dvh-14rem)] items-center justify-center"
+      aria-busy="true"
+      aria-label="Loading chat"
+    >
+      <CarLoader size="lg" label="Loading chat" />
+    </div>
+  );
 }

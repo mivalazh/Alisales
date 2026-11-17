@@ -56,7 +56,7 @@ export default async function OwnerStatsPage({
     <div className="space-y-4">
       <div className="flex flex-wrap items-center justify-between gap-2">
         <h1 className="text-xl font-extrabold">{t('آمار آگهی‌ها', 'Listing analytics')}</h1>
-        <Link href="/profile" className="inline-flex min-h-10 items-center text-xs font-bold text-muted underline">
+        <Link href="/profile" className="inline-flex min-h-9 items-center rounded-full border border-line bg-card px-3 py-1.5 text-xs font-bold text-ink transition hover:border-line-strong">
           {t('بازگشت به پروفایل', 'Back to profile')}
         </Link>
       </div>
@@ -119,7 +119,7 @@ export default async function OwnerStatsPage({
                 return (
                   <tr key={row.listingId} className="border-b border-line last:border-0">
                     <td className="p-3">
-                      <Link href={`/listing/${listing?.slug ?? ''}`} className="font-bold underline">
+                      <Link href={`/listing/${listing?.slug ?? ''}`} className="font-bold text-ink transition hover:text-cta">
                         {listing
                           ? listing.part
                             ? listing.part.title

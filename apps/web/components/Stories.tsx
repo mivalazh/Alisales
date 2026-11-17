@@ -509,19 +509,3 @@ function StoryTile({ story, onOpen }: { story: StoryItem; onOpen: () => void }) 
     </li>
   );
 }
-
-/** Skeleton rail for a loading category page (same geometry as the real one). */
-export function StoriesSkeleton({ count = 6 }: { count?: number }) {
-  return (
-    <section aria-hidden className="rounded-card border border-line bg-card p-3 sm:p-4">
-      <ul className="flex items-start gap-3 overflow-hidden">
-        {Array.from({ length: count }, (_, i) => (
-          <li key={i} className="flex w-[80px] shrink-0 flex-col items-center gap-1.5">
-            <span className="h-[72px] w-[72px] animate-pulse rounded-full bg-line" />
-            <span className="h-2.5 w-14 animate-pulse rounded bg-line" />
-          </li>
-        ))}
-      </ul>
-    </section>
-  );
-}

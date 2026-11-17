@@ -3,7 +3,6 @@
 import { useEffect, useRef, useState, type ReactNode } from 'react';
 import {
   BIKE_TYPES,
-  CITY_LABELS,
   CONDITION_LABELS,
   FUEL_LABELS,
   GEARBOX_LABELS,
@@ -24,7 +23,6 @@ import {
   paintConditions,
   irrToToman,
   plateTypes,
-  selectableCities,
   toAsciiDigits,
   tomanToIRR,
   pickYearRange,
@@ -90,7 +88,7 @@ function Group({
   );
 }
 
-function CheckOption({
+function PillOption({
   checked,
   label,
   count,
@@ -102,17 +100,28 @@ function CheckOption({
   onToggle: () => void;
 }) {
   return (
-    <label className="flex min-h-10 cursor-pointer items-center gap-2 rounded-field py-1 text-sm font-semibold text-muted transition hover:text-ink">
-      <input
-        type="checkbox"
-        checked={checked}
-        onChange={onToggle}
-        className="size-4 accent-[var(--color-accent)]"
-      />
-      <span className="flex-1">{label}</span>
-      {count !== undefined && <span className="text-[11px] tabular-nums text-faint">{count}</span>}
-    </label>
+    <button
+      type="button"
+      aria-pressed={checked}
+      onClick={onToggle}
+      className={`inline-flex min-h-9 items-center gap-1 rounded-full border px-3 py-1.5 text-xs transition active:scale-[0.98] ${
+        checked
+          ? 'border-[#F98513] bg-[#F98513] font-bold text-white shadow-xs'
+          : 'border-slate-200/80 bg-[#F4F1EC] font-medium text-slate-700 hover:border-slate-300 dark:border-white/10 dark:bg-white/5 dark:text-slate-200 dark:hover:border-white/20'
+      }`}
+    >
+      <span>{label}</span>
+      {count !== undefined && (
+        <span className={`text-[10px] tabular-nums ${checked ? 'text-white/80' : 'text-slate-400'}`}>
+          {count}
+        </span>
+      )}
+    </button>
   );
+}
+
+function PillGroup({ children }: { children: ReactNode }) {
+  return <div className="mt-2 flex flex-wrap gap-1.5">{children}</div>;
 }
 
 const GRID_YEARS = VEHICLE_YEARS.filter((year) => year <= 2026 && year >= 1995);
@@ -250,7 +259,7 @@ function YearGrid({
               <button
                 type="button"
                 onClick={reset}
-                className="inline-flex min-h-10 shrink-0 items-center px-2 text-[10px] font-bold text-cta underline"
+                className="inline-flex min-h-9 shrink-0 items-center rounded-full bg-cta-soft px-2.5 py-1 text-[10px] font-extrabold text-ink"
               >
                 {t('پاک کردن', 'Clear')}
               </button>
@@ -500,9 +509,9 @@ export function FilterGroups({
           placeholder={t('جستجوی برند…', 'Search brands...')}
           aria-label={t('جستجوی برند در فیلتر', 'Search brands in filters')}
         />
-        <div className="mt-1">
+        <PillGroup>
           {visibleBrands.map((brand) => (
-            <CheckOption
+            <PillOption
               key={brand.slug}
               checked={filters.brand.includes(brand.slug as SearchFilters['brand'][number])}
               label={t(brand.label)}
@@ -517,12 +526,12 @@ export function FilterGroups({
               }
             />
           ))}
-        </div>
+        </PillGroup>
         {!q && brands.length > 8 && (
           <button
             type="button"
             onClick={() => setShowAllBrands((v) => !v)}
-            className="mt-1 inline-flex min-h-10 items-center text-[11px] font-bold text-cta underline"
+            className="mt-2 inline-flex min-h-9 items-center rounded-full border border-line bg-card px-3 py-1.5 text-[11px] font-bold text-ink transition hover:border-cta hover:text-cta"
           >
             {showAllBrands
               ? t('نمایش کمتر', 'Show less')
@@ -545,8 +554,9 @@ export function FilterGroups({
 
       {category === 'motorcycle' && (
         <Group title={t('نوع موتور', 'Bike type')} open>
+          <PillGroup>
           {BIKE_TYPES.map((type) => (
-            <CheckOption
+            <PillOption
               key={type.key}
               checked={filters.bikeType.includes(type.key as SearchFilters['bikeType'][number])}
               label={t(type.label)}
@@ -561,13 +571,15 @@ export function FilterGroups({
               }
             />
           ))}
+          </PillGroup>
         </Group>
       )}
 
       {category === 'heavy' && (
         <Group title={t('نوع ماشین‌آلات', 'Machinery type')} open>
+          <PillGroup>
           {HEAVY_TYPES.map((type) => (
-            <CheckOption
+            <PillOption
               key={type.key}
               checked={filters.heavyType.includes(type.key as SearchFilters['heavyType'][number])}
               label={t(type.label)}
@@ -585,12 +597,14 @@ export function FilterGroups({
               }
             />
           ))}
+          </PillGroup>
         </Group>
       )}
 
       <Group title={t('وضعیت خودرو', 'Vehicle condition')} open>
+        <PillGroup>
         {conditions.map((condition) => (
-          <CheckOption
+          <PillOption
             key={condition}
             checked={filters.condition.includes(condition)}
             label={t(CONDITION_LABELS[condition])}
@@ -598,12 +612,14 @@ export function FilterGroups({
             onToggle={() => set({ condition: toggle(filters.condition, condition) })}
           />
         ))}
+        </PillGroup>
       </Group>
 
       {/* Declared condition groups — the same values the seller fills on /new. */}
       <Group title={t('بیمه شخص ثالث و بدنه', 'Insurance')}>
+        <PillGroup>
         {insuranceKinds.map((kind) => (
-          <CheckOption
+          <PillOption
             key={kind}
             checked={filters.insurance.includes(kind)}
             label={t(`${INSURANCE_KIND_LABELS[kind]} دارد`, `${t(INSURANCE_KIND_LABELS[kind])} included`)}
@@ -611,11 +627,13 @@ export function FilterGroups({
             onToggle={() => set({ insurance: toggle(filters.insurance, kind) })}
           />
         ))}
+        </PillGroup>
       </Group>
 
       <Group title={t('وضعیت رنگ و بدنه', 'Paint & body')}>
+        <PillGroup>
         {paintConditions.map((paint) => (
-          <CheckOption
+          <PillOption
             key={paint}
             checked={filters.paintCondition.includes(paint)}
             label={t(PAINT_CONDITION_LABELS[paint])}
@@ -623,11 +641,13 @@ export function FilterGroups({
             onToggle={() => set({ paintCondition: toggle(filters.paintCondition, paint) })}
           />
         ))}
+        </PillGroup>
       </Group>
 
       <Group title={t('وضعیت شاسی', 'Chassis condition')}>
+        <PillGroup>
         {chassisConditions.map((chassis) => (
-          <CheckOption
+          <PillOption
             key={chassis}
             checked={filters.chassisCondition.includes(chassis)}
             label={t(CHASSIS_CONDITION_LABELS[chassis])}
@@ -635,16 +655,18 @@ export function FilterGroups({
             onToggle={() => set({ chassisCondition: toggle(filters.chassisCondition, chassis) })}
           />
         ))}
+        </PillGroup>
       </Group>
 
       <Group title={t('معاینه فنی / برگه کارشناسی', 'Technical inspection')}>
+        <PillGroup>
         {(
           [
             { key: 'yes' as const, label: 'دارد' },
             { key: 'no' as const, label: 'ندارد' },
           ]
         ).map((option) => (
-          <CheckOption
+          <PillOption
             key={option.key}
             checked={filters.technicalInspection === option.key}
             label={t(option.label)}
@@ -656,11 +678,13 @@ export function FilterGroups({
             }
           />
         ))}
+        </PillGroup>
       </Group>
 
       <Group title={t('گیربکس', 'Gearbox')}>
+        <PillGroup>
         {gearboxTypes.map((gearbox) => (
-          <CheckOption
+          <PillOption
             key={gearbox}
             checked={filters.gearbox.includes(gearbox)}
             label={t(GEARBOX_LABELS[gearbox])}
@@ -668,11 +692,13 @@ export function FilterGroups({
             onToggle={() => set({ gearbox: toggle(filters.gearbox, gearbox) })}
           />
         ))}
+        </PillGroup>
       </Group>
 
       <Group title={t('سوخت', 'Fuel')}>
+        <PillGroup>
         {fuelTypes.map((fuel) => (
-          <CheckOption
+          <PillOption
             key={fuel}
             checked={filters.fuel.includes(fuel)}
             label={t(FUEL_LABELS[fuel])}
@@ -680,11 +706,13 @@ export function FilterGroups({
             onToggle={() => set({ fuel: toggle(filters.fuel, fuel) })}
           />
         ))}
+        </PillGroup>
       </Group>
 
       <Group title={t('وضعیت پلاک', 'Plate status')}>
+        <PillGroup>
         {plateTypes.map((plate) => (
-          <CheckOption
+          <PillOption
             key={plate}
             checked={filters.plateType.includes(plate)}
             label={t(PLATE_TYPE_LABELS[plate])}
@@ -692,32 +720,7 @@ export function FilterGroups({
             onToggle={() => set({ plateType: toggle(filters.plateType, plate) })}
           />
         ))}
-      </Group>
-
-      <Group title={t('شهر', 'City')}>
-        {selectableCities().map((city) => (
-          <CheckOption
-            key={city.slug}
-            checked={filters.city.includes(city.slug as SearchFilters['city'][number])}
-            label={t(CITY_LABELS[city.slug] ?? city.label)}
-            onToggle={() =>
-              set({ city: toggle(filters.city, city.slug as SearchFilters['city'][number]) })
-            }
-          />
-        ))}
-      </Group>
-
-      <Group title={t('سایر', 'Other')}>
-        <CheckOption
-          checked={filters.hasReport}
-          label={t('دارای گزارش بازرسی', 'Has inspection report')}
-          onToggle={() => set({ hasReport: !filters.hasReport })}
-        />
-        <CheckOption
-          checked={filters.kishOnly}
-          label={t('فقط پلاک منطقه آزاد', 'Free-zone plate only')}
-          onToggle={() => set({ kishOnly: !filters.kishOnly })}
-        />
+        </PillGroup>
       </Group>
     </div>
   );
@@ -741,24 +744,26 @@ export function FilterSidebar({
   const count = countMatches(pool, filters);
   return (
     <aside className="hidden lg:block lg:w-72 lg:shrink-0">
-      <div className="sticky top-24 max-h-[calc(100vh-7rem)] overflow-y-auto rounded-card border border-line bg-card p-3">
+      <div className="sticky top-[calc(7.75rem+env(safe-area-inset-top))] max-h-[calc(100dvh-9rem-env(safe-area-inset-top))] overflow-y-auto rounded-card border border-line bg-card p-3">
         <div className="flex items-center justify-between gap-2 border-b border-line pb-2">
           <h2 className="flex items-center gap-1.5 text-sm font-extrabold">
             <Icon name="sliders" size={16} className="text-cta" />
             {t('فیلترها', 'Filters')}
           </h2>
-          <span className="rounded-[var(--radius-pill)] bg-cta-soft px-2 py-0.5 text-[11px] font-extrabold text-ink">
-            {count} {t('آگهی', 'ads')}
-          </span>
+          <div className="flex items-center gap-1.5">
+            <button
+              type="button"
+              onClick={onClear}
+              className="rounded-full bg-cta-soft px-2.5 py-1 text-[10px] font-extrabold text-ink transition hover:bg-cta hover:text-white"
+            >
+              {t('پاک کردن همه', 'Clear all')}
+            </button>
+            <span className="rounded-[var(--radius-pill)] bg-cta-soft px-2 py-0.5 text-[11px] font-extrabold text-ink">
+              {count} {t('آگهی', 'ads')}
+            </span>
+          </div>
         </div>
         <FilterGroups category={category} filters={filters} onChange={onChange} pool={pool} />
-        <button
-          type="button"
-          onClick={onClear}
-          className="mt-2 min-h-10 w-full rounded-field border border-line py-2 text-xs font-bold text-muted transition hover:border-line-strong hover:text-ink"
-        >
-          {t('پاک کردن همه', 'Clear all')}
-        </button>
       </div>
     </aside>
   );
@@ -806,6 +811,36 @@ export function FilterSheet({
   if (!open) return null;
   const count = countMatches(pool, draft);
 
+  const clearDraft = () =>
+    setDraft((current) => ({
+      ...current,
+      brand: [],
+      model: '',
+      trim: '',
+      yearFrom: undefined,
+      yearTo: undefined,
+      priceFrom: undefined,
+      priceTo: undefined,
+      mileageMin: undefined,
+      mileageMax: undefined,
+      insurance: [],
+      paintCondition: [],
+      chassisCondition: [],
+      technicalInspection: undefined,
+      gearbox: [],
+      fuel: [],
+      plateType: [],
+      condition: [],
+      city: [],
+      engineCcMin: undefined,
+      engineCcMax: undefined,
+      bikeType: [],
+      heavyType: [],
+      workingHoursMax: undefined,
+      hasReport: false,
+      kishOnly: false,
+    }));
+
   return (
     <div
       role="dialog"
@@ -818,13 +853,23 @@ export function FilterSheet({
         className="flex h-[100dvh] w-[calc(100vw-1.5rem)] max-w-[340px] flex-col overflow-hidden border-e border-line bg-[#F4F1EC] shadow-2xl dark:bg-[#0B0D1E]"
         onClick={(e) => e.stopPropagation()}
       >
-        <div className="flex items-center justify-between border-b border-line px-4 py-3">
+        <div className="flex items-center gap-2 border-b border-line px-4 pt-[max(0.875rem,env(safe-area-inset-top))] pb-3">
           <h2 className="text-sm font-extrabold">{t('فیلترها', 'Filters')}</h2>
+          <button
+            type="button"
+            onClick={() => {
+              clearDraft();
+              onClear();
+            }}
+            className="ms-auto rounded-full bg-cta-soft px-2.5 py-1 text-[10px] font-extrabold text-ink transition hover:bg-cta hover:text-white"
+          >
+            {t('پاک کردن همه', 'Clear all')}
+          </button>
           <button
             type="button"
             onClick={onClose}
             aria-label={t('بستن فیلترها', 'Close filters')}
-            className="flex h-10 w-10 items-center justify-center rounded-full text-muted transition hover:bg-cta-soft hover:text-ink"
+            className="flex h-10 w-10 items-center justify-center rounded-full bg-slate-200/70 text-ink transition hover:bg-slate-300/80 dark:bg-white/10"
           >
             <Icon name="close" size={18} />
           </button>
@@ -845,45 +890,8 @@ export function FilterSheet({
         >
           <button
             type="button"
-            onClick={() => {
-              setDraft((current) => ({
-                ...current,
-                brand: [],
-                model: '',
-                trim: '',
-                yearFrom: undefined,
-                yearTo: undefined,
-                priceFrom: undefined,
-                priceTo: undefined,
-                mileageMin: undefined,
-                mileageMax: undefined,
-                insurance: [],
-                paintCondition: [],
-                chassisCondition: [],
-                technicalInspection: undefined,
-                gearbox: [],
-                fuel: [],
-                plateType: [],
-                condition: [],
-                city: [],
-                engineCcMin: undefined,
-                engineCcMax: undefined,
-                bikeType: [],
-                heavyType: [],
-                workingHoursMax: undefined,
-                hasReport: false,
-                kishOnly: false,
-              }));
-              onClear();
-            }}
-            className="inline-flex min-h-10 items-center text-xs font-bold text-muted underline"
-          >
-            {t('پاک کردن همه', 'Clear all')}
-          </button>
-          <button
-            type="button"
             onClick={() => onApply(draft)}
-            className="btn-cta ms-auto text-sm"
+            className="btn-cta w-full text-sm"
           >
             {t(`نمایش ${count} آگهی`, `Show ${count} ads`)}
           </button>

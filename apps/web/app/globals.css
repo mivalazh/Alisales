@@ -103,33 +103,6 @@
   }
 }
 
-@keyframes skeleton-shimmer {
-  from {
-    background-position: 100% 0;
-  }
-  to {
-    background-position: -100% 0;
-  }
-}
-
-@layer utilities {
-  .skeleton {
-    background-image: linear-gradient(
-      90deg,
-      var(--color-surface-sunken) 25%,
-      var(--color-border-subtle) 37%,
-      var(--color-surface-sunken) 63%
-    );
-    background-size: 200% 100%;
-    animation: skeleton-shimmer 1.4s ease-in-out infinite;
-  }
-
-  @media (prefers-reduced-motion: reduce) {
-    .skeleton {
-      animation: none;
-    }
-  }
-}
 
 @layer components {
   /* Shared form control — RTL-safe, 44px touch target (design --touch-min). */
@@ -364,9 +337,6 @@ html.app-standalone {
 
 html.app-standalone body {
   overscroll-behavior-y: contain;
-  /* black-translucent draws the page under the status bar; the header still
-     starts below the notch so no control sits under the clock. */
-  padding-top: env(safe-area-inset-top);
 }
 
 html.app-standalone::before {
@@ -530,25 +500,97 @@ html[data-splash-seen] .app-splash {
   opacity: 0;
   pointer-events: none;
 }
+.app-splash-stage {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 18px;
+}
 .app-splash-mark {
   animation: splash-mark-in 520ms cubic-bezier(0.22, 1, 0.36, 1) both;
+  filter: drop-shadow(0 12px 24px rgb(249 133 19 / 0.22));
+}
+.app-splash-path {
+  transform-box: fill-box;
+  transform-origin: center;
+}
+.app-splash-path-1 {
+  clip-path: inset(0 0 100% 0);
+  animation: splash-path-reveal 430ms cubic-bezier(0.22, 1, 0.36, 1) 40ms both;
+}
+.app-splash-path-2,
+.app-splash-path-3 {
+  clip-path: inset(0 100% 0 0);
+  animation: splash-swoosh-in 420ms cubic-bezier(0.22, 1, 0.36, 1) 150ms both;
+}
+.app-splash-path-3 {
+  animation-delay: 220ms;
+}
+.app-splash-wordmark {
+  position: relative;
+  display: inline-flex;
+  align-items: baseline;
+  gap: 8px;
+  color: var(--logo-navy);
+  font-size: 22px;
+  font-weight: 900;
+  letter-spacing: 0.16em;
+  line-height: 1;
+  padding-bottom: 8px;
 }
 .app-splash-word {
-  display: inline-block;
-  animation: splash-word-in 300ms ease-out both;
+  display: inline-flex;
+  align-items: baseline;
+  white-space: nowrap;
 }
-.app-splash-word:nth-child(2) {
-  animation-delay: 180ms;
+.app-splash-word-ali {
+  color: var(--logo-navy);
+}
+.app-splash-word-sales {
+  color: var(--logo-sales);
+}
+.app-splash-letter {
+  display: inline-block;
+  opacity: 0;
+  transform: translateY(10px) scale(0.92);
+  animation: splash-letter-in 260ms cubic-bezier(0.22, 1, 0.36, 1) both;
+}
+.app-splash-underline {
+  position: absolute;
+  inset-inline: 0;
+  bottom: 0;
+  height: 2px;
+  border-radius: 999px;
+  background: linear-gradient(90deg, #f98513, #f34405 70%, transparent);
+  transform-origin: left center;
+  animation: splash-underline-in 300ms cubic-bezier(0.22, 1, 0.36, 1) 300ms both;
 }
 @keyframes splash-mark-in {
   from { opacity: 0; transform: scale(0.72) rotate(-4deg); }
   to { opacity: 1; transform: scale(1) rotate(0); }
 }
-@keyframes splash-word-in {
-  from { opacity: 0; transform: translateY(7px); }
-  to { opacity: 1; transform: translateY(0); }
+@keyframes splash-path-reveal {
+  from { clip-path: inset(0 0 100% 0); }
+  to { clip-path: inset(0 0 0 0); }
+}
+@keyframes splash-swoosh-in {
+  from { opacity: 0; clip-path: inset(0 100% 0 0); transform: translateX(-8px); }
+  to { opacity: 1; clip-path: inset(0 0 0 0); transform: translateX(0); }
+}
+@keyframes splash-letter-in {
+  from { opacity: 0; transform: translateY(10px) scale(0.92); }
+  to { opacity: 1; transform: translateY(0) scale(1); }
+}
+@keyframes splash-underline-in {
+  from { transform: scaleX(0); }
+  to { transform: scaleX(1); }
 }
 @media (prefers-reduced-motion: reduce) {
-  .app-splash-mark, .app-splash-word { animation: none; }
+  .app-splash-mark, .app-splash-path, .app-splash-letter, .app-splash-underline {
+    animation: none;
+  }
+  .app-splash-letter { opacity: 1; transform: none; }
+  .app-splash-path { clip-path: none; }
+  .app-splash-underline { transform: none; }
   .app-splash { transition: none; }
 }

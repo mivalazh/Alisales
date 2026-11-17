@@ -593,27 +593,3 @@ function buildBlocks(messages: ThreadMessage[], lang: 'fa' | 'en'): Block[] {
   }
   return blocks;
 }
-
-/** Loading state for the chat route: skeleton header, context card and bubbles. */
-export function ChatThreadSkeleton() {
-  return (
-    <div className="mx-auto flex h-[calc(100dvh-10rem)] max-w-2xl flex-col sm:h-[calc(100dvh-9rem)]">
-      <div className="flex items-center gap-2 border-b border-line bg-card p-2">
-        <span className="skeleton h-9 w-9 rounded-full" />
-        <span className="skeleton h-10 w-10 rounded-full" />
-        <div className="flex-1 space-y-1.5">
-          <span className="skeleton block h-3 w-28" />
-          <span className="skeleton block h-2.5 w-20" />
-        </div>
-      </div>
-      <div className="skeleton mt-2 h-16 rounded-xl" />
-      <div className="mt-2 flex flex-1 flex-col gap-2 p-2">
-        <span className="skeleton h-8 w-2/3 self-end rounded-2xl" />
-        <span className="skeleton h-10 w-1/2 self-start rounded-2xl" />
-        <span className="skeleton h-8 w-3/5 self-end rounded-2xl" />
-        <span className="skeleton h-12 w-2/3 self-start rounded-2xl" />
-      </div>
-      <div className="skeleton mt-2 h-12 rounded-full" />
-    </div>
-  );
-}

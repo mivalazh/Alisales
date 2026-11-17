@@ -284,7 +284,7 @@ export function FilterChips({
             q: '',
           })
         }
-        className="inline-flex min-h-10 items-center text-xs font-bold text-muted underline transition hover:text-ink"
+        className="inline-flex min-h-9 items-center rounded-full bg-cta-soft px-3 py-1.5 text-xs font-extrabold text-ink transition hover:bg-cta hover:text-white"
       >
         {t('حذف همه', 'Clear All')}
       </button>

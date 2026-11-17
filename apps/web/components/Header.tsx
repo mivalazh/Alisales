@@ -171,7 +171,7 @@ export function Header({
 
   return (
     <>
-      <header className="sticky top-0 z-50 w-full border-b border-line bg-[#F4F1EC]/95 backdrop-blur-md dark:bg-[#111144]/95">
+      <header className="fixed inset-x-0 top-0 z-50 w-full border-b border-slate-200/70 bg-[#F4F1EC]/95 pt-[env(safe-area-inset-top)] backdrop-blur-md dark:border-white/10 dark:bg-[#111144]/95">
         <div className="mx-auto flex h-16 w-full max-w-[var(--content-max)] items-center gap-2 px-4 sm:px-6">
           <div className="flex items-center gap-2">
             <button
@@ -259,15 +259,17 @@ export function Header({
             aria-label={t('منوی اصلی', 'Main menu')}
             className="absolute inset-y-0 start-0 flex w-80 max-w-[85vw] flex-col border-e border-line bg-card shadow-2xl"
           >
-            {/* No «منو» title — just the close control, as the reference asks. */}
-            <div className="flex items-center justify-end border-b border-line px-4 py-2">
+            {/* Dedicated safe-area bar: the close control never sits under the
+                iOS status bar, and «آگهی‌های من» starts below a real divider. */}
+            <div className="flex shrink-0 items-center justify-between border-b border-slate-200/60 px-4 pb-3 pt-[max(0.875rem,env(safe-area-inset-top))] dark:border-white/10">
+              <span className="text-sm font-extrabold text-ink">{t('منو', 'Menu')}</span>
               <button
                 type="button"
                 onClick={() => setMenuOpen(false)}
                 aria-label={t('بستن منو', 'Close menu')}
-                className="flex h-10 w-10 items-center justify-center rounded-full border border-line text-ink transition hover:border-line-strong"
+                className="flex h-10 w-10 items-center justify-center rounded-full bg-slate-200/70 text-ink transition hover:bg-slate-300/80 dark:bg-white/10 dark:hover:bg-white/15"
               >
-                <Icon name="close" size={18} />
+                <Icon name="close" size={20} />
               </button>
             </div>
 

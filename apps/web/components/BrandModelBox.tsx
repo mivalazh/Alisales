@@ -1,6 +1,5 @@
 'use client';
 
-import Link from 'next/link';
 import { useEffect, useMemo, useRef, useState, type ReactNode } from 'react';
 import { brandsForCategory, type VehicleCategory } from '@alisales/schemas';
 import { scrollToResults } from '@/lib/scroll';
@@ -188,12 +187,6 @@ export function BrandModelBox({
         <>
           <div className="flex flex-wrap items-center justify-between gap-2">
             <h2 className="text-sm font-extrabold text-ink">{t(CATEGORY_TITLE[category])}</h2>
-            <Link
-              href="/support/brand-request"
-              className="inline-flex min-h-10 items-center text-xs font-bold text-muted underline transition hover:text-ink"
-            >
-              {t('ثبت برند جدید', 'Request New Brand')}
-            </Link>
           </div>
 
           <label className="mt-3 flex items-center gap-2 rounded-field border border-line bg-page px-3">

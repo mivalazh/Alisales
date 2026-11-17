@@ -89,7 +89,7 @@ export function YearGridSelect({
                   onChange('');
                   setOpen(false);
                 }}
-                className="text-cta underline"
+                className="rounded-full bg-cta-soft px-2.5 py-1 text-cta"
               >
                 {t('پاک کردن', 'Clear')}
               </button>

@@ -615,17 +615,30 @@ export default async function ListingDetailPage({
                   {t(CITY_LABELS[listing.city] ?? listing.city)}
                 </p>
               </div>
-            </div>
 
-            {sellerIsBusiness && (
-              <Link
-                href={`/seller/${listing.sellerId}`}
-                className="mt-2 inline-flex min-h-10 items-center gap-1 text-xs font-bold text-muted underline transition hover:text-ink"
-              >
-                <Icon name="user" size={14} />
-                {t('مشاهده‌ی پروفایل فروشنده', 'View seller profile')}
-              </Link>
-            )}
+              {sellerIsBusiness ? (
+                <Link
+                  href={`/seller/${listing.sellerId}`}
+                  aria-label={t('مشاهده‌ی پروفایل فروشنده', 'View seller profile')}
+                  title={t('مشاهده‌ی پروفایل فروشنده', 'View seller profile')}
+                  className="flex h-11 w-11 shrink-0 items-center justify-center overflow-hidden rounded-full bg-[#111144] text-white shadow-xs ring-2 ring-[#F98513]/60 transition-transform hover:scale-105"
+                >
+                  {sellerCustom?.avatarUrl ? (
+                    <img
+                      src={sellerCustom.avatarUrl}
+                      alt=""
+                      width={44}
+                      height={44}
+                      className="h-full w-full object-cover"
+                    />
+                  ) : (
+                    <span className="text-sm font-extrabold" aria-hidden="true">
+                      {(displaySeller ?? t('فروشنده', 'Seller')).trim().charAt(0)}
+                    </span>
+                  )}
+                </Link>
+              ) : null}
+            </div>
 
             <div className="mt-4 border-t border-line pt-4">
               <ContactButtons

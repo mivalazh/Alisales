@@ -4,6 +4,7 @@ import Link from 'next/link';
 import { useEffect, useRef, useState } from 'react';
 import { useI18n } from '@/lib/i18n';
 import { useDelayedBusy } from '@/lib/useDelayedBusy';
+import { CarLoader } from './CarLoader';
 import { Icon, type IconName } from './Icon';
 import {
   LOCAL_NOTIFICATIONS_EVENT,
@@ -173,7 +174,7 @@ export function NotificationBell({ authed }: { authed: boolean }) {
           <div className="flex items-center justify-between gap-2 border-b border-line px-3 py-2.5">
             <p className="text-sm font-extrabold text-ink">{t('اعلان‌ها', 'Notifications')}</p>
             {items.length > 0 && (
-              <button type="button" onClick={markAllRead} className="text-[11px] font-bold text-cta underline">
+              <button type="button" onClick={markAllRead} className="rounded-full bg-cta-soft px-2.5 py-1 text-[11px] font-bold text-ink transition hover:bg-cta hover:text-white">
                 {t('خواندن همه', 'Mark all as read')}
               </button>
             )}
@@ -181,9 +182,8 @@ export function NotificationBell({ authed }: { authed: boolean }) {
 
           <div className="max-h-80 overflow-y-auto">
             {showLoading && items.length === 0 ? (
-              <div className="space-y-2 p-3" aria-busy="true">
-                <span className="skeleton block h-12 rounded-xl" />
-                <span className="skeleton block h-12 rounded-xl" />
+              <div className="flex items-center justify-center p-6" aria-busy="true">
+                <CarLoader size="sm" label={t('در حال بارگذاری اعلان‌ها', 'Loading notifications')} />
               </div>
             ) : items.length === 0 ? (
               <div className="px-4 py-8 text-center">

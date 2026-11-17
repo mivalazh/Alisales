@@ -47,7 +47,7 @@ export default async function EditListingPage({
             )}
           </p>
         </div>
-        <Link href={`/listing/${listing.slug}`} className="inline-flex min-h-10 items-center text-xs font-bold text-muted underline">
+        <Link href={`/listing/${listing.slug}`} className="inline-flex min-h-9 items-center rounded-full border border-line bg-card px-3 py-1.5 text-xs font-bold text-ink transition hover:border-line-strong">
           {t('مشاهده آگهی', 'View listing')}
         </Link>
       </div>

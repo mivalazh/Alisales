@@ -496,7 +496,7 @@ export function LoginForm() {
             type="button"
             onClick={() => void forgotPassword()}
             disabled={busy}
-            className="flex min-h-10 w-full items-center justify-center text-center text-xs font-extrabold text-cta underline underline-offset-4 disabled:opacity-60"
+            className="flex min-h-10 w-full items-center justify-center rounded-full bg-cta-soft px-3 py-2 text-center text-xs font-extrabold text-ink transition hover:bg-cta hover:text-white disabled:opacity-60"
           >
             {t('رمز عبور خود را فراموش کرده‌اید؟', 'Forgot password?')}
           </button>
