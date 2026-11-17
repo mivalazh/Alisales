@@ -13,8 +13,8 @@ import {
 import { authSecret, createSessionToken, setSessionCookie } from '@/lib/auth/session';
 import { bumpOtpAttempts, deleteOtp, getOtp, verifyOtpHash } from '@/lib/auth/otp-store';
 import { clearDemoOtpCookie, demoOtpCookieMatches } from '@/lib/auth/otp-cookie';
-import { smsConfigured } from '@/lib/auth/sms';
-import { demoAuthMode, instantOtpAllowedFor } from '@/lib/config/mode';
+import { smsReadiness } from '@/lib/auth/sms';
+import { instantOtpAllowedFor, instantOtpFallbackAllowedFor } from '@/lib/config/mode';
 import { createUser, findUserByPhone } from '@/lib/data/s2-store';
 import { profileCustomization, saveProfileCustomization } from '@/lib/data/social-store';
 
@@ -30,8 +30,14 @@ import { profileCustomization, saveProfileCustomization } from '@/lib/data/socia
  */
 export async function POST(request: Request): Promise<NextResponse> {
   if (!authSecret()) {
+    const missing = !process.env.AUTH_SECRET?.trim();
     return NextResponse.json(
-      { error: 'ورود در حال حاضر در دسترس نیست؛ بعداً تلاش کنید.' },
+      {
+        code: missing ? 'AUTH_SECRET_MISSING' : 'AUTH_SECRET_TOO_SHORT',
+        error: missing
+          ? 'پیکربندی ورود ناقص است: AUTH_SECRET تنظیم نشده است.'
+          : 'پیکربندی ورود ناقص است: AUTH_SECRET باید حداقل ۱۶ کاراکتر باشد.',
+      },
       { status: 503 },
     );
   }
@@ -59,9 +65,29 @@ export async function POST(request: Request): Promise<NextResponse> {
 
   // Verify is gated too: a code or signed cookie from elsewhere must never
   // bypass the production allowlist for the instant OTP flow.
-  if (!smsConfigured() && !instantOtpAllowedFor(phone)) {
+  const sms = smsReadiness();
+  if (
+    !sms.configured &&
+    sms.provider === 'sms_ir' &&
+    sms.missing.includes('SMS_IR_TEMPLATE_ID') &&
+    !instantOtpAllowedFor(phone)
+  ) {
     return NextResponse.json(
-      { error: 'ورود آزمایشی برای این شماره فعال نیست؛ با پشتیبانی تماس بگیرید.' },
+      {
+        code: 'SMS_IR_TEMPLATE_ID_MISSING',
+        error:
+          'پیکربندی SMS.ir ناقص است: SMS_IR_TEMPLATE_ID تنظیم نشده یا معتبر نیست.',
+      },
+      { status: 503 },
+    );
+  }
+  if (!sms.configured && !instantOtpAllowedFor(phone)) {
+    return NextResponse.json(
+      {
+        code: 'INSTANT_OTP_NOT_ALLOWED',
+        error:
+          'پیامک پیکربندی نشده و این شماره در INSTANT_OTP_ALLOWLIST نیست؛ با پشتیبانی تماس بگیرید.',
+      },
       { status: 403 },
     );
   }
@@ -82,10 +108,12 @@ export async function POST(request: Request): Promise<NextResponse> {
       bumpOtpAttempts(phone);
       return NextResponse.json({ error: otpStatusMessage('ok') }, { status: 401 });
     }
-  } else if (!(demoAuthMode() && (await demoOtpCookieMatches(phone, code)))) {
-    // No in-memory record: either the code expired/was used, or (demo mode on
-    // Workers) a different isolate issued it — the signed cookie covers the
-    // latter so a preview login never dead-ends.
+  } else if (
+    !(instantOtpFallbackAllowedFor(phone) && (await demoOtpCookieMatches(phone, code)))
+  ) {
+    // No in-memory record: either the code expired/was used, or another
+    // serverless isolate issued it — the signed cookie covers the allowlisted
+    // instant fallback so a launch login never dead-ends.
     return NextResponse.json(
       { error: 'کد تأیید یافت نشد؛ دوباره درخواست کنید.' },
       { status: 400 },

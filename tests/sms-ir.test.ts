@@ -1,5 +1,5 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
-import { sendOtpSms, smsConfigured } from '../apps/web/lib/auth/sms';
+import { sendOtpSms, smsConfigured, smsReadiness } from '../apps/web/lib/auth/sms';
 
 const ENV_KEYS = [
   'SMS_IR_API_KEY',
@@ -32,8 +32,27 @@ afterEach(() => {
 });
 
 describe('SMS.ir fast verification', () => {
+  it('requires SMS_IR_TEMPLATE_ID instead of silently using 100000', async () => {
+    process.env.SMS_IR_API_KEY = 'sms-ir-key';
+
+    expect(smsConfigured()).toBe(false);
+    expect(smsReadiness()).toMatchObject({
+      configured: false,
+      provider: 'sms_ir',
+      missing: ['SMS_IR_TEMPLATE_ID'],
+      templateIdConfigured: false,
+    });
+
+    await expect(sendOtpSms('09120000001', '123456')).resolves.toEqual({
+      delivered: false,
+      reason: 'not_configured',
+    });
+    expect(fetchMock).not.toHaveBeenCalled();
+  });
+
   it('posts the verification template with both code parameter names', async () => {
     process.env.SMS_IR_API_KEY = 'sms-ir-key';
+    process.env.SMS_IR_TEMPLATE_ID = '100000';
     fetchMock.mockResolvedValue(
       new Response(JSON.stringify({ status: 1, data: { messageId: 42 } }), {
         status: 200,
@@ -80,6 +99,7 @@ describe('SMS.ir fast verification', () => {
 
   it('reports an unverified/sandbox account so the route can fall back', async () => {
     process.env.SMS_IR_API_KEY = 'sms-ir-key';
+    process.env.SMS_IR_TEMPLATE_ID = '987654';
     fetchMock.mockResolvedValue(
       new Response(
         JSON.stringify({ status: 0, message: 'حساب کاربری شما تایید نشده است' }),
@@ -92,8 +112,16 @@ describe('SMS.ir fast verification', () => {
     expect(result).toEqual({ delivered: false, reason: 'sandbox' });
   });
 
-  it('treats a bare legacy SMS_API_KEY as an SMS.ir key', async () => {
+  it('treats a bare legacy SMS_API_KEY as an SMS.ir key and requires a template', async () => {
     process.env.SMS_API_KEY = 'legacy-key';
+
+    expect(smsReadiness()).toMatchObject({
+      configured: false,
+      provider: 'sms_ir',
+      missing: ['SMS_IR_TEMPLATE_ID'],
+    });
+
+    process.env.SMS_IR_TEMPLATE_ID = '100000';
     fetchMock.mockResolvedValue(
       new Response(JSON.stringify({ status: 1, data: { messageId: 9 } }), {
         status: 200,
@@ -115,6 +143,23 @@ describe('SMS.ir fast verification', () => {
     const result = await sendOtpSms('09120000001', '123456');
 
     expect(result).toEqual({ delivered: true });
+    expect(smsReadiness()).toMatchObject({
+      configured: true,
+      provider: 'generic',
+      missing: [],
+    });
     expect(fetchMock.mock.calls[0]?.[0]).toBe('https://sms.example/send');
+  });
+
+  it('names both missing generic variables when only one is supplied', () => {
+    process.env.SMS_API_KEY = 'generic-key';
+    process.env.SMS_API_URL = 'https://sms.example/send';
+
+    expect(smsConfigured()).toBe(false);
+    expect(smsReadiness()).toMatchObject({
+      configured: false,
+      provider: 'generic',
+      missing: ['SMS_SENDER'],
+    });
   });
 });

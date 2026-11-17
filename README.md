@@ -122,7 +122,7 @@ NEXT_PUBLIC_SUPABASE_URL
 SUPABASE_SERVICE_ROLE_KEY
 NEXT_PUBLIC_SUPABASE_ANON_KEY
 SMS_IR_API_KEY              # preferred: SMS.ir Fast Verification
-SMS_IR_TEMPLATE_ID          # default 100000
+SMS_IR_TEMPLATE_ID          # required approved template id (no implicit default)
 SMS_API_KEY                 # generic adapter / legacy SMS.ir key
 SMS_SENDER
 SMS_API_URL

@@ -10,8 +10,8 @@ import { authSecret, createSessionToken, setSessionCookie } from '@/lib/auth/ses
 import { bumpOtpAttempts, deleteOtp, getOtp, verifyOtpHash } from '@/lib/auth/otp-store';
 import { clearDemoOtpCookie, demoOtpCookieMatches } from '@/lib/auth/otp-cookie';
 import { clearPasswordFailures, passwordProblem, saveAccountPassword } from '@/lib/auth/password';
-import { smsConfigured } from '@/lib/auth/sms';
-import { demoAuthMode, instantOtpAllowedFor } from '@/lib/config/mode';
+import { smsReadiness } from '@/lib/auth/sms';
+import { instantOtpAllowedFor, instantOtpFallbackAllowedFor } from '@/lib/config/mode';
 import { findUserByPhone } from '@/lib/data/s2-store';
 import { rateLimit } from '@/lib/security/rate-limit';
 
@@ -39,8 +39,14 @@ export async function POST(request: Request): Promise<NextResponse> {
   }
 
   if (!authSecret()) {
+    const missing = !process.env.AUTH_SECRET?.trim();
     return NextResponse.json(
-      { error: 'بازیابی رمز عبور در حال حاضر در دسترس نیست؛ بعداً تلاش کنید.' },
+      {
+        code: missing ? 'AUTH_SECRET_MISSING' : 'AUTH_SECRET_TOO_SHORT',
+        error: missing
+          ? 'پیکربندی ورود ناقص است: AUTH_SECRET تنظیم نشده است.'
+          : 'پیکربندی ورود ناقص است: AUTH_SECRET باید حداقل ۱۶ کاراکتر باشد.',
+      },
       { status: 503 },
     );
   }
@@ -65,9 +71,29 @@ export async function POST(request: Request): Promise<NextResponse> {
   if (problem) return NextResponse.json({ error: problem }, { status: 400 });
 
   const phone = normalizePhone(phoneRaw);
-  if (!smsConfigured() && !instantOtpAllowedFor(phone)) {
+  const sms = smsReadiness();
+  if (
+    !sms.configured &&
+    sms.provider === 'sms_ir' &&
+    sms.missing.includes('SMS_IR_TEMPLATE_ID') &&
+    !instantOtpAllowedFor(phone)
+  ) {
     return NextResponse.json(
-      { error: 'بازیابی رمز برای این شماره فعال نیست؛ با پشتیبانی تماس بگیرید.' },
+      {
+        code: 'SMS_IR_TEMPLATE_ID_MISSING',
+        error:
+          'پیکربندی SMS.ir ناقص است: SMS_IR_TEMPLATE_ID تنظیم نشده یا معتبر نیست.',
+      },
+      { status: 503 },
+    );
+  }
+  if (!sms.configured && !instantOtpAllowedFor(phone)) {
+    return NextResponse.json(
+      {
+        code: 'INSTANT_OTP_NOT_ALLOWED',
+        error:
+          'پیامک پیکربندی نشده و این شماره در INSTANT_OTP_ALLOWLIST نیست؛ با پشتیبانی تماس بگیرید.',
+      },
       { status: 403 },
     );
   }
@@ -82,7 +108,9 @@ export async function POST(request: Request): Promise<NextResponse> {
       bumpOtpAttempts(phone);
       return NextResponse.json({ error: otpStatusMessage('ok') }, { status: 401 });
     }
-  } else if (!(demoAuthMode() && (await demoOtpCookieMatches(phone, code)))) {
+  } else if (
+    !(instantOtpFallbackAllowedFor(phone) && (await demoOtpCookieMatches(phone, code)))
+  ) {
     return NextResponse.json(
       { error: 'کد تأیید یافت نشد؛ دوباره درخواست کنید.' },
       { status: 400 },

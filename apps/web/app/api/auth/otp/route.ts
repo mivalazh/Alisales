@@ -3,7 +3,7 @@ import { isValidMobile, normalizePhone, otpRequestSchema } from '@alisales/schem
 import { authSecret } from '@/lib/auth/session';
 import { deleteOtp, generateOtp, resendWaitSeconds, saveOtp } from '@/lib/auth/otp-store';
 import { setDemoOtpCookie } from '@/lib/auth/otp-cookie';
-import { sendOtpSms, smsConfigured } from '@/lib/auth/sms';
+import { sendOtpSms, smsReadiness } from '@/lib/auth/sms';
 import {
   demoAuthMode,
   demoOtpHintEnabled,
@@ -42,8 +42,14 @@ export async function POST(request: Request): Promise<NextResponse> {
   }
 
   if (!authSecret()) {
+    const missing = !process.env.AUTH_SECRET?.trim();
     return NextResponse.json(
-      { error: 'ورود در حال حاضر در دسترس نیست؛ بعداً تلاش کنید.' },
+      {
+        code: missing ? 'AUTH_SECRET_MISSING' : 'AUTH_SECRET_TOO_SHORT',
+        error: missing
+          ? 'پیکربندی ورود ناقص است: AUTH_SECRET تنظیم نشده است.'
+          : 'پیکربندی ورود ناقص است: AUTH_SECRET باید حداقل ۱۶ کاراکتر باشد.',
+      },
       { status: 503 },
     );
   }
@@ -64,11 +70,31 @@ export async function POST(request: Request): Promise<NextResponse> {
   }
   const phone = normalizePhone(parsed.data.phone);
 
-  // Refuse before issuing or storing anything: without SMS, production may only
-  // use instant OTP for the operator's launch accounts.
-  if (!smsConfigured() && !instantOtpAllowedFor(phone)) {
+  // Refuse before issuing or storing anything: without a usable SMS provider,
+  // production may only use instant OTP for the operator's launch accounts.
+  const sms = smsReadiness();
+  if (
+    !sms.configured &&
+    sms.provider === 'sms_ir' &&
+    sms.missing.includes('SMS_IR_TEMPLATE_ID') &&
+    !instantOtpAllowedFor(phone)
+  ) {
     return NextResponse.json(
-      { error: 'ورود آزمایشی برای این شماره فعال نیست؛ با پشتیبانی تماس بگیرید.' },
+      {
+        code: 'SMS_IR_TEMPLATE_ID_MISSING',
+        error:
+          'پیکربندی SMS.ir ناقص است: SMS_IR_TEMPLATE_ID تنظیم نشده یا معتبر نیست.',
+      },
+      { status: 503 },
+    );
+  }
+  if (!sms.configured && !instantOtpAllowedFor(phone)) {
+    return NextResponse.json(
+      {
+        code: 'INSTANT_OTP_NOT_ALLOWED',
+        error:
+          'پیامک پیکربندی نشده و این شماره در INSTANT_OTP_ALLOWLIST نیست؛ با پشتیبانی تماس بگیرید.',
+      },
       { status: 403 },
     );
   }
@@ -102,14 +128,22 @@ export async function POST(request: Request): Promise<NextResponse> {
     if (delivery.reason === 'provider_error' && !sandboxFallback) {
       deleteOtp(phone);
       return NextResponse.json(
-        { error: 'ارسال پیامک ناموفق بود؛ دوباره تلاش کنید.' },
+        {
+          code: 'SMS_PROVIDER_ERROR',
+          error:
+            'ارسال پیامک ناموفق بود (خطای سرویس‌دهنده)؛ تنظیمات SMS_API_URL و کلید را بررسی کنید.',
+        },
         { status: 502 },
       );
     }
     if (delivery.reason === 'sandbox' && !sandboxFallback) {
       deleteOtp(phone);
       return NextResponse.json(
-        { error: 'ارسال پیامک در حال حاضر در دسترس نیست؛ بعداً تلاش کنید.' },
+        {
+          code: 'SMS_IR_TEMPLATE_NOT_APPROVED',
+          error:
+            'حساب یا قالب SMS.ir تأیید نشده است؛ قالب Fast Verification را تأیید یا شماره را به INSTANT_OTP_ALLOWLIST اضافه کنید.',
+        },
         { status: 503 },
       );
     }
@@ -118,7 +152,11 @@ export async function POST(request: Request): Promise<NextResponse> {
       // nobody can receive.
       deleteOtp(phone);
       return NextResponse.json(
-        { error: 'ارسال پیامک در حال حاضر در دسترس نیست؛ بعداً تلاش کنید.' },
+        {
+          code: 'SMS_NOT_CONFIGURED',
+          error:
+            'سرویس پیامک پیکربندی نشده است؛ SMS_IR_API_KEY و SMS_IR_TEMPLATE_ID یا هر سه متغیر SMS_API_KEY/SMS_SENDER/SMS_API_URL را تنظیم کنید.',
+        },
         { status: 503 },
       );
     }
@@ -127,13 +165,26 @@ export async function POST(request: Request): Promise<NextResponse> {
     console.info(`[alisales][otp] login code for ${phone}: ${code}`);
   }
 
-  const body: { ok: true; needsProfile: boolean; devCode?: string; demoCode?: string } = {
+  const body: {
+    ok: true;
+    needsProfile: boolean;
+    delivery: 'sms' | 'instant';
+    warning?: string;
+    devCode?: string;
+    demoCode?: string;
+  } = {
     ok: true,
     needsProfile: !existing,
+    delivery: delivery.delivered ? 'sms' : 'instant',
   };
   if (!delivery.delivered && (demoOtpHintEnabled(phone) || sandboxFallback)) {
     body.devCode = code;
     body.demoCode = code;
+    body.warning = sandboxFallback
+      ? 'SMS_IR_TEMPLATE_NOT_APPROVED'
+      : sms.missing.length > 0
+        ? 'SMS_NOT_CONFIGURED'
+        : 'INSTANT_OTP_FALLBACK';
   }
 
   // Hand the code to this browser too, so verify still works when a different

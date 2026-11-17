@@ -1,15 +1,35 @@
-import { afterEach, describe, expect, it } from 'vitest';
+import { afterEach, beforeEach, describe, expect, it } from 'vitest';
 import { GET } from '../apps/web/app/api/health/route';
 import { authSecret, authSecretReadiness } from '../apps/web/lib/auth/session';
+import { smsReadiness } from '../apps/web/lib/auth/sms';
 
-const savedNodeEnv = process.env.NODE_ENV;
-const savedSecret = process.env.AUTH_SECRET;
+const ENV_KEYS = [
+  'NODE_ENV',
+  'AUTH_SECRET',
+  'INSTANT_OTP_ALLOWLIST',
+  'SMS_IR_API_KEY',
+  'SMS_IR_TEMPLATE_ID',
+  'SMS_API_KEY',
+  'SMS_SENDER',
+  'SMS_API_URL',
+] as const;
+
+const saved = new Map<string, string | undefined>();
+
+beforeEach(() => {
+  for (const key of ENV_KEYS) {
+    saved.set(key, process.env[key]);
+    if (key !== 'NODE_ENV') delete process.env[key];
+  }
+});
 
 afterEach(() => {
-  if (savedNodeEnv === undefined) delete process.env.NODE_ENV;
-  else process.env.NODE_ENV = savedNodeEnv;
-  if (savedSecret === undefined) delete process.env.AUTH_SECRET;
-  else process.env.AUTH_SECRET = savedSecret;
+  for (const key of ENV_KEYS) {
+    const value = saved.get(key);
+    if (value === undefined) delete process.env[key];
+    else process.env[key] = value;
+  }
+  saved.clear();
 });
 
 describe('AUTH_SECRET readiness', () => {
@@ -45,18 +65,61 @@ describe('AUTH_SECRET readiness', () => {
     expect(text).not.toContain('short-secret');
   });
 
-  it('accepts a production secret of at least 16 characters', async () => {
+  it('accepts a production secret and an allowlisted instant path', async () => {
     process.env.NODE_ENV = 'production';
     process.env.AUTH_SECRET = '1234567890abcdef';
+    process.env.INSTANT_OTP_ALLOWLIST = '09120000001';
 
     expect(authSecretReadiness()).toEqual({ ok: true, source: 'configured' });
     expect(authSecret()).toBe('1234567890abcdef');
+    expect(smsReadiness()).toMatchObject({ configured: false, provider: null });
 
     const response = await GET();
     expect(response.status).toBe(200);
     await expect(response.json()).resolves.toMatchObject({
       ok: true,
-      checks: { authSecret: { ok: true, source: 'configured' } },
+      checks: {
+        authSecret: { ok: true, source: 'configured' },
+        sms: { configured: false, provider: null },
+        instantOtp: { ready: true, allowlistCount: 1 },
+        login: { ok: true, mode: 'instant-allowlist' },
+      },
+    });
+  });
+
+  it('fails readiness when a secret exists but no login path does', async () => {
+    process.env.NODE_ENV = 'production';
+    process.env.AUTH_SECRET = '1234567890abcdef';
+
+    const response = await GET();
+    expect(response.status).toBe(503);
+    await expect(response.json()).resolves.toMatchObject({
+      ok: false,
+      checks: {
+        authSecret: { ok: true },
+        login: { ok: false, code: 'SMS_NOT_CONFIGURED' },
+      },
+    });
+  });
+
+  it('names a missing SMS.ir template instead of reporting a generic failure', async () => {
+    process.env.NODE_ENV = 'production';
+    process.env.AUTH_SECRET = '1234567890abcdef';
+    process.env.SMS_IR_API_KEY = 'sms-ir-key';
+
+    const response = await GET();
+    expect(response.status).toBe(503);
+    await expect(response.json()).resolves.toMatchObject({
+      ok: false,
+      checks: {
+        sms: {
+          configured: false,
+          provider: 'sms_ir',
+          missing: ['SMS_IR_TEMPLATE_ID'],
+          templateIdConfigured: false,
+        },
+        login: { ok: false, code: 'SMS_IR_TEMPLATE_ID_MISSING' },
+      },
     });
   });
 

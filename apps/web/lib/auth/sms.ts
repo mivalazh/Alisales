@@ -5,15 +5,17 @@
  *
  * SMS.ir Fast Verification is preferred when configured:
  *   SMS_IR_API_KEY      SMS.ir panel API key
- *   SMS_IR_TEMPLATE_ID  approved Fast Verification template (default 100000)
+ *   SMS_IR_TEMPLATE_ID  approved Fast Verification template (required)
  *
- * The generic adapter remains available for Kavenegar and similar providers:
+ * The generic adapter remains available for Kavenegar-style gateways:
  *   SMS_API_KEY   provider token
  *   SMS_SENDER    approved sender line
- *   SMS_API_URL   provider endpoint (POST JSON { to, code })
+ *   SMS_API_URL   provider endpoint (POST JSON { to, from, text })
  *
  * A bare SMS_API_KEY with no generic SMS_API_URL/SMS_SENDER is treated as an
- * SMS.ir key, so an existing single-key deployment keeps working.
+ * SMS.ir key, so an existing single-key deployment keeps working. A template id
+ * is still required: the old implicit 100000 fallback is not a real template
+ * and produced confusing provider failures.
  *
  * With no credentials the caller decides what happens: in development the
  * route logs the code server-side; production uses the allowlisted instant OTP
@@ -30,31 +32,94 @@ export interface SmsDelivery {
   reason?: 'not_configured' | 'provider_error' | 'sandbox';
 }
 
+export type SmsProvider = 'sms_ir' | 'generic';
+
+export interface SmsReadiness {
+  configured: boolean;
+  provider: SmsProvider | null;
+  /** Environment variable names that still need a value. Never values. */
+  missing: string[];
+  templateId: number | null;
+  templateIdConfigured: boolean;
+}
+
 const SMS_IR_ENDPOINT = 'https://api.sms.ir/v1/send/verify';
 
-function smsIrApiKey(): string {
+function configuredTemplateId(): number | null {
+  const raw = process.env.SMS_IR_TEMPLATE_ID?.trim();
+  if (!raw) return null;
+  const parsed = Number(raw);
+  return Number.isInteger(parsed) && parsed > 0 ? parsed : null;
+}
+
+function smsIrKey(): string {
   const explicit = process.env.SMS_IR_API_KEY?.trim();
   if (explicit) return explicit;
 
   const legacy = process.env.SMS_API_KEY?.trim();
   if (!legacy) return '';
-  // An explicit template id opts a legacy key into SMS.ir; otherwise a bare key
-  // with no generic endpoint is also treated as SMS.ir.
+  // A bare key, or a key paired with only a template id, is an SMS.ir key.
   if (process.env.SMS_IR_TEMPLATE_ID) return legacy;
   if (!process.env.SMS_API_URL && !process.env.SMS_SENDER) return legacy;
   return '';
 }
 
-export function smsConfigured(): boolean {
-  return Boolean(
-    smsIrApiKey() ||
-      (process.env.SMS_API_KEY && process.env.SMS_SENDER && process.env.SMS_API_URL),
-  );
+/**
+ * Non-secret description of the SMS configuration. Used by `/api/health` and
+ * by the OTP route to return a specific error such as
+ * `SMS_IR_TEMPLATE_ID_MISSING` instead of a generic "login unavailable".
+ */
+export function smsReadiness(): SmsReadiness {
+  const explicitIrKey = process.env.SMS_IR_API_KEY?.trim() ?? '';
+  const legacyKey = process.env.SMS_API_KEY?.trim() ?? '';
+  const genericUrl = process.env.SMS_API_URL?.trim() ?? '';
+  const genericSender = process.env.SMS_SENDER?.trim() ?? '';
+  const templateId = configuredTemplateId();
+
+  const usingSmsIr = Boolean(explicitIrKey) || (Boolean(legacyKey) && !genericUrl && !genericSender);
+  if (usingSmsIr) {
+    return templateId
+      ? {
+          configured: true,
+          provider: 'sms_ir',
+          missing: [],
+          templateId,
+          templateIdConfigured: true,
+        }
+      : {
+          configured: false,
+          provider: 'sms_ir',
+          missing: ['SMS_IR_TEMPLATE_ID'],
+          templateId: null,
+          templateIdConfigured: false,
+        };
+  }
+
+  const missing: string[] = [];
+  if (!legacyKey) missing.push('SMS_API_KEY');
+  if (!genericSender) missing.push('SMS_SENDER');
+  if (!genericUrl) missing.push('SMS_API_URL');
+  if (missing.length > 0) {
+    return {
+      configured: false,
+      provider: legacyKey || genericUrl || genericSender ? 'generic' : null,
+      missing,
+      templateId: null,
+      templateIdConfigured: false,
+    };
+  }
+
+  return {
+    configured: true,
+    provider: 'generic',
+    missing: [],
+    templateId: null,
+    templateIdConfigured: false,
+  };
 }
 
-function smsIrTemplateId(): number {
-  const parsed = Number(process.env.SMS_IR_TEMPLATE_ID ?? '100000');
-  return Number.isFinite(parsed) && parsed > 0 ? parsed : 100000;
+export function smsConfigured(): boolean {
+  return smsReadiness().configured;
 }
 
 function isSandboxOrUnverified(message: string): boolean {
@@ -64,8 +129,9 @@ function isSandboxOrUnverified(message: string): boolean {
 }
 
 async function sendSmsIr(phone: string, code: string): Promise<SmsDelivery> {
-  const apiKey = smsIrApiKey();
-  if (!apiKey) return { delivered: false, reason: 'not_configured' };
+  const apiKey = smsIrKey();
+  const templateId = configuredTemplateId();
+  if (!apiKey || !templateId) return { delivered: false, reason: 'not_configured' };
 
   try {
     const response = await fetch(SMS_IR_ENDPOINT, {
@@ -77,7 +143,7 @@ async function sendSmsIr(phone: string, code: string): Promise<SmsDelivery> {
       },
       body: JSON.stringify({
         mobile: phone,
-        templateId: smsIrTemplateId(),
+        templateId,
         parameters: [
           { name: 'CODE', value: code },
           { name: 'code', value: code },
@@ -133,9 +199,8 @@ async function sendGeneric(phone: string, code: string): Promise<SmsDelivery> {
 }
 
 export async function sendOtpSms(phone: string, code: string): Promise<SmsDelivery> {
-  if (smsIrApiKey()) return sendSmsIr(phone, code);
-  if (process.env.SMS_API_KEY && process.env.SMS_SENDER && process.env.SMS_API_URL) {
-    return sendGeneric(phone, code);
-  }
-  return { delivered: false, reason: 'not_configured' };
+  const readiness = smsReadiness();
+  if (!readiness.configured) return { delivered: false, reason: 'not_configured' };
+  if (readiness.provider === 'sms_ir') return sendSmsIr(phone, code);
+  return sendGeneric(phone, code);
 }

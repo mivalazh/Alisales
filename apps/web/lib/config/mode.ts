@@ -94,6 +94,10 @@ export function demoAuthMode(): boolean {
  * Comma/space/semicolon separated; Persian digits, `+98` and `0098` normalize.
  * There is deliberately no wildcard or allow-all switch.
  */
+export function instantOtpAllowlistSize(): number {
+  return instantOtpAllowlist().size;
+}
+
 function instantOtpAllowlist(): ReadonlySet<string> {
   const entries = String(process.env.INSTANT_OTP_ALLOWLIST ?? '')
     .split(/[,;\n]+/)
