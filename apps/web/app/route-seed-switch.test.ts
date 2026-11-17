@@ -93,7 +93,10 @@ vi.mock('@/components/NativeBackHeader', () => ({ NativeBackHeader: () => null }
 vi.mock('@/components/FollowSellerButton', () => ({ FollowSellerButton: () => null }));
 vi.mock('@/components/SellerActions', () => ({ SellerActions: () => null }));
 vi.mock('@/components/Stories', () => ({ Stories: () => null }));
-vi.mock('@/components/SellerVerified', () => ({ VerifiedPill: () => null }));
+vi.mock('@/components/SellerVerified', () => ({
+  VerifiedPill: () => null,
+  VerifiedStar: () => null,
+}));
 
 vi.mock('@/lib/auth/session', () => ({
   getSession: async () => null,
@@ -212,7 +215,8 @@ describe('flag-on routes', () => {
     expect(html).not.toContain('Land Cruiser VXR');
   });
 
-  it('gates both hidden fixture and personal seller routes', async () => {
+  it('gates hidden fixture inventory but renders every real seller profile', async () => {
+    // Seeded demo inventory is hidden, so its seller no longer resolves.
     await expect(
       SellerPage({
         params: Promise.resolve({ id: sampleSeed.sellerId }),
@@ -220,18 +224,19 @@ describe('flag-on routes', () => {
       }),
     ).rejects.toThrow('NEXT_NOT_FOUND');
 
-    // The user-created seller is personal, so their public seller URL is a 404.
-    await expect(
-      SellerPage({
+    // Regular (unverified) sellers now have a working public profile too.
+    const html = renderToStaticMarkup(
+      await SellerPage({
         params: Promise.resolve({ id: user.sellerId }),
         searchParams: Promise.resolve({}),
       }),
-    ).rejects.toThrow('NEXT_NOT_FOUND');
+    );
+    expect(html).toContain('Route User Car');
 
     const metadata = await sellerMetadata({
       params: Promise.resolve({ id: user.sellerId }),
     });
-    expect(metadata.robots).toEqual({ index: false, follow: false });
+    expect(metadata.alternates).toEqual({ canonical: `/seller/${user.sellerId}` });
   });
 
   it('admin page renders only the user-created catalogue row', async () => {

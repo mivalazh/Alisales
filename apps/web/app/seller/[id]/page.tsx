@@ -1,8 +1,8 @@
 import type { Metadata } from 'next';
 import Image from 'next/image';
 import Link from 'next/link';
-import { notFound, redirect } from 'next/navigation';
-import { CITY_LABELS, formatJalaliDate, formatAmountLatin, irrToToman, postingAgeLabel } from '@alisales/schemas';
+import { notFound } from 'next/navigation';
+import { CITY_LABELS, formatAmountLatin, irrToToman, postingAgeLabel } from '@alisales/schemas';
 import { getSession } from '@/lib/auth/session';
 import { loadSellerProfile } from '@/lib/data/seller-profile';
 import { isFollowing } from '@/lib/data/social-store';
@@ -11,14 +11,14 @@ import { Icon } from '@/components/Icon';
 import { FollowSellerButton } from '@/components/FollowSellerButton';
 import { SellerActions } from '@/components/SellerActions';
 import { Stories } from '@/components/Stories';
-import { VerifiedPill } from '@/components/SellerVerified';
+import { VerifiedStar } from '@/components/SellerVerified';
 import { NativeBackHeader } from '@/components/NativeBackHeader';
 import { isPreSizedSource } from '@/lib/images';
 import { getLanguage } from '@/lib/i18n/server';
 import { serverT } from '@/lib/i18n/server';
 import { postingAgeEnglish } from '@/lib/i18n/dictionary';
 import { translateListingContentToEn } from '@/lib/i18n/content';
-import { isPublicSellerProfile } from '@/lib/seller-visibility';
+import { coverForSeller } from '@/lib/data/profile-cover';
 
 export async function generateMetadata({
   params,
@@ -28,7 +28,7 @@ export async function generateMetadata({
   const [{ id }, lang] = await Promise.all([params, getLanguage()]);
   const profile = await loadSellerProfile(id);
   const title = lang === 'en' ? 'Seller profile' : 'پروفایل فروشنده';
-  if (!profile || !isPublicSellerProfile(profile.profileMode)) {
+  if (!profile) {
     return { title, robots: { index: false, follow: false } };
   }
   return {
@@ -71,12 +71,8 @@ export default async function SellerPage({
   if (!profile) notFound();
 
   const session = await getSession();
-  // Personal accounts have no public seller page. Owners go back to their
-  // private hub; everyone else gets a 404 rather than a hint that it exists.
-  if (!isPublicSellerProfile(profile.profileMode)) {
-    if (session?.sub === profile.id) redirect('/profile');
-    notFound();
-  }
+  // Every seller — verified showroom or regular private seller — has a public
+  // profile. The owner can open it too (their /profile page links here).
 
   const t = (fa: string, en?: string) => serverT(lang, fa, en);
 
@@ -97,21 +93,17 @@ export default async function SellerPage({
       <NativeBackHeader title={displayName} fallbackHref="/" />
       {/* Cover + identity */}
       <section className="overflow-hidden rounded-card border border-line bg-card">
-        <div
-          aria-hidden
-          className="relative h-28 w-full overflow-hidden sm:h-36"
-          style={{ background: 'linear-gradient(135deg, #F98513 0%, #ffb457 55%, #7c5a2e 100%)' }}
-        >
-          {profile.coverUrl && (
-            // eslint-disable-next-line @next/next/no-img-element
-            <img
-              src={profile.coverUrl}
-              alt=""
-              width={1600}
-              height={480}
-              className="absolute inset-0 h-full w-full object-cover"
-            />
-          )}
+        {/* Stable vehicle photograph chosen from the profile id — never a
+            flat orange banner. */}
+        <div aria-hidden className="relative h-32 w-full overflow-hidden bg-sunken sm:h-44">
+          <Image
+            src={profile.coverUrl ?? coverForSeller(profile.id)}
+            alt=""
+            fill
+            sizes="100vw"
+            priority
+            className="object-cover"
+          />
         </div>
         <div className="px-4 pb-4">
           <div className="-mt-9 flex items-end gap-3">
@@ -127,25 +119,15 @@ export default async function SellerPage({
               )}
             </span>
             <div className="min-w-0 flex-1 pb-1">
-              <h1 className="flex flex-wrap items-center gap-1.5 text-lg font-extrabold leading-tight">
+              <h1 className="flex min-w-0 items-center gap-1.5 text-lg font-extrabold leading-tight">
                 <span className="truncate">{displayName}</span>
-                {profile.verified && <VerifiedPill label={t('تأییدشده', 'Verified')} />}
+                {profile.verified && <VerifiedStar label={t('تأییدشده توسط آلی سیلز', 'Verified by Ali Sales')} />}
               </h1>
               <p className="mt-0.5 flex flex-wrap items-center gap-x-2 text-xs font-bold text-muted">
                 <span className="inline-flex items-center gap-1">
                   <Icon name="pin" size={13} />
                   {CITY_LABELS[profile.city] ?? profile.city}
                 </span>
-                {profile.memberSince && (
-                  <span>
-                    {t('عضو از', 'Member since')}{' '}
-                    {lang === 'en'
-                      ? new Intl.DateTimeFormat('en-GB', { dateStyle: 'medium' }).format(
-                          new Date(profile.memberSince),
-                        )
-                      : formatJalaliDate(new Date(profile.memberSince))}
-                  </span>
-                )}
               </p>
             </div>
           </div>
@@ -155,14 +137,6 @@ export default async function SellerPage({
           )}
 
           <div className="mt-3 flex flex-wrap items-start gap-2">
-            {!isOwner && (
-              <FollowSellerButton
-                sellerId={profile.id}
-                initialFollowing={following}
-                authed={Boolean(session)}
-                isOwner={isOwner}
-              />
-            )}
             <SellerActions
               sellerId={profile.id}
               listingId={firstActive?.id ?? null}
@@ -172,24 +146,27 @@ export default async function SellerPage({
             />
           </div>
 
-          {/* Four numbers, nothing else. */}
-          <dl className="mt-4 grid grid-cols-2 gap-2 sm:grid-cols-4">
+          {/* Three numbers — active listings, stories, rating. No follower
+              count is shown to anyone. */}
+          <dl className="mt-4 grid grid-cols-3 gap-2">
             {[
               {
                 label: t('آگهی‌های فعال', 'Active listings'),
                 value: formatAmountLatin(profile.stats.active),
+                tone: 'text-[#0F7FC4]',
               },
-              { label: t('استوری‌ها', 'Stories'), value: formatAmountLatin(profile.stats.stories) },
+              {
+                label: t('استوری‌ها', 'Stories'),
+                value: formatAmountLatin(profile.stats.stories),
+                tone: 'text-[#C2410C]',
+              },
               {
                 label: t('امتیاز و نظرات', 'Rating & reviews'),
                 value:
                   profile.stats.rating === null
                     ? '—'
                     : `${profile.stats.rating} / 5 (${profile.stats.reviewCount})`,
-              },
-              {
-                label: t('دنبال‌کننده', 'Followers'),
-                value: formatAmountLatin(profile.stats.followers),
+                tone: 'text-[#B45309]',
               },
             ].map((stat) => (
               <div
@@ -197,17 +174,32 @@ export default async function SellerPage({
                 className="rounded-field border border-line bg-page px-2 py-2 text-center"
               >
                 <dt className="text-[10px] font-bold text-muted">{stat.label}</dt>
-                <dd className="mt-0.5 text-sm font-extrabold text-ink" dir="auto">
+                <dd className={`mt-0.5 text-sm font-extrabold ${stat.tone}`} dir="auto">
                   {stat.value}
                 </dd>
               </div>
             ))}
           </dl>
+
+          {/* Follow sits with the stats, where the other primary actions live. */}
+          {!isOwner && (
+            <div className="mt-3">
+              <FollowSellerButton
+                sellerId={profile.id}
+                initialFollowing={following}
+                authed={Boolean(session)}
+                isOwner={isOwner}
+              />
+            </div>
+          )}
         </div>
       </section>
 
       {/* Tabs */}
-      <nav aria-label={t('بخش‌های پروفایل', 'Profile sections')} className="flex gap-1 rounded-card border border-line bg-card p-1">
+      <nav
+        aria-label={t('بخش‌های پروفایل', 'Profile sections')}
+        className="flex gap-4 border-b border-line px-1"
+      >
         {TABS.map((item) => {
           const active = tab === item.key;
           const count =
@@ -221,8 +213,10 @@ export default async function SellerPage({
               key={item.key}
               href={`/seller/${profile.id}?tab=${item.key}`}
               aria-current={active ? 'page' : undefined}
-              className={`flex min-h-10 flex-1 items-center justify-center rounded-field px-2 py-2 text-center text-xs font-extrabold transition sm:text-sm ${
-                active ? 'bg-cta-soft text-ink' : 'text-muted hover:text-ink'
+              className={`-mb-px flex min-h-11 flex-1 items-center justify-center gap-1 border-b-2 px-1 py-2 text-center text-xs font-extrabold transition sm:text-sm ${
+                active
+                  ? 'border-cta text-ink'
+                  : 'border-transparent text-muted hover:text-ink'
               }`}
             >
               {t(item.label, item.en)}
@@ -272,7 +266,7 @@ export default async function SellerPage({
               <li key={review.id} className="rounded-card border border-line bg-card p-4">
                 <div className="flex items-center justify-between gap-2">
                   <p className="text-sm font-extrabold">{review.authorName}</p>
-                  <p className="text-xs font-extrabold" style={{ color: '#F98513' }} dir="ltr">
+                  <p className="text-xs font-extrabold" style={{ color: 'var(--price-ink, #B45309)' }} dir="ltr">
                     {'★'.repeat(review.rating)}
                     <span className="text-faint">{'★'.repeat(5 - review.rating)}</span>
                   </p>
@@ -296,7 +290,7 @@ export default async function SellerPage({
           </p>
         </div>
       ) : (
-        <ul className="grid grid-cols-3 gap-1.5 sm:gap-2">
+        <ul className="grid grid-cols-2 gap-2 sm:grid-cols-3">
           {profile.active.map((listing) => {
             const title = listing.part ? listing.part.title : vehicleTitle(listing);
             const latin = listing.part ? null : brandLatinFor(listing.brand);
@@ -336,7 +330,7 @@ export default async function SellerPage({
                     <p className="truncate text-[11px] font-extrabold text-ink">{title}</p>
                     <p
                       className="mt-0.5 truncate text-[11px] font-extrabold"
-                      style={{ color: '#F98513' }}
+                      style={{ color: 'var(--price-ink, #B45309)' }}
                       dir="rtl"
                     >
                       {formatAmountLatin(irrToToman(listing.priceIRR))}{' '}

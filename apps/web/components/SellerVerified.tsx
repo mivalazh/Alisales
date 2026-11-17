@@ -17,6 +17,27 @@ export function sellerDisplayName(name: string | null): string | null {
   return cleaned.length > 0 ? cleaned : null;
 }
 
+/**
+ * Team-verified mark on a profile header: one orange star, no wording.
+ * The accessible name lives on the element; nothing is printed next to it.
+ */
+export function VerifiedStar({ label = 'Verified' }: { label?: string }) {
+  return (
+    <span role="img" aria-label={label} title={label} className="inline-flex shrink-0">
+      <svg
+        width={18}
+        height={18}
+        viewBox="0 0 24 24"
+        fill="#F98513"
+        aria-hidden="true"
+        focusable="false"
+      >
+        <path d="M12 2.6l2.9 5.9 6.5.95-4.7 4.58 1.11 6.47L12 17.44 6.19 20.5 7.3 14.03 2.6 9.45l6.5-.95L12 2.6z" />
+      </svg>
+    </span>
+  );
+}
+
 export function VerifiedPill({
   label = 'نمایشگاه معتبر',
 }: {

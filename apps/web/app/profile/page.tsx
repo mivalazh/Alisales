@@ -175,7 +175,7 @@ export default async function ProfilePage() {
         </div>
 
         {isBusiness && (
-          <dl className="grid grid-cols-2 gap-2 p-3 sm:grid-cols-4 sm:p-4">
+          <dl className="grid grid-cols-3 gap-2 p-3 sm:p-4">
             {[
               {
                 label: t('آگهی‌های فعال'),
@@ -194,12 +194,6 @@ export default async function ProfilePage() {
                 value: formatAmountLatin(stories.length),
                 href: `/seller/${session.sub}?tab=stories`,
                 tone: 'text-amber-500',
-              },
-              {
-                label: t('دنبال‌کننده‌ها'),
-                value: formatAmountLatin(followedIds.length),
-                href: '#followed-businesses',
-                tone: 'text-emerald-600',
               },
             ].map((stat) => (
               <Link

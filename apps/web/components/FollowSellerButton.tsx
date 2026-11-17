@@ -77,7 +77,7 @@ export function FollowSellerButton({
     return (
       <Link
         href={`/login?next=/seller/${sellerId}`}
-        className="inline-flex h-10 items-center gap-1.5 rounded-[var(--radius-pill)] border border-cta bg-cta-soft px-4 text-sm font-extrabold text-ink transition hover:border-cta"
+        className="inline-flex h-11 items-center gap-1.5 rounded-[var(--radius-pill)] border border-[#F98513] bg-[#F98513] px-5 text-sm font-extrabold text-[#111144] transition hover:brightness-95"
       >
         <Icon name="plus" size={16} />
         {t('دنبال کردن', 'Follow')}
@@ -122,14 +122,14 @@ export function FollowSellerButton({
         onClick={toggle}
         disabled={busy}
         aria-pressed={following}
-        className={`inline-flex h-10 items-center gap-1.5 rounded-[var(--radius-pill)] border px-4 text-sm font-extrabold transition ${
+        className={`inline-flex h-11 items-center gap-1.5 rounded-[var(--radius-pill)] border px-5 text-sm font-extrabold transition ${
           following
-            ? 'border-line-strong bg-page text-ink hover:border-line-strong'
-            : 'border-cta bg-cta text-white hover:opacity-90'
+            ? 'border-line-strong bg-page text-muted hover:border-line-strong hover:text-ink'
+            : 'border-[#F98513] bg-[#F98513] text-[#111144] hover:brightness-95'
         } disabled:opacity-60`}
       >
-        <Icon name={following ? 'shieldCheck' : 'plus'} size={16} />
-        {following ? t('دنبال‌شده ✓', 'Following ✓') : t('دنبال کردن', 'Follow')}
+        <Icon name={following ? 'checkCircle' : 'plus'} size={16} />
+        {following ? t('دنبال می‌کنید', 'Following') : t('دنبال کردن', 'Follow')}
       </button>
       {note && <span className="text-[11px] font-bold text-red-600">{note}</span>}
     </div>

@@ -4,7 +4,8 @@ import { averageRating, reviewsFor, type SellerReview } from './reviews';
 import { fixtureListings } from './fixtures';
 import { devListings } from './dev-store';
 import { visibleCatalog } from './demo-seed';
-import { followerCount, profileCustomization } from './social-store';
+import { profileCustomization } from './social-store';
+import { coverForSeller } from './profile-cover';
 import { storiesFrom } from '../stories';
 import type { StoryItem } from '@/components/Stories';
 import type { ProfileMode } from '@alisales/schemas';
@@ -22,7 +23,6 @@ export interface SellerStats {
   active: number;
   rating: number | null;
   reviewCount: number;
-  followers: number;
   stories: number;
 }
 
@@ -34,7 +34,6 @@ export interface SellerProfile {
   initials: string;
   verified: boolean;
   city: string;
-  memberSince: string | null;
   hasPhone: boolean;
   bio: string | null;
   avatarUrl: string | null;
@@ -47,6 +46,12 @@ export interface SellerProfile {
 }
 
 /** The profile of one seller, or null when the account does not exist. */
+/** Demo showrooms that exist only as seeded inventory (no account row). */
+const DEMO_SELLERS: Readonly<Record<string, { name: string; verified: boolean }>> = {
+  '00000000-0000-0000-0000-00000000000d': { name: 'گالری خودرو کیش', verified: true },
+  '00000000-0000-0000-0000-00000000000c': { name: 'نمایشگاه آلی سیلز', verified: true },
+};
+
 export async function loadSellerProfile(sellerId: string): Promise<SellerProfile | null> {
   const account: Account | null = await getUser(sellerId);
   // Demo sellers exist only as fixture rows (they have no account record), so
@@ -58,17 +63,23 @@ export async function loadSellerProfile(sellerId: string): Promise<SellerProfile
     : visibleCatalog(fixtureListings, devListings()).filter((listing) => listing.sellerId === sellerId);
   if (!account && listings.length === 0) return null;
 
-  const [reviews, phone, custom, followers] = await Promise.all([
+  const [reviews, phone, custom] = await Promise.all([
     reviewsFor(sellerId),
     accountPhone(sellerId),
     profileCustomization(sellerId),
-    followerCount(sellerId),
   ]);
 
   const active = listings.filter((listing) => listing.state === 'active');
   const profileMode = resolveSellerProfileMode(custom?.profileMode, account?.accountType, listings);
+  // Fixture sellers have no account row, so their identity comes from the
+  // seed directory instead of a generic placeholder — that placeholder was why
+  // demo showroom pages looked like unnamed, broken profiles.
+  const demo = DEMO_SELLERS[sellerId];
   const name =
-    account?.displayName?.trim() || listings[0]?.showroomName?.trim() || 'فروشنده آلی‌سیلز';
+    account?.displayName?.trim() ||
+    listings[0]?.showroomName?.trim() ||
+    demo?.name ||
+    'فروشنده آلی‌سیلز';
   // The seller's own story rail: their live, photographed stock, newest first.
   const stories = storiesFrom(active, [], [], 8);
   const rating = averageRating(reviews);
@@ -83,14 +94,17 @@ export async function loadSellerProfile(sellerId: string): Promise<SellerProfile
     profileMode,
     name,
     initials: name.trim().charAt(0) || '؟',
-    verified:
-      listings.some((listing) => listing.showroomVerified) || Boolean(listings[0]?.showroomName),
+    // A star is a team decision: only inventory explicitly marked verified (or
+    // a demo showroom the team endorsed) earns it. Merely having a showroom
+    // name no longer implies verification.
+    verified: listings.some((listing) => listing.showroomVerified) || Boolean(demo?.verified),
     city,
-    memberSince: account?.createdAt ?? listings.at(-1)?.publishedAt ?? null,
     hasPhone: Boolean(phone),
     bio: custom?.bio?.trim() ? custom.bio.trim() : null,
     avatarUrl: custom?.avatarUrl ?? null,
-    coverUrl: custom?.coverUrl ?? null,
+    // A seller-chosen cover wins; otherwise a stable vehicle photo derived
+    // from the id, never the flat orange banner.
+    coverUrl: custom?.coverUrl ?? coverForSeller(sellerId),
     listings,
     active,
     reviews,
@@ -99,7 +113,6 @@ export async function loadSellerProfile(sellerId: string): Promise<SellerProfile
       active: active.length,
       rating,
       reviewCount: reviews.length,
-      followers,
       stories: stories.length,
     },
   };
