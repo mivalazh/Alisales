@@ -5,8 +5,12 @@ import { useI18n } from '@/lib/i18n';
 import { useAedRate } from './RateProvider';
 import { usePriceUnit } from './PriceUnitProvider';
 
-/** Product colors, not theme tokens: the price stays on-brand in both themes. */
-const PRICE_INK = '#F98513';
+/**
+ * Price ink is a theme token: brand orange on the dark card, a deeper orange in
+ * light mode where #F98513 on white only reaches 2.5:1. The literal is the
+ * light-mode fallback for environments that never load the token sheet.
+ */
+const PRICE_INK = 'var(--price-ink, #B45309)';
 const SECONDARY_INK = '#64748B';
 
 /**
@@ -15,7 +19,8 @@ const SECONDARY_INK = '#64748B';
  * The stored price is always IRR. The rate comes from the one stored value
  * (`RateProvider` → the externally managed settings row), so every AED figure matches.
  *
- * The headline is bold brand orange (#F98513) text on a transparent background;
+ * The headline is bold orange text (`--price-ink`: #B45309 in light, #F98513 in
+ * dark) on a transparent background;
  * the reference «≈ … AED» sits directly underneath in muted slate, right-aligned
  * on the start edge of the card, so the figure reads like a classifieds price
  * instead of a button.

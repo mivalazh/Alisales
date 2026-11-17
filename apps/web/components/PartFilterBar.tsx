@@ -68,7 +68,7 @@ function Pill({
       onClick={onClick}
       className={`inline-flex min-h-9 items-center rounded-full border px-3 py-1.5 text-xs transition active:scale-[0.98] ${
         active
-          ? 'border-[#F98513] bg-[#F98513] font-bold text-white shadow-xs'
+          ? 'border-[#F98513] bg-[#F98513] font-bold text-[#111144] shadow-xs'
           : 'border-slate-200/80 bg-[#F4F1EC] font-medium text-slate-700 hover:border-slate-300 dark:border-white/10 dark:bg-white/5 dark:text-slate-200 dark:hover:border-white/20'
       }`}
     >

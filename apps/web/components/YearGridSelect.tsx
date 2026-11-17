@@ -109,7 +109,7 @@ export function YearGridSelect({
                   }}
                   className={`rounded-field border py-1.5 text-xs font-extrabold tabular-nums transition ${
                     active
-                      ? 'border-[#F98513] bg-[#F98513] text-white'
+                      ? 'border-[#F98513] bg-[#F98513] text-[#111144]'
                       : 'border-line bg-page text-muted hover:border-cta hover:text-ink'
                   }`}
                 >

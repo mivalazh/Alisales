@@ -193,7 +193,7 @@ export function AIAssistantWidget() {
                               <span className="block truncate text-[11px] font-extrabold text-ink">
                                 {listing.title}
                               </span>
-                              <span dir="ltr" className="mt-0.5 block text-[10px] font-extrabold text-[#F98513]">                                  {listing.priceToman.toLocaleString('en-US')} {t('تومان')}
+                              <span dir="ltr" className="mt-0.5 block text-[10px] font-extrabold text-[#B45309] dark:text-[#F98513]">                                  {listing.priceToman.toLocaleString('en-US')} {t('تومان')}
                               </span>
                             </span>
                           </Link>

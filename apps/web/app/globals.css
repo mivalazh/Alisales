@@ -67,9 +67,13 @@
     --logo-fg: #111144;
     /* «A ALI SALES» lockup inks: the navy pillar flips to platinum in dark
        mode, the accent stays Habañero in both. */
-    --logo-navy: #142874;
+    --logo-navy: #223382;
     --logo-accent: #f98513;
     --logo-sales: #f34405;
+    /* Price text ink: brand orange only reaches 2.5:1 on a white card, so the
+       light theme uses a deeper orange (5.02:1). App-level, outside the design
+       palette contract; the dark theme keeps brand orange in the block below. */
+    --price-ink: #b45309;
   }
 
   html {
@@ -281,6 +285,7 @@ html.dark {
   --text: #f6f3ee;
   --text-muted: #b8c0d0;
   --price: #f98513;
+  --price-ink: #f98513;
   --nav-active: #f98513;
   --nav-inactive: #b8c0d0;
 }
@@ -594,3 +599,5 @@ html[data-splash-seen] .app-splash {
   .app-splash-underline { transform: none; }
   .app-splash { transition: none; }
 }
+
+/* theme tokens: navy #223382, price ink #b45309 (light) */

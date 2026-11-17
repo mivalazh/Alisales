@@ -106,13 +106,13 @@ function PillOption({
       onClick={onToggle}
       className={`inline-flex min-h-9 items-center gap-1 rounded-full border px-3 py-1.5 text-xs transition active:scale-[0.98] ${
         checked
-          ? 'border-[#F98513] bg-[#F98513] font-bold text-white shadow-xs'
+          ? 'border-[#F98513] bg-[#F98513] font-bold text-[#111144] shadow-xs'
           : 'border-slate-200/80 bg-[#F4F1EC] font-medium text-slate-700 hover:border-slate-300 dark:border-white/10 dark:bg-white/5 dark:text-slate-200 dark:hover:border-white/20'
       }`}
     >
       <span>{label}</span>
       {count !== undefined && (
-        <span className={`text-[10px] tabular-nums ${checked ? 'text-white/80' : 'text-slate-400'}`}>
+        <span className={`text-[10px] tabular-nums ${checked ? 'text-[#111144]/80' : 'text-slate-400'}`}>
           {count}
         </span>
       )}
@@ -283,7 +283,7 @@ function YearGrid({
                   aria-pressed={isFrom || isTo}
                   className={`min-h-10 rounded-field border py-1.5 text-xs font-extrabold tabular-nums transition ${
                     isFrom || isTo
-                      ? 'border-[#F98513] bg-[#F98513] text-white'
+                      ? 'border-[#F98513] bg-[#F98513] text-[#111144]'
                       : between
                         ? 'border-[#F98513]/25 bg-[#F98513]/15 text-[#111144] hover:border-[#F98513]/50 dark:text-white'
                         : 'border-line bg-page text-muted hover:border-cta hover:text-ink'
@@ -514,7 +514,7 @@ export function FilterGroups({
             <PillOption
               key={brand.slug}
               checked={filters.brand.includes(brand.slug as SearchFilters['brand'][number])}
-              label={t(brand.label)}
+              label={brand.latin}
               count={countFor(pool, {
                 ...filters,
                 brand: [brand.slug as SearchFilters['brand'][number]],

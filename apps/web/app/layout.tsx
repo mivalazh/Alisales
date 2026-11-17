@@ -8,6 +8,7 @@ import { BottomNav } from '@/components/BottomNav';
 import { AppSplashIntro } from '@/components/AppSplashIntro';
 import { DeferredAssistant } from '@/components/DeferredAssistant';
 import { AppRuntime } from '@/components/AppRuntime';
+import { BackToTop } from '@/components/BackToTop';
 import { themeBootstrapScript } from '@/components/ThemeToggle';
 import { PriceUnitProvider } from '@/components/PriceUnitProvider';
 import { LocaleProvider } from '@/lib/i18n';
@@ -135,6 +136,7 @@ export default async function RootLayout({ children }: { children: ReactNode }) 
             </main>
             <AppFooter />
             <BottomNav />
+            <BackToTop />
             <DeferredAssistant />
           </PriceUnitProvider>
         </RateProvider>
