@@ -13,6 +13,8 @@ export interface FavoriteSnapshot {
   model: string;
   year: number;
   priceIRR: number;
+  /** Listing id, so the saved page can pull that listing's real image. */
+  listingId?: string;
   /** Cover image (optional) so the favorites grid can show artwork offline. */
   coverUrl?: string;
 }
@@ -38,6 +40,7 @@ export function readFavorites(): FavoriteSnapshot[] {
             model: String(s.model ?? ''),
             year: Number(s.year ?? 0),
             priceIRR: Number(s.priceIRR ?? 0),
+            ...(typeof s.listingId === 'string' ? { listingId: s.listingId } : {}),
             ...(typeof s.coverUrl === 'string' ? { coverUrl: s.coverUrl } : {}),
           },
         ];
@@ -123,7 +126,14 @@ export function FavoriteButton({
         // Keep the device mirror in step with the account so a reload off the
         // detail page still shows the bookmark.
         if (data.ids.includes(listingId)) {
-          upsert({ slug, model: '', year: 0, priceIRR: 0, ...snapshotRef.current });
+          upsert({
+            slug,
+            model: '',
+            year: 0,
+            priceIRR: 0,
+            ...(listingId ? { listingId } : {}),
+            ...snapshotRef.current,
+          });
         }
       } catch {
         // guest / offline — the local state stands
@@ -141,7 +151,7 @@ export function FavoriteButton({
       writeFavorites(favorites.filter((f) => f.slug !== slug));
     } else {
       upsert(
-        { slug, model: '', year: 0, priceIRR: 0 },
+        { slug, model: '', year: 0, priceIRR: 0, ...(listingId ? { listingId } : {}) },
         snapshot,
       );
     }

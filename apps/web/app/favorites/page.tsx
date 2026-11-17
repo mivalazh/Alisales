@@ -33,8 +33,8 @@ export default async function FavoritesPage({
 
   if (!session) {
     return (
-      <div className="mx-auto max-w-2xl space-y-4 bg-[#F4F1EC] dark:bg-[#0B0D1E]">
-        <h1 className="text-xl font-extrabold dark:text-white">{t('ذخیره‌شده‌ها', 'Saved')}</h1>
+      <div className="mx-auto max-w-2xl space-y-4">
+        <h1 className="text-xl font-extrabold">{t('ذخیره‌شده‌ها', 'Saved')}</h1>
         <FavoritesList />
       </div>
     );
@@ -45,8 +45,8 @@ export default async function FavoritesPage({
   const items = resolved.filter((listing): listing is ListingCardData => listing !== null);
 
   return (
-    <div className="mx-auto max-w-2xl space-y-4 bg-[#F4F1EC] dark:bg-[#0B0D1E]">
-      <h1 className="text-xl font-extrabold dark:text-white">{t('ذخیره‌شده‌ها', 'Saved')}</h1>
+    <div className="mx-auto max-w-2xl space-y-4">
+      <h1 className="text-xl font-extrabold">{t('ذخیره‌شده‌ها', 'Saved')}</h1>
 
       {items.length === 0 ? (
         <ListEmptyState

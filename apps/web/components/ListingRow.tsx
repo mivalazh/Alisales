@@ -51,23 +51,24 @@ export function ListingRow({
   return (
     <li className="relative min-w-0 overflow-hidden rounded-card border border-line bg-card transition hover:border-line-strong hover:shadow-lg">
       <Link href={`/listing/${listing.slug}`} className="relative flex items-stretch gap-3 p-3 sm:gap-4 sm:p-4">
-        <div className="relative h-28 w-28 shrink-0 overflow-hidden rounded-xl bg-sunken sm:h-28 sm:w-32">
+        {/* Fixed 4:3 frame: the photo always fills the whole slot, so no
+            grey strip can appear under a short or stretched image. */}
+        <div className="relative aspect-[4/3] w-28 shrink-0 overflow-hidden rounded-xl bg-sunken sm:w-32">
           {hasPhoto && listing.coverUrl ? (
             <Image
               src={listing.coverUrl}
               alt={part ? title : `${translateListingContentToEn(listing.model)} ${listing.year}`}
-              width={128}
-              height={112}
+              fill
               sizes="128px"
               unoptimized={isPreSizedSource(listing.coverUrl)}
               loading="lazy"
               decoding="async"
-              className={`h-full w-full object-cover ${sold ? 'opacity-60 grayscale' : ''}`}
+              className={`object-cover ${sold ? 'opacity-60 grayscale' : ''}`}
             />
           ) : (
-            <div className="flex h-full w-full items-center justify-center text-faint">
+            <div className="flex h-full w-full flex-col items-center justify-center gap-1 text-faint">
               <Icon name="imageX" size={24} />
-              <span className="sr-only">No image</span>
+              <span className="text-[10px] font-bold">{t('بدون عکس', 'No photo')}</span>
             </div>
           )}
         </div>

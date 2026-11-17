@@ -20,6 +20,15 @@ import { translateListingContentToEn } from '@/lib/i18n/content';
 
 const VIEW_KEY = 'alisales-favorites-view';
 
+interface LiveListing {
+  id: string;
+  slug: string;
+  coverUrl: string | null;
+  model: string;
+  year: number;
+  priceIRR: number;
+}
+
 /**
  * Device favorites are synchronous. A tiny external store lets the list render
  * them immediately after hydration with no artificial loading state; the
@@ -49,13 +58,16 @@ function subscribeFavorites(onChange: () => void): () => void {
  * Device-local favorites for guests — a two-column phone / four-column desktop
  * grid with a compact list toggle. Removing an item writes the same device key
  * the card bookmark uses, so both stay in step.
+ *
+ * Each card's artwork comes from the listing itself: the stored snapshot only
+ * supplies identity, and the page re-reads the live cover through
+ * `/api/listings/lookup`, so a saved card never shows a stale or shared image.
  */
 export function FavoritesList() {
   const { t, lang } = useI18n();
-  const displayTitle = (item: FavoriteSnapshot) =>
-    lang === 'en' ? translateListingContentToEn(item.model || item.slug) : item.model || item.slug;
   const items = useSyncExternalStore(subscribeFavorites, favoritesSnapshot, () => null);
   const [view, setView] = useState<ViewMode>('grid');
+  const [live, setLive] = useState<Record<string, LiveListing>>({});
 
   useEffect(() => {
     try {
@@ -65,6 +77,24 @@ export function FavoritesList() {
       // private mode — grid stays
     }
   }, []);
+
+  const ids = (items ?? []).flatMap((item) => (item.listingId ? [item.listingId] : []));
+  const idsKey = ids.join(',');
+
+  useEffect(() => {
+    if (!idsKey) return;
+    let cancelled = false;
+    fetch(`/api/listings/lookup?ids=${encodeURIComponent(idsKey)}`, { cache: 'no-store' })
+      .then((res) => (res.ok ? res.json() : null))
+      .then((data: { items?: LiveListing[] } | null) => {
+        if (cancelled || !Array.isArray(data?.items)) return;
+        setLive(Object.fromEntries(data.items.map((row) => [row.slug, row])));
+      })
+      .catch(() => undefined);
+    return () => {
+      cancelled = true;
+    };
+  }, [idsKey]);
 
   const changeView = (mode: ViewMode) => {
     setView(mode);
@@ -78,6 +108,14 @@ export function FavoritesList() {
   const remove = (slug: string) => {
     writeFavorites(readFavorites().filter((f) => f.slug !== slug));
   };
+
+  const modelOf = (item: FavoriteSnapshot) => live[item.slug]?.model || item.model || item.slug;
+  const displayTitle = (item: FavoriteSnapshot) => {
+    const title = modelOf(item);
+    return lang === 'en' ? translateListingContentToEn(title) : title;
+  };
+  const coverOf = (item: FavoriteSnapshot) =>
+    live[item.slug]?.coverUrl ?? item.coverUrl ?? null;
 
   // Server render has no localStorage. Leave the space stable for one frame,
   // then the device list appears synchronously after hydration.
@@ -111,14 +149,17 @@ export function FavoritesList() {
           {items.map((item) => (
             <li
               key={item.slug}
-              className="flex items-center justify-between gap-3 rounded-card border border-line bg-card p-4"
+              className="flex items-center justify-between gap-3 rounded-card border border-line bg-card p-3"
             >
-              <Link href={`/listing/${item.slug}`} className="min-w-0 flex-1">
-                <p className="truncate text-sm font-extrabold">
-                  {displayTitle(item)}
-                  {item.year ? ` — ${item.year}` : ''}
-                </p>
-                {item.priceIRR ? <PriceText irr={item.priceIRR} /> : null}
+              <Link href={`/listing/${item.slug}`} className="flex min-w-0 flex-1 items-center gap-3">
+                <SavedThumb src={coverOf(item)} alt={displayTitle(item)} />
+                <span className="min-w-0 flex-1">
+                  <span className="block truncate text-sm font-extrabold">
+                    {displayTitle(item)}
+                    {item.year ? ` — ${item.year}` : ''}
+                  </span>
+                  {item.priceIRR ? <PriceText irr={item.priceIRR} /> : null}
+                </span>
               </Link>
               <RemoveButton onClick={() => remove(item.slug)} />
             </li>
@@ -131,7 +172,9 @@ export function FavoritesList() {
   return (
     <div className="space-y-3">
       <div className="flex items-center justify-between gap-2">
-        <p className="text-sm font-bold text-muted">{items.length} آگهی</p>
+        <p className="text-sm font-bold text-muted">
+          {t(`${items.length} آگهی`, `${items.length} listings`)}
+        </p>
         <ViewModeToggle value={view} onChange={changeView} />
       </div>
       <ul className="grid grid-cols-2 gap-3 lg:grid-cols-4">
@@ -142,21 +185,19 @@ export function FavoritesList() {
           >
             <Link href={`/listing/${item.slug}`} className="block">
               <div className="relative aspect-[var(--photo-aspect)] bg-sunken">
-                {item.coverUrl ? (
+                {coverOf(item) ? (
                   <Image
-                    src={item.coverUrl}
+                    src={coverOf(item) as string}
                     alt={displayTitle(item)}
                     fill
                     sizes="(min-width: 1024px) 25vw, 50vw"
-                    unoptimized={isPreSizedSource(item.coverUrl)}
+                    unoptimized={isPreSizedSource(coverOf(item))}
                     loading="lazy"
                     decoding="async"
                     className="object-cover"
                   />
                 ) : (
-                  <div className="flex h-full items-center justify-center text-faint">
-                    <Icon name="camera" size={28} />
-                  </div>
+                  <NoImage />
                 )}
               </div>
               <div className="space-y-1 p-3">
@@ -175,6 +216,37 @@ export function FavoritesList() {
   );
 }
 
+function SavedThumb({ src, alt }: { src: string | null; alt: string }) {
+  return (
+    <span className="relative block h-16 w-20 shrink-0 overflow-hidden rounded-lg bg-sunken">
+      {src ? (
+        <Image
+          src={src}
+          alt={alt}
+          fill
+          sizes="80px"
+          unoptimized={isPreSizedSource(src)}
+          loading="lazy"
+          decoding="async"
+          className="object-cover"
+        />
+      ) : (
+        <NoImage />
+      )}
+    </span>
+  );
+}
+
+function NoImage() {
+  const { t } = useI18n();
+  return (
+    <span className="flex h-full w-full flex-col items-center justify-center gap-1 text-faint">
+      <Icon name="camera" size={24} />
+      <span className="text-[10px] font-bold">{t('بدون عکس', 'No photo')}</span>
+    </span>
+  );
+}
+
 function RemoveButton({ onClick }: { onClick: () => void }) {
   const { t } = useI18n();
   return (
@@ -182,8 +254,8 @@ function RemoveButton({ onClick }: { onClick: () => void }) {
       type="button"
       aria-label={t('حذف از ذخیره‌شده‌ها', 'Remove from saved')}
       onClick={onClick}
-      className="flex h-10 w-10 shrink-0 items-center justify-center rounded-full shadow-md backdrop-blur transition hover:opacity-90"
-      style={{ backgroundColor: 'rgba(255, 255, 255, 0.88)', color: '#111144' }}
+      className="flex h-10 w-10 shrink-0 items-center justify-center rounded-full bg-card/90 shadow-md backdrop-blur transition hover:opacity-90"
+      style={{ color: '#111144' }}
     >
       <Icon name="close" size={16} />
     </button>
