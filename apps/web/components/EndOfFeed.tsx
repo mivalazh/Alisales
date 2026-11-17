@@ -20,7 +20,7 @@ export function EndOfFeed({ count }: { count: number }) {
               <button
                 type="button"
                 onClick={() => window.scrollTo({ top: 0, behavior: 'smooth' })}
-                className="rounded-full bg-card px-2.5 py-1 font-extrabold text-[#C2410C] transition hover:underline dark:text-[#F98513]"
+                className="rounded-full bg-card px-2.5 py-1 font-extrabold text-[#F98513] transition hover:underline"
               >
                 {t('بازگشت به بالا ↑', 'Back to top ↑')}
               </button>

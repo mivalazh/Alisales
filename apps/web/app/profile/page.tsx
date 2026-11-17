@@ -1,4 +1,5 @@
 import { localizedMetadata } from '@/lib/i18n/metadata';
+import Image from 'next/image';
 import Link from 'next/link';
 import { redirect } from 'next/navigation';
 import {
@@ -11,6 +12,8 @@ import { getSession } from '@/lib/auth/session';
 import { getUser, listFavoriteIds, listingsBySeller } from '@/lib/data/s2-store';
 import { averageRating, reviewsFor } from '@/lib/data/reviews';
 import { followedSellerIds, profileCustomization } from '@/lib/data/social-store';
+import { coverForSeller } from '@/lib/data/profile-cover';
+import { isPreSizedSource } from '@/lib/images';
 import { storiesFrom } from '@/lib/stories';
 import { Icon, type IconName } from '@/components/Icon';
 import { LogoutButton } from '@/components/LogoutButton';
@@ -119,7 +122,7 @@ export default async function ProfilePage() {
   return (
     <div className="mx-auto max-w-2xl space-y-4">
       <section className="overflow-hidden rounded-3xl border border-line bg-card shadow-sm">
-        <div className="relative h-32 bg-gradient-to-br from-[#111144] via-[#0F7FC4] to-[#57c7a3] sm:h-40">
+        <div className="relative h-32 w-full overflow-hidden bg-sunken sm:h-40">
           {custom?.coverUrl ? (
             // eslint-disable-next-line @next/next/no-img-element
             <img
@@ -130,7 +133,17 @@ export default async function ProfilePage() {
               className="h-full w-full object-cover"
             />
           ) : (
-            <div className="absolute inset-0 opacity-40 [background-image:radial-gradient(circle_at_20%_20%,#DEF434_0,transparent_35%),radial-gradient(circle_at_80%_60%,#ffffff_0,transparent_30%)]" />
+            // A deterministic catalogue vehicle, the same photo the public
+            // seller page uses for this account id — never a flat gradient.
+            <Image
+              src={coverForSeller(session.sub)}
+              alt=""
+              fill
+              sizes="100vw"
+              priority
+              unoptimized={isPreSizedSource(coverForSeller(session.sub))}
+              className="object-cover"
+            />
           )}
           <ProfileMediaButton kind="cover" label={t('تغییر کاور پروفایل')} />
         </div>
@@ -181,19 +194,19 @@ export default async function ProfilePage() {
                 label: t('آگهی‌های فعال'),
                 value: formatAmountLatin(active.length),
                 href: '/profile/listings',
-                tone: 'text-[#0F7FC4]',
+                tone: 'text-[#F98513]',
               },
               {
                 label: t('ذخیره‌شده‌ها'),
                 value: formatAmountLatin(favoriteIds.length),
                 href: '/favorites',
-                tone: 'text-[#F98513]',
+                tone: 'text-[#111144] dark:text-[#9BACD8]',
               },
               {
                 label: t('استوری‌ها'),
                 value: formatAmountLatin(stories.length),
                 href: `/seller/${session.sub}?tab=stories`,
-                tone: 'text-amber-500',
+                tone: 'text-[#F98513]',
               },
             ].map((stat) => (
               <Link

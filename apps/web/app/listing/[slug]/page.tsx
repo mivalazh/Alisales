@@ -71,6 +71,13 @@ export async function generateMetadata({
   };
 }
 
+/** Short condition words for the parts badge («نو» / «استوک»). */
+const PART_CONDITION_SHORT: Record<string, string> = {
+  new: 'نو',
+  stock: 'استوک',
+  used: 'کارکرده',
+};
+
 const STATE_BADGE: Record<string, BadgeKey> = {
   draft: 'draft',
   pending_review: 'pending_review',
@@ -195,7 +202,9 @@ export default async function ListingDetailPage({
   if (listing.state !== 'active' && listing.state !== 'sold') {
     badges.push(STATE_BADGE[listing.state] ?? 'active');
   }
-  badges.push(listing.condition === 'new' ? 'new' : 'used');
+  // Parts carry their own three-state condition pill below; the vehicle
+  // `new`/`used` badge would mislabel an imported stock part.
+  if (!part) badges.push(listing.condition === 'new' ? 'new' : 'used');
   if (!part) {
     if (listing.plateType === 'kish') badges.push('kish_plate');
     if (listing.plateType === 'temporary_transit' || listing.plateType === 'unplated') {
@@ -211,24 +220,31 @@ export default async function ListingDetailPage({
 
   // Detail specifications carry the car's facts only — the relative posting
   // age belongs to the browse cards and rows, never to this block.
-  // Parts show exactly four facts: category, authenticity, country of
-  // manufacture and compatibility. Condition is already carried by the badge
-  // above the title, so it is deliberately not repeated in a second box;
-  // part number and warranty ride as tags under the description instead.
+  // Parts show exactly four facts: brand, part category, country of
+  // manufacture/authenticity and city. Condition is already carried by the
+  // badge above the title, so it is deliberately not repeated in a second box;
+  // compatibility, part number and warranty ride as tags under the description.
+  const partOrigin = part
+    ? part.originCountry
+      ? lang === 'en'
+        ? translateListingContentToEn(part.originCountry)
+        : part.originCountry
+      : t(PART_ORIGIN_LABELS[part.origin])
+    : '';
   const specs: DetailSpec[] = part
     ? [
-        { icon: 'car', label: t('دسته‌بندی'), value: t(PART_CATEGORY_LABELS[part.category]) },
-        { icon: 'shieldCheck', label: t('اصالت'), value: t(PART_ORIGIN_LABELS[part.origin]) },
+        { icon: 'car', label: t('برند'), value: brandLatinFor(listing.brand) ?? '—' },
+        {
+          icon: 'gear',
+          label: t('دسته‌بندی قطعه'),
+          value: t(PART_CATEGORY_LABELS[part.category]),
+        },
+        { icon: 'shieldCheck', label: t('کشور سازنده / اصالت'), value: partOrigin },
         {
           icon: 'plate',
-          label: t('کشور سازنده'),
-          value: part.originCountry
-            ? lang === 'en'
-              ? translateListingContentToEn(part.originCountry)
-              : part.originCountry
-            : '—',
+          label: t('شهر'),
+          value: t(CITY_LABELS[listing.city] ?? listing.city),
         },
-        { icon: 'gear', label: t('سازگاری'), value: compatibilityLabel(part.compatibility) },
       ]
     : [
         { icon: 'car', label: t('سال ساخت'), value: String(listing.year) },
@@ -258,6 +274,7 @@ export default async function ListingDetailPage({
     if (text) extraSpecs.push({ label, value: text, ...(positive ? { positive } : {}) });
   };
   if (listing.kind === 'part' && part) {
+    pushSpec(t('سازگاری'), compatibilityLabel(part.compatibility));
     pushSpec(t('شماره فنی'), part.partNumber);
     pushSpec(
       t('گارانتی'),
@@ -497,6 +514,11 @@ export default async function ListingDetailPage({
             <div className="flex items-start justify-between gap-3">
               <div className="flex flex-wrap items-center gap-1.5">
                 {sold && <SoldBadge size="lg" />}
+                {part && (
+                  <span className="rounded-[var(--radius-pill)] border border-[#F98513] bg-[#F98513]/15 px-2 py-0.5 text-xs font-bold text-[#111144] dark:text-[#F98513]">
+                    {t(PART_CONDITION_SHORT[part.condition] ?? '')}
+                  </span>
+                )}
                 {badges.map((b) => {
                 const token = badgeFor(b);
                   return (

@@ -34,7 +34,7 @@ const TRENDING: ReadonlyArray<{ label: string; patch: Partial<SearchFilters> }> 
   { label: 'Patrol Platinum', patch: { q: 'Patrol' } },
   { label: 'Mercedes S500', patch: { q: 'S-Class' } },
   { label: 'BMW X5', patch: { q: 'X5' } },
-  { label: 'کیت ترمز پورشه', patch: { q: 'کیت ترمز' } },
+  { label: 'Porsche brake kit', patch: { q: 'کیت ترمز' } },
   { label: 'پلاک منطقه آزاد', patch: { plateType: ['kish'] } },
 ];
 
@@ -42,7 +42,8 @@ const TRENDING: ReadonlyArray<{ label: string; patch: Partial<SearchFilters> }> 
 const SUGGESTION_POOL: readonly string[] = Array.from(
   new Set([
     ...[...carBrands, ...MOTORCYCLE_BRANDS, ...HEAVY_BRANDS].flatMap((brand) => [
-      brand.label,
+      // Brand names always read in English; the Persian label is not a
+      // suggestion of its own.
       brand.latin,
       ...brand.models,
     ]),

@@ -171,7 +171,7 @@ export function Header({
 
   return (
     <>
-      <header className="fixed inset-x-0 top-0 z-50 w-full border-b border-line bg-card/95 pt-[env(safe-area-inset-top)] shadow-md backdrop-blur-md dark:border-white/10 dark:bg-[#111144]/95">
+      <header className="fixed inset-x-0 top-0 z-50 w-full border-b border-slate-200/80 bg-white/95 pt-[env(safe-area-inset-top)] shadow-xs backdrop-blur-md dark:border-white/10 dark:bg-[#111144]/95">
         <div className="mx-auto flex h-16 w-full max-w-[var(--content-max)] items-center gap-2 px-4 sm:px-6">
           <div className="flex items-center gap-2">
             <button
@@ -259,16 +259,13 @@ export function Header({
             aria-label={t('منوی اصلی', 'Main menu')}
             className="absolute inset-y-0 start-0 flex w-80 max-w-[85vw] flex-col border-e border-line bg-card shadow-2xl"
           >
-            <div
-              className="flex shrink-0 items-center justify-between gap-3 border-b border-line px-4 pb-3"
-              style={{ paddingTop: 'max(0.75rem, env(safe-area-inset-top))' }}
-            >
+            <div className="flex shrink-0 items-center justify-between gap-3 border-b border-line px-4 pb-3 pt-[max(1.25rem,env(safe-area-inset-top))]">
               <span className="text-sm font-extrabold leading-none text-ink">{t('منو', 'Menu')}</span>
               <button
                 type="button"
                 onClick={() => setMenuOpen(false)}
                 aria-label={t('بستن منو', 'Close menu')}
-                className="grid h-11 w-11 shrink-0 place-items-center rounded-full bg-sunken p-0 leading-none text-ink transition hover:bg-line dark:bg-white/10 dark:hover:bg-white/15"
+                className="grid h-10 w-10 shrink-0 place-items-center rounded-full bg-sunken p-0 leading-none text-ink transition hover:bg-line dark:bg-white/10 dark:hover:bg-white/15"
               >
                 <Icon name="close" size={20} />
               </button>

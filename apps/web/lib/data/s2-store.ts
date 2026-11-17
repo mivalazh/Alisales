@@ -1,5 +1,6 @@
 import { createClient, type SupabaseClient } from '@supabase/supabase-js';
 import { readJson, writeJson } from '../storage/demo-store';
+import { publicPhotoUrl } from './photo-rules';
 import { serverSupabaseUrl } from '../config/mode';
 import type {
   AccountType,
@@ -653,7 +654,9 @@ function mapCardRow(r: Record<string, unknown>): ListingCardData {
     color: (r.color ?? 'white') as ListingCardData['color'],
     condition: (r.condition ?? 'used') as ListingCardData['condition'],
     plateType: (r.plate_type ?? 'unplated') as ListingCardData['plateType'],
-    coverUrl: null,
+    // The hosted view carries the first photo's storage path; resolve it to a
+    // public URL so a saved card always shows the listing's own image.
+    coverUrl: r.cover_photo_path ? publicPhotoUrl(String(r.cover_photo_path)) : null,
     showroomName: (r.showroom_name as string | null) ?? null,
     showroomVerified: Boolean(r.showroom_verified),
     allowPhoneReveal: Boolean(r.allow_phone_reveal),

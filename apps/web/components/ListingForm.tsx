@@ -393,7 +393,7 @@ function BrandPicker({
                   brand.slug === value ? 'bg-cta-soft text-ink' : 'text-muted'
                 }`}
               >
-                <span>{t(brand.label, brand.latin)}</span>
+                <span>{brand.latin}</span>
                 <span dir="ltr" className="text-[11px] font-bold text-faint">
                   {brand.latin}
                 </span>

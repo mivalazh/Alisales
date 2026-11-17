@@ -87,7 +87,7 @@ export function FilterPanel({
             <CheckRow
               key={b.slug}
               checked={filters.brand.includes(b.slug)}
-              label={b.label}
+              label={b.latin}
               onToggle={() => onChange({ ...filters, brand: toggle(filters.brand, b.slug) })}
             />
           ))}

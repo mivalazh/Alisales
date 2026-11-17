@@ -2,6 +2,7 @@
 
 import { useEffect, useMemo, useRef, useState, type ReactNode } from 'react';
 import { brandsForCategory, type VehicleCategory } from '@alisales/schemas';
+import { BRAND_LOGO_SLUGS } from '@/lib/brand-logos';
 import { scrollToResults } from '@/lib/scroll';
 import { useI18n } from '@/lib/i18n';
 import { Icon } from './Icon';
@@ -242,15 +243,27 @@ export function BrandModelBox({
                           : 'border-line bg-card hover:border-line-strong'
                       }`}
                     >
-                      {/* Latin marque in clean type — no hand-drawn logo.
-                          Official brand artwork is not bundled, and an
-                          invented mark is worse than plain typography. */}
-                      <span
-                        dir="ltr"
-                        className="line-clamp-2 w-full text-center text-[11px] font-extrabold leading-tight tracking-tight text-ink"
-                      >
-                        {item.latin}
-                      </span>
+                      {/* The official mark when the bundle has one (rendered
+                          untouched, contained in the tile, inverted only for
+                          contrast in the dark theme). Otherwise the Latin
+                          marque in clean typography — never a fake icon. */}
+                      {BRAND_LOGO_SLUGS.has(item.slug) ? (
+                        // eslint-disable-next-line @next/next/no-img-element
+                        <img
+                          src={`/brands/${item.slug}.svg`}
+                          alt={item.latin}
+                          loading="lazy"
+                          decoding="async"
+                          className="h-6 w-full max-w-[72px] object-contain dark:invert"
+                        />
+                      ) : (
+                        <span
+                          dir="ltr"
+                          className="line-clamp-2 w-full text-center text-[11px] font-extrabold leading-tight tracking-tight text-ink"
+                        >
+                          {item.latin}
+                        </span>
+                      )}
                     </button>
                   </li>
                 );

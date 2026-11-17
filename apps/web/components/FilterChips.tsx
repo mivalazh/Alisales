@@ -3,7 +3,7 @@
 import {
   BIKE_TYPE_LABELS,
   BODY_TYPE_LABELS,
-  BRAND_LABELS,
+  BRAND_LATIN,
   CITY_LABELS,
   CONDITION_LABELS,
   FUEL_LABELS,
@@ -52,7 +52,7 @@ export function FilterChips({
   for (const brand of filters.brand) {
     chips.push({
       id: `brand-${brand}`,
-      label: t(BRAND_LABELS[brand] ?? brand),
+      label: BRAND_LATIN[brand] ?? brand,
       clear: (f) => ({ ...f, brand: f.brand.filter((b) => b !== brand) }),
     });
   }

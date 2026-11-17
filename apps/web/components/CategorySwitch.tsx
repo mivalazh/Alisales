@@ -8,10 +8,9 @@ import { useI18n } from '@/lib/i18n';
  * Top-level category switch: خودرو | موتور و اسکوتر برقی | ماشین‌آلات سنگین |
  * قطعات.
  *
- * One hairline bar, shared by the home page and every browse page. The previous
- * 2×2 boxed grid ate a third of a phone screen before any results; this is a
- * single 40px row of label-only tabs divided by 1px lines, with the active tab
- * carrying an orange underline on the ink colour.
+ * One row of rounded pills, shared by the home page and every browse page and
+ * separated from the fixed header by a small top margin, so the tabs never
+ * read as part of the header bar. The active pill carries the brand orange.
  */
 const CATEGORIES: ReadonlyArray<{ href: string; label: string; short: string }> = [
   { href: '/cars', label: 'خودرو', short: 'خودرو' },
@@ -25,30 +24,26 @@ export function CategorySwitch() {
   const { t } = useI18n();
 
   return (
-    <nav aria-label={t('دسته‌بندی‌ها', 'Categories')} className="border-y border-line">
-      <ul className="flex items-stretch overflow-x-auto [scrollbar-width:none] [&::-webkit-scrollbar]:hidden">
-        {CATEGORIES.map((item, index) => {
+    <nav
+      aria-label={t('دسته‌بندی‌ها', 'Categories')}
+      className="-mx-4 mt-3 overflow-x-auto px-4 [scrollbar-width:none] [&::-webkit-scrollbar]:hidden sm:mx-0 sm:px-0"
+    >
+      <ul className="flex items-center gap-2">
+        {CATEGORIES.map((item) => {
           const active = pathname === item.href || pathname.startsWith(`${item.href}/`);
           return (
-            <li
-              key={item.href}
-              className={`min-w-0 flex-1 ${index > 0 ? 'border-s border-line' : ''}`}
-            >
+            <li key={item.href} className="shrink-0">
               <Link
                 href={item.href}
                 aria-current={active ? 'page' : undefined}
-                className={`relative flex h-10 items-center justify-center px-1 text-center text-[11px] font-extrabold leading-tight transition sm:text-sm ${
-                  active ? 'text-ink' : 'text-muted hover:text-ink'
+                className={`flex h-9 items-center whitespace-nowrap rounded-[var(--radius-pill)] border px-3.5 text-[11px] font-extrabold leading-tight transition sm:text-sm ${
+                  active
+                    ? 'border-[#F98513] bg-[#F98513] text-white shadow-xs'
+                    : 'border-line bg-card text-muted hover:border-line-strong hover:text-ink'
                 }`}
               >
                 <span className="sm:hidden">{t(item.short)}</span>
                 <span className="hidden sm:inline">{t(item.label)}</span>
-                {active && (
-                  <span
-                    aria-hidden
-                    className="absolute inset-x-3 bottom-0 h-0.5 rounded-full bg-[#F98513]"
-                  />
-                )}
               </Link>
             </li>
           );

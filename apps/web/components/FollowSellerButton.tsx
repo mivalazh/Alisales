@@ -77,7 +77,7 @@ export function FollowSellerButton({
     return (
       <Link
         href={`/login?next=/seller/${sellerId}`}
-        className="inline-flex h-11 items-center gap-1.5 rounded-[var(--radius-pill)] border border-[#F98513] bg-[#F98513] px-5 text-sm font-extrabold text-[#111144] transition hover:brightness-95"
+        className="inline-flex h-11 items-center gap-1.5 rounded-[var(--radius-pill)] border border-[#F98513] bg-[#F98513] px-5 text-sm font-extrabold text-white transition hover:brightness-95"
       >
         <Icon name="plus" size={16} />
         {t('دنبال کردن', 'Follow')}
@@ -124,8 +124,8 @@ export function FollowSellerButton({
         aria-pressed={following}
         className={`inline-flex h-11 items-center gap-1.5 rounded-[var(--radius-pill)] border px-5 text-sm font-extrabold transition ${
           following
-            ? 'border-line-strong bg-page text-muted hover:border-line-strong hover:text-ink'
-            : 'border-[#F98513] bg-[#F98513] text-[#111144] hover:brightness-95'
+            ? 'border-line bg-sunken/60 text-muted hover:text-ink dark:border-white/10 dark:bg-white/10 dark:text-slate-300'
+            : 'border-[#F98513] bg-[#F98513] text-white hover:brightness-95'
         } disabled:opacity-60`}
       >
         <Icon name={following ? 'checkCircle' : 'plus'} size={16} />

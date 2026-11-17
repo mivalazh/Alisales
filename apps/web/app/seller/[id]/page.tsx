@@ -109,7 +109,7 @@ export default async function SellerPage({
           <div className="-mt-9 flex items-end gap-3">
             <span
               aria-hidden
-              className="flex h-[76px] w-[76px] shrink-0 items-center justify-center overflow-hidden rounded-full border-4 border-[color:var(--color-surface)] bg-card text-2xl font-extrabold text-ink shadow"
+              className="relative z-10 flex h-[76px] w-[76px] shrink-0 items-center justify-center overflow-hidden rounded-full border-4 border-[color:var(--color-surface)] bg-card text-2xl font-extrabold text-ink shadow"
             >
               {profile.avatarUrl ? (
                 // eslint-disable-next-line @next/next/no-img-element
@@ -136,7 +136,9 @@ export default async function SellerPage({
             <p className="mt-3 whitespace-pre-line text-sm leading-7 text-ink/85">{displayBio}</p>
           )}
 
-          <div className="mt-3 flex flex-wrap items-start gap-2">
+          {/* Primary actions and the follow control share one row, so follow
+              reads as an action rather than a separate panel. */}
+          <div className="mt-3 flex flex-wrap items-center gap-2">
             <SellerActions
               sellerId={profile.id}
               listingId={firstActive?.id ?? null}
@@ -144,6 +146,14 @@ export default async function SellerPage({
               isOwner={isOwner}
               canCall={Boolean(firstActive?.allowPhoneReveal)}
             />
+            {!isOwner && (
+              <FollowSellerButton
+                sellerId={profile.id}
+                initialFollowing={following}
+                authed={Boolean(session)}
+                isOwner={isOwner}
+              />
+            )}
           </div>
 
           {/* Three numbers — active listings, stories, rating. No follower
@@ -153,12 +163,12 @@ export default async function SellerPage({
               {
                 label: t('آگهی‌های فعال', 'Active listings'),
                 value: formatAmountLatin(profile.stats.active),
-                tone: 'text-[#0F7FC4]',
+                tone: 'text-[#F98513]',
               },
               {
                 label: t('استوری‌ها', 'Stories'),
                 value: formatAmountLatin(profile.stats.stories),
-                tone: 'text-[#C2410C]',
+                tone: 'text-[#111144] dark:text-[#9BACD8]',
               },
               {
                 label: t('امتیاز و نظرات', 'Rating & reviews'),
@@ -166,7 +176,7 @@ export default async function SellerPage({
                   profile.stats.rating === null
                     ? '—'
                     : `${profile.stats.rating} / 5 (${profile.stats.reviewCount})`,
-                tone: 'text-[#B45309]',
+                tone: 'text-[#111144] dark:text-[#9BACD8]',
               },
             ].map((stat) => (
               <div
@@ -181,17 +191,6 @@ export default async function SellerPage({
             ))}
           </dl>
 
-          {/* Follow sits with the stats, where the other primary actions live. */}
-          {!isOwner && (
-            <div className="mt-3">
-              <FollowSellerButton
-                sellerId={profile.id}
-                initialFollowing={following}
-                authed={Boolean(session)}
-                isOwner={isOwner}
-              />
-            </div>
-          )}
         </div>
       </section>
 

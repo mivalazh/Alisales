@@ -51,19 +51,19 @@ export function ListingRow({
   return (
     <li className="relative min-w-0 overflow-hidden rounded-card border border-line bg-card transition hover:border-line-strong hover:shadow-lg">
       <Link href={`/listing/${listing.slug}`} className="relative flex items-stretch gap-3 p-3 sm:gap-4 sm:p-4">
-        {/* Fixed 4:3 frame: the photo always fills the whole slot, so no
-            grey strip can appear under a short or stretched image. */}
-        <div className="relative aspect-[4/3] w-28 shrink-0 overflow-hidden rounded-xl bg-sunken sm:w-32">
+        {/* Strict square frame: the photo fills the whole slot edge to edge,
+            so no grey strip can appear under a short or stretched image. */}
+        <div className="relative h-24 w-24 shrink-0 overflow-hidden rounded-xl bg-sunken">
           {hasPhoto && listing.coverUrl ? (
             <Image
               src={listing.coverUrl}
               alt={part ? title : `${translateListingContentToEn(listing.model)} ${listing.year}`}
               fill
-              sizes="128px"
+              sizes="96px"
               unoptimized={isPreSizedSource(listing.coverUrl)}
               loading="lazy"
               decoding="async"
-              className={`object-cover ${sold ? 'opacity-60 grayscale' : ''}`}
+              className={`h-full w-full object-cover ${sold ? 'opacity-60 grayscale' : ''}`}
             />
           ) : (
             <div className="flex h-full w-full flex-col items-center justify-center gap-1 text-faint">
