@@ -211,39 +211,24 @@ export default async function ListingDetailPage({
 
   // Detail specifications carry the car's facts only — the relative posting
   // age belongs to the browse cards and rows, never to this block.
+  // Parts show exactly four facts: category, authenticity, country of
+  // manufacture and compatibility. Condition is already carried by the badge
+  // above the title, so it is deliberately not repeated in a second box;
+  // part number and warranty ride as tags under the description instead.
   const specs: DetailSpec[] = part
     ? [
         { icon: 'car', label: t('دسته‌بندی'), value: t(PART_CATEGORY_LABELS[part.category]) },
         { icon: 'shieldCheck', label: t('اصالت'), value: t(PART_ORIGIN_LABELS[part.origin]) },
-        ...(part.originCountry
-          ? [
-              {
-                icon: 'plate' as const,
-                label: t('کشور سازنده'),
-                value:
-                  lang === 'en'
-                    ? translateListingContentToEn(part.originCountry)
-                    : part.originCountry,
-              },
-            ]
-          : []),
-        { icon: 'car', label: t('سازگاری'), value: compatibilityLabel(part.compatibility) },
-        ...(part.partNumber
-          ? [{ icon: 'gear' as const, label: t('شماره فنی'), value: part.partNumber }]
-          : []),
-        ...(part.warranty
-          ? [
-              {
-                icon: 'shieldCheck' as const,
-                label: t('گارانتی'),
-                value:
-                  lang === 'en'
-                    ? translateListingContentToEn(part.warranty)
-                    : part.warranty,
-              },
-            ]
-          : []),
-        { icon: 'car', label: t('وضعیت'), value: t(PART_CONDITION_LABELS[part.condition]) },
+        {
+          icon: 'plate',
+          label: t('کشور سازنده'),
+          value: part.originCountry
+            ? lang === 'en'
+              ? translateListingContentToEn(part.originCountry)
+              : part.originCountry
+            : '—',
+        },
+        { icon: 'gear', label: t('سازگاری'), value: compatibilityLabel(part.compatibility) },
       ]
     : [
         { icon: 'car', label: t('سال ساخت'), value: String(listing.year) },
@@ -273,12 +258,6 @@ export default async function ListingDetailPage({
     if (text) extraSpecs.push({ label, value: text, ...(positive ? { positive } : {}) });
   };
   if (listing.kind === 'part' && part) {
-    pushSpec(
-      t('کشور سازنده'),
-      lang === 'en' && part.originCountry
-        ? translateListingContentToEn(part.originCountry)
-        : part.originCountry ?? null,
-    );
     pushSpec(t('شماره فنی'), part.partNumber);
     pushSpec(
       t('گارانتی'),
@@ -286,12 +265,6 @@ export default async function ListingDetailPage({
         ? translateListingContentToEn(part.warranty)
         : part.warranty,
     );
-    if (part.compatibility) {
-      pushSpec(
-        t('سازگاری خودرو'),
-        lang === 'en' ? translateListingContentToEn(part.compatibility) : part.compatibility,
-      );
-    }
   } else if (listing.kind !== 'part') {
     pushSpec(
       t('رنگ'),

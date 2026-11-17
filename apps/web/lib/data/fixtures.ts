@@ -78,7 +78,7 @@ const catalogListings: ListingCardData[] = [
     showroomVerified: true,
     allowPhoneReveal: true,
     description:
-      'لندکروزر VXR وارداتی، پلاک کیش، فول آپشن، بدون رنگ و بدون تصادف. سرویس دوره‌ای در نمایندگی، لاستیک و باتری نو. معاوضه با خودروی سواری هم بررسی می‌شود.',
+      'Land Cruiser VXR وارداتی، پلاک کیش، فول آپشن، بدون رنگ و بدون تصادف. سرویس دوره‌ای در نمایندگی، لاستیک و باتری نو. معاوضه با خودروی سواری هم بررسی می‌شود.',
   },
   {
     id: '00000000-0000-0000-0000-000000000062',
@@ -106,7 +106,7 @@ const catalogListings: ListingCardData[] = [
     showroomVerified: true,
     allowPhoneReveal: true,
     description:
-      'پاترول پلاتینیوم ۲۰۲۱، پلاک کیش، تک‌برگ، صفر تا صد در حد صفر. صندلی برقی چرم، دوربین ۳۶۰، سانروف. آماده انتقال سند.',
+      'Patrol پلاتینیوم ۲۰۲۱، پلاک کیش، تک‌برگ، صفر تا صد در حد صفر. صندلی برقی چرم، دوربین ۳۶۰، سانروف. آماده انتقال سند.',
   },
   {
     id: '00000000-0000-0000-0000-000000000063',
@@ -134,7 +134,7 @@ const catalogListings: ListingCardData[] = [
     showroomVerified: false,
     allowPhoneReveal: true,
     description:
-      'مرسدس S500 مدل ۲۰۲۰، گذر موقت، فول‌فول. سیستم صوتی Burmester، صندلی ماساژور عقب، رینگ ۲۰. کارکرد واقعی و مدارک کامل.',
+      'Mercedes S500 مدل ۲۰۲۰، گذر موقت، فول‌فول. سیستم صوتی Burmester، صندلی ماساژور عقب، رینگ ۲۰. کارکرد واقعی و مدارک کامل.',
   },
   {
     id: '00000000-0000-0000-0000-000000000064',
@@ -162,7 +162,7 @@ const catalogListings: ListingCardData[] = [
     showroomVerified: true,
     allowPhoneReveal: true,
     description:
-      'بی‌ام‌و X5 xDrive40i صفر کیلومتر، پلاک کیش، تحویل فوری. پکیج M Sport، هد‌آپ دیسپلی، پارک اتوماتیک. گارانتی بین‌المللی.',
+      'BMW X5 xDrive40i صفر کیلومتر، پلاک کیش، تحویل فوری. پکیج M Sport، هد‌آپ دیسپلی، پارک اتوماتیک. گارانتی بین‌المللی.',
   },
   {
     id: '00000000-0000-0000-0000-000000000065',
@@ -190,7 +190,7 @@ const catalogListings: ListingCardData[] = [
     showroomVerified: false,
     allowPhoneReveal: true,
     description:
-      'پورشه کاین ۲۰۲۱، گذر موقت، کارکرد ۳۸ هزار کیلومتر. سرویس کامل پورشه کیش، بدون خط و خش، لاستیک ۹۰ درصد.',
+      'Porsche کاین ۲۰۲۱، گذر موقت، کارکرد ۳۸ هزار کیلومتر. سرویس کامل Porsche کیش، بدون خط و خش، لاستیک ۹۰ درصد.',
   },
   {
     id: '00000000-0000-0000-0000-000000000066',
@@ -218,7 +218,7 @@ const catalogListings: ListingCardData[] = [
     showroomVerified: true,
     allowPhoneReveal: true,
     description:
-      'لکسوس RX 350 F Sport هیبرید، پلاک کیش، فول آپشن. صندلی برقی چرم، سانروف پانوراما، سیستم صوتی Mark Levinson و رینگ ۲۰ اینچ کارخانه. بدون رنگ.',
+      'Lexus RX 350 F Sport هیبرید، پلاک کیش، فول آپشن. صندلی برقی چرم، سانروف پانوراما، سیستم صوتی Mark Levinson و رینگ ۲۰ اینچ کارخانه. بدون رنگ.',
   },
   {
     // Parts keep the same card shell; the category line replaces brand/model.
@@ -232,7 +232,7 @@ const catalogListings: ListingCardData[] = [
     publishedAt: days(5),
     hasReport: false,
     brand: '',
-    model: 'گیربکس اتوماتیک لندکروزر VXR',
+    model: 'Land Cruiser VXR Automatic Gearbox',
     trim: null,
     year: 0,
     mileageKm: 0,
@@ -248,12 +248,12 @@ const catalogListings: ListingCardData[] = [
     allowPhoneReveal: true,
     kind: 'part',
     part: {
-      title: 'گیربکس اتوماتیک لندکروزر VXR',
+      title: 'Land Cruiser VXR Automatic Gearbox',
       category: 'engine',
       origin: 'original',
       condition: 'new',
       partNumber: '35000-60E70',
-      compatibility: 'لندکروزر ۳۰۰ / لکسوس LX600',
+      compatibility: 'Land Cruiser 300 / Lexus LX600',
       originCountry: 'ژاپن',
       warranty: '۶ ماه گارانتی فروشگاه',
     },
@@ -269,7 +269,7 @@ const catalogListings: ListingCardData[] = [
     publishedAt: days(10),
     hasReport: false,
     brand: '',
-    model: 'باتری اتمی تویوتا لندکروزر',
+    model: 'Toyota Land Cruiser Battery',
     trim: null,
     year: 0,
     mileageKm: 0,
@@ -285,12 +285,12 @@ const catalogListings: ListingCardData[] = [
     allowPhoneReveal: true,
     kind: 'part',
     part: {
-      title: 'باتری اتمی تویوتا لندکروزر',
+      title: 'Toyota Land Cruiser Battery',
       category: 'engine_battery',
       origin: 'original',
       condition: 'new',
       partNumber: '28800-OL010',
-      compatibility: 'لندکروزر ۳۰۰ / لندکروزر VXR',
+      compatibility: 'Land Cruiser 300 / Land Cruiser VXR',
       originCountry: 'ژاپن',
       warranty: '۱۲ ماه گارانتی شرکتی',
     },
@@ -306,7 +306,7 @@ const catalogListings: ListingCardData[] = [
     publishedAt: days(6),
     hasReport: false,
     brand: '',
-    model: 'کیت ترمز جلو پورشه کاین',
+    model: 'Porsche Cayenne Front Brake Kit',
     trim: null,
     year: 0,
     mileageKm: 0,
@@ -322,12 +322,12 @@ const catalogListings: ListingCardData[] = [
     allowPhoneReveal: true,
     kind: 'part',
     part: {
-      title: 'کیت ترمز جلو پورشه کاین',
+      title: 'Porsche Cayenne Front Brake Kit',
       category: 'brake',
       origin: 'original',
       condition: 'new',
       partNumber: '95B-615-301',
-      compatibility: 'پورشه کاین ۲۰۱۹ تا ۲۰۲۳',
+      compatibility: 'Porsche Cayenne 2019 to 2023',
       warranty: null,
     },
   },
@@ -344,7 +344,7 @@ const catalogListings: ListingCardData[] = [
     publishedAt: days(12),
     hasReport: false,
     brand: '',
-    model: 'کیت ترمز سرامیکی پورشه کاین',
+    model: 'Porsche Cayenne Ceramic Brake Kit',
     trim: null,
     year: 0,
     mileageKm: 0,
@@ -364,12 +364,12 @@ const catalogListings: ListingCardData[] = [
     allowPhoneReveal: true,
     kind: 'part',
     part: {
-      title: 'کیت ترمز سرامیکی پورشه کاین',
+      title: 'Porsche Cayenne Ceramic Brake Kit',
       category: 'brake',
       origin: 'original',
       condition: 'new',
       partNumber: '95B-615-106-AC',
-      compatibility: 'پورشه کاین ۲۰۲۰ تا ۲۰۲۴',
+      compatibility: 'Porsche Cayenne 2020 to 2024',
       warranty: '۱۲ ماه گارانتی بین‌المللی',
     },
   },
@@ -384,7 +384,7 @@ const catalogListings: ListingCardData[] = [
     publishedAt: days(13),
     hasReport: false,
     brand: '',
-    model: 'کیت بدنه و چراغ مرسدس S500',
+    model: 'Mercedes S500 Body & Light Kit',
     trim: null,
     year: 0,
     mileageKm: 0,
@@ -404,12 +404,12 @@ const catalogListings: ListingCardData[] = [
     allowPhoneReveal: false,
     kind: 'part',
     part: {
-      title: 'کیت بدنه و چراغ مرسدس S500',
+      title: 'Mercedes S500 Body & Light Kit',
       category: 'body',
       origin: 'original',
       condition: 'new',
       partNumber: 'A222-880-0140',
-      compatibility: 'مرسدس S-Class 2018 تا 2021',
+      compatibility: 'Mercedes S-Class 2018 to 2021',
       warranty: '۶ ماه گارانتی فروشگاه',
     },
   },
@@ -464,7 +464,7 @@ const catalogListings: ListingCardData[] = [
     publishedAt: days(15),
     hasReport: false,
     brand: '',
-    model: 'صندلی چرم و تودوزی کامل پاترول',
+    model: 'Nissan Patrol Leather Seats & Upholstery',
     trim: null,
     year: 0,
     mileageKm: 0,
@@ -484,12 +484,12 @@ const catalogListings: ListingCardData[] = [
     allowPhoneReveal: false,
     kind: 'part',
     part: {
-      title: 'صندلی چرم و تودوزی کامل پاترول',
+      title: 'Nissan Patrol Leather Seats & Upholstery',
       category: 'interior',
       origin: 'original',
       condition: 'new',
       partNumber: null,
-      compatibility: 'نیسان پاترول Y62',
+      compatibility: 'Nissan Patrol Y62',
       warranty: '۳ ماه گارانتی نصب',
     },
   },
@@ -504,7 +504,7 @@ const catalogListings: ListingCardData[] = [
     publishedAt: days(16),
     hasReport: false,
     brand: '',
-    model: 'ست لاستیک ران‌فلت ۲۰ اینچ لکسوس',
+    model: 'Lexus 20-inch Run-flat Tyre Set',
     trim: null,
     year: 0,
     mileageKm: 0,
@@ -520,12 +520,12 @@ const catalogListings: ListingCardData[] = [
     allowPhoneReveal: true,
     kind: 'part',
     part: {
-      title: 'ست لاستیک ران‌فلت ۲۰ اینچ لکسوس',
+      title: 'Lexus 20-inch Run-flat Tyre Set',
       category: 'tires',
       origin: 'original',
       condition: 'new',
       partNumber: '235/55R20',
-      compatibility: 'لکسوس RX و NX',
+      compatibility: 'Lexus RX and NX',
       warranty: 'بدون گارانتی',
     },
   },
@@ -777,7 +777,7 @@ const catalogListings: ListingCardData[] = [
     engineCc: 890,
     bikeType: 'sport',
     description:
-      'یاماها MT-09 SP، سه سیلندر ۸۹۰ سی‌سی، پلاک کیش. بدون زمین‌خوردن، اگزوز آکراپوویچ اصل، سرویس کامل و لاستیک نو. مدارک کامل برای انتقال.',
+      'Yamaha MT-09 SP، سه سیلندر ۸۹۰ سی‌سی، پلاک کیش. بدون زمین‌خوردن، اگزوز آکراپوویچ اصل، سرویس کامل و لاستیک نو. مدارک کامل برای انتقال.',
   },
   {
     id: '00000000-0000-0000-0000-000000000092',
@@ -812,7 +812,7 @@ const catalogListings: ListingCardData[] = [
     engineCc: 471,
     bikeType: 'sport',
     description:
-      'هوندا CBR500R، دو سیلندر ۴۷۱ سی‌سی، مناسب شروع و استفاده روزمره. کارکرد واقعی، بیمه تا پایان سال، بدون تصادف. تحویل در کیش.',
+      'Honda CBR500R، دو سیلندر ۴۷۱ سی‌سی، مناسب شروع و استفاده روزمره. کارکرد واقعی، بیمه تا پایان سال، بدون تصادف. تحویل در کیش.',
   },
   {
     id: '00000000-0000-0000-0000-000000000093',
@@ -847,7 +847,7 @@ const catalogListings: ListingCardData[] = [
     engineCc: 399,
     bikeType: 'sport',
     description:
-      'کاوازاکی نینجا ۴۰۰ ABS، پلاک ملی، سند آزاد. فیلتر و روغن تازه، زنجیر و تسمه نو، بدون خط و خش. معاوضه با موتور بالاتر بررسی می‌شود.',
+      'Kawasaki نینجا ۴۰۰ ABS، پلاک ملی، سند آزاد. فیلتر و روغن تازه، زنجیر و تسمه نو، بدون خط و خش. معاوضه با موتور بالاتر بررسی می‌شود.',
   },
   {
     id: '00000000-0000-0000-0000-000000000094',

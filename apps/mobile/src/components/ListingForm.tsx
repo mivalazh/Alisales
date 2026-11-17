@@ -292,7 +292,7 @@ export function ListingForm({
       <Section title="مشخصات خودرو">
         <ChipGroup
           label="برند"
-          options={BRANDS.map((b) => ({ value: b.slug, label: b.label }))}
+          options={BRANDS.map((b) => ({ value: b.slug, label: b.latin }))}
           value={draft.brand}
           onChange={(v) => set('brand', v)}
           error={fieldErrors['vehicle.brand']}

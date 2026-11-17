@@ -4,7 +4,6 @@ import { useEffect, useMemo, useRef, useState, type ReactNode } from 'react';
 import { brandsForCategory, type VehicleCategory } from '@alisales/schemas';
 import { scrollToResults } from '@/lib/scroll';
 import { useI18n } from '@/lib/i18n';
-import { BrandEmblem } from './BrandEmblem';
 import { Icon } from './Icon';
 
 /**
@@ -240,13 +239,15 @@ export function BrandModelBox({
                       className={`flex h-full w-full flex-col items-center justify-center gap-1 rounded-field border px-1 py-2 transition active:scale-95 ${
                         selected
                           ? 'border-cta bg-cta-soft'
-                          : 'border-transparent bg-page hover:border-line-strong'
+                          : 'border-line bg-card hover:border-line-strong'
                       }`}
                     >
-                      <BrandEmblem slug={item.slug} size={34} />
+                      {/* Latin marque in clean type — no hand-drawn logo.
+                          Official brand artwork is not bundled, and an
+                          invented mark is worse than plain typography. */}
                       <span
                         dir="ltr"
-                        className="w-full truncate text-center text-[10px] font-extrabold leading-tight text-ink"
+                        className="line-clamp-2 w-full text-center text-[11px] font-extrabold leading-tight tracking-tight text-ink"
                       >
                         {item.latin}
                       </span>
