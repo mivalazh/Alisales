@@ -33,7 +33,7 @@ export default async function FavoritesPage({
 
   if (!session) {
     return (
-      <div className="mx-auto max-w-2xl space-y-4">
+      <div className="mx-auto mt-3 max-w-2xl space-y-4 sm:mt-4">
         <h1 className="text-xl font-extrabold">{t('ذخیره‌شده‌ها', 'Saved')}</h1>
         <FavoritesList />
       </div>

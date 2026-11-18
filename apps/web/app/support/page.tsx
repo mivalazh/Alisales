@@ -14,7 +14,7 @@ export default async function SupportPage() {
   const t = (fa: string, en: string) => serverT(lang, fa, en);
 
   return (
-    <article className="mx-auto max-w-4xl space-y-5">
+    <article className="mx-auto mt-3 max-w-4xl space-y-5 sm:mt-4">
       <SupportTicketCenter />
 
       <SupportHelpCenter />

@@ -95,6 +95,8 @@ export function ListingGallery({
           </div>
         )}
 
+        {/* The photo itself is the zoom control — no floating `+` button. The
+            hit area sits under the arrows and the counter so those still work. */}
         {current && !isVideoUrl(current) && (
           <button
             type="button"
@@ -103,10 +105,8 @@ export function ListingGallery({
               setViewer(true);
             }}
             aria-label={t('نمایش تمام‌صفحه و بزرگ‌نمایی عکس', 'Open fullscreen photo viewer')}
-            className="absolute start-2 top-2 z-10 flex h-10 w-10 items-center justify-center rounded-full bg-[#111144]/75 text-white shadow-md backdrop-blur transition hover:bg-[#111144]"
-          >
-            <Icon name="plus" size={17} />
-          </button>
+            className="absolute inset-0 z-[5] cursor-zoom-in"
+          />
         )}
 
         {count > 1 && (

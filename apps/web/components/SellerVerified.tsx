@@ -1,11 +1,11 @@
 import { Icon } from './Icon';
 
 /**
- * Verified seller mark — one standardized pill for every verified account.
+ * Verified seller mark — one standardized seal for every verified account.
  *
  * The catalogue data still carries the old showroom label («اتومبیل کیش»),
  * which used to be printed as a `name •` prefix and read like a stray fragment.
- * Nothing prints that label any more: verified sellers show this pill only, and
+ * Nothing prints that label any more: verified sellers show this seal only, and
  * an unverified seller's name is rendered through `sellerDisplayName`, which
  * strips the legacy prefix.
  */
@@ -18,21 +18,34 @@ export function sellerDisplayName(name: string | null): string | null {
 }
 
 /**
- * Team-verified mark on a profile header: one orange star, no wording.
- * The accessible name lives on the element; nothing is printed next to it.
+ * Instagram-style verified rosette: a scalloped seal in ocean blue with the
+ * checkmark knocked out in white. No star, no wording — the accessible name
+ * lives on the element.
  */
 export function VerifiedStar({ label = 'Verified' }: { label?: string }) {
   return (
-    <span role="img" aria-label={label} title={label} className="inline-flex shrink-0">
+    <span
+      role="img"
+      aria-label={label}
+      title={label}
+      className="inline-block h-5 w-5 shrink-0"
+    >
       <svg
-        width={18}
-        height={18}
+        width={20}
+        height={20}
         viewBox="0 0 24 24"
-        fill="#F98513"
+        className="h-5 w-5"
         aria-hidden="true"
         focusable="false"
       >
-        <path d="M12 2.6l2.9 5.9 6.5.95-4.7 4.58 1.11 6.47L12 17.44 6.19 20.5 7.3 14.03 2.6 9.45l6.5-.95L12 2.6z" />
+        <path
+          fill="#0F7FC4"
+          d="M12 3.6Q15.21 0.02 16.2 4.73Q20.77 3.23 19.27 7.8Q23.98 8.79 20.4 12Q23.98 15.21 19.27 16.2Q20.77 20.77 16.2 19.27Q15.21 23.98 12 20.4Q8.79 23.98 7.8 19.27Q3.23 20.77 4.73 16.2Q0.02 15.21 3.6 12Q0.02 8.79 4.73 7.8Q3.23 3.23 7.8 4.73Q8.79 0.02 12 3.6Z"
+        />
+        <path
+          fill="#fff"
+          d="M10.85 15.55 8.1 12.8l1.32-1.32 1.43 1.43 3.73-3.73 1.32 1.32z"
+        />
       </svg>
     </span>
   );

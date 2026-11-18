@@ -120,7 +120,7 @@ export default async function ProfilePage() {
     : [...coreShortcuts, settingsShortcut];
 
   return (
-    <div className="mx-auto max-w-2xl space-y-4">
+    <div className="mx-auto mt-3 max-w-2xl space-y-4 sm:mt-4">
       <section className="overflow-hidden rounded-3xl border border-line bg-card shadow-sm">
         <div className="relative h-32 w-full overflow-hidden bg-sunken sm:h-40">
           {custom?.coverUrl ? (

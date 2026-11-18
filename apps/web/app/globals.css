@@ -446,44 +446,19 @@ html.app-standalone button {
   50% { transform: translateY(-3px); }
 }
 
-/* ── Car loader ────────────────────────────────────────────────────────── */
+/* ── Tire loader ───────────────────────────────────────────────────────── */
 .car-loader svg { overflow: visible; }
-.car-wheel {
+.car-tire {
   transform-box: view-box;
-  transform-origin: 78px 78px;
-  animation: car-wheel-spin 0.85s linear infinite;
+  transform-origin: 70px 72px;
+  animation: car-tire-spin 1.15s linear infinite;
 }
-.car-wheel-back {
-  transform-origin: 198px 78px;
-  animation-duration: 0.95s;
-}
-.car-dots {
-  display: inline-flex;
-  width: 1.1em;
-  justify-content: flex-start;
-}
-.car-dots > span {
-  opacity: 0.2;
-  animation: car-dot 1.2s ease-in-out infinite;
-}
-.car-dots > span:nth-child(2) { animation-delay: 0.16s; }
-.car-dots > span:nth-child(3) { animation-delay: 0.32s; }
-@keyframes car-dot {
-  0%, 70%, 100% { opacity: 0.2; }
-  35% { opacity: 1; }
-}
-@keyframes car-wheel-spin {
+@keyframes car-tire-spin {
   to { transform: rotate(360deg); }
-}
-.car-speed {
-  animation: car-speed-slide 1s linear infinite;
-}
-@keyframes car-speed-slide {
-  to { stroke-dashoffset: -48; }
 }
 
 @media (prefers-reduced-motion: reduce) {
-  .ai-orb, .ai-orb-eye, .car-wheel, .car-speed, .car-dots > span { animation: none !important; }
+  .ai-orb, .ai-orb-eye, .car-tire { animation: none !important; }
 }
 
 /* ── Launch splash ─────────────────────────────────────────────────────── */

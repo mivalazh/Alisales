@@ -34,7 +34,7 @@ function Badge({ badgeKey }: { badgeKey: BadgeKey }) {
   const b = badgeFor(badgeKey);
   return (
     <span
-      className="rounded-[var(--radius-pill)] border px-2 py-0.5 text-xs font-bold"
+      className="shrink-0 whitespace-nowrap rounded-full border px-2 py-0.5 text-[10px] font-bold sm:text-[11px]"
       style={{ background: b.background, color: b.foreground, borderColor: b.border }}
     >
       {t(b.label)}
@@ -216,12 +216,13 @@ export function ListingCard({ listing }: { listing: ListingCardData }) {
 
       </div>
 
-      <div className="flex flex-1 flex-col gap-2 p-3 sm:p-4">
+      <div className="flex flex-1 flex-col gap-1.5 p-3">
         {/* Fixed badge slot: a card with no plate/report pill keeps the same
-            title baseline as its neighbours. */}
-        <div className="flex min-h-[26px] flex-wrap content-start gap-1.5">
+            title baseline as its neighbours. Badges stay on one compact row
+            even in the phone 2-column grid — never a second line of pills. */}
+        <div className="flex min-h-[24px] flex-nowrap items-center gap-1 overflow-hidden">
           {part && (
-            <span className="rounded-[var(--radius-pill)] border border-line bg-page px-2 py-0.5 text-xs font-bold text-muted">
+            <span className="shrink-0 whitespace-nowrap rounded-full border border-line bg-page px-2 py-0.5 text-[10px] font-bold text-muted sm:text-[11px]">
               {t(PART_CONDITION_LABELS[part.condition])}
             </span>
           )}

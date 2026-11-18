@@ -274,7 +274,7 @@ export function LoginForm() {
   }
 
   return (
-    <div className="mx-auto max-w-md rounded-card border border-line bg-card p-6">
+    <div className="mx-auto mt-3 max-w-md rounded-card border border-line bg-card p-6 sm:mt-4">
       <div className="flex items-center gap-2">
         <span className="flex h-10 w-10 items-center justify-center rounded-full bg-cta-soft text-ink">
           <Icon name="user" size={20} />

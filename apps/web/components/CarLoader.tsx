@@ -1,7 +1,15 @@
+'use client';
+
+import { useId } from 'react';
+
 /**
- * Centered luxury-coupe loader: one confident orange line drawing, rolling
- * wheels and animated dashed speed lines. Decorative only; the status label
- * stays available to assistive technology.
+ * Centered tire-and-rim loader.
+ *
+ * One confident orange (#F98513) line drawing: a sport tire with a five-spoke
+ * alloy rim spins under a curved «LOADING...» arc that hugs the tire crown.
+ * Decorative only — the status label stays available to assistive technology.
+ * Callers gate this behind `useDelayedBusy`, so a fetch that resolves inside
+ * 250ms never shows a flash of the wheel.
  */
 export function CarLoader({
   size = 'md',
@@ -11,79 +19,103 @@ export function CarLoader({
   label?: string;
 }) {
   const compact = size === 'sm';
+  // Every instance needs its own curve id; two loaders can share a page
+  // (catalog transition + notification sheet), and a duplicate id would make
+  // the second textPath resolve to the first arc.
+  const curveId = `loader-curve-${useId().replace(/[^a-zA-Z0-9_-]/g, '')}`;
+
   return (
     <span
-      className={`car-loader inline-flex flex-col items-center text-[#F98513] ${
-        compact ? 'w-20' : 'w-32 sm:w-40'
+      className={`car-loader inline-flex items-center justify-center text-[#F98513] ${
+        compact ? 'h-12 w-12' : 'w-32 sm:w-36'
       }`}
       role="status"
       aria-label={label}
     >
       <svg
-        viewBox="0 0 260 112"
-        className={`${compact ? 'h-10' : 'h-16 sm:h-20'} w-full`}
+        viewBox="0 0 140 140"
+        className={compact ? 'h-12 w-12' : 'h-32 w-full'}
         aria-hidden="true"
       >
-        {/* Speed lines sliding beneath the car. */}
-        <g
-          className="car-speed"
-          stroke="#F98513"
-          strokeWidth="2.4"
-          strokeLinecap="round"
-          strokeDasharray="14 10"
-          opacity=".72"
-        >
-          <path d="M18 96h72" />
-          <path d="M96 104h54" />
-          <path d="M172 96h70" />
-        </g>
+        {!compact && (
+          <>
+            <defs>
+              <path id={curveId} d="M 22,72 A 48,48 0 0,1 118,72" />
+            </defs>
+            <text
+              fill="#F98513"
+              fontSize="13"
+              fontWeight="800"
+              letterSpacing="2.6"
+              className="uppercase"
+            >
+              <textPath href={`#${curveId}`} startOffset="50%" textAnchor="middle">
+                LOADING...
+              </textPath>
+            </text>
+          </>
+        )}
 
-        {/* Low, long coupe silhouette. */}
-        <path
-          d="M22 73c7-2 12-7 16-16 4-9 12-14 25-16l23-3c10-10 22-15 39-15h20c17 0 31 7 42 19l18 6c14 3 22 10 24 22"
-          fill="none"
-          stroke="#F98513"
-          strokeWidth="4"
-          strokeLinecap="round"
-          strokeLinejoin="round"
-        />
-        <path
-          d="M92 41l20-3c9-8 19-12 33-12h20c14 0 25 6 35 16H92Z"
-          fill="none"
-          stroke="#F98513"
-          strokeWidth="3"
-          strokeLinejoin="round"
-        />
-        <path d="M130 26v18M166 26v18" stroke="#F98513" strokeWidth="2.4" opacity=".75" />
-        <path d="M22 73h28M214 73h12" stroke="#F98513" strokeWidth="4" strokeLinecap="round" />
-        <path d="M78 56h34M122 56h22" stroke="#F98513" strokeWidth="2.2" strokeLinecap="round" opacity=".4" />
+        {/* Tire, tread ticks and rim share one rotating group. */}
+        <g className="car-tire">
+          {/* Tire wall + tread band. */}
+          <circle
+            cx="70"
+            cy="72"
+            r="37"
+            fill="none"
+            stroke="#F98513"
+            strokeWidth="5"
+            strokeOpacity=".9"
+          />
+          <circle
+            cx="70"
+            cy="72"
+            r="41.5"
+            fill="none"
+            stroke="#F98513"
+            strokeWidth="3"
+            strokeDasharray="4.4 7.3"
+            strokeLinecap="round"
+            strokeOpacity=".55"
+          />
 
-        {/* Wheels: rotating spokes with filled orange hubs. */}
-        <g className="car-wheel">
-          <circle cx="78" cy="78" r="16" fill="none" stroke="#F98513" strokeWidth="4" />
-          <circle cx="78" cy="78" r="6" fill="#F98513" />
-          <circle cx="78" cy="78" r="2" fill="#111144" />
-          <path d="M78 64v5M78 87v5M64 78h5M87 78h5" stroke="#F98513" strokeWidth="2.4" strokeLinecap="round" />
-        </g>
-        <g className="car-wheel car-wheel-back">
-          <circle cx="198" cy="78" r="16" fill="none" stroke="#F98513" strokeWidth="4" />
-          <circle cx="198" cy="78" r="6" fill="#F98513" />
-          <circle cx="198" cy="78" r="2" fill="#111144" />
-          <path d="M198 64v5M198 87v5M184 78h5M207 78h5" stroke="#F98513" strokeWidth="2.4" strokeLinecap="round" />
+          {/* Alloy rim: outer lip, five spokes, hub. */}
+          <circle
+            cx="70"
+            cy="72"
+            r="27"
+            fill="none"
+            stroke="#F98513"
+            strokeWidth="3.4"
+          />
+          <circle
+            cx="70"
+            cy="72"
+            r="23"
+            fill="none"
+            stroke="#F98513"
+            strokeWidth="1.4"
+            strokeOpacity=".45"
+          />
+          {[0, 72, 144, 216, 288].map((angle) => (
+            <line
+              key={angle}
+              x1="70"
+              y1="72"
+              x2="70"
+              y2="47.5"
+              stroke="#F98513"
+              strokeWidth="5"
+              strokeLinecap="round"
+              transform={`rotate(${angle} 70 72)`}
+            />
+          ))}
+          <circle cx="70" cy="72" r="7.5" fill="#F98513" />
+          <circle cx="70" cy="72" r="2.6" fill="#fff" fillOpacity=".85" />
         </g>
       </svg>
-      {compact ? (
-        <span className="sr-only">{label}</span>
-      ) : (
-        <span className="mt-1 font-mono text-xs tracking-widest text-[#F98513] lowercase">
-          loading
-          <span className="car-dots" aria-hidden="true">
-            <span>.</span>
-            <span>.</span>
-            <span>.</span>
-          </span>
-        </span>
-      )}
+      <span className="sr-only">{label}</span>
     </span>
   );
 }

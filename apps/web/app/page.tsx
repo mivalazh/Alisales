@@ -126,7 +126,7 @@ export default async function HomePage({
       <h1 className="sr-only">
         {t('آگهی‌های خودرو در کیش و سراسر ایران', 'Vehicle listings in Kish and across Iran')}
       </h1>
-      <div className="mb-3">
+      <div className="mb-3 mt-3 sm:mt-4">
         <CategorySwitch />
       </div>
       <a

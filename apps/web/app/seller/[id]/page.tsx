@@ -89,7 +89,7 @@ export default async function SellerPage({
   const following = await isFollowing(session?.sub, profile.id);
 
   return (
-    <div className="mx-auto max-w-4xl space-y-4">
+    <div className="mx-auto mt-3 max-w-4xl space-y-4 sm:mt-4">
       <NativeBackHeader title={displayName} fallbackHref="/" />
       {/* Cover + identity */}
       <section className="overflow-hidden rounded-card border border-line bg-card">
@@ -106,39 +106,40 @@ export default async function SellerPage({
           />
         </div>
         <div className="px-4 pb-4">
-          <div className="-mt-9 flex items-end gap-3">
-            <span
-              aria-hidden
-              className="relative z-10 flex h-[76px] w-[76px] shrink-0 items-center justify-center overflow-hidden rounded-full border-4 border-[color:var(--color-surface)] bg-card text-2xl font-extrabold text-ink shadow"
-            >
-              {profile.avatarUrl ? (
-                // eslint-disable-next-line @next/next/no-img-element
-                <img src={profile.avatarUrl} alt="" width={512} height={512} className="h-full w-full object-cover" />
-              ) : (
-                profile.initials
-              )}
-            </span>
-            <div className="min-w-0 flex-1 pb-1">
-              <h1 className="flex min-w-0 items-center gap-1.5 text-lg font-extrabold leading-tight">
-                <span className="truncate">{displayName}</span>
-                {profile.verified && <VerifiedStar label={t('تأییدشده توسط آلی سیلز', 'Verified by Ali Sales')} />}
-              </h1>
-              <p className="mt-0.5 flex flex-wrap items-center gap-x-2 text-xs font-bold text-muted">
-                <span className="inline-flex items-center gap-1">
-                  <Icon name="pin" size={13} />
-                  {CITY_LABELS[profile.city] ?? profile.city}
-                </span>
-              </p>
-            </div>
+          {/* Only the avatar breaks the cover edge. The name, seal and city sit
+              on the solid card surface so nothing is ever printed on the photo. */}
+          <span
+            aria-hidden
+            className="relative z-10 -mt-10 flex h-20 w-20 shrink-0 items-center justify-center overflow-hidden rounded-full bg-card text-2xl font-extrabold text-ink shadow ring-4 ring-white dark:ring-[#161A38]"
+          >
+            {profile.avatarUrl ? (
+              // eslint-disable-next-line @next/next/no-img-element
+              <img src={profile.avatarUrl} alt="" width={512} height={512} className="h-full w-full object-cover" />
+            ) : (
+              profile.initials
+            )}
+          </span>
+          <div className="pt-2">
+            <h1 className="flex min-w-0 items-center gap-1.5 text-lg font-extrabold leading-tight">
+              <span className="truncate">{displayName}</span>
+              {profile.verified && <VerifiedStar label={t('تأییدشده توسط آلی سیلز', 'Verified by Ali Sales')} />}
+            </h1>
+            <p className="mt-1 flex flex-wrap items-center gap-x-2 text-xs font-bold text-muted">
+              <span className="inline-flex items-center gap-1">
+                <Icon name="pin" size={13} />
+                {CITY_LABELS[profile.city] ?? profile.city}
+              </span>
+            </p>
           </div>
 
           {displayBio && (
             <p className="mt-3 whitespace-pre-line text-sm leading-7 text-ink/85">{displayBio}</p>
           )}
 
-          {/* Primary actions and the follow control share one row, so follow
-              reads as an action rather than a separate panel. */}
-          <div className="mt-3 flex flex-wrap items-center gap-2">
+          {/* Primary actions and the follow control share one balanced grid on
+              a phone (two per row) and one wrapping row from `sm` up, so
+              follow never hangs alone under the three actions. */}
+          <div className="mt-3 grid grid-cols-2 gap-2.5 sm:flex sm:flex-wrap sm:items-center">
             <SellerActions
               sellerId={profile.id}
               listingId={firstActive?.id ?? null}
@@ -168,7 +169,7 @@ export default async function SellerPage({
               {
                 label: t('استوری‌ها', 'Stories'),
                 value: formatAmountLatin(profile.stats.stories),
-                tone: 'text-[#111144] dark:text-[#9BACD8]',
+                tone: 'text-[#0F7FC4]',
               },
               {
                 label: t('امتیاز و نظرات', 'Rating & reviews'),
@@ -176,7 +177,7 @@ export default async function SellerPage({
                   profile.stats.rating === null
                     ? '—'
                     : `${profile.stats.rating} / 5 (${profile.stats.reviewCount})`,
-                tone: 'text-[#111144] dark:text-[#9BACD8]',
+                tone: 'text-emerald-500',
               },
             ].map((stat) => (
               <div
@@ -184,7 +185,10 @@ export default async function SellerPage({
                 className="rounded-field border border-line bg-page px-2 py-2 text-center"
               >
                 <dt className="text-[10px] font-bold text-muted">{stat.label}</dt>
-                <dd className={`mt-0.5 text-sm font-extrabold ${stat.tone}`} dir="auto">
+                <dd
+                  className={`mt-0.5 text-sm font-extrabold tabular-nums ${stat.tone}`}
+                  dir="auto"
+                >
                   {stat.value}
                 </dd>
               </div>

@@ -77,7 +77,7 @@ export function FollowSellerButton({
     return (
       <Link
         href={`/login?next=/seller/${sellerId}`}
-        className="inline-flex h-11 items-center gap-1.5 rounded-[var(--radius-pill)] border border-[#F98513] bg-[#F98513] px-5 text-sm font-extrabold text-white transition hover:brightness-95"
+        className="inline-flex h-11 w-full items-center justify-center gap-1.5 rounded-[var(--radius-pill)] border border-[#F98513] bg-[#F98513] px-5 text-sm font-extrabold text-white transition hover:brightness-95 sm:w-auto"
       >
         <Icon name="plus" size={16} />
         {t('دنبال کردن', 'Follow')}
@@ -116,13 +116,13 @@ export function FollowSellerButton({
   }
 
   return (
-    <div className="flex flex-col items-start gap-1">
+    <div className="flex w-full flex-col items-start gap-1 sm:w-auto">
       <button
         type="button"
         onClick={toggle}
         disabled={busy}
         aria-pressed={following}
-        className={`inline-flex h-11 items-center gap-1.5 rounded-[var(--radius-pill)] border px-5 text-sm font-extrabold transition ${
+        className={`inline-flex h-11 w-full items-center justify-center gap-1.5 rounded-[var(--radius-pill)] border px-5 text-sm font-extrabold transition sm:w-auto ${
           following
             ? 'border-line bg-sunken/60 text-muted hover:text-ink dark:border-white/10 dark:bg-white/10 dark:text-slate-300'
             : 'border-[#F98513] bg-[#F98513] text-white hover:brightness-95'

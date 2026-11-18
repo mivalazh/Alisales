@@ -131,7 +131,7 @@ export default async function RootLayout({ children }: { children: ReactNode }) 
         <RateProvider rate={aedRate}>
           <PriceUnitProvider>
             <Header authed={Boolean(session)} displayName={session?.displayName ?? null} />
-            <main className="mx-auto w-full max-w-[var(--content-max)] flex-1 px-4 pb-24 pt-[calc(4.0625rem+env(safe-area-inset-top))] sm:px-6 sm:pb-6 md:pt-[calc(7.75rem+env(safe-area-inset-top))]">
+            <main className="mx-auto w-full max-w-[var(--content-max)] flex-1 px-4 pb-24 pt-[calc(5rem+env(safe-area-inset-top))] sm:px-6 sm:pb-6 md:pt-36">
               {children}
             </main>
             <AppFooter />

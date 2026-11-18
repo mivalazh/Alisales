@@ -104,10 +104,12 @@ export function SellerActions({
   }
 
   return (
-    <div className="mt-3">
-      <div className="flex flex-wrap items-center gap-2">
+    <>
+      {/* `contents` lets the three buttons join the profile's action grid
+          directly, so they line up with the follow control. */}
+      <div className="contents">
         {isOwner ? (
-          <a href="/profile" className="btn-ghost text-sm">
+          <a href="/profile" className="btn-ghost w-full text-sm sm:w-auto">
             <Icon name="pencil" size={16} />
             {t('ویرایش پروفایل', 'Edit profile')}
           </a>
@@ -116,7 +118,7 @@ export function SellerActions({
             type="button"
             onClick={() => void message()}
             disabled={busy !== null || !listingId}
-            className="btn-cta text-sm disabled:opacity-50"
+            className="btn-cta w-full text-sm disabled:opacity-50 sm:w-auto"
           >
             <Icon name="message" size={16} />
             {busy === 'chat'
@@ -129,7 +131,7 @@ export function SellerActions({
           type="button"
           onClick={() => void call()}
           disabled={busy !== null || !canCall || isOwner}
-          className="btn-ghost text-sm disabled:opacity-50"
+          className="btn-ghost w-full text-sm disabled:opacity-50 sm:w-auto"
           title={
             canCall
               ? undefined
@@ -147,7 +149,7 @@ export function SellerActions({
           type="button"
           onClick={() => void share()}
           disabled={busy !== null}
-          className="btn-ghost text-sm disabled:opacity-50"
+          className="btn-ghost w-full text-sm disabled:opacity-50 sm:w-auto"
         >
           <Icon name="share" size={16} />
           {t('اشتراک‌گذاری', 'Share')}
@@ -155,13 +157,13 @@ export function SellerActions({
       </div>
 
       {note && (
-        <p className="mt-2 text-xs font-bold text-muted" role="status">
+        <p className="col-span-2 mt-1 text-xs font-bold text-muted sm:w-full" role="status">
           {note}
         </p>
       )}
       <span className="sr-only">
         {t('شناسه فروشنده', 'Seller ID')} {sellerId}
       </span>
-    </div>
+    </>
   );
 }

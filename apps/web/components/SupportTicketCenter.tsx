@@ -264,8 +264,41 @@ export function SupportTicketCenter() {
         </div>
       ) : filtered.length === 0 ? (
         <div className="flex flex-col items-center px-4 py-10 text-center">
-          <span className="flex h-14 w-14 items-center justify-center rounded-full bg-page text-muted ring-1 ring-line">
-            <Icon name="badgeCheck" size={25} />
+          {/* Duotone inbox/envelope mark — a support-ticket surface, not a
+              generic badge. */}
+          <span className="flex h-14 w-14 items-center justify-center rounded-2xl bg-[#F98513]/10 text-[#F98513]">
+            <svg
+              width={28}
+              height={28}
+              viewBox="0 0 24 24"
+              fill="none"
+              aria-hidden="true"
+              focusable="false"
+            >
+              <path
+                d="M3.4 7.1A2.1 2.1 0 0 1 5.5 5h13a2.1 2.1 0 0 1 2.1 2.1v9.8a2.1 2.1 0 0 1-2.1 2.1h-13a2.1 2.1 0 0 1-2.1-2.1V7.1Z"
+                fill="currentColor"
+                fillOpacity=".16"
+                stroke="currentColor"
+                strokeWidth="1.6"
+                strokeLinejoin="round"
+              />
+              <path
+                d="m3.9 6.4 8.1 6.1 8.1-6.1"
+                stroke="currentColor"
+                strokeWidth="1.6"
+                strokeLinecap="round"
+                strokeLinejoin="round"
+              />
+              <path
+                d="M8.4 19.2 12 16.5l3.6 2.7"
+                stroke="currentColor"
+                strokeWidth="1.6"
+                strokeLinecap="round"
+                strokeLinejoin="round"
+                opacity=".55"
+              />
+            </svg>
           </span>
           <p className="mt-3 text-xs font-bold text-muted">
             {t('اطلاعاتی جهت نمایش یافت نشد.', 'No information to display.')}
