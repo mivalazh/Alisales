@@ -177,7 +177,7 @@ export function ListingGallery({
           role="dialog"
           aria-modal="true"
           aria-label={t('نمایش عکس', 'Photo viewer')}
-          className="fixed inset-0 z-[70] flex flex-col bg-black/95"
+          className="fixed inset-0 z-[70] flex flex-col bg-black"
           onClick={() => setViewer(false)}
         >
           <div className="flex shrink-0 items-center justify-between px-3 py-2 text-white">
