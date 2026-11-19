@@ -22,6 +22,24 @@ import { nodeFs } from './node-fs';
 
 type Entry = string | Uint8Array;
 const MEMORY_KEY = Symbol.for('alisales.demo.memory');
+const VERSION_KEY = Symbol.for('alisales.demo.version');
+
+/**
+ * Monotonic write counter for this process/isolate.
+ *
+ * Server-side readers (the catalogue base rows) memoise their merge for a few
+ * seconds; carrying this number in the cache key means any publish, edit,
+ * moderation change or rate save is visible on the very next render instead of
+ * waiting for the TTL to lapse.
+ */
+export function storeVersion(): number {
+  return (globalThis as { [VERSION_KEY]?: number })[VERSION_KEY] ?? 0;
+}
+
+function bumpVersion(): void {
+  const g = globalThis as { [VERSION_KEY]?: number };
+  g[VERSION_KEY] = (g[VERSION_KEY] ?? 0) + 1;
+}
 
 function memory(): Map<string, Entry> {
   const g = globalThis as { [MEMORY_KEY]?: Map<string, Entry> };
@@ -48,6 +66,7 @@ export function readText(name: string): string | null {
 }
 
 export function writeText(name: string, data: string): void {
+  bumpVersion();
   const fs = nodeFs();
   if (!fs) {
     memory().set(name, data);
@@ -89,6 +108,7 @@ export function readBytes(name: string): Uint8Array | null {
 }
 
 export function writeBytes(name: string, data: Uint8Array): void {
+  bumpVersion();
   const fs = nodeFs();
   if (!fs) {
     memory().set(name, data);
@@ -101,6 +121,7 @@ export function writeBytes(name: string, data: Uint8Array): void {
 
 /** Removes a stored blob in fixture mode; missing keys are ignored. */
 export function deleteBytes(name: string): void {
+  bumpVersion();
   const fs = nodeFs();
   if (!fs) {
     memory().delete(name);

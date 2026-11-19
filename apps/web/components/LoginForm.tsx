@@ -456,6 +456,9 @@ export function LoginForm() {
               placeholder="09123456789"
               required
             />
+            <p className="hint mt-1">
+              {t('لطفاً شماره تماس خود را وارد کنید', 'Please enter your phone number')}
+            </p>
           </div>
           <div>
             <label htmlFor="pw" className="label">
@@ -519,6 +522,9 @@ export function LoginForm() {
               placeholder="09123456789"
               required
             />
+            <p className="hint mt-1">
+              {t('لطفاً شماره تماس خود را وارد کنید', 'Please enter your phone number')}
+            </p>
           </div>
 
           {error && (

@@ -7,14 +7,13 @@ import { useEffect, useRef, useState } from 'react';
  *
  * The artwork is read from `/assets/brands/{brand-slug}.svg` (for example
  * `/assets/brands/toyota.svg`, `/assets/brands/heavy-volvo.svg`). Files are
- * added by hand, so every mark is contained in the same 48px-tall slot and
- * keeps its own colours and proportions: no borders, no monochrome filter and
- * no dark-mode inversion.
+ * added by hand, so every mark is contained in the same small slot and keeps
+ * its own colours and proportions: no borders, no monochrome filter and no
+ * dark-mode inversion.
  *
  * A slug with no artwork yet falls back to a neutral placeholder — the brand's
- * Latin name as quiet text straight on the page surface, with no tile fill or
- * border — so the grid stays light and every brand remains selectable while
- * the files are being collected.
+ * Latin name as quiet text straight on the page surface — so the grid stays
+ * light and every brand remains selectable while the files are being collected.
  */
 export function BrandLogo({ slug, name }: { slug: string; name: string }) {
   const [failed, setFailed] = useState(false);
@@ -33,7 +32,7 @@ export function BrandLogo({ slug, name }: { slug: string; name: string }) {
     return (
       <span
         aria-hidden="true"
-        className="flex h-12 w-full items-center justify-center px-1 text-center text-[9px] font-extrabold uppercase leading-tight tracking-[0.06em] text-faint"
+        className="flex h-8 w-full items-center justify-center px-0.5 text-center text-[8px] font-extrabold uppercase leading-tight tracking-[0.04em] text-faint sm:h-9"
       >
         <span className="line-clamp-2" dir="ltr">
           {name}
@@ -43,7 +42,7 @@ export function BrandLogo({ slug, name }: { slug: string; name: string }) {
   }
 
   return (
-    <span className="flex h-12 w-full items-center justify-center">
+    <span className="flex h-8 w-full items-center justify-center sm:h-9">
       {/* The bundled marks are single-colour paths with no fill of their own, so
           they inherit the document's black. In dark mode a black mark on the
           navy surface would be invisible, hence the invert; the shapes stay
@@ -56,7 +55,7 @@ export function BrandLogo({ slug, name }: { slug: string; name: string }) {
         loading="lazy"
         decoding="async"
         onError={() => setFailed(true)}
-        className="h-12 w-auto max-w-full object-contain dark:invert"
+        className="h-8 w-auto max-w-full object-contain dark:invert sm:h-9"
       />
     </span>
   );

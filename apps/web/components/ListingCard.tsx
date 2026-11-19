@@ -4,16 +4,9 @@ import Image from 'next/image';
 import Link from 'next/link';
 import { useRef, useState, type MouseEvent, type TouchEvent } from 'react';
 import { badgeFor, type BadgeKey } from '@studio/design';
-import {
-  CITY_LABELS,
-  PART_CATEGORY_LABELS,
-  PART_CONDITION_LABELS,
-  PART_ORIGIN_LABELS,
-  compatibilityLabel,
-  postingAgeLabel,
-} from '@alisales/schemas';
+import { CITY_LABELS, PART_CONDITION_LABELS, postingAgeLabel } from '@alisales/schemas';
 import type { ListingCardData } from '@/lib/data/listings';
-import { brandLatinFor, specParts, vehicleTitle } from '@/lib/listing-text';
+import { brandLatinFor, vehicleTitle } from '@/lib/listing-text';
 import { useI18n } from '@/lib/i18n';
 import { translateListingContentToEn } from '@/lib/i18n/content';
 import { postingAgeEnglish } from '@/lib/i18n/dictionary';
@@ -93,7 +86,6 @@ export function ListingCard({ listing }: { listing: ListingCardData }) {
   // Latin marque on its own line, spec facts as separate items — see
   // lib/listing-text.ts for why both are bdi/dir guarded.
   const latin = part ? null : brandLatinFor(listing.brand);
-  const specs = part ? [] : specParts(listing, lang);
 
   const photos = listing.photos?.length
     ? listing.photos
@@ -147,9 +139,8 @@ export function ListingCard({ listing }: { listing: ListingCardData }) {
       onTouchMove={onTouchMove}
       onTouchEnd={onTouchEnd}
     >
-      {/* A slightly taller frame on phones: with the metadata line gone below
-          `sm`, the extra image height keeps the card balanced instead of
-          leaving a short text block under a wide photo. */}
+      {/* A slightly taller frame on phones: the spec line no longer costs a
+          row of height, so the extra image height keeps the card balanced. */}
       <div className="relative aspect-[5/4] bg-sunken sm:aspect-[var(--photo-aspect)]">
         {current ? (
           <Image
@@ -263,41 +254,17 @@ export function ListingCard({ listing }: { listing: ListingCardData }) {
           </div>
         )}
 
-        {/* Phone cards drop the grey spec line (mileage · gearbox · city) and
-            the posting age: both live on the listing detail page, and keeping
-            them here cost a whole row of dead height in the 2-column grid.
-            The wrapper returns from `sm` up, where the card is wide enough. */}
-        <div className="hidden min-h-[22px] sm:block">
-          <p
-            className="line-clamp-1 text-[11px] leading-5 text-muted sm:text-xs"
-            style={sold ? { color: SOLD_TEXT } : undefined}
-          >
-            {part ? (
-              <>
-                {t(PART_CATEGORY_LABELS[part.category])} · {t(PART_ORIGIN_LABELS[part.origin])} ·{' '}
-                {lang === 'en' ? part.compatibility : compatibilityLabel(part.compatibility)}
-              </>
-            ) : (
-              specs.map((item, i) => (
-                <span key={`${item}-${i}`}>
-                  {i > 0 && <span className="mx-1 text-faint">·</span>}
-                  <bdi>{item}</bdi>
-                </span>
-              ))
-            )}
-          </p>
-        </div>
-
-        {/* The price owns its own row, so the spec line above can never run
-            into it and every card in a row lines up. */}
-        <div className="w-full min-w-0 overflow-hidden pt-1">
+        {/* No grey spec line on either breakpoint: mileage, gearbox, city and
+            compatibility live on the listing detail page. Dropping it closes
+            the title→price gap to the one 6px rhythm the card uses everywhere. */}
+        <div className="w-full min-w-0 overflow-hidden">
           <PriceText irr={listing.priceIRR} sold={sold} hideAed={listing.hideAed} />
         </div>
 
         {/* Fixed seller slot from `sm` up: the verified pill, a seller name or
             an empty line all reserve the same height, so the footer aligns
-            across the row. On phones the reservation is dropped — with the
-            metadata line gone, an empty 28px slot was the leftover gap. */}
+            across the row. On phones the reservation is dropped, so no empty
+            slot can sit between the price and the city row. */}
         <div className="flex flex-wrap content-start gap-1.5 sm:min-h-[28px]">
           {listing.showroomVerified ? (
             <VerifiedPill label={t(part ? 'تعمیرگاه معتبر' : 'نمایشگاه معتبر')} />
@@ -308,8 +275,7 @@ export function ListingCard({ listing }: { listing: ListingCardData }) {
 
         <div className="mt-auto flex items-center justify-between border-t border-line pt-2 text-xs text-faint">
           <span>{t(CITY_LABELS[listing.city] ?? listing.city)}</span>
-          {/* Relative posting age is desktop-only for the same reason as the
-              spec line above. */}
+          {/* Relative posting age stays desktop-only, where the footer has room. */}
           <time dateTime={listing.publishedAt ?? undefined} className="hidden sm:inline">
             {lang === 'en'
               ? postingAgeEnglish(listing.publishedAt ?? Date.now())

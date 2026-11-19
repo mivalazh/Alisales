@@ -90,7 +90,9 @@ export default async function PartsPage({
 
   return (
     <div className="space-y-4">
-      <h1 className="text-xl font-extrabold sm:text-2xl">{t('قطعات و لوازم یدکی')}</h1>
+      {/* The active tab in the strip below already says where the buyer is; the
+          heading stays available to screen readers and search engines only. */}
+      <h1 className="sr-only">{t('قطعات و لوازم یدکی', 'Spare parts')}</h1>
 
       <CategorySwitch />
 

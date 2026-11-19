@@ -24,6 +24,7 @@ import { applyModeration } from './moderation-rules';
 import { matchesFilters } from '../filter-match';
 import { admin } from './s2-store';
 import { visibleCatalog } from './demo-seed';
+import { storeVersion } from '../storage/demo-store';
 import { mergeMyListings, readMyListings } from './my-listings-cookie';
 
 /** Structured part data for a non-vehicle listing (`parts_listings`). */
@@ -338,6 +339,36 @@ function soldLastThenRecency(a: ListingCardData, b: ListingCardData): number {
  * implementation the mobile app uses, RLS-checked). Without them the seeded
  * local fixtures are served so the UI is fully reviewable offline.
  */
+/**
+ * Catalogue base rows, memoised for a few seconds.
+ *
+ * Every browse render merges the seeded fixtures with the demo store (owner
+ * listings, edits, media). The merge itself is cheap but it re-reads a handful
+ * of files per request, which is pure repeat work when a buyer steps between
+ * the category tabs. The cache key carries the store's write counter, so any
+ * publish, edit or moderation change invalidates it immediately; the TTL only
+ * bounds memory and picks up writes made by another process.
+ *
+ * Per-user rows (the signed «my listings» cookie) are merged *after* this, so
+ * no buyer's data can ever be served to another.
+ */
+let catalogBaseCache: { version: number; at: number; rows: ListingCardData[] } | null = null;
+const CATALOG_CACHE_MS = 5_000;
+
+function catalogBase(): ListingCardData[] {
+  const version = storeVersion();
+  if (
+    catalogBaseCache &&
+    catalogBaseCache.version === version &&
+    Date.now() - catalogBaseCache.at < CATALOG_CACHE_MS
+  ) {
+    return catalogBaseCache.rows;
+  }
+  const rows = visibleCatalog(fixtureListings, devListings());
+  catalogBaseCache = { version, at: Date.now(), rows };
+  return rows;
+}
+
 async function fixtureSearchListings(
   filters: SearchFilters,
   category?: VehicleCategory,
@@ -347,7 +378,7 @@ async function fixtureSearchListings(
   // visible even when the demo store lives in another Workers isolate.
   const mine = await readMyListings();
   const local = applyModeration(
-    applyListingOverrides(mergeMyListings(mine, visibleCatalog(fixtureListings, devListings()))),
+    applyListingOverrides(mergeMyListings(mine, catalogBase())),
     {
       hidden: overlay.hidden,
       verifiedSellers: overlay.verifiedSellers,
@@ -430,7 +461,7 @@ function slugCandidates(raw: string): string[] {
 async function fixtureListing(slug: string): Promise<ListingDetailData | null> {
   const candidates = slugCandidates(slug);
   const mine = await readMyListings();
-  const all = mergeMyListings(mine, visibleCatalog(fixtureListings, devListings()));
+  const all = mergeMyListings(mine, catalogBase());
   const found = applyListingOverrides(all).find(
     (l) => candidates.includes(l.slug) || candidates.includes(l.id),
   );

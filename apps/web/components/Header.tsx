@@ -222,6 +222,7 @@ export function Header({
                 <li key={item.key}>
                   <Link
                     href={item.href}
+                    prefetch
                     aria-current={active ? 'page' : undefined}
                     className={`rounded-[var(--radius-pill)] px-3 py-2 text-sm font-semibold transition ${
                       active ? 'bg-cta-soft text-ink font-extrabold' : 'text-muted hover:text-ink'
@@ -235,7 +236,7 @@ export function Header({
             <li className="ms-auto flex items-center gap-2">
               <CitySelect />
               {POST_ITEM && (
-                <Link href={POST_ITEM.href} className="btn-cta text-sm">
+                <Link href={POST_ITEM.href} prefetch className="btn-cta text-sm">
                   <Icon name="plus" size={18} />
                   {t(POST_ITEM.label, 'Post ad')}
                 </Link>

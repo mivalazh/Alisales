@@ -5,13 +5,14 @@ import { usePathname } from 'next/navigation';
 import { useI18n } from '@/lib/i18n';
 
 /**
- * Top-level category switch: خودرو | موتور و اسکوتر برقی | ماشین‌آلات سنگین |
- * قطعات.
+ * Top-level category switch: خودرو | موتور و اسکوتر | ماشین‌آلات | قطعات.
  *
- * One centered, line-style tab row shared by the home page and every browse
- * page. The row sits on the page's cream surface (no chip/card fills) and the
- * active tab is marked by ink-coloured text plus a short orange underline, so
- * it reads as navigation rather than as filter pills.
+ * A balanced four-column table strip: equal-width cells divided by hairline
+ * rules, page-cream fill, and the active cell marked by ink text plus a short
+ * orange indicator on the shared bottom rule. It is navigation, not filters.
+ *
+ * Every tab prefetches its route so stepping between the four browse pages is
+ * instant on a phone connection.
  */
 const CATEGORIES: ReadonlyArray<{ href: string; label: string; short: string }> = [
   { href: '/cars', label: 'خودرو', short: 'خودرو' },
@@ -25,19 +26,17 @@ export function CategorySwitch() {
   const { t } = useI18n();
 
   return (
-    <nav
-      aria-label={t('دسته‌بندی‌ها', 'Categories')}
-      className="-mx-4 mt-3 bg-page px-2 sm:mx-0 sm:px-0"
-    >
-      <ul className="flex items-stretch justify-center gap-1 border-b border-line sm:gap-2">
+    <nav aria-label={t('دسته‌بندی‌ها', 'Categories')} className="-mx-4 mt-3 sm:mx-0">
+      <ul className="grid grid-cols-4 divide-x divide-x-reverse divide-slate-200/80 border-y border-slate-200/80 bg-[#F4F1EC] dark:divide-white/10 dark:border-white/10 dark:bg-[#111144]">
         {CATEGORIES.map((item) => {
           const active = pathname === item.href || pathname.startsWith(`${item.href}/`);
           return (
             <li key={item.href} className="min-w-0">
               <Link
                 href={item.href}
+                prefetch
                 aria-current={active ? 'page' : undefined}
-                className={`relative flex min-h-11 items-center justify-center whitespace-nowrap px-2.5 text-[11px] font-extrabold leading-tight transition sm:px-4 sm:text-sm ${
+                className={`relative flex min-h-11 items-center justify-center px-1.5 py-2.5 text-center text-[11px] font-extrabold leading-tight transition sm:px-3 sm:text-sm sm:whitespace-nowrap ${
                   active ? 'text-ink' : 'text-muted hover:text-ink'
                 }`}
               >
@@ -45,7 +44,7 @@ export function CategorySwitch() {
                 <span className="hidden sm:inline">{t(item.label)}</span>
                 <span
                   aria-hidden="true"
-                  className={`absolute inset-x-2 -bottom-px h-[2px] rounded-full transition-opacity ${
+                  className={`absolute inset-x-3 bottom-0 h-[2px] rounded-full transition-opacity ${
                     active ? 'bg-[#F98513]' : 'bg-transparent'
                   }`}
                 />

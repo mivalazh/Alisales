@@ -3,10 +3,10 @@
 import Image from 'next/image';
 import Link from 'next/link';
 import { badgeFor, type BadgeKey } from '@studio/design';
-import { CITY_LABELS, PART_CATEGORY_LABELS, PART_ORIGIN_LABELS, postingAgeLabel } from '@alisales/schemas';
+import { postingAgeLabel } from '@alisales/schemas';
 import type { ReactNode } from 'react';
 import type { ListingCardData } from '@/lib/data/listings';
-import { brandLatinFor, specParts, vehicleTitle } from '@/lib/listing-text';
+import { brandLatinFor, vehicleTitle } from '@/lib/listing-text';
 import { useI18n } from '@/lib/i18n';
 import { translateListingContentToEn } from '@/lib/i18n/content';
 import { postingAgeEnglish } from '@/lib/i18n/dictionary';
@@ -41,7 +41,6 @@ export function ListingRow({
   const sold = listing.state === 'sold';
   const part = listing.part ?? null;
   const latin = part ? null : brandLatinFor(listing.brand);
-  const specs = part ? [] : specParts(listing, lang);
   const rawTitle = part ? part.title : vehicleTitle(listing);
   const title = lang === 'en' ? translateListingContentToEn(rawTitle) : rawTitle;
   const hasPhoto = Boolean(
@@ -113,26 +112,9 @@ export function ListingRow({
             )}
           </h3>
 
-          <p className="truncate text-xs text-muted" style={sold ? { color: SOLD_TEXT } : undefined}>
-            {part ? (
-              <>
-                {t(PART_CATEGORY_LABELS[part.category])} · {t(PART_ORIGIN_LABELS[part.origin])} ·{' '}
-                {t(CITY_LABELS[listing.city] ?? listing.city)}
-              </>
-            ) : (
-              <>
-                {specs.map((item, i) => (
-                  <span key={`${item}-${i}`}>
-                    {i > 0 && <span className="mx-1 text-faint">·</span>}
-                    <bdi>{item}</bdi>
-                  </span>
-                ))}
-                <span className="mx-1 text-faint">·</span>
-                {t(CITY_LABELS[listing.city] ?? listing.city)}
-              </>
-            )}
-          </p>
-
+          {/* The spec/city line is gone here too: full specs live on the
+              detail page, so the title runs straight into the price with the
+              row's own 6px rhythm. */}
           <div className="mt-auto flex items-end justify-between gap-2 pe-16">
             <PriceText irr={listing.priceIRR} sold={sold} hideAed={listing.hideAed} />
           </div>

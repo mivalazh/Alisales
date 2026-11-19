@@ -41,9 +41,10 @@ export default async function CarsPage({
 
   return (
     <div className="space-y-4">
-      <div>
-        <h1 className="text-xl font-extrabold sm:text-2xl">{t('خودروها', 'Vehicles')}</h1>
-      </div>
+      {/* The active tab in the strip below already says where the buyer is, so
+          the page opens straight on the filter controls. Keep the h1 for screen
+          readers and search engines without spending a row of height. */}
+      <h1 className="sr-only">{t('خودروها', 'Vehicles')}</h1>
 
       <CategorySwitch />
 

@@ -53,6 +53,7 @@ export function BottomNav() {
               <li key={item.key} className="flex flex-1 items-start justify-center">
                 <Link
                   href={item.href}
+                  prefetch
                   aria-label={label}
                   className="-mt-5 flex h-14 w-14 touch-manipulation items-center justify-center rounded-full text-white shadow-lg ring-4 ring-card transition active:scale-[0.97] active:translate-y-0.5"
                   style={{ background: '#F98513' }}
@@ -66,6 +67,7 @@ export function BottomNav() {
             <li key={item.key} className="flex flex-1">
               <Link
                 href={item.href}
+                prefetch
                 aria-current={active ? 'page' : undefined}
                 className={`flex w-full touch-manipulation flex-col items-center justify-center gap-1 text-[11px] transition active:scale-[0.96] ${
                   active ? 'font-extrabold' : 'font-bold'

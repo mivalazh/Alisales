@@ -27,15 +27,10 @@ export default async function HeavyPage({
 
   return (
     <div className="space-y-4">
-      <div>
-        <h1 className="text-xl font-extrabold sm:text-2xl">{t('ماشین‌آلات سنگین')}</h1>
-        <p className="mt-1 text-sm text-muted">
-          {t(
-            `کامیون، کشنده، تریلی و ماشین‌آلات راه‌سازی · ${listings.length.toLocaleString('en-US')} آگهی`,
-            `Trucks, tractor units, trailers and road machinery · ${listings.length.toLocaleString('en-US')} listings`,
-          )}
-        </p>
-      </div>
+      {/* The active tab in the strip below already says where the buyer is, so
+          the page opens straight on the filter controls. The heading stays for
+          screen readers and search engines, with no visible block. */}
+      <h1 className="sr-only">{t('ماشین‌آلات سنگین', 'Heavy machinery')}</h1>
 
       <CategorySwitch />
 

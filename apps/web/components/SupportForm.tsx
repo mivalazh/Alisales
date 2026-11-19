@@ -1,11 +1,17 @@
 'use client';
 
+import dynamic from 'next/dynamic';
 import { useState } from 'react';
 import { useI18n } from '@/lib/i18n';
 import { CarLoader } from './CarLoader';
 import { CustomSelect } from './CustomSelect';
 import { useDelayedBusy } from '@/lib/useDelayedBusy';
-import { TicketHistoryModal } from './TicketHistoryModal';
+
+/** Ticketed dialogs load on demand — they never block the support page. */
+const TicketHistoryModal = dynamic(
+  () => import('./TicketHistoryModal').then((module) => module.TicketHistoryModal),
+  { ssr: false },
+);
 import { pushLocalNotification } from '@/lib/local-notifications';
 
 type Kind = 'brand' | 'ticket';

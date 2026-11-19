@@ -27,15 +27,10 @@ export default async function MotorcyclesPage({
 
   return (
     <div className="space-y-4">
-      <div>
-        <h1 className="text-xl font-extrabold sm:text-2xl">{t('موتور و اسکوتر برقی')}</h1>
-        <p className="mt-1 text-sm text-muted">
-          {t(
-            `اسکوتر برقی، موتور برقی، اسپرت و کلاسیک · ${listings.length.toLocaleString('en-US')} آگهی`,
-            `Electric scooters, electric bikes, sport and classic · ${listings.length.toLocaleString('en-US')} listings`,
-          )}
-        </p>
-      </div>
+      {/* The active tab in the strip below already says where the buyer is, so
+          the page opens straight on the filter controls. The heading stays for
+          screen readers and search engines, with no visible block. */}
+      <h1 className="sr-only">{t('موتور و اسکوتر برقی', 'Scooters & bikes')}</h1>
 
       <CategorySwitch />
 

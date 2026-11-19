@@ -1,6 +1,6 @@
 'use client';
 
-import { useEffect, useMemo, useRef, useState, type ReactNode } from 'react';
+import { useMemo, useRef, type ReactNode } from 'react';
 import { brandsForCategory, type VehicleCategory } from '@alisales/schemas';
 import { BrandLogo } from './BrandLogo';
 import { scrollToResults } from '@/lib/scroll';
@@ -10,16 +10,16 @@ import { Icon } from './Icon';
 /**
  * Vehicle brand box (OpenSooq flow), now a single in-place surface:
  *
- *  • No brand picked → a searchable, horizontally scrollable 2-row row of the
- *    category's marques.
- *  • A brand picked → that same slot is *replaced* by a 2-row, horizontally
- *    scrollable model grid («همه مدل‌ها» first) with a «بازگشت به همه برندها»
- *    chip — no second box appears below.
+ *  • No brand picked → a horizontally scrollable 2-row row of the category's
+ *    marques. No search field: the buyer simply scrolls or swipes the marks.
+ *  • A brand picked → the same slot is *replaced* by a compact wrapping row of
+ *    model pills («همه مدل‌ها» first) with a «بازگشت به همه برندها» chip — no
+ *    second box appears below.
  *  • A model tap commits `?brand=&model=`, then the page scrolls to the first
  *    result card so the buyer sees the narrowed grid immediately.
  *
- * The row scrolls with touch, trackpad and mouse drag (pointer capture), so it
- * behaves the same on a phone and on a desktop without a horizontal wheel.
+ * The brand row scrolls with touch, trackpad and mouse drag (pointer capture),
+ * so it behaves the same on a phone and on a desktop without a horizontal wheel.
  */
 
 const CATEGORY_TITLE: Record<VehicleCategory, string> = {
@@ -28,17 +28,7 @@ const CATEGORY_TITLE: Record<VehicleCategory, string> = {
   heavy: 'برند ماشین‌آلات',
 };
 
-const SEARCH_PLACEHOLDER: Record<VehicleCategory, string> = {
-  car: 'جستجوی برند خودرو...',
-  motorcycle: 'جستجوی برند موتور و اسکوتر...',
-  heavy: 'جستجوی برند ماشین‌آلات...',
-};
-
-/** Shared 2-row scroller geometry for both the brand and model surfaces. */
-const TWO_ROW_GRID =
-  'mt-3 grid w-full max-w-full grid-flow-col grid-rows-2 gap-2.5 overflow-x-auto overscroll-x-contain pb-2 [&::-webkit-scrollbar]:h-1 [&::-webkit-scrollbar-thumb]:rounded-full [&::-webkit-scrollbar-thumb]:bg-slate-300/70';
-
-/** Horizontal drag-to-scroll for the rows (mouse only; touch is native). */
+/** Horizontal drag-to-scroll for the brand row (mouse only; touch is native). */
 function useDragScroll() {
   const ref = useRef<HTMLUListElement>(null);
   const state = useRef<{ down: boolean; startX: number; startScroll: number; moved: boolean }>({
@@ -97,22 +87,9 @@ export function BrandModelBox({
   /** Commits brand/model to the URL; `null` model clears the model filter. */
   onPick: (brandSlug: string, model?: string | null) => void;
 }) {
-  const [query, setQuery] = useState('');
   const { t } = useI18n();
   const drag = useDragScroll();
   const brands = useMemo(() => brandsForCategory(category), [category]);
-
-  const filtered = useMemo(() => {
-    const q = query.trim().toLowerCase();
-    if (!q) return brands;
-    return brands.filter(
-      (b) =>
-        b.label.toLowerCase().includes(q) ||
-        b.latin.toLowerCase().includes(q) ||
-        b.slug.includes(q) ||
-        b.models.some((m) => m.toLowerCase().includes(q)),
-    );
-  }, [brands, query]);
 
   const active = brands.find((b) => b.slug === brand) ?? null;
   const models = active ? active.models : [];
@@ -132,13 +109,10 @@ export function BrandModelBox({
       {active ? (
         <>
           {/* The brand grid is replaced, not duplicated below. */}
-          <div className="flex flex-wrap items-center justify-between gap-2">
+          <div className="flex flex-wrap items-center gap-2">
             <button
               type="button"
-              onClick={() => {
-                onPick('');
-                setQuery('');
-              }}
+              onClick={() => onPick('')}
               className="inline-flex min-h-10 items-center gap-1.5 rounded-[var(--radius-pill)] border border-line bg-page px-3 py-1.5 text-xs font-extrabold text-ink transition hover:border-line-strong"
             >
               <Icon name="arrowLeft" size={14} />
@@ -147,25 +121,22 @@ export function BrandModelBox({
                 ({active.latin})
               </span>
             </button>
-            <span className="text-[11px] font-bold text-faint">
-              {models.length > 0
-                ? t(`${models.length} مدل`, `${models.length} models`)
-                : t('مدل پیشنهادی نداریم', 'No suggested models')}
-            </span>
           </div>
 
+          {/* Compact model pills: the same choices as the old tiles in a
+              fraction of the height, so the grid stays close to the top. */}
           <ul
             dir="rtl"
             aria-label={t(`مدل‌های ${active.latin}`, `${active.latin} models`)}
-            className={`${TWO_ROW_GRID} auto-cols-[112px] sm:auto-cols-[132px]`}
+            className="mt-3 flex flex-wrap gap-1.5"
           >
-            <ModelTile
+            <ModelPill
               label={t('همه مدل‌ها', 'All models')}
               selected={!model}
               onPick={() => pickModel(null)}
             />
             {models.map((name) => (
-              <ModelTile
+              <ModelPill
                 key={name}
                 label={name}
                 selected={model === name}
@@ -175,7 +146,7 @@ export function BrandModelBox({
           </ul>
 
           {models.length === 0 && (
-            <p className="mt-1 text-[11px] font-bold text-muted">
+            <p className="mt-2 text-[11px] font-bold text-muted">
               {t(
                 'برای این برند مدل پیشنهادی نداریم؛ نام مدل را در فیلترها بنویسید.',
                 'No suggested models for this brand. Type the model into the filters.',
@@ -185,81 +156,48 @@ export function BrandModelBox({
         </>
       ) : (
         <>
-          <div className="flex flex-wrap items-center justify-between gap-2">
-            <h2 className="text-sm font-extrabold text-ink">{t(CATEGORY_TITLE[category])}</h2>
-          </div>
-
-          <label className="mt-3 flex items-center gap-2 rounded-field border border-line bg-page px-3">
-            <Icon name="search" size={16} className="text-faint" />
-            <span className="sr-only">{t(SEARCH_PLACEHOLDER[category])}</span>
-            <input
-              value={query}
-              onChange={(e) => setQuery(e.target.value)}
-              placeholder={t(SEARCH_PLACEHOLDER[category])}
-              className="h-10 w-full bg-transparent text-sm font-semibold text-ink outline-none placeholder:text-faint"
-            />
-            {query && (
-              <button
-                type="button"
-                onClick={() => setQuery('')}
-                aria-label={t('پاک کردن جستجوی برند', 'Clear brand search')}
-                className="flex h-10 w-10 items-center justify-center text-faint transition hover:text-ink"
-              >
-                <Icon name="close" size={16} />
-              </button>
-            )}
-          </label>
+          <h2 className="text-sm font-extrabold text-ink">{t(CATEGORY_TITLE[category])}</h2>
 
           {/* Brand grid: a two-row scroller on phones, and from `sm` up a tidy
-              wrapping grid of small, borderless logo slots. Every tile is the
-              same 48px height so the marks line up without boxes. */}
-          {filtered.length === 0 ? (
-            <p className="mt-4 rounded-field border border-dashed border-line-strong px-3 py-6 text-center text-xs font-bold text-muted">
-              {t(
-                'برندی با این نام پیدا نشد؛ نام برند را در جستجو یا فیلتر مدل بنویسید.',
-                'No brand with that name. Try the search or the model filter.',
-              )}
-            </p>
-          ) : (
-            <ul
-              ref={drag.ref}
-              dir="rtl"
-              onPointerDown={drag.onPointerDown}
-              onPointerMove={drag.onPointerMove}
-              onPointerUp={drag.onPointerUp}
-              onPointerLeave={drag.onPointerLeave}
-              onClickCapture={drag.onClickCapture}
-              className="mt-3 grid grid-flow-col grid-rows-2 auto-cols-[68px] gap-1 overflow-x-auto overscroll-x-contain pb-2 [&::-webkit-scrollbar]:h-1 [&::-webkit-scrollbar-thumb]:rounded-full [&::-webkit-scrollbar-thumb]:bg-slate-300/70 sm:grid-flow-row sm:grid-cols-6 sm:grid-rows-none sm:auto-cols-auto sm:gap-x-2 sm:gap-y-3 sm:overflow-visible sm:pb-0 md:grid-cols-8 [&>li]:snap-start"
-            >
-              {filtered.map((item) => {
-                const selected = item.slug === brand;
-                return (
-                  <li key={item.slug}>
-                    <button
-                      type="button"
-                      onClick={() => onPick(selected ? '' : item.slug, null)}
-                      aria-pressed={selected}
-                      aria-label={item.label}
-                      title={item.label}
-                      className={`flex w-full items-center justify-center rounded-lg p-1 transition hover:bg-cta-soft/60 active:scale-95 ${
-                        selected ? 'bg-cta-soft ring-1 ring-[#F98513]/60' : ''
-                      }`}
-                    >
-                      <BrandLogo slug={item.slug} name={item.latin} />
-                    </button>
-                  </li>
-                );
-              })}
-            </ul>
-          )}
+              wrapping grid of small, borderless logo slots. */}
+          <ul
+            ref={drag.ref}
+            dir="rtl"
+            onPointerDown={drag.onPointerDown}
+            onPointerMove={drag.onPointerMove}
+            onPointerUp={drag.onPointerUp}
+            onPointerLeave={drag.onPointerLeave}
+            onClickCapture={drag.onClickCapture}
+            className="mt-2.5 grid grid-flow-col grid-rows-2 auto-cols-[58px] gap-1 overflow-x-auto overscroll-x-contain pb-1.5 [&::-webkit-scrollbar]:h-1 [&::-webkit-scrollbar-thumb]:rounded-full [&::-webkit-scrollbar-thumb]:bg-slate-300/70 sm:grid-flow-row sm:auto-cols-auto sm:grid-cols-8 sm:grid-rows-none sm:gap-x-2 sm:gap-y-2.5 sm:overflow-visible sm:pb-0 md:grid-cols-10 [&>li]:snap-start"
+          >
+            {brands.map((item) => {
+              const selected = item.slug === brand;
+              return (
+                <li key={item.slug}>
+                  <button
+                    type="button"
+                    onClick={() => onPick(selected ? '' : item.slug, null)}
+                    aria-pressed={selected}
+                    aria-label={item.label}
+                    title={item.label}
+                    className={`flex w-full items-center justify-center rounded-lg p-0.5 transition hover:bg-cta-soft/60 active:scale-95 ${
+                      selected ? 'bg-cta-soft' : ''
+                    }`}
+                  >
+                    <BrandLogo slug={item.slug} name={item.latin} />
+                  </button>
+                </li>
+              );
+            })}
+          </ul>
         </>
       )}
     </section>
   );
 }
 
-/** One model tile — the same box geometry as a brand tile, 2 rows high. */
-function ModelTile({
+/** One model choice — a compact pill instead of a card-sized tile. */
+function ModelPill({
   label,
   selected,
   onPick,
@@ -269,15 +207,15 @@ function ModelTile({
   onPick: () => void;
 }) {
   return (
-    <li className="snap-start">
+    <li className="min-w-0">
       <button
         type="button"
         onClick={onPick}
         aria-pressed={selected}
-        className={`flex h-full w-full items-center justify-center rounded-field border px-2 py-2 text-center text-[11px] font-extrabold leading-tight transition active:scale-95 ${
+        className={`inline-flex items-center justify-center rounded-full border px-3 py-1.5 text-xs font-extrabold leading-tight transition active:scale-95 ${
           selected
             ? 'border-[#F98513] bg-cta-soft text-ink'
-            : 'border-transparent bg-page text-muted hover:border-line-strong hover:text-ink'
+            : 'border-line bg-page text-muted hover:border-line-strong hover:text-ink'
         }`}
       >
         <bdi>{label}</bdi>

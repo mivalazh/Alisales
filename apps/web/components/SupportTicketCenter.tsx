@@ -183,12 +183,6 @@ export function SupportTicketCenter() {
           <h1 className="text-lg font-extrabold text-ink sm:text-xl">
             {t('لیست تیکت‌ها', 'Ticket list')}
           </h1>
-          <p className="mt-1 max-w-xl text-xs leading-6 text-muted">
-            {t(
-              'لیست تیکت‌های خود را از این بخش می‌توانید مورد بررسی قرار دهید.',
-              'You can review your support tickets in this section.',
-            )}
-          </p>
         </div>
         <button
           type="button"

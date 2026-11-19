@@ -6,13 +6,17 @@ import { BrandLockup } from './BrandLockup';
 const SPLASH_KEY = 'alisales-splash-seen';
 
 /**
- * One minimal launch beat per session.
+ * One crisp brand beat per session.
  *
- * The page shell is never hidden: this layer is a small, transparent,
- * `pointer-events-none` brand mark that fades out in ~0.4s over content that is
- * already painted underneath. No opaque surface, no staged letter animation,
- * no full-screen flash — just a quiet acknowledgement while the first cards
- * render.
+ * The very first frame of a launch is the two-tone emblem + ALI SALES on the
+ * page's own cream surface, so a cold start never shows a blank white screen.
+ * The beat is short and total: the layer is painted by the server render, the
+ * mark scales/fades in, and the whole overlay fades out over the already
+ * painted page after ~0.4s; it is gone by 550ms. Later page loads in the same
+ * session skip it entirely (the pre-paint script in the layout sets
+ * `data-splash-seen`, so there is not even a flash).
+ *
+ * It never intercepts touches and never locks scrolling.
  */
 export function AppSplashIntro() {
   const [visible, setVisible] = useState(true);
@@ -29,8 +33,8 @@ export function AppSplashIntro() {
       // Private mode: still show the short beat for this page.
     }
 
-    const fade = window.setTimeout(() => setLeaving(true), 240);
-    const remove = window.setTimeout(() => setVisible(false), 400);
+    const fade = window.setTimeout(() => setLeaving(true), 380);
+    const remove = window.setTimeout(() => setVisible(false), 550);
     return () => {
       window.clearTimeout(fade);
       window.clearTimeout(remove);
@@ -46,7 +50,7 @@ export function AppSplashIntro() {
       aria-label="Ali Sales"
     >
       <div className="app-splash-mark" dir="ltr">
-        <BrandLockup size="sm" />
+        <BrandLockup size="lg" />
       </div>
     </div>
   );

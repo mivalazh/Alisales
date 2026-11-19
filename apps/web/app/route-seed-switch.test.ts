@@ -164,14 +164,20 @@ vi.mock('@/lib/data/rate-store', () => ({
   }),
 }));
 
-vi.mock('@/lib/storage/demo-store', () => ({
-  readJson: (_name: string, empty: () => unknown) => empty(),
-  writeJson: () => {},
-  readText: () => null,
-  writeText: () => {},
-  readBytes: () => null,
-  writeBytes: () => {},
-}));
+vi.mock('@/lib/storage/demo-store', () => {
+  // A fresh version on every read keeps the catalogue memo from leaking rows
+  // between tests in this file (the store itself is stubbed out here).
+  let version = 0;
+  return {
+    readJson: (_name: string, empty: () => unknown) => empty(),
+    writeJson: () => {},
+    readText: () => null,
+    writeText: () => {},
+    readBytes: () => null,
+    writeBytes: () => {},
+    storeVersion: () => version++,
+  };
+});
 
 const ENV_KEYS = [
   'NEXT_PUBLIC_HIDE_DEMO_LISTINGS',
