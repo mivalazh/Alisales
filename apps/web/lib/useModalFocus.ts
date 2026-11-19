@@ -65,6 +65,7 @@ export function useModalFocus({
   modal = true,
   initialFocus,
   restoreFocus = true,
+  restoreTarget,
 }: {
   active: boolean;
   containerRef: RefObject<HTMLElement | null>;
@@ -73,6 +74,11 @@ export function useModalFocus({
   /** Selector for the element that should take focus, e.g. '[data-autofocus]'. */
   initialFocus?: string;
   restoreFocus?: boolean;
+  /**
+   * Selector for the trigger when it unmounts while the overlay is open (the
+   * assistant's orb does); used only if the originally focused node is gone.
+   */
+  restoreTarget?: string;
 }) {
   // Kept in a ref so an inline `onClose` does not re-run the effect (and
   // re-focus the overlay) on every parent render.
@@ -137,8 +143,18 @@ export function useModalFocus({
     return () => {
       document.removeEventListener('keydown', onKeyDown, true);
       for (const element of inerted) element.removeAttribute('inert');
-      if (restoreFocus && trigger?.isConnected) trigger.focus({ preventScroll: true });
+      if (!restoreFocus) return;
+      if (trigger?.isConnected) {
+        trigger.focus({ preventScroll: true });
+        return;
+      }
+      if (!restoreTarget) return;
+      // The trigger is re-mounted by the same state change that closed us, so
+      // it may not be in the document yet when this cleanup runs.
+      const fallback = document.querySelector<HTMLElement>(restoreTarget);
+      if (fallback) fallback.focus({ preventScroll: true });
+      else requestAnimationFrame(() => document.querySelector<HTMLElement>(restoreTarget)?.focus({ preventScroll: true }));
     };
     // `containerRef` is stable; `closeRef` is intentionally not a dependency.
-  }, [active, modal, initialFocus, restoreFocus, containerRef]);
+  }, [active, modal, initialFocus, restoreFocus, restoreTarget, containerRef]);
 }

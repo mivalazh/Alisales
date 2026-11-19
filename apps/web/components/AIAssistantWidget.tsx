@@ -63,7 +63,9 @@ export function AIAssistantWidget() {
 
   // The sheet is modal: the page is inert behind it, Tab stays inside, Escape
   // closes it and focus returns to the orb that opened it.
-  useModalFocus({ active: open, containerRef: sheet, onClose: () => setOpen(false) });
+  // The orb is unmounted while the sheet is open, so closing restores focus to
+  // the orb that reappears in its place.
+  useModalFocus({ active: open, containerRef: sheet, onClose: () => setOpen(false), restoreTarget: '[data-assistant-trigger]' });
 
   useEffect(() => {
     if (!open) return;
@@ -293,6 +295,7 @@ export function AIAssistantWidget() {
           type="button"
           onClick={() => setOpen(true)}
           aria-expanded={false}
+          data-assistant-trigger=""
           aria-label={t('باز کردن دستیار هوشمند')}
           className="ai-fab fixed bottom-24 right-4 z-40 flex h-14 w-14 items-center justify-center rounded-full border-2 border-[#F98513]/70 bg-[#111144] shadow-[0_12px_30px_-4px_rgba(249,133,19,0.5),0_6px_16px_-2px_rgba(17,17,68,0.4)] ring-2 ring-[#F98513]/70 transition-all duration-200 hover:-translate-y-1 sm:bottom-6 sm:right-6"
         >
