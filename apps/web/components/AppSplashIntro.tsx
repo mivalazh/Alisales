@@ -5,18 +5,14 @@ import { BrandLockup } from './BrandLockup';
 
 const SPLASH_KEY = 'alisales-splash-seen';
 
-const ALI = ['A', 'L', 'I'] as const;
-const SALES = ['S', 'A', 'L', 'E', 'S'] as const;
-
 /**
- * A single, fast launch beat on the first page of a session.
+ * One minimal launch beat per session.
  *
- * The overlay is server-rendered so it covers the first paint (no white flash).
- * A tiny head script marks repeat visits before paint, and this component fades
- * the first visit out after the 750 ms motion sequence.
- *
- * The wordmark is deliberately `dir="ltr"`: the page is RTL, but the brand
- * must always read ALI then SALES from left to right.
+ * The page shell is never hidden: this layer is a small, transparent,
+ * `pointer-events-none` brand mark that fades out in ~0.4s over content that is
+ * already painted underneath. No opaque surface, no staged letter animation,
+ * no full-screen flash — just a quiet acknowledgement while the first cards
+ * render.
  */
 export function AppSplashIntro() {
   const [visible, setVisible] = useState(true);
@@ -30,11 +26,11 @@ export function AppSplashIntro() {
       }
       sessionStorage.setItem(SPLASH_KEY, '1');
     } catch {
-      // Private mode: still show the launch beat for this page.
+      // Private mode: still show the short beat for this page.
     }
 
-    const fade = window.setTimeout(() => setLeaving(true), 620);
-    const remove = window.setTimeout(() => setVisible(false), 750);
+    const fade = window.setTimeout(() => setLeaving(true), 240);
+    const remove = window.setTimeout(() => setVisible(false), 400);
     return () => {
       window.clearTimeout(fade);
       window.clearTimeout(remove);
@@ -49,36 +45,8 @@ export function AppSplashIntro() {
       role="status"
       aria-label="Ali Sales"
     >
-      <div className="app-splash-stage" dir="ltr">
-        <div className="app-splash-mark">
-          <BrandLockup size="lg" wordmark={false} animated />
-        </div>
-
-        <div className="app-splash-wordmark" dir="ltr" aria-label="ALI SALES">
-          <span className="app-splash-word app-splash-word-ali">
-            {ALI.map((letter, index) => (
-              <span
-                key={`${letter}-${index}`}
-                className="app-splash-letter"
-                style={{ animationDelay: `${120 + index * 28}ms` }}
-              >
-                {letter}
-              </span>
-            ))}
-          </span>
-          <span className="app-splash-word app-splash-word-sales">
-            {SALES.map((letter, index) => (
-              <span
-                key={`${letter}-${index}`}
-                className="app-splash-letter"
-                style={{ animationDelay: `${204 + index * 28}ms` }}
-              >
-                {letter}
-              </span>
-            ))}
-          </span>
-          <span className="app-splash-underline" aria-hidden="true" />
-        </div>
+      <div className="app-splash-mark" dir="ltr">
+        <BrandLockup size="sm" />
       </div>
     </div>
   );

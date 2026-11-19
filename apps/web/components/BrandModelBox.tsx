@@ -2,7 +2,7 @@
 
 import { useEffect, useMemo, useRef, useState, type ReactNode } from 'react';
 import { brandsForCategory, type VehicleCategory } from '@alisales/schemas';
-import { BRAND_LOGO_SLUGS } from '@/lib/brand-logos';
+import { BrandLogo } from './BrandLogo';
 import { scrollToResults } from '@/lib/scroll';
 import { useI18n } from '@/lib/i18n';
 import { Icon } from './Icon';
@@ -210,6 +210,9 @@ export function BrandModelBox({
             )}
           </label>
 
+          {/* Brand grid: a two-row scroller on phones, and from `sm` up a tidy
+              wrapping grid of small, borderless logo slots. Every tile is the
+              same 48px height so the marks line up without boxes. */}
           {filtered.length === 0 ? (
             <p className="mt-4 rounded-field border border-dashed border-line-strong px-3 py-6 text-center text-xs font-bold text-muted">
               {t(
@@ -226,44 +229,23 @@ export function BrandModelBox({
               onPointerUp={drag.onPointerUp}
               onPointerLeave={drag.onPointerLeave}
               onClickCapture={drag.onClickCapture}
-              className={`${TWO_ROW_GRID} auto-cols-[84px] sm:auto-cols-[92px]`}
+              className="mt-3 grid grid-flow-col grid-rows-2 auto-cols-[68px] gap-1 overflow-x-auto overscroll-x-contain pb-2 [&::-webkit-scrollbar]:h-1 [&::-webkit-scrollbar-thumb]:rounded-full [&::-webkit-scrollbar-thumb]:bg-slate-300/70 sm:grid-flow-row sm:grid-cols-6 sm:grid-rows-none sm:auto-cols-auto sm:gap-x-2 sm:gap-y-3 sm:overflow-visible sm:pb-0 md:grid-cols-8 [&>li]:snap-start"
             >
               {filtered.map((item) => {
                 const selected = item.slug === brand;
                 return (
-                  <li key={item.slug} className="snap-start">
+                  <li key={item.slug}>
                     <button
                       type="button"
                       onClick={() => onPick(selected ? '' : item.slug, null)}
                       aria-pressed={selected}
+                      aria-label={item.label}
                       title={item.label}
-                      className={`flex h-full w-full flex-col items-center justify-center gap-1 rounded-field border px-1 py-2 transition active:scale-95 ${
-                        selected
-                          ? 'border-cta bg-cta-soft'
-                          : 'border-line bg-card hover:border-line-strong'
+                      className={`flex w-full items-center justify-center rounded-lg p-1 transition hover:bg-cta-soft/60 active:scale-95 ${
+                        selected ? 'bg-cta-soft ring-1 ring-[#F98513]/60' : ''
                       }`}
                     >
-                      {/* The official mark when the bundle has one (rendered
-                          untouched, contained in the tile, inverted only for
-                          contrast in the dark theme). Otherwise the Latin
-                          marque in clean typography — never a fake icon. */}
-                      {BRAND_LOGO_SLUGS.has(item.slug) ? (
-                        // eslint-disable-next-line @next/next/no-img-element
-                        <img
-                          src={`/brands/${item.slug}.svg`}
-                          alt={item.latin}
-                          loading="lazy"
-                          decoding="async"
-                          className="h-6 w-full max-w-[72px] object-contain dark:invert"
-                        />
-                      ) : (
-                        <span
-                          dir="ltr"
-                          className="line-clamp-2 w-full text-center text-[11px] font-extrabold leading-tight tracking-tight text-ink"
-                        >
-                          {item.latin}
-                        </span>
-                      )}
+                      <BrandLogo slug={item.slug} name={item.latin} />
                     </button>
                   </li>
                 );

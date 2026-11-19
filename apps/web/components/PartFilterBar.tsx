@@ -2,8 +2,11 @@
 
 import { useRouter, useSearchParams } from 'next/navigation';
 import { useEffect, useState, type ReactNode } from 'react';
-import { PART_CATEGORY_LABELS, partCategories } from '@alisales/schemas';
+import { PART_CATEGORY_LABELS, partCategories, type PartCategory } from '@alisales/schemas';
+import type { ListingCardData } from '@/lib/data/listings';
+import { filterByPartCategory, filterPartsByAttributes } from '@/lib/browse';
 import { useI18n } from '@/lib/i18n';
+import { FilterDrawerShell } from './FilterDrawerShell';
 
 /**
  * Spare-parts filter surface.
@@ -41,6 +44,19 @@ const AUTHENTICITY_OPTIONS = [
   { value: 'commercial', label: 'تجاری' },
   { value: 'stock', label: 'استوک' },
 ] as const;
+
+/** Live result count for a candidate parts filter set (drawer footer). */
+function countParts(pool: readonly ListingCardData[], value: PartFilterValues): number {
+  const scoped = value.category
+    ? filterByPartCategory(pool, value.category as PartCategory)
+    : pool;
+  return filterPartsByAttributes(scoped, {
+    origin: value.origin,
+    warrantyOnly: value.warranty,
+    compatibility: value.compatibility,
+    condition: value.condition,
+  }).length;
+}
 
 export function activePartFilterCount(value: PartFilterValues): number {
   return [
@@ -212,48 +228,22 @@ function usePartCommit(basePath: string) {
   };
 }
 
-/** Sticky desktop sidebar — clear action sits in the header, never at the bottom. */
-export function PartsFilterSidebar({
-  basePath,
-  value,
-}: {
-  basePath: string;
-  value: PartFilterValues;
-}) {
-  const { t } = useI18n();
-  const commit = usePartCommit(basePath);
-
-  return (
-    <aside className="hidden lg:block lg:w-72 lg:shrink-0">
-      <div className="sticky top-[calc(7.75rem+env(safe-area-inset-top))] max-h-[calc(100dvh-9rem-env(safe-area-inset-top))] overflow-y-auto rounded-card border border-line bg-card p-3">
-        <div className="flex items-center justify-between gap-2 border-b border-line pb-2">
-          <h2 className="text-sm font-extrabold">{t('فیلترها', 'Filters')}</h2>
-          <button
-            type="button"
-            onClick={() => commit(EMPTY_PART_FILTERS)}
-            className="rounded-full bg-cta-soft px-2.5 py-1 text-[10px] font-extrabold text-ink transition hover:bg-cta hover:text-white"
-          >
-            {t('پاک کردن همه', 'Clear all')}
-          </button>
-        </div>
-        <div className="pt-3">
-          <PartsFilterFields value={value} onChange={commit} />
-        </div>
-      </div>
-    </aside>
-  );
-}
-
-/** Mobile slide-over — the same fields with a draft, applied from the footer. */
-export function PartsFilterSheet({
+/**
+ * Parts filter drawer — the same fields with a draft, applied from the footer.
+ * Shares the right-hand drawer shell with the vehicle filters.
+ */
+export function PartsFilterDrawer({
   open,
   basePath,
   value,
+  pool,
   onClose,
 }: {
   open: boolean;
   basePath: string;
   value: PartFilterValues;
+  /** Unfiltered parts feed, used for the live «نمایش N آگهی» count. */
+  pool: readonly ListingCardData[];
   onClose: () => void;
 }) {
   const { t } = useI18n();
@@ -264,73 +254,23 @@ export function PartsFilterSheet({
     if (open) setDraft(value);
   }, [open, value]);
 
-  useEffect(() => {
-    if (!open) return;
-    const onKey = (event: KeyboardEvent) => {
-      if (event.key === 'Escape') onClose();
-    };
-    const previous = document.body.style.overflow;
-    document.body.style.overflow = 'hidden';
-    document.addEventListener('keydown', onKey);
-    return () => {
-      document.body.style.overflow = previous;
-      document.removeEventListener('keydown', onKey);
-    };
-  }, [open, onClose]);
-
-  if (!open) return null;
+  const count = countParts(pool, draft);
 
   return (
-    <div
-      role="dialog"
-      aria-modal="true"
-      aria-label={t('فیلترها', 'Filters')}
-      className="fixed inset-0 z-50 flex justify-start bg-black/50 lg:hidden"
-      onClick={onClose}
+    <FilterDrawerShell
+      open={open}
+      title={t('فیلترها', 'Filters')}
+      closeLabel={t('بستن فیلترها', 'Close filters')}
+      clearLabel={t('پاک کردن همه', 'Clear all')}
+      applyLabel={t(`نمایش ${count} آگهی`, `Show ${count} ads`)}
+      onClear={() => setDraft(EMPTY_PART_FILTERS)}
+      onApply={() => {
+        commit(draft);
+        onClose();
+      }}
+      onClose={onClose}
     >
-      <div
-        className="flex h-[100dvh] w-[calc(100vw-1.5rem)] max-w-[340px] flex-col overflow-hidden border-e border-line bg-[#F4F1EC] shadow-2xl dark:bg-[#0B0D1E]"
-        onClick={(event) => event.stopPropagation()}
-      >
-        <div className="flex items-center gap-2 border-b border-line px-4 pt-[max(0.875rem,env(safe-area-inset-top))] pb-3">
-          <h2 className="text-sm font-extrabold">{t('فیلترها', 'Filters')}</h2>
-          <button
-            type="button"
-            onClick={() => setDraft(EMPTY_PART_FILTERS)}
-            className="ms-auto rounded-full bg-cta-soft px-2.5 py-1 text-[10px] font-extrabold text-ink transition hover:bg-cta hover:text-white"
-          >
-            {t('پاک کردن همه', 'Clear all')}
-          </button>
-          <button
-            type="button"
-            onClick={onClose}
-            aria-label={t('بستن فیلترها', 'Close filters')}
-            className="flex h-10 w-10 items-center justify-center rounded-full bg-slate-200/70 text-ink transition hover:bg-slate-300/80 dark:bg-white/10"
-          >
-            <span aria-hidden="true" className="text-lg leading-none">×</span>
-          </button>
-        </div>
-
-        <div className="flex-1 overflow-y-auto px-3.5 py-3">
-          <PartsFilterFields value={draft} onChange={setDraft} />
-        </div>
-
-        <div
-          className="border-t border-line bg-card px-3.5 py-3"
-          style={{ paddingBottom: 'calc(0.75rem + env(safe-area-inset-bottom))' }}
-        >
-          <button
-            type="button"
-            onClick={() => {
-              commit(draft);
-              onClose();
-            }}
-            className="btn-cta w-full text-sm"
-          >
-            {t('نمایش نتایج', 'Show results')}
-          </button>
-        </div>
-      </div>
-    </div>
+      <PartsFilterFields value={draft} onChange={setDraft} />
+    </FilterDrawerShell>
   );
 }

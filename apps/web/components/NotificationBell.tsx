@@ -171,13 +171,25 @@ export function NotificationBell({ authed }: { authed: boolean }) {
           aria-label={t('اعلان‌ها', 'Notifications')}
           className="fixed left-3 right-3 top-20 z-50 max-w-[calc(100vw-1.5rem)] overflow-hidden rounded-2xl border border-line bg-card shadow-2xl sm:absolute sm:left-auto sm:right-0 sm:top-full sm:mt-2 sm:w-96"
         >
-          <div className="flex items-center justify-between gap-2 border-b border-line px-3 py-2.5">
-            <p className="text-sm font-extrabold text-ink">{t('اعلان‌ها', 'Notifications')}</p>
+          <div className="flex items-center gap-2 border-b border-line px-3 py-2.5">
+            <p className="min-w-0 flex-1 truncate text-sm font-extrabold text-ink">
+              {t('اعلان‌ها', 'Notifications')}
+            </p>
             {items.length > 0 && (
-              <button type="button" onClick={markAllRead} className="rounded-full bg-cta-soft px-2.5 py-1 text-[11px] font-bold text-ink transition hover:bg-cta hover:text-white">
+              <button type="button" onClick={markAllRead} className="shrink-0 rounded-full bg-cta-soft px-2.5 py-1 text-[11px] font-bold text-ink transition hover:bg-cta hover:text-white">
                 {t('خواندن همه', 'Mark all as read')}
               </button>
             )}
+            {/* The panel closes from its own header too; in RTL this sits on
+                the row's visual left, opposite the title. */}
+            <button
+              type="button"
+              onClick={() => setOpen(false)}
+              aria-label={t('بستن اعلان‌ها', 'Close notifications')}
+              className="flex h-8 w-8 shrink-0 items-center justify-center rounded-full text-muted transition hover:bg-cta-soft hover:text-ink"
+            >
+              <Icon name="close" size={16} />
+            </button>
           </div>
 
           <div className="max-h-80 overflow-y-auto">

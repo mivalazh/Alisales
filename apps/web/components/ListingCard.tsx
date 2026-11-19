@@ -147,7 +147,10 @@ export function ListingCard({ listing }: { listing: ListingCardData }) {
       onTouchMove={onTouchMove}
       onTouchEnd={onTouchEnd}
     >
-      <div className="relative aspect-[var(--photo-aspect)] bg-sunken">
+      {/* A slightly taller frame on phones: with the metadata line gone below
+          `sm`, the extra image height keeps the card balanced instead of
+          leaving a short text block under a wide photo. */}
+      <div className="relative aspect-[5/4] bg-sunken sm:aspect-[var(--photo-aspect)]">
         {current ? (
           <Image
             src={current}
@@ -260,24 +263,30 @@ export function ListingCard({ listing }: { listing: ListingCardData }) {
           </div>
         )}
 
-        <p
-          className="line-clamp-1 min-h-[22px] text-[11px] leading-5 text-muted sm:text-xs"
-          style={sold ? { color: SOLD_TEXT } : undefined}
-        >
-          {part ? (
-            <>
-              {t(PART_CATEGORY_LABELS[part.category])} · {t(PART_ORIGIN_LABELS[part.origin])} ·{' '}
-              {lang === 'en' ? part.compatibility : compatibilityLabel(part.compatibility)}
-            </>
-          ) : (
-            specs.map((item, i) => (
-              <span key={`${item}-${i}`}>
-                {i > 0 && <span className="mx-1 text-faint">·</span>}
-                <bdi>{item}</bdi>
-              </span>
-            ))
-          )}
-        </p>
+        {/* Phone cards drop the grey spec line (mileage · gearbox · city) and
+            the posting age: both live on the listing detail page, and keeping
+            them here cost a whole row of dead height in the 2-column grid.
+            The wrapper returns from `sm` up, where the card is wide enough. */}
+        <div className="hidden min-h-[22px] sm:block">
+          <p
+            className="line-clamp-1 text-[11px] leading-5 text-muted sm:text-xs"
+            style={sold ? { color: SOLD_TEXT } : undefined}
+          >
+            {part ? (
+              <>
+                {t(PART_CATEGORY_LABELS[part.category])} · {t(PART_ORIGIN_LABELS[part.origin])} ·{' '}
+                {lang === 'en' ? part.compatibility : compatibilityLabel(part.compatibility)}
+              </>
+            ) : (
+              specs.map((item, i) => (
+                <span key={`${item}-${i}`}>
+                  {i > 0 && <span className="mx-1 text-faint">·</span>}
+                  <bdi>{item}</bdi>
+                </span>
+              ))
+            )}
+          </p>
+        </div>
 
         {/* The price owns its own row, so the spec line above can never run
             into it and every card in a row lines up. */}
@@ -285,10 +294,11 @@ export function ListingCard({ listing }: { listing: ListingCardData }) {
           <PriceText irr={listing.priceIRR} sold={sold} hideAed={listing.hideAed} />
         </div>
 
-        {/* Fixed seller slot: the verified pill, a seller name or an empty line
-            all reserve the same height, so the city/date footer aligns across
-            the whole row instead of drifting up on unverified cards. */}
-        <div className="flex min-h-[28px] flex-wrap content-start gap-1.5">
+        {/* Fixed seller slot from `sm` up: the verified pill, a seller name or
+            an empty line all reserve the same height, so the footer aligns
+            across the row. On phones the reservation is dropped — with the
+            metadata line gone, an empty 28px slot was the leftover gap. */}
+        <div className="flex flex-wrap content-start gap-1.5 sm:min-h-[28px]">
           {listing.showroomVerified ? (
             <VerifiedPill label={t(part ? 'تعمیرگاه معتبر' : 'نمایشگاه معتبر')} />
           ) : sellerName ? (
@@ -298,7 +308,9 @@ export function ListingCard({ listing }: { listing: ListingCardData }) {
 
         <div className="mt-auto flex items-center justify-between border-t border-line pt-2 text-xs text-faint">
           <span>{t(CITY_LABELS[listing.city] ?? listing.city)}</span>
-          <time dateTime={listing.publishedAt ?? undefined}>
+          {/* Relative posting age is desktop-only for the same reason as the
+              spec line above. */}
+          <time dateTime={listing.publishedAt ?? undefined} className="hidden sm:inline">
             {lang === 'en'
               ? postingAgeEnglish(listing.publishedAt ?? Date.now())
               : postingAgeLabel(listing.publishedAt ?? Date.now())}

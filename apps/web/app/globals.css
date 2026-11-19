@@ -461,118 +461,50 @@ html.app-standalone button {
   .ai-orb, .ai-orb-eye, .car-tire { animation: none !important; }
 }
 
-/* ── Launch splash ─────────────────────────────────────────────────────── */
+/* ── Launch beat ─────────────────────────────────────────────────────────
+   Minimal on purpose: a small transparent brand mark over the page that fades
+   out in ~0.4s. The shell (header, layout, card skeletons) paints underneath
+   from the first frame and the overlay never intercepts touches.
+   ──────────────────────────────────────────────────────────────────────── */
 html[data-splash-seen] .app-splash {
   display: none;
 }
 .app-splash {
   position: fixed;
-  inset: 0;
+  inset-inline: 0;
+  top: calc(4.5rem + env(safe-area-inset-top));
   z-index: 200;
   display: flex;
-  align-items: center;
   justify-content: center;
-  background: var(--color-page);
+  pointer-events: none;
   opacity: 1;
-  transition: opacity 180ms ease-out;
+  transition: opacity 140ms ease-out;
 }
 .app-splash.is-leaving {
   opacity: 0;
-  pointer-events: none;
-}
-.app-splash-stage {
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  gap: 18px;
 }
 .app-splash-mark {
-  animation: splash-mark-in 520ms cubic-bezier(0.22, 1, 0.36, 1) both;
-  filter: drop-shadow(0 12px 24px rgb(249 133 19 / 0.22));
-}
-.app-splash-path {
-  transform-box: fill-box;
-  transform-origin: center;
-}
-.app-splash-path-1 {
-  clip-path: inset(0 0 100% 0);
-  animation: splash-path-reveal 430ms cubic-bezier(0.22, 1, 0.36, 1) 40ms both;
-}
-.app-splash-path-2,
-.app-splash-path-3 {
-  clip-path: inset(0 100% 0 0);
-  animation: splash-swoosh-in 420ms cubic-bezier(0.22, 1, 0.36, 1) 150ms both;
-}
-.app-splash-path-3 {
-  animation-delay: 220ms;
-}
-.app-splash-wordmark {
-  position: relative;
-  display: inline-flex;
-  align-items: baseline;
-  gap: 8px;
-  color: var(--logo-navy);
-  font-size: 22px;
-  font-weight: 900;
-  letter-spacing: 0.16em;
-  line-height: 1;
-  padding-bottom: 8px;
-}
-.app-splash-word {
-  display: inline-flex;
-  align-items: baseline;
-  white-space: nowrap;
-}
-.app-splash-word-ali {
-  color: var(--logo-navy);
-}
-.app-splash-word-sales {
-  color: var(--logo-sales);
-}
-.app-splash-letter {
-  display: inline-block;
-  opacity: 0;
-  transform: translateY(10px) scale(0.92);
-  animation: splash-letter-in 260ms cubic-bezier(0.22, 1, 0.36, 1) both;
-}
-.app-splash-underline {
-  position: absolute;
-  inset-inline: 0;
-  bottom: 0;
-  height: 2px;
-  border-radius: 999px;
-  background: linear-gradient(90deg, #f98513, #f34405 70%, transparent);
-  transform-origin: left center;
-  animation: splash-underline-in 300ms cubic-bezier(0.22, 1, 0.36, 1) 300ms both;
+  animation: splash-mark-in 240ms cubic-bezier(0.22, 1, 0.36, 1) both;
 }
 @keyframes splash-mark-in {
-  from { opacity: 0; transform: scale(0.72) rotate(-4deg); }
-  to { opacity: 1; transform: scale(1) rotate(0); }
-}
-@keyframes splash-path-reveal {
-  from { clip-path: inset(0 0 100% 0); }
-  to { clip-path: inset(0 0 0 0); }
-}
-@keyframes splash-swoosh-in {
-  from { opacity: 0; clip-path: inset(0 100% 0 0); transform: translateX(-8px); }
-  to { opacity: 1; clip-path: inset(0 0 0 0); transform: translateX(0); }
-}
-@keyframes splash-letter-in {
-  from { opacity: 0; transform: translateY(10px) scale(0.92); }
-  to { opacity: 1; transform: translateY(0) scale(1); }
-}
-@keyframes splash-underline-in {
-  from { transform: scaleX(0); }
-  to { transform: scaleX(1); }
+  from { opacity: 0; transform: scale(0.94); }
+  to { opacity: 1; transform: scale(1); }
 }
 @media (prefers-reduced-motion: reduce) {
-  .app-splash-mark, .app-splash-path, .app-splash-letter, .app-splash-underline {
-    animation: none;
-  }
-  .app-splash-letter { opacity: 1; transform: none; }
-  .app-splash-path { clip-path: none; }
-  .app-splash-underline { transform: none; }
+  .app-splash-mark { animation: none; }
   .app-splash { transition: none; }
+}
+
+/* ── Right-hand filter drawer (FilterDrawerShell) ──────────────────────── */
+.filter-drawer {
+  animation: filter-drawer-in 200ms cubic-bezier(0.2, 0, 0, 1) both;
+}
+@keyframes filter-drawer-in {
+  from { transform: translateX(100%); opacity: 0.6; }
+  to { transform: translateX(0); opacity: 1; }
+}
+@media (prefers-reduced-motion: reduce) {
+  .filter-drawer { animation: none; }
 }
 
 /* theme tokens: navy #223382, price ink #b45309 (light) */

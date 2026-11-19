@@ -90,7 +90,6 @@ export function SupportTicketCenter() {
   const [tickets, setTickets] = useState<Ticket[]>([]);
   const [loading, setLoading] = useState(true);
   const [query, setQuery] = useState('');
-  const [statusFilter, setStatusFilter] = useState<'all' | 'pending' | 'answered'>('all');
   const [createOpen, setCreateOpen] = useState(false);
   const [createTopic, setCreateTopic] = useState<SupportTopic>('technical');
   const [active, setActive] = useState<Ticket | null>(null);
@@ -157,34 +156,29 @@ export function SupportTicketCenter() {
 
   const filtered = useMemo(() => {
     const q = query.trim().toLowerCase();
-    return tickets.filter((ticket) => {
-      if (statusFilter !== 'all' && ticket.status !== statusFilter) return false;
-      if (!q) return true;
-      return [ticket.code, topicLabel(ticket), ticket.message]
+    if (!q) return tickets;
+    return tickets.filter((ticket) =>
+      [ticket.code, topicLabel(ticket), ticket.message]
         .join(' ')
         .toLowerCase()
-        .includes(q);
-    });
-  }, [query, statusFilter, tickets, topicLabel]);
+        .includes(q),
+    );
+  }, [query, tickets, topicLabel]);
 
   const openCreate = (topic: SupportTopic) => {
     setCreateTopic(topic);
     setCreateOpen(true);
   };
 
-  const filterLabel =
-    statusFilter === 'all'
-      ? t('همه وضعیت‌ها', 'All statuses')
-      : statusFilter === 'pending'
-        ? t('در حال بررسی', 'Under review')
-        : t('پاسخ داده شد', 'Answered');
-
   return (
     <section
       id="ticket"
       className="scroll-mt-24 space-y-4 rounded-2xl border border-line bg-card p-4 shadow-sm sm:p-5"
     >
-      <div className="flex flex-wrap items-start justify-between gap-3">
+      {/* The partner action sits on the heading row, opposite the title, so
+          the page keeps one clear entry point instead of a second stacked
+          button. `shrink-0` keeps it on that row at 375px. */}
+      <div className="flex items-start justify-between gap-3">
         <div className="min-w-0">
           <h1 className="text-lg font-extrabold text-ink sm:text-xl">
             {t('لیست تیکت‌ها', 'Ticket list')}
@@ -199,7 +193,7 @@ export function SupportTicketCenter() {
         <button
           type="button"
           onClick={() => openCreate('advertising')}
-          className="rounded-full bg-[#F98513] px-4 py-2 text-xs font-extrabold text-white shadow-sm transition hover:bg-[#e0760c]"
+          className="shrink-0 whitespace-nowrap rounded-full bg-[#F98513] px-3.5 py-2 text-xs font-extrabold text-white shadow-sm transition hover:bg-[#e0760c] sm:px-4"
         >
           {t('همکاری با ما', 'Partner with us')}
         </button>
@@ -229,26 +223,6 @@ export function SupportTicketCenter() {
             className="field h-11 w-full pe-10"
           />
         </label>
-        <button
-          type="button"
-          onClick={() =>
-            setStatusFilter((current) =>
-              current === 'all' ? 'pending' : current === 'pending' ? 'answered' : 'all',
-            )
-          }
-          aria-label={`${t('فیلتر وضعیت', 'Filter status')}: ${filterLabel}`}
-          title={filterLabel}
-          className={`relative flex h-11 w-11 shrink-0 items-center justify-center rounded-full border transition ${
-            statusFilter === 'all'
-              ? 'border-line bg-card text-muted hover:text-ink'
-              : 'border-[#F98513]/50 bg-[#F98513]/10 text-[#F98513]'
-          }`}
-        >
-          <Icon name="sliders" size={18} />
-          {statusFilter !== 'all' && (
-            <span className="absolute -end-0.5 -top-0.5 h-2.5 w-2.5 rounded-full border-2 border-card bg-[#F98513]" />
-          )}
-        </button>
       </div>
 
       <div className="flex items-center justify-between rounded-xl bg-[#F4F1EC] px-4 py-3 text-xs font-bold text-muted dark:bg-white/5">
@@ -264,43 +238,36 @@ export function SupportTicketCenter() {
         </div>
       ) : filtered.length === 0 ? (
         <div className="flex flex-col items-center px-4 py-10 text-center">
-          {/* Duotone inbox/envelope mark — a support-ticket surface, not a
-              generic badge. */}
-          <span className="flex h-14 w-14 items-center justify-center rounded-2xl bg-[#F98513]/10 text-[#F98513]">
+          {/* Line-art inbox in the navy brand ink, with one orange accent on
+              the tray — quieter than a filled orange badge and it reads at
+              375px without dominating the empty state. */}
+          <span className="flex h-11 w-11 items-center justify-center rounded-xl border border-line bg-page">
             <svg
-              width={28}
-              height={28}
+              width={22}
+              height={22}
               viewBox="0 0 24 24"
               fill="none"
               aria-hidden="true"
               focusable="false"
+              className="text-[#223382] dark:text-[#9BACD8]"
             >
               <path
-                d="M3.4 7.1A2.1 2.1 0 0 1 5.5 5h13a2.1 2.1 0 0 1 2.1 2.1v9.8a2.1 2.1 0 0 1-2.1 2.1h-13a2.1 2.1 0 0 1-2.1-2.1V7.1Z"
-                fill="currentColor"
-                fillOpacity=".16"
+                d="M4.6 7.4A2.4 2.4 0 0 1 7 5h10a2.4 2.4 0 0 1 2.4 2.4v9.2A2.4 2.4 0 0 1 17 19H7a2.4 2.4 0 0 1-2.4-2.4V7.4Z"
                 stroke="currentColor"
-                strokeWidth="1.6"
+                strokeWidth="1.5"
                 strokeLinejoin="round"
               />
               <path
-                d="m3.9 6.4 8.1 6.1 8.1-6.1"
+                d="M4.6 13.2h3.1l1.1 2h6.4l1.1-2h3.1"
                 stroke="currentColor"
-                strokeWidth="1.6"
+                strokeWidth="1.5"
                 strokeLinecap="round"
                 strokeLinejoin="round"
               />
-              <path
-                d="M8.4 19.2 12 16.5l3.6 2.7"
-                stroke="currentColor"
-                strokeWidth="1.6"
-                strokeLinecap="round"
-                strokeLinejoin="round"
-                opacity=".55"
-              />
+              <circle cx="16.9" cy="8.6" r="1.5" fill="#F98513" />
             </svg>
           </span>
-          <p className="mt-3 text-xs font-bold text-muted">
+          <p className="mt-2.5 text-xs font-bold text-muted">
             {t('اطلاعاتی جهت نمایش یافت نشد.', 'No information to display.')}
           </p>
         </div>

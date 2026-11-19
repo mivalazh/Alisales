@@ -5,8 +5,7 @@ import type { ListingCardData } from '@/lib/data/listings';
 import type { SortKey } from '@/lib/sort';
 import { Catalog } from './Catalog';
 import {
-  PartsFilterSheet,
-  PartsFilterSidebar,
+  PartsFilterDrawer,
   activePartFilterCount,
   type PartFilterValues,
 } from './PartFilterBar';
@@ -69,12 +68,12 @@ export function PartsCatalog({
       )}
       filterSystem={{
         activeCount: activePartFilterCount(partValues),
-        sidebar: () => <PartsFilterSidebar basePath="/parts" value={partValues} />,
         sheet: ({ open, onClose }) => (
-          <PartsFilterSheet
+          <PartsFilterDrawer
             open={open}
             basePath="/parts"
             value={partValues}
+            pool={pool}
             onClose={onClose}
           />
         ),

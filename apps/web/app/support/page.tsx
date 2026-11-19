@@ -19,44 +19,28 @@ export default async function SupportPage() {
 
       <SupportHelpCenter />
 
-      <section className="grid gap-3 sm:grid-cols-3" aria-label={t('راه‌های تماس', 'Contact options')}>
-        {[
-          {
-            icon: 'phone' as const,
-            label: t('تلفن پشتیبانی', 'Support phone'),
-            value: '0936 000 0000',
-            href: 'tel:+989360000000',
-            ltr: true,
-          },
-          {
-            icon: 'message' as const,
-            label: t('ایمیل مجموعه', 'Team email'),
-            value: 'support@alisales.ir',
-            href: 'mailto:support@alisales.ir',
-            ltr: true,
-          },
-          {
-            icon: 'clock' as const,
-            label: t('ساعات پاسخگویی', 'Support hours'),
-            value: t('شنبه تا پنجشنبه، ۹ تا ۱۸', 'Sat–Thu, 09:00–18:00'),
-            href: '/support#ticket',
-            ltr: false,
-          },
-        ].map((tile) => (
-          <a
-            key={tile.label}
-            href={tile.href}
-            className="rounded-card border border-line bg-card p-4 transition hover:border-line-strong hover:shadow-sm"
-          >
-            <span className="flex h-9 w-9 items-center justify-center rounded-full bg-cta-soft text-cta">
-              <Icon name={tile.icon} size={17} />
+      {/* Support runs on one written channel: the phone tile is gone and the
+          email address is the only contact card left. */}
+      <section
+        className="grid gap-3 sm:max-w-sm"
+        aria-label={t('راه‌های تماس', 'Contact options')}
+      >
+        <a
+          href="mailto:support@alisales.ir"
+          className="flex items-center gap-3 rounded-card border border-line bg-card p-4 transition hover:border-line-strong hover:shadow-sm"
+        >
+          <span className="flex h-10 w-10 shrink-0 items-center justify-center rounded-full bg-cta-soft text-cta">
+            <Icon name="message" size={18} />
+          </span>
+          <span className="min-w-0">
+            <span className="block text-[10px] font-bold text-muted">
+              {t('ایمیل پشتیبانی', 'Support email')}
             </span>
-            <p className="mt-2 text-[10px] font-bold text-muted">{tile.label}</p>
-            <p className="mt-1 break-words text-sm font-extrabold text-ink" dir={tile.ltr ? 'ltr' : undefined}>
-              {tile.value}
-            </p>
-          </a>
-        ))}
+            <span className="mt-0.5 block break-words text-sm font-extrabold text-ink" dir="ltr">
+              support@alisales.ir
+            </span>
+          </span>
+        </a>
       </section>
     </article>
   );

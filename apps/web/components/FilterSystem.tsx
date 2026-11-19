@@ -31,6 +31,7 @@ import {
 } from '@alisales/schemas';
 import { countMatches, matchesFilters, type FilterableListing } from '@/lib/filter-match';
 import { RateLine } from './RateLine';
+import { FilterDrawerShell } from './FilterDrawerShell';
 import { Icon } from './Icon';
 import { CustomSelect } from './CustomSelect';
 import { useI18n } from '@/lib/i18n';
@@ -726,51 +727,14 @@ export function FilterGroups({
   );
 }
 
-/** Desktop right-hand sidebar — sticky, scrollable, with the result count on top. */
-export function FilterSidebar({
-  category,
-  filters,
-  onChange,
-  onClear,
-  pool,
-}: {
-  category: VehicleCategory;
-  filters: SearchFilters;
-  onChange: (next: SearchFilters) => void;
-  onClear: () => void;
-  pool: readonly FilterableListing[];
-}) {
-  const { t } = useI18n();
-  const count = countMatches(pool, filters);
-  return (
-    <aside className="hidden lg:block lg:w-72 lg:shrink-0">
-      <div className="sticky top-[calc(7.75rem+env(safe-area-inset-top))] max-h-[calc(100dvh-9rem-env(safe-area-inset-top))] overflow-y-auto rounded-card border border-line bg-card p-3">
-        <div className="flex items-center justify-between gap-2 border-b border-line pb-2">
-          <h2 className="flex items-center gap-1.5 text-sm font-extrabold">
-            <Icon name="sliders" size={16} className="text-cta" />
-            {t('فیلترها', 'Filters')}
-          </h2>
-          <div className="flex items-center gap-1.5">
-            <button
-              type="button"
-              onClick={onClear}
-              className="rounded-full bg-cta-soft px-2.5 py-1 text-[10px] font-extrabold text-ink transition hover:bg-cta hover:text-white"
-            >
-              {t('پاک کردن همه', 'Clear all')}
-            </button>
-            <span className="rounded-[var(--radius-pill)] bg-cta-soft px-2 py-0.5 text-[11px] font-extrabold text-ink">
-              {count} {t('آگهی', 'ads')}
-            </span>
-          </div>
-        </div>
-        <FilterGroups category={category} filters={filters} onChange={onChange} pool={pool} />
-      </div>
-    </aside>
-  );
-}
-
-/** Mobile slide-over — the same groups, applied on «نمایش N آگهی». */
-export function FilterSheet({
+/**
+ * Filter drawer — the same groups, applied on «نمایش N آگهی».
+ *
+ * It is the one filter surface at every width (see FilterDrawerShell): on a
+ * phone it is a slide-over with a scrim, on desktop it slides in from the
+ * right while the listing grid stays visible beside it.
+ */
+export function FilterDrawer({
   open,
   category,
   filters,
@@ -794,22 +758,6 @@ export function FilterSheet({
     if (open) setDraft(filters);
   }, [open, filters]);
 
-  useEffect(() => {
-    if (!open) return;
-    const onKey = (event: KeyboardEvent) => {
-      if (event.key === 'Escape') onClose();
-    };
-    const previous = document.body.style.overflow;
-    document.body.style.overflow = 'hidden';
-    document.addEventListener('keydown', onKey);
-    return () => {
-      document.body.style.overflow = previous;
-      document.removeEventListener('keydown', onKey);
-    };
-  }, [open, onClose]);
-
-  if (!open) return null;
-  const count = countMatches(pool, draft);
 
   const clearDraft = () =>
     setDraft((current) => ({
@@ -841,63 +789,24 @@ export function FilterSheet({
       kishOnly: false,
     }));
 
+  const count = countMatches(pool, draft);
+
   return (
-    <div
-      role="dialog"
-      aria-modal="true"
-      aria-label={t('فیلترها', 'Filters')}
-      className="fixed inset-0 z-50 flex justify-start bg-black/50 lg:hidden"
-      onClick={onClose}
+    <FilterDrawerShell
+      open={open}
+      title={t('فیلترها', 'Filters')}
+      closeLabel={t('بستن فیلترها', 'Close filters')}
+      clearLabel={t('پاک کردن همه', 'Clear all')}
+      applyLabel={t(`نمایش ${count} آگهی`, `Show ${count} ads`)}
+      onClear={() => {
+        clearDraft();
+        onClear();
+      }}
+      onApply={() => onApply(draft)}
+      onClose={onClose}
     >
-      <div
-        className="flex h-[100dvh] w-[calc(100vw-1.5rem)] max-w-[340px] flex-col overflow-hidden border-e border-line bg-[#F4F1EC] shadow-2xl dark:bg-[#0B0D1E]"
-        onClick={(e) => e.stopPropagation()}
-      >
-        <div className="flex items-center gap-2 border-b border-line px-4 pt-[max(0.875rem,env(safe-area-inset-top))] pb-3">
-          <h2 className="text-sm font-extrabold">{t('فیلترها', 'Filters')}</h2>
-          <button
-            type="button"
-            onClick={() => {
-              clearDraft();
-              onClear();
-            }}
-            className="ms-auto rounded-full bg-cta-soft px-2.5 py-1 text-[10px] font-extrabold text-ink transition hover:bg-cta hover:text-white"
-          >
-            {t('پاک کردن همه', 'Clear all')}
-          </button>
-          <button
-            type="button"
-            onClick={onClose}
-            aria-label={t('بستن فیلترها', 'Close filters')}
-            className="flex h-10 w-10 items-center justify-center rounded-full bg-slate-200/70 text-ink transition hover:bg-slate-300/80 dark:bg-white/10"
-          >
-            <Icon name="close" size={18} />
-          </button>
-        </div>
-
-        <div className="flex-1 overflow-y-auto px-3.5">
-          <FilterGroups
-            category={category}
-            filters={draft}
-            onChange={setDraft}
-            pool={pool}
-          />
-        </div>
-
-        <div
-          className="flex items-center gap-2 border-t border-line bg-card px-3.5 py-3"
-          style={{ paddingBottom: 'calc(0.75rem + env(safe-area-inset-bottom))' }}
-        >
-          <button
-            type="button"
-            onClick={() => onApply(draft)}
-            className="btn-cta w-full text-sm"
-          >
-            {t(`نمایش ${count} آگهی`, `Show ${count} ads`)}
-          </button>
-        </div>
-      </div>
-    </div>
+      <FilterGroups category={category} filters={draft} onChange={setDraft} pool={pool} />
+    </FilterDrawerShell>
   );
 }
 
@@ -940,7 +849,7 @@ export function FilterBar({
     (filters.workingHoursMax !== undefined ? 1 : 0);
 
   return (
-    <div className="flex items-center gap-2 lg:hidden">
+    <div className="flex items-center gap-2">
       <button
         type="button"
         onClick={onOpen}

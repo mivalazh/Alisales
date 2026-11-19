@@ -7,8 +7,6 @@ import { Icon, type IconName } from './Icon';
 const GUIDES: ReadonlyArray<{
   titleFa: string;
   titleEn: string;
-  bodyFa: string;
-  bodyEn: string;
   href: string;
   icon: IconName;
   tone: string;
@@ -16,8 +14,6 @@ const GUIDES: ReadonlyArray<{
   {
     titleFa: 'خرید و فروش امن در کیش',
     titleEn: 'Safe buying and selling in Kish',
-    bodyFa: 'خودرو را از نزدیک ببینید، شاسی و مدارک را تطبیق دهید و معامله را داخل سایت هماهنگ کنید.',
-    bodyEn: 'See the car in person, match the chassis and documents, and keep the deal coordinated on the site.',
     href: '/guide',
     icon: 'shieldCheck',
     tone: 'bg-[#F98513]/12 text-[#F98513]',
@@ -25,8 +21,6 @@ const GUIDES: ReadonlyArray<{
   {
     titleFa: 'ثبت آگهی در چند دقیقه',
     titleEn: 'Post a listing in minutes',
-    bodyFa: 'عکس‌ها را اضافه کنید و مشخصات را کامل کنید؛ آگهی بلافاصله منتشر می‌شود و در دوره راه‌اندازی رایگان است.',
-    bodyEn: 'Add photos and complete the specs; your listing goes live immediately and is free during launch.',
     href: '/new',
     icon: 'camera',
     tone: 'bg-[#223382]/10 text-[#223382] dark:text-[#9BACD8]',
@@ -34,8 +28,6 @@ const GUIDES: ReadonlyArray<{
   {
     titleFa: 'پلاک کیش، گذر موقت و مدارک',
     titleEn: 'Kish plates, temporary transit and paperwork',
-    bodyFa: 'وضعیت پلاک را پیش از پرداخت بررسی کنید؛ پلاک کیش، گذر موقت و بدون پلاک مدارک متفاوتی دارند.',
-    bodyEn: 'Check the plate status before paying; Kish, temporary-transit and unplated vehicles need different paperwork.',
     href: '/terms',
     icon: 'plate',
     tone: 'bg-[#0F7FC4]/12 text-[#0F7FC4]',
@@ -43,40 +35,43 @@ const GUIDES: ReadonlyArray<{
   {
     titleFa: 'پیگیری تیکت و گزارش آگهی مشکوک',
     titleEn: 'Ticket tracking and reporting a listing',
-    bodyFa: 'پاسخ تیکت را از دکمه «مشاهده تیکت‌ها» ببینید؛ برای آگهی مشکوک از دکمه «گزارش آگهی» همان صفحه استفاده کنید.',
-    bodyEn: 'Read replies from View my tickets; for a suspicious listing use Report listing on that page.',
     href: '/support#ticket',
     icon: 'message',
     tone: 'bg-[#DEF434]/25 text-[#111144] dark:text-[#DEF434]',
   },
 ];
 
+/**
+ * «راهنمای کاربردی» — four square guide cards.
+ *
+ * Phones get a 2×2 grid so the whole set fits one screen-height instead of a
+ * vertical list; from `sm` up the same squares become one row of four. Each
+ * card keeps only its icon, title and «خواندن راهنما» link, which is what fits
+ * a square at 375px.
+ */
 export function SupportHelpCenter() {
   const { t, lang } = useI18n();
 
   return (
-    <section className="space-y-4">
+    <section className="space-y-3">
       <h2 className="text-lg font-extrabold text-ink sm:text-xl">
         {t('راهنمای کاربردی', 'Practical guides')}
       </h2>
 
-      <div className="grid gap-2.5 sm:grid-cols-2">
+      <div className="grid grid-cols-2 gap-2.5 sm:grid-cols-4 sm:gap-3">
         {GUIDES.map((guide) => (
           <Link
             key={guide.titleFa}
             href={guide.href}
-            className="group rounded-2xl border border-line bg-card p-4 transition hover:border-line-strong hover:shadow-sm"
+            className="group flex aspect-square flex-col justify-between rounded-2xl border border-line bg-card p-3 transition hover:border-line-strong hover:shadow-sm sm:p-4"
           >
-            <span className={`flex h-9 w-9 items-center justify-center rounded-xl ${guide.tone}`}>
-              <Icon name={guide.icon} size={18} />
+            <span className={`flex h-8 w-8 shrink-0 items-center justify-center rounded-lg ${guide.tone}`}>
+              <Icon name={guide.icon} size={16} />
             </span>
-            <p className="mt-2.5 text-sm font-extrabold text-ink">
+            <p className="mt-2 line-clamp-3 text-xs font-extrabold leading-5 text-ink sm:text-sm sm:leading-6">
               {lang === 'en' ? guide.titleEn : guide.titleFa}
             </p>
-            <p className="mt-1 text-[11px] leading-5 text-muted">
-              {lang === 'en' ? guide.bodyEn : guide.bodyFa}
-            </p>
-            <span className="mt-2 inline-flex items-center gap-1 text-[10px] font-extrabold text-cta">
+            <span className="mt-1 inline-flex items-center gap-1 text-[10px] font-extrabold text-cta sm:text-[11px]">
               {t('خواندن راهنما', 'Read guide')} <Icon name="arrowLeft" size={12} />
             </span>
           </Link>

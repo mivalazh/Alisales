@@ -45,12 +45,15 @@ export function AIAssistantWidget() {
   const [input, setInput] = useState('');
   const [busy, setBusy] = useState(false);
   const showBusy = useDelayedBusy(busy);
+  // Two lines on purpose: a bare greeting, then one sentence of introduction.
+  // `whitespace-pre-line` on the bubble renders the break without a second
+  // message; translate the intro line by line so both stay in sync.
   const [messages, setMessages] = useState<Message[]>([
     {
       role: 'assistant',
       text: t(
-        'سلام! من دستیار Ali Sales هستم؛ خودرو، اسکوتر، ماشین‌آلات، قطعات و پلاک کیش. بودجه یا سؤال فنی‌تان را بگویید تا دقیق راهنمایی کنم.',
-        'Hi! I am the Ali Sales consultant for cars, scooters, heavy machinery, spare parts and Kish plates. Tell me your budget or technical question and I will narrow it down.',
+        'سلام 👋🏻\nمن دستیار هوش مصنوعی Ali Sales هستم، چطور می‌توانم کمکتان کنم؟',
+        'Hi 👋🏻\nI am the Ali Sales AI assistant — how can I help you?',
       ),
     },
   ]);
@@ -162,7 +165,7 @@ export function AIAssistantWidget() {
                 </p>
               ) : (
                 <div key={index} className="w-fit max-w-[90%] space-y-1.5">
-                  <p className="rounded-2xl rounded-bl-sm bg-page px-2.5 py-1.5 text-[11px] leading-5 text-ink">
+                  <p className="whitespace-pre-line rounded-2xl rounded-bl-sm bg-page px-2.5 py-1.5 text-[11px] leading-5 text-ink">
                     {message.text}
                   </p>
                   {message.listings && message.listings.length > 0 && (
@@ -252,8 +255,13 @@ export function AIAssistantWidget() {
             }}
             className="flex items-center gap-1.5 border-t border-line p-2"
           >
+            {/* 16px keeps iOS Safari from zooming the page when the composer
+                takes focus; anything under 16px forces an auto-zoom. */}
             <input
-              className="field h-9 flex-1 text-xs"
+              className="field h-11 flex-1 text-[16px] leading-6"
+              inputMode="text"
+              enterKeyHint="send"
+              autoComplete="off"
               placeholder={t('سؤال‌تان را بنویسید…')}
               value={input}
               onChange={(event) => setInput(event.target.value)}

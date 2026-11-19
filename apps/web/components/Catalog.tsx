@@ -12,7 +12,7 @@ import {
 import type { ListingCardData } from '@/lib/data/listings';
 import { sortListings, type SortKey } from '@/lib/sort';
 import { CategoryCards } from './CategoryCards';
-import { FilterBar, FilterSheet, FilterSidebar } from './FilterSystem';
+import { FilterBar, FilterDrawer } from './FilterSystem';
 import { FilterChips } from './FilterChips';
 import { FilterPanel } from './FilterPanel';
 import { ListingGrid } from './ListingGrid';
@@ -44,7 +44,6 @@ export interface CatalogContext {
  */
 export interface CatalogFilterSlots {
   activeCount: number;
-  sidebar: (ctx: CatalogContext) => ReactNode;
   sheet: (props: { open: boolean; onClose: () => void }) => ReactNode;
 }
 
@@ -186,7 +185,7 @@ export function Catalog({
       type="button"
       onClick={() => setSheetOpen(true)}
       aria-expanded={sheetOpen}
-      className="flex min-h-9 shrink-0 items-center gap-1.5 rounded-[var(--radius-pill)] border border-line bg-card px-2.5 py-1.5 text-[11px] font-extrabold text-ink transition hover:border-line-strong sm:min-h-10 sm:px-3 sm:py-2 sm:text-xs lg:hidden"
+      className="flex min-h-9 shrink-0 items-center gap-1.5 rounded-[var(--radius-pill)] border border-line bg-card px-2.5 py-1.5 text-[11px] font-extrabold text-ink transition hover:border-line-strong sm:min-h-10 sm:px-3 sm:py-2 sm:text-xs"
     >
       <Icon name="sliders" size={15} />
       {t('فیلترها', 'Filters')}
@@ -264,26 +263,10 @@ export function Catalog({
         />
       )}
 
-      {category || filterSystem ? (
-        <div className="flex flex-col gap-4 lg:flex-row lg:items-start">
-          {filterSystem ? (
-            filterSystem.sidebar(ctx)
-          ) : (
-            <FilterSidebar
-              category={category!}
-              filters={filters}
-              onChange={(next) => commit(next, sort)}
-              onClear={() => commit({ ...DEFAULT_FILTERS, q: filters.q }, sort)}
-              pool={filterPool}
-            />
-          )}
-          <div className="min-w-0 flex-1">
-            <ListingGrid listings={sortedListings} view={view} />
-          </div>
-        </div>
-      ) : (
-        <ListingGrid listings={sortedListings} view={view} />
-      )}
+      {/* The grid owns the full width at every breakpoint: filters live in the
+          right-hand drawer, so applying them never hides the results behind a
+          full-screen overlay. */}
+      <ListingGrid listings={sortedListings} view={view} />
 
       <EndOfFeed count={sortedListings.length} />
 
@@ -293,7 +276,7 @@ export function Catalog({
             onClose: () => setSheetOpen(false),
           })
         : category && (
-            <FilterSheet
+            <FilterDrawer
               open={sheetOpen}
               category={category}
               filters={filters}

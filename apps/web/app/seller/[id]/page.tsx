@@ -85,7 +85,6 @@ export default async function SellerPage({
 
   const isOwner = session?.sub === profile.id;
   const tab = parseTab(query.tab);
-  const firstActive = profile.active[0] ?? null;
   const following = await isFollowing(session?.sub, profile.id);
 
   return (
@@ -136,16 +135,14 @@ export default async function SellerPage({
             <p className="mt-3 whitespace-pre-line text-sm leading-7 text-ink/85">{displayBio}</p>
           )}
 
-          {/* Primary actions and the follow control share one balanced grid on
-              a phone (two per row) and one wrapping row from `sm` up, so
-              follow never hangs alone under the three actions. */}
+          {/* Profile actions sit beside the follow control: share/edit on the
+              start edge, follow on the end edge. Messaging and calling stay on
+              the listings themselves. */}
           <div className="mt-3 grid grid-cols-2 gap-2.5 sm:flex sm:flex-wrap sm:items-center">
             <SellerActions
               sellerId={profile.id}
-              listingId={firstActive?.id ?? null}
               name={displayName}
               isOwner={isOwner}
-              canCall={Boolean(firstActive?.allowPhoneReveal)}
             />
             {!isOwner && (
               <FollowSellerButton
