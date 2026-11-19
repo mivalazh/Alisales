@@ -90,7 +90,12 @@ export function useModalFocus({
     const container = containerRef.current;
     if (!container) return;
 
-    const trigger = document.activeElement instanceof HTMLElement ? document.activeElement : null;
+    // <body>/<html> can be the active element when the overlay was opened
+    // programmatically or by a pointer that did not focus its button; focusing
+    // them back would silently drop the caret to the top of the document.
+    const focused = document.activeElement instanceof HTMLElement ? document.activeElement : null;
+    const trigger =
+      focused && focused !== document.body && focused !== document.documentElement ? focused : null;
 
     // Only elements this effect actually inerted are un-inerted on cleanup, so
     // a modifier set by anything else survives.
