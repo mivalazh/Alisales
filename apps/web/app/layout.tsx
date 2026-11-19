@@ -107,13 +107,11 @@ export default async function RootLayout({ children }: { children: ReactNode }) 
   return (
     <html lang={lang} dir={lang === 'fa' ? 'rtl' : 'ltr'} suppressHydrationWarning>
       <head>
-        {/* Even if the external stylesheet is slow or blocked, raw photos can
-            never render at their intrinsic full-screen size. */}
-        <style
-          dangerouslySetInnerHTML={{
-            __html: 'img,video{max-width:100%;height:auto}',
-          }}
-        />
+        {/* Photo sizing comes from the stylesheet's base layer, which already
+            caps every image at its container. It must NOT be repeated as an
+            inline <style>: unlayered rules outrank Tailwind's `@layer
+            utilities`, so an inline `img{height:auto}` silently beat every
+            height utility such as the brand logo's 48px slot. */}
         {/* Apply the stored theme before paint (no light flash). */}
         <script dangerouslySetInnerHTML={{ __html: themeBootstrapScript }} />
         {/* Repeat pages in the same session skip the launch overlay pre-paint. */}
