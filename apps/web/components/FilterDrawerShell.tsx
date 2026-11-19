@@ -1,8 +1,9 @@
 'use client';
 
-import { useEffect, type ReactNode } from 'react';
+import { useEffect, useRef, useState, type ReactNode } from 'react';
 import { Icon } from './Icon';
 import { useI18n } from '@/lib/i18n';
+import { useModalFocus } from '@/lib/useModalFocus';
 
 /**
  * Right-hand filter drawer — the one filter surface for vehicle and parts
@@ -40,23 +41,30 @@ export function FilterDrawerShell({
   children: ReactNode;
 }) {
   const { t } = useI18n();
+  const panelRef = useRef<HTMLDivElement>(null);
+  const [narrow, setNarrow] = useState(false);
+
+  // Only the narrow layout is modal: below 1024px the panel covers the grid, so
+  // it traps focus and makes the page inert. On desktop the grid must stay
+  // usable beside it, so focus just moves into the panel and comes back.
+  useEffect(() => {
+    const query = window.matchMedia('(max-width: 1023px)');
+    const sync = () => setNarrow(query.matches);
+    sync();
+    query.addEventListener('change', sync);
+    return () => query.removeEventListener('change', sync);
+  }, []);
+
+  useModalFocus({ active: open, containerRef: panelRef, onClose, modal: narrow });
 
   useEffect(() => {
     if (!open) return;
-    const onKey = (event: KeyboardEvent) => {
-      if (event.key === 'Escape') onClose();
-    };
-    // Only the narrow layout is modal; on desktop the page behind the drawer
-    // stays usable, so it must not lose its scroll position or scrollbar.
-    const narrow = window.matchMedia('(max-width: 1023px)').matches;
     const previous = document.body.style.overflow;
     if (narrow) document.body.style.overflow = 'hidden';
-    document.addEventListener('keydown', onKey);
     return () => {
       if (narrow) document.body.style.overflow = previous;
-      document.removeEventListener('keydown', onKey);
     };
-  }, [open, onClose]);
+  }, [open, narrow]);
 
   if (!open) return null;
 
@@ -71,10 +79,12 @@ export function FilterDrawerShell({
       />
 
       <div
+        ref={panelRef}
         role="dialog"
         aria-modal="true"
         aria-label={title}
-        className="filter-drawer pointer-events-auto absolute inset-y-0 right-0 flex w-[min(22.5rem,calc(100vw-2rem))] flex-col border-l border-line bg-page shadow-2xl"
+        tabIndex={-1}
+        className="filter-drawer pointer-events-auto absolute inset-y-0 right-0 flex w-[min(22.5rem,calc(100vw-2rem))] flex-col border-l border-line bg-page shadow-2xl focus:outline-none"
       >
         <header className="flex items-center gap-2 border-b border-line px-4 pt-[max(0.875rem,env(safe-area-inset-top))] pb-3">
           <h2 className="min-w-0 truncate text-sm font-extrabold text-ink">{title}</h2>

@@ -7,6 +7,7 @@ import { useEffect, useRef, useState } from 'react';
 import { useI18n } from '@/lib/i18n';
 import { Icon } from './Icon';
 import { useDelayedBusy } from '@/lib/useDelayedBusy';
+import { useModalFocus } from '@/lib/useModalFocus';
 
 interface MessageListing {
   slug: string;
@@ -58,6 +59,11 @@ export function AIAssistantWidget() {
     },
   ]);
   const scroller = useRef<HTMLDivElement>(null);
+  const sheet = useRef<HTMLDivElement>(null);
+
+  // The sheet is modal: the page is inert behind it, Tab stays inside, Escape
+  // closes it and focus returns to the orb that opened it.
+  useModalFocus({ active: open, containerRef: sheet, onClose: () => setOpen(false) });
 
   useEffect(() => {
     if (!open) return;
@@ -132,8 +138,11 @@ export function AIAssistantWidget() {
     <>
       {open && (
         <div
+          ref={sheet}
           role="dialog"
+          aria-modal="true"
           aria-label={t('دستیار هوشمند Ali Sales')}
+          tabIndex={-1}
           className="fixed bottom-24 right-4 z-50 flex h-[390px] max-h-[60dvh] w-[calc(100vw-2rem)] max-w-[340px] flex-col overflow-hidden rounded-2xl border border-line bg-card shadow-2xl sm:bottom-6 sm:right-6 sm:h-[460px] sm:max-h-[72dvh] sm:max-w-[380px]"
         >
           <div className="flex items-center gap-2 bg-[#111144] px-3 py-2.5 text-white">

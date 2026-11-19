@@ -4,6 +4,7 @@ import Link from 'next/link';
 import { useEffect, useRef, useState } from 'react';
 import { useI18n } from '@/lib/i18n';
 import { useDelayedBusy } from '@/lib/useDelayedBusy';
+import { useModalFocus } from '@/lib/useModalFocus';
 import { CarLoader } from './CarLoader';
 import { Icon, type IconName } from './Icon';
 import {
@@ -70,7 +71,13 @@ export function NotificationBell({ authed }: { authed: boolean }) {
   const [localReadAt, setLocalReadAt] = useState<string | null>(null);
   const [serverReadAt, setServerReadAt] = useState<string | null>(null);
   const root = useRef<HTMLDivElement>(null);
+  const panel = useRef<HTMLDivElement>(null);
   const showLoading = useDelayedBusy(loading);
+
+  // The panel is modal: the page behind it is inert while it is open, so it
+  // carries its own invisible click-catcher instead of relying on clicks that
+  // an inert background would swallow.
+  useModalFocus({ active: open, containerRef: panel, onClose: () => setOpen(false) });
 
   useEffect(() => {
     try {
@@ -109,15 +116,8 @@ export function NotificationBell({ authed }: { authed: boolean }) {
     const onPointer = (event: MouseEvent) => {
       if (!root.current?.contains(event.target as Node)) setOpen(false);
     };
-    const onKey = (event: KeyboardEvent) => {
-      if (event.key === 'Escape') setOpen(false);
-    };
     document.addEventListener('mousedown', onPointer);
-    document.addEventListener('keydown', onKey);
-    return () => {
-      document.removeEventListener('mousedown', onPointer);
-      document.removeEventListener('keydown', onKey);
-    };
+    return () => document.removeEventListener('mousedown', onPointer);
   }, [open]);
 
   const items = [...localItems, ...serverItems]
@@ -166,11 +166,16 @@ export function NotificationBell({ authed }: { authed: boolean }) {
       </button>
 
       {open && (
-        <div
-          role="dialog"
-          aria-label={t('اعلان‌ها', 'Notifications')}
-          className="fixed left-3 right-3 top-20 z-50 max-w-[calc(100vw-1.5rem)] overflow-hidden rounded-2xl border border-line bg-card shadow-2xl sm:absolute sm:left-auto sm:right-0 sm:top-full sm:mt-2 sm:w-96"
-        >
+        <>
+          <div aria-hidden="true" className="fixed inset-0 z-40" onClick={() => setOpen(false)} />
+          <div
+            ref={panel}
+            role="dialog"
+            aria-modal="true"
+            aria-label={t('اعلان‌ها', 'Notifications')}
+            tabIndex={-1}
+            className="fixed left-3 right-3 top-20 z-50 max-w-[calc(100vw-1.5rem)] overflow-hidden rounded-2xl border border-line bg-card shadow-2xl focus:outline-none sm:absolute sm:left-auto sm:right-0 sm:top-full sm:mt-2 sm:w-96"
+          >
           <div className="flex items-center gap-2 border-b border-line px-3 py-2.5">
             <p className="min-w-0 flex-1 truncate text-sm font-extrabold text-ink">
               {t('اعلان‌ها', 'Notifications')}
@@ -235,7 +240,8 @@ export function NotificationBell({ authed }: { authed: boolean }) {
               </ul>
             )}
           </div>
-        </div>
+          </div>
+        </>
       )}
     </div>
   );

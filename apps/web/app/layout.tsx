@@ -128,8 +128,18 @@ export default async function RootLayout({ children }: { children: ReactNode }) 
         <AppRuntime />
         <RateProvider rate={aedRate}>
           <PriceUnitProvider>
+            <a
+              href="#main-content"
+              className="sr-only focus:not-sr-only focus:fixed focus:right-4 focus:top-4 focus:z-[100] focus:rounded-full focus:bg-card focus:px-4 focus:py-2 focus:text-sm focus:font-extrabold focus:text-ink focus:shadow-lg focus:outline focus:outline-2 focus:outline-offset-2 focus:outline-cta"
+            >
+              رفتن به محتوای اصلی
+            </a>
             <Header authed={Boolean(session)} displayName={session?.displayName ?? null} />
-            <main className="mx-auto w-full max-w-[var(--content-max)] flex-1 px-4 pb-24 pt-[calc(5rem+env(safe-area-inset-top))] sm:px-6 sm:pb-6 md:pt-36">
+            <main
+              id="main-content"
+              tabIndex={-1}
+              className="mx-auto w-full max-w-[var(--content-max)] flex-1 px-4 pb-24 pt-[calc(5rem+env(safe-area-inset-top))] focus:outline-none sm:px-6 sm:pb-6 md:pt-36"
+            >
               {children}
             </main>
             <AppFooter />

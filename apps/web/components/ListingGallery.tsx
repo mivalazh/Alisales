@@ -5,6 +5,7 @@ import { useEffect, useRef, useState } from 'react';
 import { Icon } from './Icon';
 import { isPreSizedSource } from '@/lib/images';
 import { useI18n } from '@/lib/i18n';
+import { useModalFocus } from '@/lib/useModalFocus';
 
 /** Clips are stored with their own extension; the gallery treats them as video. */
 function isVideoUrl(url: string): boolean {
@@ -35,10 +36,14 @@ export function ListingGallery({
 
   const go = (step: number) => setIndex((i) => (i + step + count) % count);
 
+  // The fullscreen viewer is modal: the page behind it is inert, Tab stays on
+  // the zoom/close controls and focus returns to the thumbnail that opened it.
+  const viewerRef = useRef<HTMLDivElement>(null);
+  useModalFocus({ active: viewer, containerRef: viewerRef, onClose: () => setViewer(false) });
+
   useEffect(() => {
     if (!viewer) return;
     const onKey = (event: KeyboardEvent) => {
-      if (event.key === 'Escape') setViewer(false);
       if (event.key === 'ArrowRight' && count > 1) go(-1);
       if (event.key === 'ArrowLeft' && count > 1) go(1);
     };
@@ -174,10 +179,12 @@ export function ListingGallery({
 
       {viewer && current && (
         <div
+          ref={viewerRef}
           role="dialog"
           aria-modal="true"
           aria-label={t('نمایش عکس', 'Photo viewer')}
-          className="fixed inset-0 z-[70] flex flex-col bg-black"
+          tabIndex={-1}
+          className="fixed inset-0 z-[70] flex flex-col bg-black focus:outline-none"
           onClick={() => setViewer(false)}
         >
           <div className="flex shrink-0 items-center justify-between px-3 py-2 text-white">
