@@ -44,6 +44,10 @@ export function BrandLogo({ slug, name }: { slug: string; name: string }) {
 
   return (
     <span className="flex h-12 w-full items-center justify-center">
+      {/* The bundled marks are single-colour paths with no fill of their own, so
+          they inherit the document's black. In dark mode a black mark on the
+          navy surface would be invisible, hence the invert; the shapes stay
+          exact and light mode keeps the marks at their original ink. */}
       {/* eslint-disable-next-line @next/next/no-img-element */}
       <img
         ref={image}
@@ -52,7 +56,7 @@ export function BrandLogo({ slug, name }: { slug: string; name: string }) {
         loading="lazy"
         decoding="async"
         onError={() => setFailed(true)}
-        className="h-12 w-auto max-w-full object-contain"
+        className="h-12 w-auto max-w-full object-contain dark:invert"
       />
     </span>
   );
