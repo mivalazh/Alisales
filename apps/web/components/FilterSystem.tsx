@@ -29,7 +29,7 @@ import {
   type SearchFilters,
   type VehicleCategory,
 } from '@alisales/schemas';
-import { countMatches, matchesFilters, type FilterableListing } from '@/lib/filter-match';
+import { countMatches, type FilterableListing } from '@/lib/filter-match';
 import { RateLine } from './RateLine';
 import { FilterDrawerShell } from './FilterDrawerShell';
 import { Icon } from './Icon';
@@ -39,12 +39,11 @@ import { useI18n } from '@/lib/i18n';
 /**
  * The filter system for the vehicle pages.
  *
- * Desktop: a left sidebar of collapsible groups, each option carrying its live
- * result count (computed with the same predicate the server search uses, so a
- * count can never disagree with the grid).
- *
- * Mobile: one «فیلترها» button opens a compact slide-over with those same
- * groups, a sticky footer showing «نمایش N آگهی» and «پاک کردن همه».
+ * Filters live in a right-hand drawer at every width (see FilterDrawerShell):
+ * collapsible groups, each option carrying its live result count (computed with
+ * the same predicate the server search uses, so a count can never disagree
+ * with the grid), plus a sticky footer showing «نمایش N آگهی» and «پاک کردن
+ * همه». On a wide screen the panel opens beside the grid instead of over it.
  *
  * Active filters are removable chips above the grid (see FilterChips).
  */
@@ -385,7 +384,7 @@ function BrandModelPicker({
   );
 }
 
-/** Every group of the filter set, shared by the sidebar and the mobile sheet. */
+/** Every group of the filter set, shared by the drawer at every width. */
 export function FilterGroups({
   category,
   filters,
@@ -872,7 +871,3 @@ export function FilterBar({
   );
 }
 
-/** Kept for callers that need a single boolean. */
-export function hasActiveFilters(filters: SearchFilters, pool: readonly FilterableListing[]): boolean {
-  return pool.some((listing) => matchesFilters(listing, filters));
-}

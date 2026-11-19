@@ -11,8 +11,9 @@ import { FilterDrawerShell } from './FilterDrawerShell';
 /**
  * Spare-parts filter surface.
  *
- * `/parts` now uses the same geometry as `/cars`: a sticky sidebar on desktop
- * and a slide-over drawer on a phone. Category, condition, authenticity,
+ * `/parts` now uses the same geometry as `/cars`: a right-hand drawer that
+ * stays open beside the grid on desktop and slides over it on a phone.
+ * Category, condition, authenticity,
  * warranty and compatibility are compact wrapping pill tags instead of long
  * checkbox lists. The URL remains the source of truth.
  */
@@ -102,7 +103,7 @@ function Fieldset({ legend, children }: { legend: string; children: ReactNode })
   );
 }
 
-/** The shared fields used by both the desktop sidebar and the mobile drawer. */
+/** The filter fields shared by the parts drawer at every width. */
 export function PartsFilterFields({
   value,
   onChange,

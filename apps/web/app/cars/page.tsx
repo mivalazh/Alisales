@@ -21,7 +21,7 @@ function first(value: string | string[] | undefined): string | undefined {
  * «خودرو» — the vehicle category page.
  *
  * Top to bottom: category switch → search → brand box with its model row →
- * filters (sidebar on desktop, bottom sheet on phones) → car stories → chips →
+ * filters (the right-hand drawer) → car stories → chips →
  * sort/view → grid. The brand box is the filter control itself: a brand tap
  * commits `?brand=` and opens that marque's models.
  */

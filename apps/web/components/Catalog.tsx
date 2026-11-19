@@ -39,7 +39,7 @@ export interface CatalogContext {
 
 /**
  * A complete alternate filter surface. `/parts` uses this to render the same
- * desktop sidebar and mobile drawer geometry as `/cars` while keeping its own
+ * right-hand drawer geometry as `/cars` while keeping its own
  * category/origin/condition URL params.
  */
 export interface CatalogFilterSlots {
@@ -98,13 +98,13 @@ export function Catalog({
   /** «داستان‌های خودرو» / «داستان‌های قطعات» — the rail's accessible title. */
   storiesLabel?: string;
   /**
-   * Unfiltered result pool for the filter sidebar/sheet live counts. Defaults
+   * Unfiltered result pool for the filter drawer's live counts. Defaults
    * to the rendered listings, which is right on the home page.
    */
   pool?: ListingCardData[];
-  /** Enables the built-in sidebar/sheet filter system for this vehicle category. */
+  /** Enables the built-in drawer filter system for this vehicle category. */
   category?: VehicleCategory;
-  /** A custom sidebar/sheet pair, currently used by the parts catalog. */
+  /** A custom drawer, currently used by the parts catalog. */
   filterSystem?: CatalogFilterSlots;
   /** Kept for page compatibility; the redundant heading is no longer shown. */
   heading?: string;
