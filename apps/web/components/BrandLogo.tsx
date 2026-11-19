@@ -12,8 +12,9 @@ import { useEffect, useRef, useState } from 'react';
  * no dark-mode inversion.
  *
  * A slug with no artwork yet falls back to a neutral placeholder — the brand's
- * Latin name on a quiet neutral surface — so the grid stays tidy and every
- * brand remains selectable while the files are being collected.
+ * Latin name as quiet text straight on the page surface, with no tile fill or
+ * border — so the grid stays light and every brand remains selectable while
+ * the files are being collected.
  */
 export function BrandLogo({ slug, name }: { slug: string; name: string }) {
   const [failed, setFailed] = useState(false);
@@ -32,7 +33,7 @@ export function BrandLogo({ slug, name }: { slug: string; name: string }) {
     return (
       <span
         aria-hidden="true"
-        className="flex h-12 w-full items-center justify-center rounded-md bg-sunken/45 px-1 text-center text-[9px] font-extrabold uppercase leading-tight tracking-[0.06em] text-faint"
+        className="flex h-12 w-full items-center justify-center px-1 text-center text-[9px] font-extrabold uppercase leading-tight tracking-[0.06em] text-faint"
       >
         <span className="line-clamp-2" dir="ltr">
           {name}
