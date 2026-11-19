@@ -8,6 +8,7 @@ import { BottomNav } from '@/components/BottomNav';
 import { AppSplashIntro } from '@/components/AppSplashIntro';
 import { DeferredAssistant } from '@/components/DeferredAssistant';
 import { AppRuntime } from '@/components/AppRuntime';
+import { WebVitalsReporter } from '@/components/WebVitalsReporter';
 import { BackToTop } from '@/components/BackToTop';
 import { themeBootstrapScript } from '@/components/ThemeToggle';
 import { PriceUnitProvider } from '@/components/PriceUnitProvider';
@@ -126,6 +127,8 @@ export default async function RootLayout({ children }: { children: ReactNode }) 
         <LocaleProvider initialLang={lang}>
         <AppSplashIntro />
         <AppRuntime />
+        {/* Field Web Vitals → /api/monitor; renders nothing. */}
+        <WebVitalsReporter />
         <RateProvider rate={aedRate}>
           <PriceUnitProvider>
             <a

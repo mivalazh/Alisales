@@ -1,0 +1,128 @@
+name: Uptime
+
+# A scheduled probe of the deployment's health endpoint. This is the part of
+# monitoring that keeps working after handover: it needs no dashboard, no
+# account and no running service — GitHub runs it, and a failed run is visible
+# in the Actions tab (and in GitHub's default failure notification).
+#
+# Point it anywhere by setting the repository variable `PRODUCTION_URL`
+# (Settings → Secrets and variables → Actions → Variables), or run it by hand
+# with the `url` input. The fallback is the current Sites preview origin.
+
+on:
+  schedule:
+    # Every ten minutes. GitHub can delay scheduled runs while its queue is
+    # busy; a late run still answers "is it up now?".
+    - cron: '*/10 * * * *'
+  workflow_dispatch:
+    inputs:
+      url:
+        description: 'Base URL to probe (defaults to PRODUCTION_URL)'
+        required: false
+        default: ''
+
+# Nothing is written back to the repository, so no token permissions are needed.
+permissions: {}
+
+# A newer scheduled run makes an in-flight one pointless.
+concurrency:
+  group: uptime
+  cancel-in-progress: true
+
+env:
+  APP_URL: ${{ github.event.inputs.url || vars.PRODUCTION_URL || 'https://site-63c007e9e08245fa8f506856991c7dea.freebuff.page' }}
+  # /api/health answers in milliseconds when the deployment is healthy; a
+  # 200 that takes seconds still means the origin or its data path is unwell.
+  MAX_SECONDS: '5'
+
+jobs:
+  health:
+    name: GET /api/health
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    steps:
+      - name: Probe the health endpoint
+        run: |
+          set -uo pipefail
+
+          target="${APP_URL%/}/api/health"
+          echo "Probing ${target}"
+
+          status="000"
+          seconds="0"
+          body=""
+
+          # Three attempts over ~10s absorb a single cold start or a transient
+          # network blip without hiding a real outage.
+          for attempt in 1 2 3; do
+            out=$(curl --silent --show-error --max-time 15 \
+              --output /tmp/health.json \
+              --write-out '%{http_code} %{time_total}' \
+              "$target" 2>/tmp/curl.err) || out="000 0"
+            read -r status seconds <<<"$out"
+            body=$(cat /tmp/health.json 2>/dev/null || true)
+
+            if [ "$status" = "200" ]; then
+              break
+            fi
+
+            echo "attempt ${attempt}: status ${status}, curl: $(cat /tmp/curl.err 2>/dev/null | tr '\n' ' ')"
+            [ "$attempt" -lt 3 ] && sleep 3
+          done
+
+          # A 200 alone is not health: a proxy or captive portal can return an
+          # HTML page. The body must also assert ok=true.
+          ok_flag=no
+          if printf '%s' "$body" | grep -Eq '"ok"[[:space:]]*:[[:space:]]*true'; then
+            ok_flag=yes
+          fi
+
+          fast=no
+          if awk -v s="${seconds:-0}" -v max="$MAX_SECONDS" 'BEGIN { exit !(s <= max) }'; then
+            fast=yes
+          fi
+
+          # A 503 is not a crash: it is the app saying a required piece of
+          # configuration is missing (session key, SMS provider). Surface the
+          # reason codes so the red run is actionable instead of mysterious.
+          reasons=""
+          if [ "$status" = "503" ]; then
+            reasons=$(printf '%s' "$body" | grep -o '"code":"[A-Z_]*"' | cut -d'"' -f4 | sort -u | tr '\n' ' ')
+          fi
+
+          failures=""
+          [ "$status" = "200" ] || failures="${failures}status=${status}${reasons:+:${reasons}} "
+          [ "$ok_flag" = "yes" ] || failures="${failures}body_not_ok "
+          [ "$fast" = "yes" ] || failures="${failures}slow=${seconds}s "
+
+          {
+            echo "## Uptime probe"
+            echo ""
+            echo "| | |"
+            echo "| --- | --- |"
+            echo "| URL | \`${target}\` |"
+            echo "| HTTP status | ${status} |"
+            echo "| Latency | ${seconds}s (budget ${MAX_SECONDS}s) |"
+            echo "| Body ok | ${ok_flag} |"
+            [ -n "$reasons" ] && echo "| Not-ready reasons | \`${reasons}\` |"
+            echo "| Result | $([ -z "$failures" ] && echo healthy || echo "FAILED: ${failures}") |"
+            echo ""
+            echo "<details><summary>Health body</summary>"
+            echo ""
+            echo '```json'
+            printf '%s\n' "$body" | head -c 2000
+            echo ""
+            echo '```'
+            echo ""
+            echo "</details>"
+          } >> "$GITHUB_STEP_SUMMARY"
+
+          printf '%s\n' "$body" | head -c 2000
+          echo ""
+
+          if [ -n "$failures" ]; then
+            echo "::error title=Uptime probe failed::${target} — ${failures}"
+            exit 1
+          fi
+
+          echo "Healthy: ${target} answered 200 with ok=true in ${seconds}s."

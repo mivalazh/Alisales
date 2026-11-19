@@ -1,6 +1,8 @@
 'use client';
 
+import { useEffect, useRef } from 'react';
 import './globals.css';
+import { reportBoundaryError } from '@/lib/monitoring/client';
 
 /**
  * Last-resort error boundary.
@@ -9,6 +11,8 @@ import './globals.css';
  * has to render its own `<html>`/`<body>` and pull the stylesheet in directly —
  * otherwise the worst failure in the app would be an unstyled English page.
  * It stays deliberately dependency-free: no header, no providers, no data.
+ * The one extra import is the fire-and-forget monitoring report — guarded so
+ * it can never throw, and the only way the owner hears about a broken layout.
  */
 export default function GlobalError({
   error,
@@ -17,6 +21,15 @@ export default function GlobalError({
   error: Error & { digest?: string };
   reset: () => void;
 }) {
+  const reported = useRef(false);
+  useEffect(() => {
+    if (reported.current) return;
+    reported.current = true;
+    // The layout is gone, so `window.location` is the only route information
+    // that reliably still exists here.
+    reportBoundaryError(error, undefined, 'boundary');
+  }, [error]);
+
   return (
     <html lang="fa" dir="rtl">
       <body className="flex min-h-screen items-center justify-center bg-page px-4 py-10 font-sans text-ink antialiased">

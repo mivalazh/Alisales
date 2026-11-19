@@ -39,6 +39,21 @@ export default async function AdminSettingsPage() {
       </div>
 
       <AdminRateForm initial={rate} />
+
+      <Link
+        href="/admin/monitoring"
+        className="block rounded-card border border-line bg-card p-4 transition hover:border-line-strong"
+      >
+        <span className="flex items-center justify-between gap-3">
+          <span>
+            <span className="block text-sm font-extrabold">پایش و سلامت</span>
+            <span className="mt-1 block text-xs text-muted">
+              خطاهای تولید، شاخص‌های وب حیاتی و کندترین مسیرها.
+            </span>
+          </span>
+          <Icon name="arrowLeft" size={18} />
+        </span>
+      </Link>
     </div>
   );
 }
