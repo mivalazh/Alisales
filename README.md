@@ -146,6 +146,15 @@ REQUIRE_HOSTED_SERVICES     # optional; production data is already strict
 After deploying with the secrets, run `npm run auth:e2e -- --url=https://<preview-host>` and enter the
 SMS code when prompted; it verifies the real OTP, session cookie, `/api/auth/me`
 and logout, and fails if the demo route or demo code is still available.
+
+**Release gate.** `npm run preflight` asserts that every table, view, column and
+RPC in [`scripts/preflight-manifest.mjs`](scripts/preflight-manifest.mjs) — and
+every storage bucket, with its public/private flag — exists in the linked
+Supabase project. It exits non-zero with the migration that is missing, so an
+unapplied `supabase db push` fails the release instead of silently breaking a
+feature. The manifest is kept in sync with the migrations by a test. Migrations,
+buckets, key rotation and rollback are covered in
+[DEPLOY_RUNBOOK.md](DEPLOY_RUNBOOK.md).
 Fixture cards use the SVG illustrations in `apps/web/public/covers/`
 (`node scripts/gen-covers.mjs` regenerates them).
 
