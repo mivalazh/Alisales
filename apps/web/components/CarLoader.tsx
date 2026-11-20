@@ -39,7 +39,6 @@ export function CarLoader({
     <span
       className={`relative inline-flex shrink-0 items-center justify-center ${box}`}
       role="status"
-      aria-label={label}
     >
       <svg viewBox="0 0 100 100" className={`${box} block`} aria-hidden="true" focusable="false">
         {/* Only the wheel rotates; the wordmark is HTML on top and stays upright. */}
@@ -96,7 +95,10 @@ export function CarLoader({
           />
         </g>
       </svg>
-      <span className="pointer-events-none absolute inset-0 flex items-center justify-center">
+      <span
+        className="pointer-events-none absolute inset-0 flex items-center justify-center"
+        aria-hidden="true"
+      >
         <span
           className="text-[10px] font-black tracking-wider text-[#F98513]"
           style={{ textShadow: '0 0 3px #111144, 0 0 3px #111144' }}
@@ -104,6 +106,7 @@ export function CarLoader({
           LOADING
         </span>
       </span>
+      {/* The one thing a screen reader gets: the caller's localized label. */}
       <span className="sr-only">{label}</span>
     </span>
   );

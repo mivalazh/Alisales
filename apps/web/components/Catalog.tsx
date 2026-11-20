@@ -200,11 +200,7 @@ export function Catalog({
   return (
     <div className="space-y-4">
       {showPending && (
-        <div
-          className="pointer-events-none fixed inset-0 z-30 flex items-center justify-center"
-          role="status"
-          aria-label={t('در حال به‌روزرسانی نتایج', 'Updating results')}
-        >
+        <div className="pointer-events-none fixed inset-0 z-30 flex items-center justify-center">
           <CarLoader inline size="md" label={t('در حال به‌روزرسانی نتایج', 'Updating results')} />
         </div>
       )}

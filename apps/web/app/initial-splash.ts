@@ -10,10 +10,16 @@
  * ~420ms, the layer holds, then fades out and becomes `visibility:hidden` by
  * 800ms. `html[data-splash-seen]` (set by the pre-paint script) hides it for
  * every later page in the session. It never intercepts touches.
+ *
+ * The dark block repeats the header lockup's ink swap (cream mark, Habañero
+ * SALES): navy on the navy splash would have been invisible.
  */
 export const INITIAL_SPLASH_CSS = `
 #ali-initial-splash{position:fixed;inset:0;z-index:300;display:flex;align-items:center;justify-content:center;background:#F4F1EC;pointer-events:none;animation:ali-splash-out 800ms cubic-bezier(.4,0,.2,1) forwards}
 html[data-theme='dark'] #ali-initial-splash{background:#111144}
+html[data-theme='dark'] #ali-initial-splash .ali-splash-word{color:#FFFFFF}
+html[data-theme='dark'] #ali-initial-splash .ali-splash-sales{color:#F98513}
+html[data-theme='dark'] #ali-initial-splash svg path:first-of-type{fill:#FFFFFF}
 html[data-splash-seen] #ali-initial-splash{display:none}
 #ali-initial-splash .ali-splash-mark{display:inline-flex;align-items:center;gap:12px;direction:ltr;animation:ali-splash-mark 420ms cubic-bezier(.22,1,.36,1) both}
 #ali-initial-splash svg{display:block;height:56px;width:auto;overflow:visible}

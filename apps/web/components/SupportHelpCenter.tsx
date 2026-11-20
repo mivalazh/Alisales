@@ -7,20 +7,21 @@ import { useI18n } from '@/lib/i18n';
 import { useModalFocus } from '@/lib/useModalFocus';
 import { Icon, type IconName } from './Icon';
 
-interface GuideCard {
+/** The safe-trade guide's name, shared by its card, its dialog and the
+ *  assistant's «مشاهده راهنمای خرید» landing (`/support?guide=safe-buy`). */
+const SAFE_BUY = { titleFa: 'خرید و فروش امن در کیش', titleEn: 'Safe buying and selling in Kish' } as const;
+
+/** A card either opens the safe-trade dialog or navigates somewhere. */
+type GuideCard = {
   titleFa: string;
   titleEn: string;
   icon: IconName;
   tone: string;
-  /** `safe-buy` opens the in-page guide; the rest navigate. */
-  guide?: 'safe-buy';
-  href?: string;
-}
+} & ({ guide: 'safe-buy' } | { href: string });
 
 const GUIDES: ReadonlyArray<GuideCard> = [
   {
-    titleFa: 'خرید و فروش امن در کیش',
-    titleEn: 'Safe buying and selling in Kish',
+    ...SAFE_BUY,
     guide: 'safe-buy',
     icon: 'shieldCheck',
     tone: 'bg-[#F98513]/12 text-[#F98513]',
@@ -48,7 +49,6 @@ const GUIDES: ReadonlyArray<GuideCard> = [
   },
 ];
 
-/** The safe-trade guide the assistant's «مشاهده راهنمای خرید» pill opens. */
 const SAFE_BUY_STEPS: ReadonlyArray<{ titleFa: string; titleEn: string; bodyFa: string; bodyEn: string }> = [
   {
     titleFa: '۱. حضوری ببینید',
@@ -91,7 +91,8 @@ const SAFE_BUY_STEPS: ReadonlyArray<{ titleFa: string; titleEn: string; bodyFa: 
 const CARD_CLASS =
   'group flex min-h-[132px] flex-col justify-between gap-3 rounded-2xl border border-line bg-card p-4 transition hover:border-line-strong hover:shadow-sm';
 
-function CardBody({ guide, lang, readLabel }: { guide: GuideCard; lang: string; readLabel: string }) {
+function CardBody({ guide }: { guide: GuideCard }) {
+  const { t, lang } = useI18n();
   return (
     <>
       <span className={`flex h-8 w-8 shrink-0 items-center justify-center rounded-lg ${guide.tone}`}>
@@ -101,7 +102,7 @@ function CardBody({ guide, lang, readLabel }: { guide: GuideCard; lang: string; 
         {lang === 'en' ? guide.titleEn : guide.titleFa}
       </p>
       <span className="inline-flex items-center gap-1 text-[10px] font-extrabold text-cta sm:text-[11px]">
-        {readLabel} <Icon name="arrowLeft" size={12} />
+        {t('خواندن راهنما', 'Read guide')} <Icon name="arrowLeft" size={12} />
       </span>
     </>
   );
@@ -121,8 +122,10 @@ function CardBody({ guide, lang, readLabel }: { guide: GuideCard; lang: string; 
 export function SupportHelpCenter({ initialGuide = null }: { initialGuide?: 'safe-buy' | null }) {
   const { t, lang } = useI18n();
   const [guideOpen, setGuideOpen] = useState(initialGuide === 'safe-buy');
+  // The dialog is a portal into <body>, which only exists on the client.
   const [mounted, setMounted] = useState(false);
   const dialog = useRef<HTMLDivElement>(null);
+  const safeBuyTitle = lang === 'en' ? SAFE_BUY.titleEn : SAFE_BUY.titleFa;
 
   useEffect(() => setMounted(true), []);
 
@@ -134,7 +137,10 @@ export function SupportHelpCenter({ initialGuide = null }: { initialGuide?: 'saf
     }
   };
 
-  useModalFocus({ active: guideOpen, containerRef: dialog, onClose: closeGuide });
+  // `mounted` is part of `active`: the dialog only exists after the portal's
+  // first client render, and a focus effect that ran one frame earlier would
+  // find no container and leave focus behind the inert page.
+  useModalFocus({ active: guideOpen && mounted, containerRef: dialog, onClose: closeGuide });
 
   useEffect(() => {
     if (!guideOpen) return;
@@ -153,19 +159,19 @@ export function SupportHelpCenter({ initialGuide = null }: { initialGuide?: 'saf
 
       <div className="grid grid-cols-2 gap-2.5 sm:grid-cols-4 sm:gap-3">
         {GUIDES.map((guide) =>
-          guide.guide ? (
+          'href' in guide ? (
+            <Link key={guide.titleFa} href={guide.href} className={CARD_CLASS}>
+              <CardBody guide={guide} />
+            </Link>
+          ) : (
             <button
               key={guide.titleFa}
               type="button"
               onClick={() => setGuideOpen(true)}
               className={`${CARD_CLASS} text-start`}
             >
-              <CardBody guide={guide} lang={lang} readLabel={t('خواندن راهنما', 'Read guide')} />
+              <CardBody guide={guide} />
             </button>
-          ) : (
-            <Link key={guide.titleFa} href={guide.href ?? '/support'} className={CARD_CLASS}>
-              <CardBody guide={guide} lang={lang} readLabel={t('خواندن راهنما', 'Read guide')} />
-            </Link>
           ),
         )}
       </div>
@@ -180,16 +186,14 @@ export function SupportHelpCenter({ initialGuide = null }: { initialGuide?: 'saf
                 ref={dialog}
                 role="dialog"
                 aria-modal="true"
-                aria-label={t('خرید و فروش امن در کیش', 'Safe buying and selling in Kish')}
+                aria-label={safeBuyTitle}
                 tabIndex={-1}
                 className="max-h-[92dvh] w-full max-w-lg overflow-y-auto rounded-t-3xl border border-line bg-page p-4 shadow-2xl sm:rounded-2xl sm:p-5"
                 onClick={(event) => event.stopPropagation()}
               >
                 <div className="mb-3 flex items-start gap-3">
                   <div className="min-w-0 flex-1">
-                    <h2 className="text-base font-extrabold text-ink">
-                      {t('خرید و فروش امن در کیش', 'Safe buying and selling in Kish')}
-                    </h2>
+                    <h2 className="text-base font-extrabold text-ink">{safeBuyTitle}</h2>
                     <p className="mt-1 text-xs leading-5 text-muted">
                       {t(
                         'شش قدم برای معامله‌ای بی‌دردسر در بازار کیش.',

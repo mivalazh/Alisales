@@ -447,7 +447,6 @@ html.app-standalone button {
 }
 
 /* ── Tire loader ───────────────────────────────────────────────────────── */
-.car-loader svg { overflow: visible; }
 .car-tire {
   transform-box: view-box;
   transform-origin: 50px 50px;
