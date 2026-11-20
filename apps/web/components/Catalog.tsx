@@ -258,8 +258,10 @@ export function Catalog({
           results instead of covering or pushing them away. Phones and tablets
           keep the inline card below, where a column would not fit. */}
       <div className="lg:flex lg:items-start lg:gap-4">
+        {/* Sticky offset clears the two-row site header (122px) with a gap;
+            sticking at `top-24` slid the panel's own header behind it. */}
         {panelOpen && (
-          <aside className="hidden w-72 shrink-0 lg:sticky lg:top-24 lg:block lg:self-start">
+          <aside className="hidden w-72 shrink-0 lg:sticky lg:top-[8.5rem] lg:block lg:self-start">
             <FilterPanel
               variant="sidebar"
               filters={filters}

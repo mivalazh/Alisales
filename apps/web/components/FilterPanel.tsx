@@ -103,7 +103,10 @@ export function FilterPanel({
   return (
     <div
       className={`rounded-card border border-line bg-card ${
-        sidebar ? 'flex max-h-[calc(100dvh-7rem)] flex-col p-3.5' : 'p-4 sm:p-5'
+        sidebar
+          ? // Fits under the sticky offset (8.5rem) with a 1rem gap at the bottom.
+            'flex max-h-[calc(100dvh-9.5rem)] flex-col p-3.5'
+          : 'p-4 sm:p-5'
       }`}
     >
       <div className="mb-3 flex items-center gap-2">
