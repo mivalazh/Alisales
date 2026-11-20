@@ -1,5 +1,7 @@
 'use client';
 
+import { useId } from 'react';
+
 /**
  * Automotive tire loader.
  *
@@ -50,6 +52,8 @@ export function CarLoader({
   inline?: boolean;
 }) {
   const box = SIZES[size];
+  // One arc path per instance: two overlays on a page must not share an id.
+  const arcId = `car-loading-arc-${useId().replace(/[^a-zA-Z0-9_-]/g, '')}`;
 
   const wheel = (
     <span className="relative inline-flex shrink-0 items-center justify-center" role="status">
@@ -62,7 +66,7 @@ export function CarLoader({
           className="absolute bottom-full left-1/2 mb-1.5 h-[22px] w-[74px] -translate-x-1/2 overflow-visible"
         >
           <defs>
-            <path id="car-loading-arc" d="M 4,30 A 72,72 0 0,1 96,30" fill="none" />
+            <path id={arcId} d="M 4,30 A 72,72 0 0,1 96,30" fill="none" />
           </defs>
           <text
             fill="#F98513"
@@ -71,7 +75,7 @@ export function CarLoader({
             letterSpacing="2.8"
             fontFamily="inherit"
           >
-            <textPath href="#car-loading-arc" startOffset="50%" textAnchor="middle">
+            <textPath href={`#${arcId}`} startOffset="50%" textAnchor="middle">
               LOADING
             </textPath>
           </text>
