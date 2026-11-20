@@ -1,7 +1,7 @@
 'use client';
 
 import Link from 'next/link';
-import { useEffect, useRef, useState } from 'react';
+import { useCallback, useEffect, useRef, useState } from 'react';
 import { useI18n } from '@/lib/i18n';
 import { useDelayedBusy } from '@/lib/useDelayedBusy';
 import { useModalFocus } from '@/lib/useModalFocus';
@@ -72,6 +72,8 @@ export function NotificationBell({ authed }: { authed: boolean }) {
   const [serverReadAt, setServerReadAt] = useState<string | null>(null);
   const root = useRef<HTMLDivElement>(null);
   const panel = useRef<HTMLDivElement>(null);
+  const requestId = useRef(0);
+  const lastLoadAt = useRef(0);
   const showLoading = useDelayedBusy(loading);
 
   // The panel is modal: the page behind it is inert while it is open, so it
@@ -91,25 +93,56 @@ export function NotificationBell({ authed }: { authed: boolean }) {
     return () => window.removeEventListener(LOCAL_NOTIFICATIONS_EVENT, syncLocal);
   }, []);
 
-  useEffect(() => {
+  /**
+   * One inbox fetch, guarded so a slower earlier response can never overwrite a
+   * newer one. Called on mount, whenever the panel opens, and when the tab
+   * comes back — a seller should not have to reload the page to see a reply.
+   */
+  const loadNotifications = useCallback(() => {
     if (!authed) return;
-    let cancelled = false;
+    const id = ++requestId.current;
+    lastLoadAt.current = Date.now();
     setLoading(true);
     fetch('/api/notifications', { cache: 'no-store' })
       .then((res) => (res.ok ? res.json() : null))
       .then((data: { items?: ServerNotification[]; readAt?: string | null } | null) => {
-        if (cancelled) return;
+        if (id !== requestId.current) return;
         if (Array.isArray(data?.items)) setServerItems(data.items);
         if (data && 'readAt' in data) setServerReadAt(data.readAt ?? null);
       })
       .catch(() => undefined)
       .finally(() => {
-        if (!cancelled) setLoading(false);
+        if (id === requestId.current) setLoading(false);
       });
-    return () => {
-      cancelled = true;
-    };
   }, [authed]);
+
+  useEffect(() => {
+    loadNotifications();
+  }, [loadNotifications]);
+
+  // A fresh open always re-reads the inbox: the panel may be showing what the
+  // last page load fetched hours ago.
+  useEffect(() => {
+    if (open) loadNotifications();
+  }, [open, loadNotifications]);
+
+  // Returning to the tab (or its window) refreshes too. `focus` and
+  // `visibilitychange` both fire on the same return, so a short floor keeps it
+  // to one request.
+  useEffect(() => {
+    if (!authed) return;
+    const refresh = () => {
+      if (document.visibilityState !== 'visible') return;
+      if (Date.now() - lastLoadAt.current < 800) return;
+      loadNotifications();
+    };
+    window.addEventListener('focus', refresh);
+    document.addEventListener('visibilitychange', refresh);
+    return () => {
+      window.removeEventListener('focus', refresh);
+      document.removeEventListener('visibilitychange', refresh);
+    };
+  }, [authed, loadNotifications]);
 
   useEffect(() => {
     if (!open) return;

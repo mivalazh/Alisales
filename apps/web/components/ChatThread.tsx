@@ -162,9 +162,12 @@ export function ChatThread({
     if (near) setUnread(0);
   };
 
-  // Poll for new messages + presence while the thread is open.
+  // Poll for new messages + presence while the thread is open AND visible.
+  // A backgrounded tab keeps its timers alive, so without this every open
+  // thread would keep hitting the server from a pocket.
   useEffect(() => {
     let cancelled = false;
+    let timer: ReturnType<typeof setInterval> | undefined;
 
     async function poll(): Promise<void> {
       const last = messages[messages.length - 1];
@@ -195,11 +198,30 @@ export function ChatThread({
       }
     }
 
-    void poll();
-    const timer = setInterval(() => void poll(), POLL_MS);
+    function start(): void {
+      if (timer) return;
+      void poll();
+      timer = setInterval(() => void poll(), POLL_MS);
+    }
+
+    function stop(): void {
+      if (!timer) return;
+      clearInterval(timer);
+      timer = undefined;
+    }
+
+    function onVisibility(): void {
+      // Coming back catches up immediately instead of waiting a full interval.
+      if (document.visibilityState === 'visible') start();
+      else stop();
+    }
+
+    if (document.visibilityState === 'visible') start();
+    document.addEventListener('visibilitychange', onVisibility);
     return () => {
       cancelled = true;
-      clearInterval(timer);
+      stop();
+      document.removeEventListener('visibilitychange', onVisibility);
     };
     // `messages` changes every send; re-arming the interval is cheap and keeps
     // the `after` cursor current.
