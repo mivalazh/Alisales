@@ -1,7 +1,7 @@
 import { NextResponse } from 'next/server';
 import { authSecretReadiness } from '@/lib/auth/session';
 import { smsReadiness } from '@/lib/auth/sms';
-import { instantOtpAllowlistSize } from '@/lib/config/mode';
+import { instantOtpAllowlistSize, sandboxOtpFallbackEnabled } from '@/lib/config/mode';
 import { dataPathChecks } from '@/lib/health/data-probes';
 
 export const dynamic = 'force-dynamic';
@@ -54,10 +54,17 @@ export async function GET(): Promise<NextResponse> {
   }
 
   const data = await dataPathChecks();
+  const sandboxFallback = sandboxOtpFallbackEnabled();
+  const warnings = sandboxFallback
+    ? [
+        'ALLOW_SANDBOX_OTP_FALLBACK is enabled: an allowlisted phone can sign in with an on-screen code when the SMS gateway is unavailable. Disable it once SMS delivery is verified (LOGIN_RUNBOOK.md).',
+      ]
+    : [];
 
   const ok = authSecret.ok && loginReady && data.database.ok && data.storage.ok;
   const body = {
     ok,
+    ...(warnings.length > 0 ? { warnings } : {}),
     checks: {
       authSecret: authSecret.ok
         ? { ok: true, source: authSecret.source }
@@ -81,6 +88,12 @@ export async function GET(): Promise<NextResponse> {
       },
       instantOtp: {
         ready: instantOtpReady,
+        allowlistCount,
+      },
+      // Off by default; visible here so a risky launch switch cannot be left on
+      // unnoticed after handover.
+      sandboxFallback: {
+        enabled: sandboxFallback,
         allowlistCount,
       },
       login: loginReady

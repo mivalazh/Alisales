@@ -114,7 +114,18 @@ server log and show it on the OTP step. Production requires a real
 `AUTH_SECRET`. With an SMS provider it sends real codes; without one, instant
 OTP is available only for numbers listed in `INSTANT_OTP_ALLOWLIST` (empty
 blocks it entirely), so missing SMS credentials cannot create accounts for
-arbitrary phones. The production names are:
+arbitrary phones.
+
+The on-screen code fallback for a sandbox/unverified SMS.ir account is **off by
+default**: it requires the deliberately named `ALLOW_SANDBOX_OTP_FALLBACK=true`
+and still only serves allowlisted numbers. It is an account-takeover primitive
+(an on-screen code proves nothing about who holds the phone), so it is a
+launch-day bandage with an expiry date — see [LOGIN_RUNBOOK.md](LOGIN_RUNBOOK.md)
+for when to use it, how to verify real SMS delivery instead, and how to turn it
+off safely. `/api/health` reports `checks.sandboxFallback.enabled` and adds a
+warning while the switch is on.
+
+The production names are:
 
 ```
 SUPABASE_URL
@@ -128,6 +139,7 @@ SMS_SENDER
 SMS_API_URL
 AUTH_SECRET                 # ≥16 random characters
 INSTANT_OTP_ALLOWLIST       # comma-separated launch numbers when SMS is unset
+ALLOW_SANDBOX_OTP_FALLBACK  # DANGER, off by default; read LOGIN_RUNBOOK.md
 REQUIRE_HOSTED_SERVICES     # optional; production data is already strict
 ```
 

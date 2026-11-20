@@ -1,5 +1,9 @@
 import { afterEach, beforeEach, describe, expect, it } from 'vitest';
-import { instantOtpAllowedFor } from '../apps/web/lib/config/mode';
+import {
+  instantOtpAllowedFor,
+  instantOtpFallbackAllowedFor,
+  sandboxOtpFallbackEnabled,
+} from '../apps/web/lib/config/mode';
 
 const ENV_KEYS = [
   'NODE_ENV',
@@ -10,6 +14,10 @@ const ENV_KEYS = [
   'SMS_API_URL',
   'SMS_IR_API_KEY',
   'SMS_IR_TEMPLATE_ID',
+  'ALLOW_SANDBOX_OTP_FALLBACK',
+  'SUPABASE_URL',
+  'NEXT_PUBLIC_SUPABASE_URL',
+  'SUPABASE_SERVICE_ROLE_KEY',
 ] as const;
 const saved = new Map<string, string | undefined>();
 
@@ -71,6 +79,57 @@ describe('production instant OTP gate', () => {
     setEnv('INSTANT_OTP_ALLOWLIST', undefined);
 
     expect(instantOtpAllowedFor('09120000099')).toBe(true);
+  });
+
+  it('keeps the sandbox fallback off by default, even for an allowlisted number', () => {
+    setEnv('NODE_ENV', 'production');
+    setEnv('INSTANT_OTP_ALLOWLIST', '09120000001');
+    setEnv('SMS_IR_API_KEY', 'sms-ir-key');
+    setEnv('SMS_IR_TEMPLATE_ID', '123456');
+
+    expect(sandboxOtpFallbackEnabled()).toBe(false);
+    expect(instantOtpFallbackAllowedFor('09120000001')).toBe(false);
+  });
+
+  it('also keeps the sandbox fallback off in development without the flag', () => {
+    setEnv('NODE_ENV', 'development');
+    setEnv('INSTANT_OTP_ALLOWLIST', '09120000001');
+
+    expect(instantOtpFallbackAllowedFor('09120000001')).toBe(false);
+    // The separate no-provider instant path is unchanged in development.
+    expect(instantOtpAllowedFor('09120000099')).toBe(true);
+  });
+
+  it('opens the fallback only for allowlisted numbers once the flag is set', () => {
+    setEnv('NODE_ENV', 'production');
+    setEnv('ALLOW_SANDBOX_OTP_FALLBACK', 'true');
+    setEnv('INSTANT_OTP_ALLOWLIST', '09120000001');
+
+    expect(sandboxOtpFallbackEnabled()).toBe(true);
+    expect(instantOtpFallbackAllowedFor('09120000001')).toBe(true);
+    expect(instantOtpFallbackAllowedFor('+989120000001')).toBe(true);
+    expect(instantOtpFallbackAllowedFor('09120000002')).toBe(false);
+  });
+
+  it('does not open the fallback for every number when the allowlist is empty', () => {
+    setEnv('NODE_ENV', 'production');
+    setEnv('ALLOW_SANDBOX_OTP_FALLBACK', 'yes');
+    setEnv('INSTANT_OTP_ALLOWLIST', undefined);
+
+    expect(instantOtpFallbackAllowedFor('09120000001')).toBe(false);
+  });
+
+  it('reports the risky switch on /api/health while it is on', async () => {
+    setEnv('NODE_ENV', 'production');
+    setEnv('AUTH_SECRET', 'production-secret-at-least-16-chars');
+    setEnv('INSTANT_OTP_ALLOWLIST', '09120000001');
+    setEnv('ALLOW_SANDBOX_OTP_FALLBACK', 'true');
+
+    const { GET } = await import('../apps/web/app/api/health/route');
+    const body = await (await GET()).json();
+
+    expect(body.checks.sandboxFallback).toMatchObject({ enabled: true, allowlistCount: 1 });
+    expect(body.warnings?.[0]).toMatch(/ALLOW_SANDBOX_OTP_FALLBACK/);
   });
 
   it('rejects an unlisted phone at the OTP endpoint and returns no code', async () => {

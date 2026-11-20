@@ -92,7 +92,8 @@ export function demoAuthMode(): boolean {
 /**
  * Phone numbers explicitly allowed to use instant OTP in production.
  * Comma/space/semicolon separated; Persian digits, `+98` and `0098` normalize.
- * There is deliberately no wildcard or allow-all switch.
+ * There is deliberately no wildcard or allow-all switch: the close-bracket of
+ * `ALLOW_SANDBOX_OTP_FALLBACK` is this list, never "everyone".
  */
 export function instantOtpAllowlistSize(): number {
   return instantOtpAllowlist().size;
@@ -109,24 +110,43 @@ function instantOtpAllowlist(): ReadonlySet<string> {
 }
 
 /**
+ * The sandbox/instant-code fallback: when SMS.ir rejects an unverified or
+ * sandbox account, the same code can be shown on screen instead of delivered.
+ *
+ * That is convenient on a launch day with an unverified gateway, and it is
+ * also an account-takeover primitive: whoever can claim a listed phone number
+ * gets a session without proving control of it. It is therefore OFF by
+ * default, in every environment, and only an explicitly named variable turns
+ * it on. See LOGIN_RUNBOOK.md before enabling it.
+ */
+export function sandboxOtpFallbackEnabled(): boolean {
+  return flagOn(process.env.ALLOW_SANDBOX_OTP_FALLBACK);
+}
+
+/**
  * Whether a phone may use the instant/devCode fallback when the gateway is
- * unavailable or rejects an unverified/sandbox account. Development allows
- * every number; production still requires the exact launch allowlist, so an
- * SMS.ir failure cannot turn arbitrary phones into accounts.
+ * unavailable or rejects an unverified/sandbox account.
+ *
+ * Requires `ALLOW_SANDBOX_OTP_FALLBACK` (off by default); production then also
+ * requires the exact launch allowlist, so even an operator who enables the flag
+ * cannot turn arbitrary phones into accounts.
  */
 export function instantOtpFallbackAllowedFor(rawPhone: string): boolean {
+  if (!sandboxOtpFallbackEnabled()) return false;
   if (process.env.NODE_ENV !== 'production') return true;
   return instantOtpAllowlist().has(normalizePhone(rawPhone));
 }
 
 /**
- * Authorize the no-SMS instant flow for one phone. A configured SMS provider
- * always wins and disables this path; its sandbox fallback is checked through
- * `instantOtpFallbackAllowedFor()` instead.
+ * Authorize the no-SMS instant flow for one phone (development, or a launch
+ * allowlist when no provider is configured). A configured SMS provider always
+ * wins and disables this path; its sandbox fallback is a separate, opt-in
+ * switch checked through `instantOtpFallbackAllowedFor()`.
  */
 export function instantOtpAllowedFor(rawPhone: string): boolean {
   if (smsConfigured()) return false;
-  return instantOtpFallbackAllowedFor(rawPhone);
+  if (process.env.NODE_ENV !== 'production') return true;
+  return instantOtpAllowlist().has(normalizePhone(rawPhone));
 }
 
 /** Whether the instant code can be shown at all (optionally for one phone). */
