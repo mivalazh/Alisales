@@ -82,8 +82,11 @@ export function AIAssistantWidget() {
   }, [messages, open, busy]);
 
   // A focused conversation owns the composer edge; the catalogue assistant
-  // would otherwise float over the message input on a phone.
-  if (/^\/chats\/[^/]+/.test(pathname ?? '')) return null;
+  // would otherwise float over the message input on a phone. `/support` is the
+  // help surface itself: its two-column guide grid runs under the orb's corner,
+  // so the fixed orb sat on top of the first card's «خواندن راهنما» action at
+  // 375px. No fixed corner is free there, so the orb stands down on that page.
+  if (/^\/chats\/[^/]+/.test(pathname ?? '') || pathname === '/support') return null;
 
   const ask = async (question: string) => {
     const q = question.trim();
