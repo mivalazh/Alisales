@@ -1,7 +1,17 @@
-import { afterEach, beforeEach, describe, expect, it } from 'vitest';
+import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import { GET } from '../apps/web/app/api/health/route';
 import { authSecret, authSecretReadiness } from '../apps/web/lib/auth/session';
 import { smsReadiness } from '../apps/web/lib/auth/sms';
+
+// This file covers the login/secret checks. The database and storage
+// round-trips need a live Supabase project, so they are proven in
+// tests/health-data-path.test.ts with a fake client.
+vi.mock('@/lib/health/data-probes', () => ({
+  dataPathChecks: async () => ({
+    database: { ok: true, table: 'health_probes', roundTripMs: 1 },
+    storage: { ok: true, bucket: 'listing-photos', roundTripMs: 1 },
+  }),
+}));
 
 const ENV_KEYS = [
   'NODE_ENV',

@@ -2,15 +2,24 @@ import { NextResponse } from 'next/server';
 import { authSecretReadiness } from '@/lib/auth/session';
 import { smsReadiness } from '@/lib/auth/sms';
 import { instantOtpAllowlistSize } from '@/lib/config/mode';
+import { dataPathChecks } from '@/lib/health/data-probes';
 
 export const dynamic = 'force-dynamic';
 
 /**
- * GET /api/health — deployment readiness for security-critical configuration.
+ * GET /api/health — deployment readiness for security-critical configuration
+ * and for the production data path.
  *
- * The body is safe to serve publicly: it contains variable names and reason
- * codes, never secret values. A failing check answers 503 so uptime monitors
- * and deployment smoke tests fail before users discover the broken login.
+ * Besides the session secret and login provider, this exercises the two paths
+ * a listing actually travels: one row written/read/deleted in Supabase and one
+ * object uploaded/downloaded/deleted in the photo bucket. A missing
+ * service-role key, unapplied migration or missing bucket is therefore a
+ * failing health check, not listings that save nowhere.
+ *
+ * The body is safe to serve publicly: it contains variable names, resource
+ * names and reason codes, never secret values or provider error text (that goes
+ * to the server log). A failing check answers 503 so uptime monitors and
+ * deployment smoke tests fail before users discover the broken path.
  */
 export async function GET(): Promise<NextResponse> {
   const authSecret = authSecretReadiness();
@@ -44,7 +53,9 @@ export async function GET(): Promise<NextResponse> {
     }
   }
 
-  const ok = authSecret.ok && loginReady;
+  const data = await dataPathChecks();
+
+  const ok = authSecret.ok && loginReady && data.database.ok && data.storage.ok;
   const body = {
     ok,
     checks: {
@@ -78,6 +89,9 @@ export async function GET(): Promise<NextResponse> {
             mode: sms.configured ? 'sms' : 'instant-allowlist',
           }
         : { ok: false, ...loginFailure },
+      // Round-trip proofs for the production data path, one check each.
+      database: data.database,
+      storage: data.storage,
     },
   };
 

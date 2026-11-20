@@ -250,7 +250,8 @@ export default async function MonitoringPage() {
             <span className="font-bold text-ink" dir="ltr">
               /api/health
             </span>{' '}
-            — پاسخ ۲۰۰ یعنی کلید نشست و مسیر ورود آماده‌اند، ۵۰۳ یعنی کاربردپذیری ناقص است.
+            — پاسخ ۲۰۰ یعنی کلید نشست، مسیر ورود و مسیر داده (یک ردیف رفت‌وبرگشت در Supabase و
+            یک شیء در باکت عکس‌ها) آماده‌اند؛ ۵۰۳ یعنی کاربردپذیری ناقص است.
           </li>
           <li>
             گردش کار «Uptime» در GitHub Actions هر ۱۰ دقیقه همین مسیر را می‌سنجد و در صورت
