@@ -150,7 +150,7 @@ export function TicketHistoryModal() {
         <div className="flex-1 overflow-y-auto p-3 sm:p-4">
           {showLoading ? (
             <div className="flex justify-center py-8">
-              <CarLoader size="sm" label={t('در حال بارگذاری تیکت‌ها', 'Loading tickets')} />
+              <CarLoader inline size="sm" label={t('در حال بارگذاری تیکت‌ها', 'Loading tickets')} />
             </div>
           ) : tickets.length === 0 ? (
             <p className="rounded-xl border border-dashed border-line bg-card px-4 py-9 text-center text-xs leading-6 text-muted">

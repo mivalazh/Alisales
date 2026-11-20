@@ -3,9 +3,10 @@ import { CarLoader } from './CarLoader';
 /**
  * Route-level fallback for pages that cannot stream their shell yet.
  *
- * The centered orange tire is the one loading language of the app: every route
- * that used to paint an empty cream column now shows the same mark, so a slow
- * read reads as «the app is working» rather than as a blank page.
+ * The tire is the app's one loading language. `CarLoader` paints itself as a
+ * fixed, viewport-centred overlay, so a slow route reads as «the app is
+ * working» over the shell instead of a blank cream column — and it can never
+ * collide with the stories rail or a card.
  */
 export function RouteLoader({
   label,
@@ -14,12 +15,5 @@ export function RouteLoader({
   label: string;
   size?: 'sm' | 'md' | 'lg';
 }) {
-  return (
-    <div
-      className="flex min-h-[calc(100dvh-16rem)] items-center justify-center"
-      aria-busy="true"
-    >
-      <CarLoader size={size} label={label} />
-    </div>
-  );
+  return <CarLoader size={size} label={label} />;
 }

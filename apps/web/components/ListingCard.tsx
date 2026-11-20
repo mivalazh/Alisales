@@ -226,7 +226,7 @@ export function ListingCard({ listing }: { listing: ListingCardData }) {
         </div>
 
         {part ? (
-          <div className="min-h-[48px]">
+          <div>
             <h3
               className="line-clamp-2 text-sm font-extrabold leading-tight sm:text-base"
               style={sold ? { color: SOLD_TEXT } : undefined}
@@ -235,7 +235,7 @@ export function ListingCard({ listing }: { listing: ListingCardData }) {
             </h3>
           </div>
         ) : (
-          <div className="flex min-h-[48px] min-w-0 flex-col items-start text-right">
+          <div className="flex min-w-0 flex-col items-start text-right">
             {/* Latin marque first, on the same start edge as the model: the
                 <bdi dir="ltr"> keeps the word unshuffled without floating the
                 whole line to the opposite corner of an RTL card. */}
@@ -254,9 +254,11 @@ export function ListingCard({ listing }: { listing: ListingCardData }) {
           </div>
         )}
 
-        {/* No grey spec line on either breakpoint: mileage, gearbox, city and
-            compatibility live on the listing detail page. Dropping it closes
-            the title→price gap to the one 6px rhythm the card uses everywhere. */}
+        {/* No grey spec line and no reserved second title line: mileage,
+            gearbox, city and compatibility live on the detail page. The price
+            sits one `mt-1.5` (6px) step below whatever the title needs — that
+            step is the card's own 6px flex rhythm, so it is never doubled —
+            and a one-line model leaves no empty spacer above the figure. */}
         <div className="w-full min-w-0 overflow-hidden">
           <PriceText irr={listing.priceIRR} sold={sold} hideAed={listing.hideAed} />
         </div>

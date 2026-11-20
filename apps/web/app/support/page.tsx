@@ -9,15 +9,24 @@ export const generateMetadata = localizedMetadata(
   { title: 'Help & support' },
 );
 
-export default async function SupportPage() {
+export default async function SupportPage({
+  searchParams,
+}: {
+  searchParams?: Promise<{ guide?: string | string[] }>;
+}) {
   const lang = await getLanguage();
   const t = (fa: string, en: string) => serverT(lang, fa, en);
+  const params = (await searchParams) ?? {};
+  // `?guide=safe-buy` is the assistant's «مشاهده راهنمای خرید» target: the
+  // safe-trade guide opens on arrival instead of dropping the buyer on the
+  // seller-facing posting guide.
+  const initialGuide = params.guide === 'safe-buy' ? 'safe-buy' : null;
 
   return (
     <article className="mx-auto mt-3 max-w-4xl space-y-5 sm:mt-4">
       <SupportTicketCenter />
 
-      <SupportHelpCenter />
+      <SupportHelpCenter initialGuide={initialGuide} />
 
       {/* Support runs on one written channel: the phone tile is gone and the
           email address is the only contact card left. */}

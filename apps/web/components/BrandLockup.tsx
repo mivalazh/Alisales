@@ -23,12 +23,9 @@ const EMBLEM_PATHS = [
 export function BrandLockup({
   size = 'sm',
   wordmark = true,
-  animated = false,
 }: {
   size?: 'sm' | 'md' | 'lg';
   wordmark?: boolean;
-  /** Adds the splash-only path reveal classes without changing the mark. */
-  animated?: boolean;
 }) {
   const markClass =
     size === 'lg' ? 'h-14 w-auto' : size === 'md' ? 'h-9 w-auto' : 'h-7 w-auto sm:h-8';
@@ -49,12 +46,11 @@ export function BrandLockup({
         aria-hidden="true"
         focusable="false"
       >
-        {EMBLEM_PATHS.map((path, index) => (
+        {EMBLEM_PATHS.map((path) => (
           <path
             key={path.d}
             d={path.d}
             fill={path.tone}
-            className={animated ? `app-splash-path app-splash-path-${index + 1}` : undefined}
           />
         ))}
       </svg>

@@ -1,83 +1,118 @@
 'use client';
 
 /**
- * Centered tire loader.
+ * Automotive tire loader.
  *
- * One confident orange (#F98513) line drawing: a sport tire with a tread band
- * spins while the word «LOADING» sits still and upright in the middle of the
- * wheel. Nothing else moves, no dots, no arc — the mark reads at a glance on a
- * phone and never shifts the layout it replaces.
+ * A bold navy tire with a treaded sidewall and a five-spoke alloy spins while
+ * «LOADING» stays crisp and upright in the middle of the hub. The mark is
+ * drawn inline so it appears without waiting for an image, and it is
+ * decorative: the status label carries the meaning for screen readers.
  *
- * Decorative only: the status label stays available to assistive technology.
- * Callers gate this behind `useDelayedBusy`, so a fetch that resolves inside
- * 250ms never shows a flash of the wheel.
+ * By default it paints as a viewport-centred overlay (`fixed inset-0`, soft
+ * scrim, non-interactive), so it never lands inside a stories rail or a
+ * button's text. Callers that genuinely need it inside a control pass
+ * `inline`. Every caller gates it behind `useDelayedBusy`, so a request that
+ * resolves inside 300ms never flashes the wheel.
  */
+const SIZES = {
+  sm: 'h-10 w-10',
+  md: 'h-20 w-20',
+  lg: 'h-28 w-28',
+} as const;
+
+const TREAD_BLOCKS = Array.from({ length: 28 }, (_, index) => index * (360 / 28));
+const SPOKES = Array.from({ length: 5 }, (_, index) => index * 72);
+
 export function CarLoader({
   size = 'md',
   label = 'loading',
+  inline = false,
 }: {
   size?: 'sm' | 'md' | 'lg';
   label?: string;
+  /** Keep the wheel in the surrounding layout instead of a fixed overlay. */
+  inline?: boolean;
 }) {
-  const box = size === 'sm' ? 'h-10 w-10' : size === 'lg' ? 'h-36 w-36' : 'h-28 w-28';
+  const box = SIZES[size];
 
-  return (
+  const wheel = (
     <span
-      className={`car-loader inline-flex items-center justify-center text-[#F98513] ${box}`}
+      className={`relative inline-flex shrink-0 items-center justify-center ${box}`}
       role="status"
       aria-label={label}
     >
-      <svg viewBox="0 0 140 140" className={`${box} text-[#F98513]`} aria-hidden="true">
-        {/* Only the tire rotates — the label below stays upright. */}
+      <svg viewBox="0 0 100 100" className={`${box} block`} aria-hidden="true" focusable="false">
+        {/* Only the wheel rotates; the wordmark is HTML on top and stays upright. */}
         <g className="car-tire">
+          <circle cx="50" cy="50" r="47" fill="#111144" />
           <circle
-            cx="70"
-            cy="70"
-            r="36"
+            cx="50"
+            cy="50"
+            r="46"
             fill="none"
-            stroke="currentColor"
-            strokeWidth="5.5"
-            strokeOpacity=".92"
+            stroke="#F98513"
+            strokeOpacity="0.35"
+            strokeWidth="1"
           />
+          {TREAD_BLOCKS.map((angle) => (
+            <rect
+              key={angle}
+              x="48.4"
+              y="1.2"
+              width="3.2"
+              height="5.6"
+              rx="1.2"
+              fill="#223382"
+              transform={`rotate(${angle} 50 50)`}
+            />
+          ))}
           <circle
-            cx="70"
-            cy="70"
-            r="41.5"
+            cx="50"
+            cy="50"
+            r="40"
             fill="none"
-            stroke="currentColor"
-            strokeWidth="3"
-            strokeDasharray="4.4 7.3"
-            strokeLinecap="round"
-            strokeOpacity=".55"
+            stroke="#F98513"
+            strokeOpacity="0.8"
+            strokeWidth="1.4"
+          />
+          <circle cx="50" cy="50" r="33" fill="#0B0B33" />
+          {SPOKES.map((angle) => (
+            <path
+              key={angle}
+              d="M47 50 L42.5 18.5 Q50 13.8 57.5 18.5 L53 50 Z"
+              fill="#DCE3EE"
+              fillOpacity="0.94"
+              transform={`rotate(${angle} 50 50)`}
+            />
+          ))}
+          <circle
+            cx="50"
+            cy="50"
+            r="20"
+            fill="#111144"
+            stroke="#F98513"
+            strokeOpacity="0.7"
+            strokeWidth="1.2"
           />
         </g>
-
-        {/* Quiet inner rim that frames the word without competing with it. */}
-        <circle
-          cx="70"
-          cy="70"
-          r="23"
-          fill="none"
-          stroke="currentColor"
-          strokeWidth="1.2"
-          strokeOpacity=".35"
-        />
-
-        <text
-          x="70"
-          y="70"
-          textAnchor="middle"
-          dominantBaseline="central"
-          fill="#F98513"
-          fontSize="11.5"
-          fontWeight="800"
-          letterSpacing="0.9"
-          className="font-black"
+      </svg>
+      <span className="pointer-events-none absolute inset-0 flex items-center justify-center">
+        <span
+          className="text-[10px] font-black tracking-wider text-[#F98513]"
+          style={{ textShadow: '0 0 3px #111144, 0 0 3px #111144' }}
         >
           LOADING
-        </text>
-      </svg>
+        </span>
+      </span>
       <span className="sr-only">{label}</span>
     </span>
+  );
+
+  if (inline) return wheel;
+
+  return (
+    <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/15 backdrop-blur-[2px] pointer-events-none">
+      {wheel}
+    </div>
   );
 }

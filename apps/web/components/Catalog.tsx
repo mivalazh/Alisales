@@ -205,7 +205,7 @@ export function Catalog({
           role="status"
           aria-label={t('در حال به‌روزرسانی نتایج', 'Updating results')}
         >
-          <CarLoader size="md" label={t('در حال به‌روزرسانی نتایج', 'Updating results')} />
+          <CarLoader inline size="md" label={t('در حال به‌روزرسانی نتایج', 'Updating results')} />
         </div>
       )}
 

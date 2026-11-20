@@ -2,10 +2,10 @@ import type { Metadata, Viewport } from 'next';
 import type { ReactNode } from 'react';
 import '@fontsource-variable/vazirmatn';
 import './globals.css';
+import { INITIAL_SPLASH_CSS } from './initial-splash';
 import { Header } from '@/components/Header';
 import { AppFooter } from '@/components/AppFooter';
 import { BottomNav } from '@/components/BottomNav';
-import { AppSplashIntro } from '@/components/AppSplashIntro';
 import { DeferredAssistant } from '@/components/DeferredAssistant';
 import { AppRuntime } from '@/components/AppRuntime';
 import { WebVitalsReporter } from '@/components/WebVitalsReporter';
@@ -115,17 +115,35 @@ export default async function RootLayout({ children }: { children: ReactNode }) 
             height utility such as the brand logo's 48px slot. */}
         {/* Apply the stored theme before paint (no light flash). */}
         <script dangerouslySetInnerHTML={{ __html: themeBootstrapScript }} />
-        {/* Repeat pages in the same session skip the launch overlay pre-paint. */}
+        {/* The launch splash is pure HTML+CSS with its own inline style block,
+            so it must not depend on the stylesheet arriving. This pre-paint
+            script only decides whether this is the first page of the session;
+            repeat pages hide the layer before anything is painted. */}
         <script
           dangerouslySetInnerHTML={{
             __html:
-              "try{if(sessionStorage.getItem('alisales-splash-seen'))document.documentElement.dataset.splashSeen='1'}catch(e){}",
+              "try{if(sessionStorage.getItem('alisales-splash-seen'))document.documentElement.dataset.splashSeen='1';else sessionStorage.setItem('alisales-splash-seen','1')}catch(e){}",
           }}
         />
+        <style dangerouslySetInnerHTML={{ __html: INITIAL_SPLASH_CSS }} />
       </head>
       <body className="flex min-h-screen flex-col bg-page font-sans text-ink antialiased">
+        {/* Frame-1 brand paint: server HTML + inline CSS, no JS and no
+            hydration. It covers the first ~0.8s and fades over the shell. */}
+        <div id="ali-initial-splash" aria-hidden="true">
+          <span className="ali-splash-mark" dir="ltr">
+            <svg viewBox="80 90 352 320" width={352} height={320} aria-hidden="true" focusable="false">
+              <path d="M 234 114 H 278 L 366 303 C 345 294 323 289 301 287 L 255 186 L 209 287 C 185 290 163 296 144 304 L 234 114 Z" fill="#223382" />
+              <path d="M 142 311 C 198 287 284 285 369 309 C 287 296 196 306 123 352 L 142 311 Z" fill="#F98513" />
+              <path d="M 107 386 C 165 328 258 296 370 318 C 339 316 311 319 288 326 C 303 331 314 340 322 356 L 336 386 H 404 L 377 328 C 352 321 319 321 288 326 C 234 335 194 358 168 386 H 107 Z" fill="#F98513" />
+            </svg>
+            <span className="ali-splash-word">
+              <span>ALI</span>
+              <span className="ali-splash-sales">SALES</span>
+            </span>
+          </span>
+        </div>
         <LocaleProvider initialLang={lang}>
-        <AppSplashIntro />
         <AppRuntime />
         {/* Field Web Vitals → /api/monitor; renders nothing. */}
         <WebVitalsReporter />

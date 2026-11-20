@@ -387,8 +387,10 @@ async function handlePost(request: Request): Promise<NextResponse> {
       listings: [],
       faqs: await topFaqTopics(),
       cta: {
+        // Buying/inspection advice opens the safe-trade guide on /support, not
+        // the seller-facing «راهنمای ثبت آگهی» page that used to live here.
         label: english ? 'View the buying guide' : 'مشاهده راهنمای خرید',
-        href: '/guide',
+        href: '/support?guide=safe-buy',
       },
     });
   }

@@ -200,7 +200,7 @@ export function NotificationBell({ authed }: { authed: boolean }) {
           <div className="max-h-80 overflow-y-auto">
             {showLoading && items.length === 0 ? (
               <div className="flex items-center justify-center p-6" aria-busy="true">
-                <CarLoader size="sm" label={t('در حال بارگذاری اعلان‌ها', 'Loading notifications')} />
+                <CarLoader inline size="sm" label={t('در حال بارگذاری اعلان‌ها', 'Loading notifications')} />
               </div>
             ) : items.length === 0 ? (
               <div className="px-4 py-8 text-center">

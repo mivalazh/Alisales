@@ -5,11 +5,11 @@ import { useEffect, useState } from 'react';
 /**
  * Delayed busy visibility (Doherty threshold).
  *
- * The work itself starts immediately; only the spinner waits. A fast fetch or
- * transition therefore completes without a loader flashing, while genuinely
- * slow work gets a progress indicator after 250ms.
+ * The work itself starts immediately; only the spinner waits. A fetch that
+ * resolves inside 300ms therefore completes without a loader flashing, while
+ * genuinely slow work gets a progress indicator after 300ms.
  */
-export function useDelayedBusy(active: boolean, delay = 250): boolean {
+export function useDelayedBusy(active: boolean, delay = 300): boolean {
   const [visible, setVisible] = useState(false);
 
   useEffect(() => {

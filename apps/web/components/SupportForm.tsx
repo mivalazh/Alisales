@@ -205,7 +205,7 @@ export function SupportForm({
       <button type="submit" className="btn-cta flex w-full items-center justify-center gap-2 text-sm" disabled={status === 'sending'}>
         {status === 'sending' ? (
           <>
-            {showSendingLoader && <CarLoader size="sm" label={t('در حال ارسال', 'Sending')} />}
+            {showSendingLoader && <CarLoader inline size="sm" label={t('در حال ارسال', 'Sending')} />}
             {t('در حال ارسال…', 'Sending...')}
           </>
         ) : (
