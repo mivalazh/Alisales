@@ -19,7 +19,7 @@ import { ContactButtons } from '@/components/ContactButtons';
 import { InspectionOffer } from '@/components/InspectionOffer';
 import { ListingGallery } from '@/components/ListingGallery';
 import { InspectionSheetLightbox } from '@/components/InspectionSheetLightbox';
-import { NativeBackHeader } from '@/components/NativeBackHeader';
+import { DetailBackButton } from '@/components/DetailBackButton';
 import { FavoriteButton } from '@/components/FavoriteButton';
 import { Icon } from '@/components/Icon';
 import { ReportListingButton } from '@/components/ReportListingButton';
@@ -483,18 +483,10 @@ export default async function ListingDetailPage({
           }).replace(/</g, '\\u003c'),
         }}
       />
-      <NativeBackHeader
-        title={displayTitle}
-        fallbackHref="/"
-        flush
-      />
-      <Link
-        href="/"
-        className="inline-flex min-h-10 items-center gap-1.5 text-sm font-bold text-muted transition hover:text-ink"
-      >
-        <Icon name="arrowLeft" size={18} />
-        {t('بازگشت به آگهی‌ها')}
-      </Link>
+      {/* One control above the gallery: an icon-only back button. The old
+          breadcrumb bar and «بازگشت به آگهی‌ها» label stacked two dead rows
+          over the photos on both desktop and mobile. */}
+      <DetailBackButton fallbackHref="/" />
 
       <div className="grid items-start gap-6 lg:grid-cols-12 lg:gap-8">
         {/* Right column in RTL: the photographic evidence and the story. */}

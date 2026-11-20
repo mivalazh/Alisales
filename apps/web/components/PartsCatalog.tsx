@@ -77,6 +77,16 @@ export function PartsCatalog({
             onClose={onClose}
           />
         ),
+        panel: ({ onClose }) => (
+          <PartsFilterDrawer
+            open
+            variant="sidebar"
+            basePath="/parts"
+            value={partValues}
+            pool={pool}
+            onClose={onClose}
+          />
+        ),
       }}
     />
   );

@@ -741,6 +741,7 @@ export function FilterDrawer({
   onApply,
   onClear,
   onClose,
+  variant = 'drawer',
 }: {
   open: boolean;
   category: VehicleCategory;
@@ -749,6 +750,8 @@ export function FilterDrawer({
   onApply: (next: SearchFilters) => void;
   onClear: () => void;
   onClose: () => void;
+  /** `sidebar` is the desktop column beside the grid; `drawer` is mobile. */
+  variant?: 'drawer' | 'sidebar';
 }) {
   const { t } = useI18n();
   const [draft, setDraft] = useState<SearchFilters>(filters);
@@ -793,6 +796,7 @@ export function FilterDrawer({
   return (
     <FilterDrawerShell
       open={open}
+      variant={variant}
       title={t('فیلترها', 'Filters')}
       closeLabel={t('بستن فیلترها', 'Close filters')}
       clearLabel={t('پاک کردن همه', 'Clear all')}

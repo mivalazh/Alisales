@@ -447,17 +447,15 @@ html.app-standalone button {
 }
 
 /* ── Tire loader ───────────────────────────────────────────────────────── */
-.car-tire {
-  transform-box: view-box;
-  transform-origin: 50px 50px;
-  animation: car-tire-spin 1.3s linear infinite;
-}
-@keyframes car-tire-spin {
+/* Explicit keyframes for `animate-[spin_1.1s_linear_infinite]`: the wheel
+   rotates on an HTML wrapper, which every desktop engine animates, unlike a
+   transformed SVG <g>. */
+@keyframes spin {
   to { transform: rotate(360deg); }
 }
 
 @media (prefers-reduced-motion: reduce) {
-  .ai-orb, .ai-orb-eye, .car-tire { animation: none !important; }
+  .ai-orb, .ai-orb-eye { animation: none !important; }
 }
 
 /* ── Right-hand filter drawer (FilterDrawerShell) ──────────────────────── */

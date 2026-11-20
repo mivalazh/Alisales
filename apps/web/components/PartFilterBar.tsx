@@ -239,6 +239,7 @@ export function PartsFilterDrawer({
   value,
   pool,
   onClose,
+  variant = 'drawer',
 }: {
   open: boolean;
   basePath: string;
@@ -246,6 +247,8 @@ export function PartsFilterDrawer({
   /** Unfiltered parts feed, used for the live «نمایش N آگهی» count. */
   pool: readonly ListingCardData[];
   onClose: () => void;
+  /** `sidebar` is the desktop column beside the grid; `drawer` is mobile. */
+  variant?: 'drawer' | 'sidebar';
 }) {
   const { t } = useI18n();
   const commit = usePartCommit(basePath);
@@ -260,6 +263,7 @@ export function PartsFilterDrawer({
   return (
     <FilterDrawerShell
       open={open}
+      variant={variant}
       title={t('فیلترها', 'Filters')}
       closeLabel={t('بستن فیلترها', 'Close filters')}
       clearLabel={t('پاک کردن همه', 'Clear all')}

@@ -163,9 +163,19 @@ export default async function RootLayout({ children }: { children: ReactNode }) 
               <path d="M 142 311 C 198 287 284 285 369 309 C 287 296 196 306 123 352 L 142 311 Z" fill="#F98513" />
               <path d="M 107 386 C 165 328 258 296 370 318 C 339 316 311 319 288 326 C 303 331 314 340 322 356 L 336 386 H 404 L 377 328 C 352 321 319 321 288 326 C 234 335 194 358 168 386 H 107 Z" fill="#F98513" />
             </svg>
+            {/* ALI then SALES, one letter at a time (55ms apart). */}
             <span className="ali-splash-word">
-              <span>ALI</span>
-              <span className="ali-splash-sales">SALES</span>
+              {'ALI'.split('').map((letter, index) => (
+                <span key={`ali-${index}`} className="ali-splash-letter">
+                  {letter}
+                </span>
+              ))}
+              <span className="ali-splash-space" aria-hidden="true" />
+              {'SALES'.split('').map((letter, index) => (
+                <span key={`sales-${index}`} className="ali-splash-letter ali-splash-letter--sales">
+                  {letter}
+                </span>
+              ))}
             </span>
             {/* Orange light sweep across the lockup. */}
             <span className="ali-splash-sweep" aria-hidden="true" />
