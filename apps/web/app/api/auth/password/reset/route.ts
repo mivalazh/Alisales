@@ -19,6 +19,7 @@ import { smsReadiness } from '@/lib/auth/sms';
 import { instantOtpAllowedFor, instantOtpFallbackAllowedFor } from '@/lib/config/mode';
 import { findUserByPhone } from '@/lib/data/s2-store';
 import { rateLimit } from '@/lib/security/rate-limit';
+import { dataUnavailableResponse } from '@/lib/http/data-unavailable';
 
 /**
  * POST /api/auth/password/reset — { phone, code, password }
@@ -30,6 +31,16 @@ import { rateLimit } from '@/lib/security/rate-limit';
  * become an account enumeration oracle.
  */
 export async function POST(request: Request): Promise<NextResponse> {
+  try {
+    return await handlePost(request);
+  } catch (error) {
+    const unavailable = dataUnavailableResponse(error);
+    if (unavailable) return unavailable;
+    throw error;
+  }
+}
+
+async function handlePost(request: Request): Promise<NextResponse> {
   const limited = rateLimit({
     request,
     bucket: 'auth-password-reset',

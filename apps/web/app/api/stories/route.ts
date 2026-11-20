@@ -4,6 +4,7 @@ import { listingsBySeller } from '@/lib/data/s2-store';
 import { adminSettings, addStory, listStories } from '@/lib/data/platform-store';
 import { profileCustomization } from '@/lib/data/social-store';
 import { MAX_MEDIA_URL_CHARS, isStoryMediaUrl, ownsMediaUrl } from '@/lib/media-rules';
+import { dataUnavailableResponse } from '@/lib/http/data-unavailable';
 
 /**
  * Story submissions.
@@ -21,8 +22,10 @@ export async function GET(): Promise<NextResponse> {
     listStories('approved'),
     adminSettings(),
   ]);
-  const approved = await Promise.all(
-    approvedRows
+  let approved;
+  try {
+    approved = await Promise.all(
+      approvedRows
       .filter((story) => isStoryMediaUrl(story.mediaUrl))
       .slice(0, 12)
       .map(async (story) => {
@@ -38,7 +41,12 @@ export async function GET(): Promise<NextResponse> {
           authorProfilePublic: custom?.profileMode === 'business',
         };
       }),
-  );
+    );
+  } catch (error) {
+    const unavailable = dataUnavailableResponse(error);
+    if (unavailable) return unavailable;
+    throw error;
+  }
 
   let mine: Array<{ slug: string; title: string; coverUrl: string | null }> = [];
   if (session) {

@@ -66,6 +66,8 @@ export function NotificationBell({ authed }: { authed: boolean }) {
   const { t, lang } = useI18n();
   const [open, setOpen] = useState(false);
   const [serverItems, setServerItems] = useState<ServerNotification[]>([]);
+  // A failed inbox read is not "you are all caught up"; it gets its own row.
+  const [syncError, setSyncError] = useState(false);
   const [localItems, setLocalItems] = useState<LocalNotification[]>([]);
   const [loading, setLoading] = useState(false);
   const [localReadAt, setLocalReadAt] = useState<string | null>(null);
@@ -104,13 +106,26 @@ export function NotificationBell({ authed }: { authed: boolean }) {
     lastLoadAt.current = Date.now();
     setLoading(true);
     fetch('/api/notifications', { cache: 'no-store' })
-      .then((res) => (res.ok ? res.json() : null))
-      .then((data: { items?: ServerNotification[]; readAt?: string | null } | null) => {
-        if (id !== requestId.current) return;
-        if (Array.isArray(data?.items)) setServerItems(data.items);
-        if (data && 'readAt' in data) setServerReadAt(data.readAt ?? null);
+      .then(async (res) => {
+        if (!res.ok) return null;
+        return (await res.json()) as {
+          items?: ServerNotification[];
+          readAt?: string | null;
+        };
       })
-      .catch(() => undefined)
+      .then((data) => {
+        if (id !== requestId.current) return;
+        if (!data) {
+          setSyncError(true);
+          return;
+        }
+        setSyncError(false);
+        if (Array.isArray(data.items)) setServerItems(data.items);
+        if ('readAt' in data) setServerReadAt(data.readAt ?? null);
+      })
+      .catch(() => {
+        if (id === requestId.current) setSyncError(true);
+      })
       .finally(() => {
         if (id === requestId.current) setLoading(false);
       });
@@ -234,6 +249,28 @@ export function NotificationBell({ authed }: { authed: boolean }) {
             {showLoading && items.length === 0 ? (
               <div className="flex items-center justify-center p-6" aria-busy="true">
                 <CarLoader inline size="sm" label={t('در حال بارگذاری اعلان‌ها', 'Loading notifications')} />
+              </div>
+            ) : items.length === 0 && syncError ? (
+              <div className="px-4 py-8 text-center" role="alert">
+                <span className="mx-auto flex h-11 w-11 items-center justify-center rounded-full bg-cta-soft text-cta">
+                  <Icon name="alertCircle" size={20} />
+                </span>
+                <p className="mt-2 text-sm font-extrabold text-ink">
+                  {t('اعلان‌ها فعلاً در دسترس نیستند', 'Notifications are temporarily unavailable')}
+                </p>
+                <p className="mt-1 text-[11px] leading-5 text-muted">
+                  {t(
+                    'خواندن اعلان‌ها ناموفق بود؛ اعلان‌های شما پاک نشده‌اند.',
+                    'We could not read your notifications — nothing was lost.',
+                  )}
+                </p>
+                <button
+                  type="button"
+                  onClick={loadNotifications}
+                  className="btn-cta mt-3 text-xs"
+                >
+                  {t('تلاش دوباره', 'Try again')}
+                </button>
               </div>
             ) : items.length === 0 ? (
               <div className="px-4 py-8 text-center">

@@ -9,6 +9,8 @@ import {
 } from '@/lib/data/s2-store';
 import { markRead, readAt } from '@/lib/data/chat-presence';
 import { ChatThread, type ChatListingContext } from '@/components/ChatThread';
+import { DataUnavailableNotice } from '@/components/DataUnavailableNotice';
+import { isDataUnavailable } from '@/lib/data/unavailable';
 import { vehicleTitle } from '@/lib/listing-text';
 import { translateListingContentToEn } from '@/lib/i18n/content';
 import { getLanguage, serverT } from '@/lib/i18n/server';
@@ -48,11 +50,23 @@ export default async function ChatPage({ params }: { params: Promise<{ id: strin
     redirect('/chats');
   }
 
-  const [messages, listing, lang] = await Promise.all([
-    messagesForConversation(conversation.id),
-    listingById(conversation.listingId),
-    getLanguage(),
-  ]);
+  let loaded: [Awaited<ReturnType<typeof messagesForConversation>>, Awaited<ReturnType<typeof listingById>>, Awaited<ReturnType<typeof getLanguage>>];
+  try {
+    loaded = await Promise.all([
+      messagesForConversation(conversation.id),
+      listingById(conversation.listingId),
+      getLanguage(),
+    ]);
+  } catch (error) {
+    // An empty thread would claim the conversation has no messages.
+    if (!isDataUnavailable(error)) throw error;
+    return (
+      <div className="mx-auto mt-3 max-w-2xl">
+        <DataUnavailableNotice />
+      </div>
+    );
+  }
+  const [messages, listing, lang] = loaded;
 
   const otherId =
     session.sub === conversation.buyerId ? conversation.sellerId : conversation.buyerId;

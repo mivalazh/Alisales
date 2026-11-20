@@ -1,6 +1,7 @@
 import type { BusinessType, ProfileMode } from '@alisales/schemas';
 import { readJson, writeJson } from '../storage/demo-store';
 import { admin } from './s2-store';
+import { dataUnavailable } from './unavailable';
 
 /**
  * Social layer: which sellers a buyer follows, and how a seller dresses up
@@ -175,12 +176,18 @@ export async function profileCustomization(
 ): Promise<ProfileCustomization | null> {
   const sb = admin();
   if (!sb) return read().profiles[sellerId] ?? null;
-  const { data } = await sb
-    .from('profile_customizations')
-    .select('user_id, bio, avatar_url, cover_url, profile_mode, business_type, updated_at')
-    .eq('user_id', sellerId)
-    .maybeSingle();
-  return data ? mapProfile(data as ProfileRow) : null;
+  try {
+    const { data, error } = await sb
+      .from('profile_customizations')
+      .select('user_id, bio, avatar_url, cover_url, profile_mode, business_type, updated_at')
+      .eq('user_id', sellerId)
+      .maybeSingle();
+    // A failed read is not "this seller never customized their profile".
+    if (error) throw dataUnavailable('profiles', error);
+    return data ? mapProfile(data as ProfileRow) : null;
+  } catch (error) {
+    throw dataUnavailable('profiles', error);
+  }
 }
 
 export const BIO_MAX = 400;

@@ -5,6 +5,7 @@ import {
   createOrFindConversation,
   listingById,
 } from '@/lib/data/s2-store';
+import { dataUnavailableResponse } from '@/lib/http/data-unavailable';
 
 /** GET  /api/conversations — the signed-in account's conversations. */
 export async function GET(): Promise<NextResponse> {
@@ -12,7 +13,13 @@ export async function GET(): Promise<NextResponse> {
   if (!session) {
     return NextResponse.json({ error: 'وارد حساب خود نشده‌اید.' }, { status: 401 });
   }
-  return NextResponse.json({ conversations: await conversationsForUser(session.sub) });
+  try {
+    return NextResponse.json({ conversations: await conversationsForUser(session.sub) });
+  } catch (error) {
+    const unavailable = dataUnavailableResponse(error);
+    if (unavailable) return unavailable;
+    throw error;
+  }
 }
 
 /**

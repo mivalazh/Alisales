@@ -12,6 +12,7 @@ import {
 } from '@/lib/config/mode';
 import { findUserByPhone } from '@/lib/data/s2-store';
 import { rateLimit } from '@/lib/security/rate-limit';
+import { dataUnavailableResponse } from '@/lib/http/data-unavailable';
 
 /**
  * POST /api/auth/otp — { phone }
@@ -28,6 +29,17 @@ import { rateLimit } from '@/lib/security/rate-limit';
  * arbitrary phones. With an SMS provider configured no code is returned.
  */
 export async function POST(request: Request): Promise<NextResponse> {
+  try {
+    return await handlePost(request);
+  } catch (error) {
+    // A failed account lookup is not "no account exists"; say so instead.
+    const unavailable = dataUnavailableResponse(error);
+    if (unavailable) return unavailable;
+    throw error;
+  }
+}
+
+async function handlePost(request: Request): Promise<NextResponse> {
   const limited = rateLimit({
     request,
     bucket: 'auth-otp',

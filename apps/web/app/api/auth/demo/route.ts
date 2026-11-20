@@ -3,6 +3,7 @@ import { safeNextPath } from '@alisales/schemas';
 import { createSessionToken, setSessionCookie } from '@/lib/auth/session';
 import { demoAuthMode, fixtureMode } from '@/lib/config/mode';
 import { createUser, findUserByPhone } from '@/lib/data/s2-store';
+import { dataUnavailableResponse } from '@/lib/http/data-unavailable';
 
 /**
  * GET /api/auth/demo?next=/new — demo seller sign-in.
@@ -21,6 +22,16 @@ const DEMO_PHONE = '09120000000';
 const DEMO_NAME = 'فروشنده دمو (نمایشی)';
 
 export async function GET(request: Request): Promise<NextResponse> {
+  try {
+    return await handleGet(request);
+  } catch (error) {
+    const unavailable = dataUnavailableResponse(error);
+    if (unavailable) return unavailable;
+    throw error;
+  }
+}
+
+async function handleGet(request: Request): Promise<NextResponse> {
   const url = new URL(request.url);
   const next = safeNextPath(url.searchParams.get('next'), '/new');
 

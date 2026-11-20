@@ -2,6 +2,7 @@ import { createClient, type SupabaseClient } from '@supabase/supabase-js';
 import { readJson, writeJson } from '../storage/demo-store';
 import { publicPhotoUrl } from './photo-rules';
 import { serverSupabaseUrl } from '../config/mode';
+import { dataUnavailable } from './unavailable';
 import type {
   AccountType,
   ListingOwnerStats,
@@ -125,11 +126,13 @@ export async function findUserByPhone(phone: string): Promise<Account | null> {
   const sb = admin();
   if (!sb) return readData().users.find((u) => u.phone === phone) ?? null;
   try {
-    const { data } = await sb
+    const { data, error } = await sb
       .from('users')
       .select('id, phone, display_name, created_at')
       .eq('phone', phone)
       .maybeSingle();
+    // A failed lookup must never read as "this phone has no account".
+    if (error) throw dataUnavailable('users', error);
     if (!data) return null;
     return {
       id: String(data.id),
@@ -139,8 +142,7 @@ export async function findUserByPhone(phone: string): Promise<Account | null> {
       createdAt: String(data.created_at),
     };
   } catch (error) {
-    console.warn('[alisales] user lookup unavailable:', error);
-    return null;
+    throw dataUnavailable('users', error);
   }
 }
 
@@ -268,18 +270,18 @@ export async function listFavoriteRows(userId: string): Promise<FavoriteRow[]> {
   const sb = admin();
   if (!sb) return readData().favorites.filter((f) => f.userId === userId);
   try {
-    const { data } = await sb
+    const { data, error } = await sb
       .from('listing_favorites')
       .select('listing_id, created_at')
       .eq('user_id', userId);
+    if (error) throw dataUnavailable('favorites', error);
     return ((data ?? []) as Array<{ listing_id: string; created_at: string }>).map((r) => ({
       listingId: r.listing_id,
       userId,
       createdAt: r.created_at,
     }));
   } catch (error) {
-    console.warn('[alisales] favorites unavailable:', error);
-    return [];
+    throw dataUnavailable('favorites', error);
   }
 }
 
@@ -504,14 +506,14 @@ export async function conversationsForUser(userId: string): Promise<Conversation
     );
   }
   try {
-    const { data } = await sb
+    const { data, error } = await sb
       .from('conversations')
       .select('id, listing_id, buyer_id, seller_id, created_at, last_message_at')
       .or(`buyer_id.eq.${userId},seller_id.eq.${userId}`);
+    if (error) throw dataUnavailable('conversations', error);
     return ((data ?? []) as Array<Parameters<typeof mapConversation>[0]>).map(mapConversation);
   } catch (error) {
-    console.warn('[alisales] conversations unavailable:', error);
-    return [];
+    throw dataUnavailable('conversations', error);
   }
 }
 
@@ -535,11 +537,12 @@ export async function messagesForConversation(id: string): Promise<ChatMessageRo
       .map((m) => ({ ...m, kind: m.kind ?? 'text', visit: m.visit ?? null }));
   }
   try {
-    const { data } = await sb
+    const { data, error } = await sb
       .from('messages')
       .select('id, conversation_id, sender_id, body, created_at, kind, visit_date, visit_time')
       .eq('conversation_id', id)
       .order('created_at', { ascending: true });
+    if (error) throw dataUnavailable('messages', error);
     return ((data ?? []) as Array<{
       id: string;
       conversation_id: string;
@@ -559,8 +562,7 @@ export async function messagesForConversation(id: string): Promise<ChatMessageRo
       visit: r.visit_date ? { date: r.visit_date, time: r.visit_time } : null,
     }));
   } catch (error) {
-    console.warn('[alisales] messages unavailable:', error);
-    return [];
+    throw dataUnavailable('messages', error);
   }
 }
 

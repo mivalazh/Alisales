@@ -22,6 +22,7 @@ import { smsReadiness } from '@/lib/auth/sms';
 import { instantOtpAllowedFor, instantOtpFallbackAllowedFor } from '@/lib/config/mode';
 import { createUser, findUserByPhone } from '@/lib/data/s2-store';
 import { profileCustomization, saveProfileCustomization } from '@/lib/data/social-store';
+import { dataUnavailableResponse } from '@/lib/http/data-unavailable';
 
 /**
  * POST /api/auth/verify — { phone, code, displayName?, accountType? }
@@ -34,6 +35,18 @@ import { profileCustomization, saveProfileCustomization } from '@/lib/data/socia
  * contains the code, a hash or a token value.
  */
 export async function POST(request: Request): Promise<NextResponse> {
+  try {
+    return await handlePost(request);
+  } catch (error) {
+    // A failed account/profile read must never be reported as a wrong code or
+    // as a brand-new account.
+    const unavailable = dataUnavailableResponse(error);
+    if (unavailable) return unavailable;
+    throw error;
+  }
+}
+
+async function handlePost(request: Request): Promise<NextResponse> {
   if (!authSecret()) {
     const missing = !hasAuthSecretConfig();
     return NextResponse.json(

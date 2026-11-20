@@ -4,6 +4,7 @@ import { getSession } from '@/lib/auth/session';
 import { addMessage, conversationById, messagesForConversation } from '@/lib/data/s2-store';
 import { markRead, readAt, typingUsers } from '@/lib/data/chat-presence';
 import { rateLimit } from '@/lib/security/rate-limit';
+import { dataUnavailableResponse } from '@/lib/http/data-unavailable';
 
 const MAX_BODY = 2000;
 
@@ -15,6 +16,16 @@ const MAX_BODY = 2000;
  * ticks). Participants only — the id is checked against the session.
  */
 export async function GET(request: Request): Promise<NextResponse> {
+  try {
+    return await handleGet(request);
+  } catch (error) {
+    const unavailable = dataUnavailableResponse(error);
+    if (unavailable) return unavailable;
+    throw error;
+  }
+}
+
+async function handleGet(request: Request): Promise<NextResponse> {
   const session = await getSession();
   if (!session) {
     return NextResponse.json({ error: 'برای دیدن گفتگو وارد حساب خود شوید.' }, { status: 401 });

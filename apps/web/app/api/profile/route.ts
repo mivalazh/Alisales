@@ -9,6 +9,7 @@ import {
   saveProfileCustomization,
 } from '@/lib/data/social-store';
 import { MAX_MEDIA_URL_CHARS, isProfileMediaUrl, ownsMediaUrl } from '@/lib/media-rules';
+import { dataUnavailableResponse } from '@/lib/http/data-unavailable';
 
 const CURATED_AVATAR_URLS = new Set(CURATED_AVATARS.map((avatar) => avatar.url));
 
@@ -39,7 +40,14 @@ function cleanImage(
 export async function GET(): Promise<NextResponse> {
   const session = await getSession();
   if (!session) return unauthorized();
-  return NextResponse.json({ profile: await profileCustomization(session.sub) });
+  try {
+    return NextResponse.json({ profile: await profileCustomization(session.sub) });
+  } catch (error) {
+    // A failed read is not "this account has no profile row".
+    const unavailable = dataUnavailableResponse(error);
+    if (unavailable) return unavailable;
+    throw error;
+  }
 }
 
 export async function PUT(request: Request): Promise<NextResponse> {
@@ -93,8 +101,11 @@ export async function PUT(request: Request): Promise<NextResponse> {
     return NextResponse.json({ error: 'نشانی تصویر نامعتبر است.' }, { status: 400 });
   }
 
-  const previous = await profileCustomization(session.sub);
-  const saved = await saveProfileCustomization(session.sub, {
+  let previous: Awaited<ReturnType<typeof profileCustomization>>;
+  let saved: Awaited<ReturnType<typeof saveProfileCustomization>>;
+  try {
+    previous = await profileCustomization(session.sub);
+    saved = await saveProfileCustomization(session.sub, {
     bio: typeof body.bio === 'string' ? body.bio : undefined,
     avatarUrl: avatarUrl as string | null | undefined,
     coverUrl: coverUrl as string | null | undefined,
@@ -104,7 +115,12 @@ export async function PUT(request: Request): Promise<NextResponse> {
       body.businessType === undefined
         ? undefined
         : (body.businessType as 'car-dealer' | 'parts-store' | 'workshop' | 'rental' | null),
-  });
+    });
+  } catch (error) {
+    const unavailable = dataUnavailableResponse(error);
+    if (unavailable) return unavailable;
+    throw error;
+  }
 
   // Replace-or-remove cleanup: old uploaded artwork is deleted only after the
   // row has been saved, so a failed save can never break the current profile.

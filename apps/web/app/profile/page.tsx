@@ -17,6 +17,8 @@ import { isPreSizedSource } from '@/lib/images';
 import { storiesFrom } from '@/lib/stories';
 import { Icon, type IconName } from '@/components/Icon';
 import { LogoutButton } from '@/components/LogoutButton';
+import { DataUnavailableNotice } from '@/components/DataUnavailableNotice';
+import { isDataUnavailable } from '@/lib/data/unavailable';
 import { ProfileMediaButton } from '@/components/ProfileMediaButton';
 import { getLanguage } from '@/lib/i18n/server';
 import { serverT } from '@/lib/i18n/server';
@@ -45,13 +47,30 @@ export default async function ProfilePage() {
   if (!session) redirect('/login?next=/profile');
   const t = (fa: string, en?: string) => serverT(lang, fa, en);
 
-  const [listings, favoriteIds, reviews, custom, account] = await Promise.all([
-    listingsBySeller(session.sub),
-    listFavoriteIds(session.sub),
-    reviewsFor(session.sub),
-    profileCustomization(session.sub),
-    getUser(session.sub),
-  ]);
+  let loaded: [
+    Awaited<ReturnType<typeof listingsBySeller>>,
+    string[],
+    Awaited<ReturnType<typeof reviewsFor>>,
+    Awaited<ReturnType<typeof profileCustomization>>,
+    Awaited<ReturnType<typeof getUser>>,
+  ];
+  try {
+    loaded = await Promise.all([
+      listingsBySeller(session.sub),
+      listFavoriteIds(session.sub),
+      reviewsFor(session.sub),
+      profileCustomization(session.sub),
+      getUser(session.sub),
+    ]);
+  } catch (error) {
+    if (!isDataUnavailable(error)) throw error;
+    return (
+      <div className="mx-auto mt-3 max-w-2xl sm:mt-4">
+        <DataUnavailableNotice />
+      </div>
+    );
+  }
+  const [listings, favoriteIds, reviews, custom, account] = loaded;
   const profileMode = custom?.profileMode ?? profileModeFor(account?.accountType ?? session.accountType);
   const isBusiness = profileMode === 'business';
   const active = listings.filter((listing) => listing.state === 'active');

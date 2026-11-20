@@ -1,5 +1,6 @@
 import { readJson, writeJson } from '../storage/demo-store';
 import { admin } from './s2-store';
+import { dataUnavailable } from './unavailable';
 
 /**
  * Durable notification history.
@@ -131,14 +132,11 @@ export async function listListingEvents(
       .in('listing_id', [...listingIds])
       .order('created_at', { ascending: false })
       .limit(MAX_FEED_EVENTS);
-    if (error) {
-      console.warn('[alisales] notification history unavailable:', error.message);
-      return [];
-    }
+    // An outage must not render as "you have no notifications".
+    if (error) throw dataUnavailable('notifications', error);
     return ((data ?? []) as EventRow[]).map(mapEvent);
   } catch (error) {
-    console.warn('[alisales] notification history unavailable:', error);
-    return [];
+    throw dataUnavailable('notifications', error);
   }
 }
 
@@ -147,16 +145,18 @@ export async function notificationReadAt(userId: string): Promise<string | null>
   const sb = admin();
   if (!sb) return read().reads[userId] ?? null;
   try {
-    const { data } = await sb
+    const { data, error } = await sb
       .from('notification_reads')
       .select('read_at')
       .eq('user_id', userId)
       .maybeSingle();
+    // "No marker yet" is null; "could not read the marker" is not.
+    if (error) throw dataUnavailable('notifications', error);
     if (!data) return null;
     const value = String((data as { read_at: string }).read_at);
     return Number.isNaN(Date.parse(value)) ? value : new Date(value).toISOString();
-  } catch {
-    return null;
+  } catch (error) {
+    throw dataUnavailable('notifications', error);
   }
 }
 
@@ -188,9 +188,11 @@ export async function markNotificationsRead(userId: string): Promise<string> {
     const { error } = await sb
       .from('notification_reads')
       .upsert({ user_id: userId, read_at: readAt }, { onConflict: 'user_id' });
-    if (error) console.warn('[alisales] notification read marker was not stored:', error.message);
+    if (error) throw dataUnavailable('notifications', error);
   } catch (error) {
-    console.warn('[alisales] notification read marker unavailable:', error);
+    // Neither path stored the marker: do not answer with a timestamp that
+    // claims the inbox was marked read.
+    throw dataUnavailable('notifications', error);
   }
   return readAt;
 }

@@ -11,6 +11,8 @@ import {
 } from '@/lib/data/s2-store';
 import { Icon } from '@/components/Icon';
 import { ListEmptyState } from '@/components/ListEmptyState';
+import { DataUnavailableNotice } from '@/components/DataUnavailableNotice';
+import { isDataUnavailable } from '@/lib/data/unavailable';
 import { vehicleTitle } from '@/lib/listing-text';
 import { getLanguage } from '@/lib/i18n/server';
 import { serverT } from '@/lib/i18n/server';
@@ -32,7 +34,19 @@ export default async function ChatsPage() {
   if (!session) redirect('/login?next=/chats');
   const t = (fa: string, en?: string) => serverT(lang, fa, en);
 
-  const conversations = await conversationsForUser(session.sub);
+  const conversations = await conversationsForUser(session.sub).catch((error: unknown) => {
+    if (!isDataUnavailable(error)) throw error;
+    return null;
+  });
+  if (!conversations) {
+    // The inbox could not be read; saying "no chats" would be a lie.
+    return (
+      <div className="mx-auto max-w-2xl space-y-4 px-1">
+        <h1 className="text-xl font-extrabold dark:text-white">{t('چت‌ها')}</h1>
+        <DataUnavailableNotice />
+      </div>
+    );
+  }
   const rows = await Promise.all(
     conversations.map(async (conversation) => {
       const otherId =
@@ -57,7 +71,18 @@ export default async function ChatsPage() {
         initials: rawName.trim().charAt(0) || '؟',
       };
     }),
-  );
+  ).catch((error: unknown) => {
+    if (!isDataUnavailable(error)) throw error;
+    return null;
+  });
+  if (!rows) {
+    return (
+      <div className="mx-auto max-w-2xl space-y-4 px-1">
+        <h1 className="text-xl font-extrabold dark:text-white">{t('چت‌ها')}</h1>
+        <DataUnavailableNotice />
+      </div>
+    );
+  }
 
   rows.sort((a, b) => {
     const at = a.last?.createdAt ?? a.conversation.createdAt;

@@ -11,6 +11,7 @@ import {
   verifyAccountPassword,
 } from '@/lib/auth/password';
 import { findUserByPhone, getUser } from '@/lib/data/s2-store';
+import { dataUnavailableResponse } from '@/lib/http/data-unavailable';
 
 /**
  * POST /api/auth/password — password login { phone, password }.
@@ -20,6 +21,17 @@ import { findUserByPhone, getUser } from '@/lib/data/s2-store';
  * which numbers have accounts. Wrong tries are throttled per phone.
  */
 export async function POST(request: Request): Promise<NextResponse> {
+  try {
+    return await handlePost(request);
+  } catch (error) {
+    // A store outage must not be answered with a generic "wrong password".
+    const unavailable = dataUnavailableResponse(error);
+    if (unavailable) return unavailable;
+    throw error;
+  }
+}
+
+async function handlePost(request: Request): Promise<NextResponse> {
   if (!authSecret()) {
     return NextResponse.json(
       { error: 'ورود در حال حاضر در دسترس نیست؛ بعداً تلاش کنید.' },

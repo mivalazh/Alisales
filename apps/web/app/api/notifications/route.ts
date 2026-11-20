@@ -11,6 +11,7 @@ import {
   markNotificationsRead,
   notificationReadAt,
 } from '@/lib/data/notification-store';
+import { dataUnavailableResponse } from '@/lib/http/data-unavailable';
 
 type NotificationKind = 'saved_sold' | 'price_drop' | 'followed' | 'inspection';
 
@@ -44,6 +45,16 @@ function timeValue(iso: string): number {
  * rows. Bookmarking itself never creates an event.
  */
 export async function GET(): Promise<NextResponse> {
+  try {
+    return await handleGet();
+  } catch (error) {
+    const unavailable = dataUnavailableResponse(error);
+    if (unavailable) return unavailable;
+    throw error;
+  }
+}
+
+async function handleGet(): Promise<NextResponse> {
   const session = await getSession();
   if (!session) {
     return NextResponse.json({ error: 'برای دیدن اعلان‌ها وارد حساب شوید.' }, { status: 401 });
@@ -154,6 +165,13 @@ export async function POST(): Promise<NextResponse> {
   if (!session) {
     return NextResponse.json({ error: 'برای تغییر اعلان‌ها وارد حساب شوید.' }, { status: 401 });
   }
-  const readAt = await markNotificationsRead(session.sub);
-  return NextResponse.json({ ok: true, readAt });
+  try {
+    // Never answer "ok" with a timestamp the database did not store.
+    const readAt = await markNotificationsRead(session.sub);
+    return NextResponse.json({ ok: true, readAt });
+  } catch (error) {
+    const unavailable = dataUnavailableResponse(error);
+    if (unavailable) return unavailable;
+    throw error;
+  }
 }

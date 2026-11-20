@@ -1,6 +1,7 @@
 import { NextResponse } from 'next/server';
 import { getSession } from '@/lib/auth/session';
 import { addFavorite, listFavoriteIds, removeFavorite } from '@/lib/data/s2-store';
+import { dataUnavailableResponse } from '@/lib/http/data-unavailable';
 
 /**
  * Account favorites — the source of truth once a user is signed in.
@@ -17,7 +18,14 @@ function unauthorized(): NextResponse {
 export async function GET(): Promise<NextResponse> {
   const session = await getSession();
   if (!session) return unauthorized();
-  return NextResponse.json({ ids: await listFavoriteIds(session.sub) });
+  try {
+    return NextResponse.json({ ids: await listFavoriteIds(session.sub) });
+  } catch (error) {
+    // Not "you have no saved listings" — the store could not be read.
+    const unavailable = dataUnavailableResponse(error);
+    if (unavailable) return unavailable;
+    throw error;
+  }
 }
 
 export async function POST(request: Request): Promise<NextResponse> {

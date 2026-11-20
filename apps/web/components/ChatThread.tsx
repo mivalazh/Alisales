@@ -124,6 +124,9 @@ export function ChatThread({
   const [text, setText] = useState('');
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  // Polling hit an outage: the thread is stale, not empty. Clears itself on
+  // the next successful poll, so no manual retry is needed.
+  const [syncError, setSyncError] = useState(false);
   const [mounted, setMounted] = useState(false);
   const [peerTyping, setPeerTyping] = useState(false);
   const [otherReadAt, setOtherReadAt] = useState<string | null>(initialOtherReadAt);
@@ -175,7 +178,12 @@ export function ChatThread({
       if (last) params.set('after', last.createdAt);
       try {
         const res = await fetch(`/api/messages?${params.toString()}`, { cache: 'no-store' });
-        if (!res.ok || cancelled) return;
+        if (cancelled) return;
+        if (!res.ok) {
+          setSyncError(true);
+          return;
+        }
+        setSyncError(false);
         const data = (await res.json()) as {
           messages?: ThreadMessage[];
           typing?: boolean;
@@ -566,6 +574,14 @@ export function ChatThread({
       {error && (
         <p className="error-text mt-1 px-2" role="alert">
           {error}
+        </p>
+      )}
+      {syncError && (
+        <p className="error-text mt-1 px-2" role="status">
+          {t(
+            'هم‌گام‌سازی گفتگو ناموفق بود؛ دوباره تلاش می‌شود.',
+            'Could not sync the conversation — retrying.',
+          )}
         </p>
       )}
     </div>

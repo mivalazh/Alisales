@@ -8,6 +8,8 @@ import { ListingRow } from '@/components/ListingRow';
 import { FavoritesList } from '@/components/FavoritesList';
 import { Icon } from '@/components/Icon';
 import { ListEmptyState } from '@/components/ListEmptyState';
+import { DataUnavailableNotice } from '@/components/DataUnavailableNotice';
+import { isDataUnavailable } from '@/lib/data/unavailable';
 import { getLanguage, serverT } from '@/lib/i18n/server';
 
 export const generateMetadata = localizedMetadata(
@@ -40,7 +42,19 @@ export default async function FavoritesPage({
     );
   }
 
-  const ids = await listFavoriteIds(session.sub);
+  let ids: string[];
+  try {
+    ids = await listFavoriteIds(session.sub);
+  } catch (error) {
+    // An outage must not render as "you have saved nothing".
+    if (!isDataUnavailable(error)) throw error;
+    return (
+      <div className="mx-auto max-w-2xl space-y-4">
+        <h1 className="text-xl font-extrabold">{t('ذخیره‌شده‌ها', 'Saved')}</h1>
+        <DataUnavailableNotice />
+      </div>
+    );
+  }
   const resolved = await Promise.all(ids.map((id) => listingById(id)));
   const items = resolved.filter((listing): listing is ListingCardData => listing !== null);
 

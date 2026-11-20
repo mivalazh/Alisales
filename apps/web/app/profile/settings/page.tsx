@@ -7,6 +7,8 @@ import { AccountModeForm } from '@/components/AccountModeForm';
 import { getSession } from '@/lib/auth/session';
 import { hasAccountPassword } from '@/lib/auth/password';
 import { LogoutButton } from '@/components/LogoutButton';
+import { DataUnavailableNotice } from '@/components/DataUnavailableNotice';
+import { isDataUnavailable } from '@/lib/data/unavailable';
 import { PasswordForm } from '@/components/PasswordForm';
 import { getLanguage, serverT } from '@/lib/i18n/server';
 
@@ -29,7 +31,13 @@ export default async function SettingsPage() {
   const t = (fa: string, en: string) => serverT(lang, fa, en);
 
   const passwordReady = await hasAccountPassword(session.sub, session.phone);
-  const custom = await profileCustomization(session.sub);
+  let custom: Awaited<ReturnType<typeof profileCustomization>>;
+  try {
+    custom = await profileCustomization(session.sub);
+  } catch (error) {
+    if (!isDataUnavailable(error)) throw error;
+    return <DataUnavailableNotice />;
+  }
   const profileMode = custom?.profileMode ?? profileModeFor(session.accountType);
 
   return (
