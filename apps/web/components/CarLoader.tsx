@@ -15,10 +15,12 @@
  * `inline`. The wordmark is absolutely positioned above the wheel, so the
  * wheel itself stays on the optical centre of the overlay.
  *
- * The wordmark belongs to the overlay only: an inline wheel sits next to its
- * own copy («در حال ارسال…», a panel heading, a list), where an absolutely
- * positioned word would float over that text. Inline wheels therefore paint
- * the mark alone and leave the wording to the caller.
+ * The wordmark needs a surface of its own, so only the scrimmed overlay draws
+ * it: there it sits on the dimmed page. Anywhere the wheel shares the page with
+ * live content — beside a button's «در حال ارسال…», inside the notification or
+ * ticket panel, or over the catalogue's results while they update — an
+ * absolutely positioned word would float over that content, so those callers
+ * get the mark alone and leave the wording to the surrounding UI.
  *
  * Every caller gates it behind `useDelayedBusy`, so a request that resolves
  * inside 300ms never flashes the wheel.

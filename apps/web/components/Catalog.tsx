@@ -201,6 +201,8 @@ export function Catalog({
     <div className="space-y-4">
       {showPending && (
         <div className="pointer-events-none fixed inset-0 z-30 flex items-center justify-center">
+          {/* No scrim on this layer: the 44px wheel reads over live results, a
+              wordmark would land on the card above it, so it stays wordless. */}
           <CarLoader inline size="md" label={t('در حال به‌روزرسانی نتایج', 'Updating results')} />
         </div>
       )}
