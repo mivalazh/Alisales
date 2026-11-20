@@ -3,24 +3,25 @@
 /**
  * Automotive tire loader.
  *
- * A compact alloy wheel: a clean orange tire ring, a five-spoke rim and a hub,
- * with crisp uppercase «LOADING» sitting above it. The word is HTML, so it
- * never rotates with the wheel and never blurs. The mark is drawn inline so it
- * appears without waiting for an image, and it is decorative: the status label
- * carries the meaning for screen readers.
+ * A compact alloy wheel — tyre wall with tread notches, outer and inner rim
+ * lips, five sculpted sport spokes and a lug-nut hub — with «LOADING» arched
+ * over it on a path. The word is drawn outside the rotating group, so it never
+ * spins or blurs. Everything is inline SVG: it appears without waiting for an
+ * image, and it is decorative, because the status label carries the meaning for
+ * screen readers.
  *
  * By default it paints as a viewport-centred overlay (`fixed inset-0`, soft
  * scrim, non-interactive), so it never lands inside a stories rail or a
  * button's text. Callers that genuinely need it inside a control pass
- * `inline`. The wordmark is absolutely positioned above the wheel, so the
- * wheel itself stays on the optical centre of the overlay.
+ * `inline`, and the wheel then sits on the optical centre of the overlay
+ * because the arch is absolutely positioned above it.
  *
  * The wordmark needs a surface of its own, so only the scrimmed overlay draws
  * it: there it sits on the dimmed page. Anywhere the wheel shares the page with
  * live content — beside a button's «در حال ارسال…», inside the notification or
- * ticket panel, or over the catalogue's results while they update — an
- * absolutely positioned word would float over that content, so those callers
- * get the mark alone and leave the wording to the surrounding UI.
+ * ticket panel, or over the catalogue's results while they update — an arched
+ * word would float over that content, so those callers get the mark alone and
+ * leave the wording to the surrounding UI.
  *
  * Every caller gates it behind `useDelayedBusy`, so a request that resolves
  * inside 300ms never flashes the wheel.
@@ -31,7 +32,12 @@ const SIZES = {
   lg: 'h-14 w-14',
 } as const;
 
+/** Five spokes, 72° apart. */
 const SPOKES = Array.from({ length: 5 }, (_, index) => index * 72);
+/** Twenty tread notches around the tyre wall. */
+const TREAD = Array.from({ length: 20 }, (_, index) => index * 18);
+/** Lug nuts sit on a small circle around the hub. */
+const LUGS = Array.from({ length: 5 }, (_, index) => index * 72);
 
 export function CarLoader({
   size = 'md',
@@ -47,45 +53,82 @@ export function CarLoader({
 
   const wheel = (
     <span className="relative inline-flex shrink-0 items-center justify-center" role="status">
-      {/* Above the wheel, never inside the rotating artwork. Overlay only. */}
+      {/* Arched wordmark: outside the rotating group, above the tyre. */}
       {!inline && (
-        <span
+        <svg
           aria-hidden="true"
-          className="absolute bottom-full left-1/2 mb-2 -translate-x-1/2 whitespace-nowrap text-[11px] font-bold uppercase tracking-[0.2em] text-[#F98513]"
+          focusable="false"
+          viewBox="0 0 100 30"
+          className="absolute bottom-full left-1/2 mb-1.5 h-[22px] w-[74px] -translate-x-1/2 overflow-visible"
         >
-          LOADING
-        </span>
+          <defs>
+            <path id="car-loading-arc" d="M 4,30 A 72,72 0 0,1 96,30" fill="none" />
+          </defs>
+          <text
+            fill="#F98513"
+            fontSize="15"
+            fontWeight="700"
+            letterSpacing="2.8"
+            fontFamily="inherit"
+          >
+            <textPath href="#car-loading-arc" startOffset="50%" textAnchor="middle">
+              LOADING
+            </textPath>
+          </text>
+        </svg>
       )}
       <svg viewBox="0 0 100 100" className={`${box} block`} aria-hidden="true" focusable="false">
         <g className="car-tire">
-          {/* Tire wall: one clean ring, no tread teeth. */}
+          {/* Tyre wall. */}
           <circle cx="50" cy="50" r="45" fill="none" stroke="#F98513" strokeWidth="9" />
-          {/* Rim lip. */}
-          <circle
-            cx="50"
-            cy="50"
-            r="33"
-            fill="none"
-            stroke="#F98513"
-            strokeWidth="2.5"
-            strokeOpacity="0.5"
-          />
-          {/* Five-spoke alloy: straight spokes from the hub to the rim lip. */}
-          {SPOKES.map((angle) => (
+          {/* Tread notches cut across the rubber. */}
+          {TREAD.map((angle) => (
             <line
-              key={angle}
+              key={`tread-${angle}`}
               x1="50"
-              y1="38"
+              y1="8.8"
               x2="50"
-              y2="18"
+              y2="1.2"
               stroke="#F98513"
-              strokeWidth="7"
+              strokeWidth="2.2"
+              strokeOpacity="0.45"
               strokeLinecap="round"
               transform={`rotate(${angle} 50 50)`}
             />
           ))}
-          {/* Hub. */}
-          <circle cx="50" cy="50" r="12" fill="#F98513" />
+          {/* Outer rim lip, then the inner bead line. */}
+          <circle cx="50" cy="50" r="36.5" fill="none" stroke="#F98513" strokeWidth="2.4" />
+          <circle
+            cx="50"
+            cy="50"
+            r="32.5"
+            fill="none"
+            stroke="#F98513"
+            strokeWidth="1.2"
+            strokeOpacity="0.4"
+          />
+          {/* Five sculpted sport spokes: narrow at the rim, flared at the hub. */}
+          {SPOKES.map((angle) => (
+            <path
+              key={`spoke-${angle}`}
+              d="M 45.6,18 L 43.4,36 L 56.6,36 L 54.4,18 Z"
+              fill="#F98513"
+              transform={`rotate(${angle} 50 50)`}
+            />
+          ))}
+          {/* Hub ring, lug nuts and centre cap. */}
+          <circle cx="50" cy="50" r="13" fill="none" stroke="#F98513" strokeWidth="5.5" />
+          {LUGS.map((angle) => (
+            <circle
+              key={`lug-${angle}`}
+              cx="50"
+              cy="43"
+              r="2.3"
+              fill="#F98513"
+              transform={`rotate(${angle} 50 50)`}
+            />
+          ))}
+          <circle cx="50" cy="50" r="4.6" fill="#F98513" />
         </g>
       </svg>
       {/* The one thing a screen reader gets: the caller's localized label. */}

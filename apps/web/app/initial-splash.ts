@@ -17,6 +17,11 @@
  * SALES): navy on the navy splash would have been invisible.
  */
 export const INITIAL_SPLASH_CSS = `
+/* Paint the document itself before any stylesheet arrives. On iOS the web
+   view is white until the document has a background, which is exactly the
+   blank flash a cold PWA launch shows. */
+html{background:#F4F1EC}
+html[data-theme='dark']{background:#111144}
 #ali-initial-splash{position:fixed;inset:0;z-index:300;display:flex;align-items:center;justify-content:center;background:#F4F1EC;pointer-events:none;animation:ali-splash-out 1500ms cubic-bezier(.4,0,.2,1) forwards;will-change:opacity}
 html[data-theme='dark'] #ali-initial-splash{background:#111144}
 html[data-theme='dark'] #ali-initial-splash .ali-splash-word{color:#FFFFFF}
