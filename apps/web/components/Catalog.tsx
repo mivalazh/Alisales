@@ -253,20 +253,39 @@ export function Catalog({
         </div>
       )}
 
+      {/* Desktop: the home filter is a right-hand column beside the grid — the
+          same geometry as the /cars drawer, so opening «فیلترها» narrows the
+          results instead of covering or pushing them away. Phones and tablets
+          keep the inline card below, where a column would not fit. */}
+      <div className="lg:flex lg:items-start lg:gap-4">
+        {panelOpen && (
+          <aside className="hidden w-72 shrink-0 lg:sticky lg:top-24 lg:block lg:self-start">
+            <FilterPanel
+              variant="sidebar"
+              filters={filters}
+              onChange={(f) => commit(f)}
+              onClear={() => commit({ ...DEFAULT_FILTERS, q: filters.q })}
+              onClose={() => setPanelOpen(false)}
+            />
+          </aside>
+        )}
+
+        <div className="min-w-0 flex-1 space-y-4">
+          <ListingGrid listings={sortedListings} view={view} />
+          <EndOfFeed count={sortedListings.length} />
+        </div>
+      </div>
+
       {panelOpen && (
-        <FilterPanel
-          filters={filters}
-          onChange={(f) => commit(f)}
-          onClose={() => setPanelOpen(false)}
-        />
+        <div className="lg:hidden">
+          <FilterPanel
+            filters={filters}
+            onChange={(f) => commit(f)}
+            onClear={() => commit({ ...DEFAULT_FILTERS, q: filters.q })}
+            onClose={() => setPanelOpen(false)}
+          />
+        </div>
       )}
-
-      {/* The grid owns the full width at every breakpoint: filters live in the
-          right-hand drawer, so applying them never hides the results behind a
-          full-screen overlay. */}
-      <ListingGrid listings={sortedListings} view={view} />
-
-      <EndOfFeed count={sortedListings.length} />
 
       {filterSystem
         ? filterSystem.sheet({

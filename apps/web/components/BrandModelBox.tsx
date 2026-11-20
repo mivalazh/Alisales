@@ -158,8 +158,9 @@ export function BrandModelBox({
         <>
           <h2 className="text-sm font-extrabold text-ink">{t(CATEGORY_TITLE[category])}</h2>
 
-          {/* Brand grid: a two-row scroller on phones, and from `sm` up a tidy
-              wrapping grid of small, borderless logo slots. */}
+          {/* Brand grid: a strict two-row scroller at every width. Desktop keeps
+              the two rows and scrolls horizontally instead of wrapping into a
+              third row, so every mark stays one clean band of logos. */}
           <ul
             ref={drag.ref}
             dir="rtl"
@@ -168,7 +169,7 @@ export function BrandModelBox({
             onPointerUp={drag.onPointerUp}
             onPointerLeave={drag.onPointerLeave}
             onClickCapture={drag.onClickCapture}
-            className="mt-2.5 grid grid-flow-col grid-rows-2 auto-cols-[58px] gap-1 overflow-x-auto overscroll-x-contain pb-1.5 [&::-webkit-scrollbar]:h-1 [&::-webkit-scrollbar-thumb]:rounded-full [&::-webkit-scrollbar-thumb]:bg-slate-300/70 sm:grid-flow-row sm:auto-cols-auto sm:grid-cols-8 sm:grid-rows-none sm:gap-x-2 sm:gap-y-2.5 sm:overflow-visible sm:pb-0 md:grid-cols-10 [&>li]:snap-start"
+            className="mt-2.5 grid grid-rows-2 grid-flow-col auto-cols-[84px] sm:auto-cols-[96px] gap-x-4 gap-y-3 overflow-x-auto pb-2 scroll-smooth overscroll-x-contain [&::-webkit-scrollbar]:h-1 [&::-webkit-scrollbar-thumb]:rounded-full [&::-webkit-scrollbar-thumb]:bg-slate-300/70 [&>li]:snap-start"
           >
             {brands.map((item) => {
               const selected = item.slug === brand;

@@ -13,6 +13,7 @@ import {
   type SearchFilters,
 } from '@alisales/schemas';
 import { Icon } from './Icon';
+import { useI18n } from '@/lib/i18n';
 
 function toggle<T>(list: T[], value: T): T[] {
   return list.includes(value) ? list.filter((v) => v !== value) : [...list, value];
@@ -25,8 +26,11 @@ function intOrNull(raw: string): number | undefined {
   return Number.isFinite(n) ? n : undefined;
 }
 
-/** Checkbox group used by brand/gearbox/plate/condition sections. */
-function CheckRow({
+/**
+ * One filter choice — the same compact tag the category pages use: orange
+ * (brand accent) when active, quiet cream when not, no checkbox chrome.
+ */
+function PillChoice({
   checked,
   label,
   onToggle,
@@ -36,195 +40,243 @@ function CheckRow({
   onToggle: () => void;
 }) {
   return (
-    <label className="flex min-h-10 cursor-pointer items-center gap-2 py-1 text-sm font-semibold text-muted">
-      <input
-        type="checkbox"
-        checked={checked}
-        onChange={onToggle}
-        className="accent-[var(--color-accent)]"
-      />
+    <button
+      type="button"
+      aria-pressed={checked}
+      onClick={onToggle}
+      className={`inline-flex min-h-8 items-center rounded-full border px-2.5 py-1 text-[11px] leading-tight transition active:scale-[0.98] ${
+        checked
+          ? 'border-[#F98513] bg-[#F98513] font-bold text-[#111144] shadow-xs'
+          : 'border-slate-200/80 bg-[#F4F1EC] font-medium text-slate-700 hover:border-slate-300 dark:border-white/10 dark:bg-white/5 dark:text-slate-200 dark:hover:border-white/20'
+      }`}
+    >
       {label}
-    </label>
+    </button>
+  );
+}
+
+function PillRow({ children }: { children: React.ReactNode }) {
+  return <div className="flex flex-wrap gap-1.5">{children}</div>;
+}
+
+function Section({ title, children }: { title: string; children: React.ReactNode }) {
+  return (
+    <section>
+      <h3 className="mb-1.5 text-[11px] font-extrabold text-ink">{title}</h3>
+      {children}
+    </section>
   );
 }
 
 /**
- * Full filter drawer — every control writes into the shared SearchFilters
- * object; the Catalog commits it to the URL (server re-runs the one search).
+ * Home-page filter panel.
+ *
+ * Two placements, one filter set:
+ *  • `sidebar` (desktop, from `lg`): a narrow right-hand column beside the
+ *    grid, so opening «فیلترها» narrows the results instead of covering or
+ *    pushing them away. Same header («پاک کردن همه») and compact orange pill
+ *    tags as the category drawer on `/cars`.
+ *  • `inline` (phones/tablets): a card above the grid — there is no room for
+ *    a column there.
+ *
+ * Every control writes into the shared SearchFilters object; the Catalog
+ * commits it to the URL (the server re-runs the one search).
  */
 export function FilterPanel({
   filters,
   onChange,
+  onClear,
   onClose,
+  variant = 'inline',
 }: {
   filters: SearchFilters;
   onChange: (f: SearchFilters) => void;
+  /** «پاک کردن همه» — clears every filter, keeping the search term. */
+  onClear: () => void;
   onClose: () => void;
+  variant?: 'inline' | 'sidebar';
 }) {
+  const { t } = useI18n();
   const cities = selectableCities();
+  const sidebar = variant === 'sidebar';
 
   return (
-    <div className="rounded-card border border-line bg-card p-4 sm:p-5">
-      <div className="mb-4 flex items-center justify-between">
-        <h2 className="flex items-center gap-2 text-base font-extrabold">
-          <Icon name="sliders" size={18} />
-          فیلترها
+    <div
+      className={`rounded-card border border-line bg-card ${
+        sidebar ? 'flex max-h-[calc(100dvh-7rem)] flex-col p-3.5' : 'p-4 sm:p-5'
+      }`}
+    >
+      <div className="mb-3 flex items-center gap-2">
+        <h2 className="flex min-w-0 flex-1 items-center gap-1.5 text-sm font-extrabold text-ink">
+          <Icon name="sliders" size={16} />
+          {t('فیلترها', 'Filters')}
         </h2>
         <button
           type="button"
-          onClick={onClose}
-          aria-label="بستن فیلترها"
-          className="flex h-10 w-10 items-center justify-center rounded-full text-muted transition hover:bg-cta-soft hover:text-ink"
+          onClick={onClear}
+          className="shrink-0 rounded-full bg-cta-soft px-2.5 py-1 text-[10px] font-extrabold text-ink transition hover:bg-cta hover:text-white"
         >
-          <Icon name="close" size={18} />
+          {t('پاک کردن همه', 'Clear all')}
+        </button>
+        <button
+          type="button"
+          onClick={onClose}
+          aria-label={t('بستن فیلترها', 'Close filters')}
+          className="flex h-8 w-8 shrink-0 items-center justify-center rounded-full text-muted transition hover:bg-cta-soft hover:text-ink"
+        >
+          <Icon name="close" size={16} />
         </button>
       </div>
 
-      <div className="grid gap-5 sm:grid-cols-2 lg:grid-cols-3">
-        <section>
-          <h3 className="mb-1 text-sm font-extrabold text-ink">برند</h3>
-          {kishUiBrands.map((b) => (
-            <CheckRow
-              key={b.slug}
-              checked={filters.brand.includes(b.slug)}
-              label={b.latin}
-              onToggle={() => onChange({ ...filters, brand: toggle(filters.brand, b.slug) })}
-            />
-          ))}
-        </section>
+      <div
+        className={`min-h-0 ${
+          sidebar
+            ? 'flex-1 space-y-3.5 overflow-y-auto pe-1'
+            : 'grid gap-5 sm:grid-cols-2 lg:grid-cols-3'
+        }`}
+      >
+        <Section title={t('برند', 'Brand')}>
+          <PillRow>
+            {kishUiBrands.map((b) => (
+              <PillChoice
+                key={b.slug}
+                checked={filters.brand.includes(b.slug)}
+                label={b.latin}
+                onToggle={() => onChange({ ...filters, brand: toggle(filters.brand, b.slug) })}
+              />
+            ))}
+          </PillRow>
+        </Section>
 
-        <section className="space-y-4">
-          <div>
-            <h3 className="mb-1 text-sm font-extrabold text-ink">مدل</h3>
+        <Section title={t('مدل', 'Model')}>
+          <input
+            className="field text-xs"
+            value={filters.model}
+            onChange={(e) => onChange({ ...filters, model: e.target.value })}
+            placeholder={t('مثلاً لندکروزر', 'e.g. Land Cruiser')}
+            aria-label={t('مدل', 'Model')}
+          />
+        </Section>
+
+        <Section title={t('سال ساخت', 'Model year')}>
+          <div className="grid grid-cols-2 gap-2">
             <input
-              className="field"
-              value={filters.model}
-              onChange={(e) => onChange({ ...filters, model: e.target.value })}
-              placeholder="مثلاً لندکروزر"
-              aria-label="مدل"
-            />
-          </div>
-
-          <div>
-            <h3 className="mb-1 text-sm font-extrabold text-ink">سال ساخت</h3>
-            <div className="grid grid-cols-2 gap-2">
-              <input
-                className="field"
-                inputMode="numeric"
-                value={filters.yearFrom ?? ''}
-                onChange={(e) => onChange({ ...filters, yearFrom: intOrNull(e.target.value) })}
-                placeholder="از"
-                aria-label="سال از"
-              />
-              <input
-                className="field"
-                inputMode="numeric"
-                value={filters.yearTo ?? ''}
-                onChange={(e) => onChange({ ...filters, yearTo: intOrNull(e.target.value) })}
-                placeholder="تا"
-                aria-label="سال تا"
-              />
-            </div>
-          </div>
-
-          <div>
-            <h3 className="mb-1 text-sm font-extrabold text-ink">قیمت (تومان / درهم)</h3>
-            <div className="grid grid-cols-2 gap-2">
-              <input
-                className="field"
-                inputMode="numeric"
-                value={filters.priceFrom ?? ''}
-                onChange={(e) => onChange({ ...filters, priceFrom: intOrNull(e.target.value) })}
-                placeholder="از"
-                aria-label="قیمت از"
-              />
-              <input
-                className="field"
-                inputMode="numeric"
-                value={filters.priceTo ?? ''}
-                onChange={(e) => onChange({ ...filters, priceTo: intOrNull(e.target.value) })}
-                placeholder="تا"
-                aria-label="قیمت تا"
-              />
-            </div>
-          </div>
-
-          <div>
-            <h3 className="mb-1 text-sm font-extrabold text-ink">حداکثر کارکرد (کیلومتر)</h3>
-            <input
-              className="field"
+              className="field text-xs"
               inputMode="numeric"
-              value={filters.mileageMax ?? ''}
-              onChange={(e) => onChange({ ...filters, mileageMax: intOrNull(e.target.value) })}
-              placeholder="مثلاً ۵۰۰۰۰"
-              aria-label="حداکثر کارکرد"
+              value={filters.yearFrom ?? ''}
+              onChange={(e) => onChange({ ...filters, yearFrom: intOrNull(e.target.value) })}
+              placeholder={t('از', 'From')}
+              aria-label={t('سال از', 'Year from')}
+            />
+            <input
+              className="field text-xs"
+              inputMode="numeric"
+              value={filters.yearTo ?? ''}
+              onChange={(e) => onChange({ ...filters, yearTo: intOrNull(e.target.value) })}
+              placeholder={t('تا', 'To')}
+              aria-label={t('سال تا', 'Year to')}
             />
           </div>
-        </section>
+        </Section>
 
-        <section className="space-y-4">
-          <div>
-            <h3 className="mb-1 text-sm font-extrabold text-ink">گیربکس</h3>
+        <Section title={t('قیمت (تومان / درهم)', 'Price (Toman / AED)')}>
+          <div className="grid grid-cols-2 gap-2">
+            <input
+              className="field text-xs"
+              inputMode="numeric"
+              value={filters.priceFrom ?? ''}
+              onChange={(e) => onChange({ ...filters, priceFrom: intOrNull(e.target.value) })}
+              placeholder={t('از', 'From')}
+              aria-label={t('قیمت از', 'Price from')}
+            />
+            <input
+              className="field text-xs"
+              inputMode="numeric"
+              value={filters.priceTo ?? ''}
+              onChange={(e) => onChange({ ...filters, priceTo: intOrNull(e.target.value) })}
+              placeholder={t('تا', 'To')}
+              aria-label={t('قیمت تا', 'Price to')}
+            />
+          </div>
+        </Section>
+
+        <Section title={t('حداکثر کارکرد (کیلومتر)', 'Max mileage (km)')}>
+          <input
+            className="field text-xs"
+            inputMode="numeric"
+            value={filters.mileageMax ?? ''}
+            onChange={(e) => onChange({ ...filters, mileageMax: intOrNull(e.target.value) })}
+            placeholder={t('مثلاً ۵۰۰۰۰', 'e.g. 50,000')}
+            aria-label={t('حداکثر کارکرد', 'Max mileage')}
+          />
+        </Section>
+
+        <Section title={t('گیربکس', 'Gearbox')}>
+          <PillRow>
             {gearboxTypes.map((g) => (
-              <CheckRow
+              <PillChoice
                 key={g}
                 checked={filters.gearbox.includes(g)}
                 label={GEARBOX_LABELS[g]}
                 onToggle={() => onChange({ ...filters, gearbox: toggle(filters.gearbox, g) })}
               />
             ))}
-          </div>
+          </PillRow>
+        </Section>
 
-          <div>
-            <h3 className="mb-1 text-sm font-extrabold text-ink">وضعیت پلاک</h3>
+        <Section title={t('وضعیت پلاک', 'Plate status')}>
+          <PillRow>
             {plateTypes.map((p) => (
-              <CheckRow
+              <PillChoice
                 key={p}
                 checked={filters.plateType.includes(p)}
                 label={PLATE_TYPE_LABELS[p]}
                 onToggle={() => onChange({ ...filters, plateType: toggle(filters.plateType, p) })}
               />
             ))}
-          </div>
+          </PillRow>
+        </Section>
 
-          <div>
-            <h3 className="mb-1 text-sm font-extrabold text-ink">نوع خودرو</h3>
+        <Section title={t('نوع خودرو', 'Vehicle type')}>
+          <PillRow>
             {conditions.map((c) => (
-              <CheckRow
+              <PillChoice
                 key={c}
                 checked={filters.condition.includes(c)}
                 label={CONDITION_LABELS[c]}
                 onToggle={() => onChange({ ...filters, condition: toggle(filters.condition, c) })}
               />
             ))}
-          </div>
+          </PillRow>
+        </Section>
 
-          <div>
-            <h3 className="mb-1 text-sm font-extrabold text-ink">شهر</h3>
+        <Section title={t('شهر', 'City')}>
+          <PillRow>
             {cities.map((c) => (
-              <CheckRow
+              <PillChoice
                 key={c.slug}
                 checked={filters.city.includes(c.slug)}
                 label={c.label}
                 onToggle={() => onChange({ ...filters, city: toggle(filters.city, c.slug) })}
               />
             ))}
-          </div>
+          </PillRow>
+        </Section>
 
-          <div>
-            <h3 className="mb-1 text-sm font-extrabold text-ink">سایر</h3>
-            <CheckRow
+        <Section title={t('سایر', 'Other')}>
+          <PillRow>
+            <PillChoice
               checked={filters.hasReport}
-              label="دارای گزارش بازرسی"
+              label={t('دارای گزارش بازرسی', 'Has inspection report')}
               onToggle={() => onChange({ ...filters, hasReport: !filters.hasReport })}
             />
-            <CheckRow
+            <PillChoice
               checked={filters.kishOnly}
-              label="فقط پلاک منطقه آزاد"
+              label={t('فقط پلاک منطقه آزاد', 'Free-zone plate only')}
               onToggle={() => onChange({ ...filters, kishOnly: !filters.kishOnly })}
             />
-          </div>
-        </section>
+          </PillRow>
+        </Section>
       </div>
     </div>
   );
