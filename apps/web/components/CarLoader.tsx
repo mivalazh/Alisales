@@ -13,9 +13,15 @@
  * scrim, non-interactive), so it never lands inside a stories rail or a
  * button's text. Callers that genuinely need it inside a control pass
  * `inline`. The wordmark is absolutely positioned above the wheel, so the
- * wheel itself stays on the optical centre of the overlay. Every caller gates
- * it behind `useDelayedBusy`, so a request that resolves inside 300ms never
- * flashes the wheel.
+ * wheel itself stays on the optical centre of the overlay.
+ *
+ * The wordmark belongs to the overlay only: an inline wheel sits next to its
+ * own copy («در حال ارسال…», a panel heading, a list), where an absolutely
+ * positioned word would float over that text. Inline wheels therefore paint
+ * the mark alone and leave the wording to the caller.
+ *
+ * Every caller gates it behind `useDelayedBusy`, so a request that resolves
+ * inside 300ms never flashes the wheel.
  */
 const SIZES = {
   sm: 'h-6 w-6',
@@ -39,13 +45,15 @@ export function CarLoader({
 
   const wheel = (
     <span className="relative inline-flex shrink-0 items-center justify-center" role="status">
-      {/* Above the wheel, never inside the rotating artwork. */}
-      <span
-        aria-hidden="true"
-        className="absolute bottom-full left-1/2 mb-2 -translate-x-1/2 whitespace-nowrap text-[11px] font-bold uppercase tracking-[0.2em] text-[#F98513]"
-      >
-        LOADING
-      </span>
+      {/* Above the wheel, never inside the rotating artwork. Overlay only. */}
+      {!inline && (
+        <span
+          aria-hidden="true"
+          className="absolute bottom-full left-1/2 mb-2 -translate-x-1/2 whitespace-nowrap text-[11px] font-bold uppercase tracking-[0.2em] text-[#F98513]"
+        >
+          LOADING
+        </span>
+      )}
       <svg viewBox="0 0 100 100" className={`${box} block`} aria-hidden="true" focusable="false">
         <g className="car-tire">
           {/* Tire wall: one clean ring, no tread teeth. */}
