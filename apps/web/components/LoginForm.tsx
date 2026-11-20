@@ -11,6 +11,7 @@ import {
   type BusinessType,
 } from '@alisales/schemas';
 import { Icon } from './Icon';
+import { OtpInput } from './OtpInput';
 import { useI18n } from '@/lib/i18n';
 
 const ACCOUNT_TYPE_EN: Record<AccountType, string> = {
@@ -333,20 +334,12 @@ export function LoginForm() {
             </div>
 
             <div>
-              <label htmlFor="reset-code" className="label">
-                {t('کد تأیید', 'Verification code')}
-              </label>
-              <input
+              <p className="label">{t('کد تأیید', 'Verification code')}</p>
+              <OtpInput
                 id="reset-code"
-                dir="ltr"
-                inputMode="numeric"
-                autoComplete="one-time-code"
-                maxLength={6}
-                className="field text-center text-xl tracking-[0.5em]"
                 value={code}
-                onChange={(e) => setCode(e.target.value)}
-                placeholder="------"
-                required
+                onChange={setCode}
+                label={t('کد تأیید', 'Verification code')}
               />
             </div>
 
@@ -547,20 +540,12 @@ export function LoginForm() {
           </p>
 
           <div>
-            <label htmlFor="code" className="label">
-              {t('کد تأیید', 'Verification code')}
-            </label>
-            <input
+            <p className="label">{t('کد تأیید', 'Verification code')}</p>
+            <OtpInput
               id="code"
-              dir="ltr"
-              inputMode="numeric"
-              autoComplete="one-time-code"
-              maxLength={6}
-              className="field text-center text-xl tracking-[0.5em]"
               value={code}
-              onChange={(e) => setCode(e.target.value)}
-              placeholder="------"
-              required
+              onChange={setCode}
+              label={t('کد تأیید', 'Verification code')}
             />
           </div>
 
