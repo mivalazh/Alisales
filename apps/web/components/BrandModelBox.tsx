@@ -158,8 +158,10 @@ export function BrandModelBox({
         <>
           <h2 className="text-sm font-extrabold text-ink">{t(CATEGORY_TITLE[category])}</h2>
 
-          {/* Brand grid: a strict two-row scroller at every width. Desktop keeps
-              the two rows and scrolls horizontally instead of wrapping into a
+          {/* Brand grid: a strict two-row scroller at every width. Phones keep
+              the compact 58px slots, so the same number of marks stay reachable
+              there; from `sm` up the slots widen (84px, then 96px) but the grid
+              keeps two rows and scrolls sideways instead of wrapping into a
               third row, so every mark stays one clean band of logos. */}
           <ul
             ref={drag.ref}
@@ -169,7 +171,7 @@ export function BrandModelBox({
             onPointerUp={drag.onPointerUp}
             onPointerLeave={drag.onPointerLeave}
             onClickCapture={drag.onClickCapture}
-            className="mt-2.5 grid grid-rows-2 grid-flow-col auto-cols-[84px] sm:auto-cols-[96px] gap-x-4 gap-y-3 overflow-x-auto pb-2 scroll-smooth overscroll-x-contain [&::-webkit-scrollbar]:h-1 [&::-webkit-scrollbar-thumb]:rounded-full [&::-webkit-scrollbar-thumb]:bg-slate-300/70 [&>li]:snap-start"
+            className="mt-2.5 grid grid-rows-2 grid-flow-col auto-cols-[58px] gap-1 overflow-x-auto pb-1.5 scroll-smooth overscroll-x-contain sm:auto-cols-[84px] sm:gap-x-4 sm:gap-y-3 sm:pb-2 md:auto-cols-[96px] [&::-webkit-scrollbar]:h-1 [&::-webkit-scrollbar-thumb]:rounded-full [&::-webkit-scrollbar-thumb]:bg-slate-300/70 [&>li]:snap-start"
           >
             {brands.map((item) => {
               const selected = item.slug === brand;
