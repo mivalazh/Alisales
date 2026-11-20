@@ -44,10 +44,27 @@ function fromBase64Url(value: string): Uint8Array {
 
 const AUTH_SECRET_MIN_LENGTH = 16;
 
+/**
+ * Every env name that may hold the session signing key, in priority order.
+ *
+ * Deployments that predate this app often already have `SESSION_SECRET` set,
+ * so accepting it means login works as soon as either one is configured in
+ * Vercel instead of failing with «AUTH_SECRET تنظیم نشده».
+ */
+const AUTH_SECRET_ENV_NAMES = ['AUTH_SECRET', 'SESSION_SECRET'] as const;
+
 /** A configured production-grade key, or null when unset/too short. */
 function configuredAuthSecret(): string | null {
-  const configured = process.env.AUTH_SECRET;
-  return configured && configured.length >= AUTH_SECRET_MIN_LENGTH ? configured : null;
+  for (const name of AUTH_SECRET_ENV_NAMES) {
+    const value = process.env[name]?.trim();
+    if (value && value.length >= AUTH_SECRET_MIN_LENGTH) return value;
+  }
+  return null;
+}
+
+/** Whether any of the accepted secret env names holds a value (any length). */
+export function hasAuthSecretConfig(): boolean {
+  return AUTH_SECRET_ENV_NAMES.some((name) => Boolean(process.env[name]?.trim()));
 }
 
 /**
@@ -66,14 +83,16 @@ export function authSecretReadiness(): AuthSecretReadiness {
   if (process.env.NODE_ENV !== 'production') {
     return { ok: true, source: 'development-fallback' };
   }
-  return { ok: false, reason: process.env.AUTH_SECRET ? 'too_short' : 'missing' };
+  return { ok: false, reason: hasAuthSecretConfig() ? 'too_short' : 'missing' };
 }
 
 /**
- * The signing secret. A production build never falls back to the labelled demo
- * secret — a known key would let anyone forge a session. Missing or too-short
- * AUTH_SECRET therefore disables sessions (routes answer 503). Development and
- * tests use the fixed local secret so a fresh checkout works without setup.
+ * The signing secret (`AUTH_SECRET`, or `SESSION_SECRET` for deployments that
+ * already configure the conventional name). A production build never falls
+ * back to the labelled demo secret — a known key would let anyone forge a
+ * session. Missing or too-short secrets therefore disable sessions (routes
+ * answer 503). Development and tests use the fixed local secret so a fresh
+ * checkout works without setup.
  */
 export function authSecret(): string | null {
   const configured = configuredAuthSecret();

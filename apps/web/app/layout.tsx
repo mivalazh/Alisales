@@ -21,6 +21,31 @@ import { absoluteUrl, SITE_URL } from '@/lib/seo';
 
 const siteUrl = process.env.NEXT_PUBLIC_SITE_URL || SITE_URL;
 
+/**
+ * Solid cream launch image for iOS.
+ *
+ * iOS draws its own white web-view background until the first paint, which is
+ * the 4–5s white flash on a cold PWA launch. A `apple-touch-startup-image`
+ * takes over that window: a 64×64 PNG of the warm brand canvas (#F4F1EC),
+ * stretched to the device, so the app opens on cream instead of white. It is
+ * inlined as a data URI (138 bytes) rather than shipped as a file per device
+ * size, and the media queries pick the matching portrait geometry.
+ */
+const SPLASH_IMAGE =
+  'data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAEAAAABACAIAAAAlC+aJAAAAUUlEQVR42u3PMQ0AMAgAMJh/qTwkCJgKDpLWQXO64rIXxwkICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAjs+yeSA1GhmyR6AAAAAElFTkSuQmCC';
+
+const STARTUP_IMAGES = [
+  '(device-width: 440px) and (device-height: 956px)',
+  '(device-width: 430px) and (device-height: 932px)',
+  '(device-width: 428px) and (device-height: 926px)',
+  '(device-width: 414px) and (device-height: 896px)',
+  '(device-width: 402px) and (device-height: 874px)',
+  '(device-width: 393px) and (device-height: 852px)',
+  '(device-width: 390px) and (device-height: 844px)',
+  '(device-width: 375px) and (device-height: 812px)',
+  '(device-width: 375px) and (device-height: 667px)',
+].map((geometry) => ({ url: SPLASH_IMAGE, media: `${geometry} and (orientation: portrait)` }));
+
 export async function generateMetadata(): Promise<Metadata> {
   const lang = await getLanguage();
   const isEnglish = lang === 'en';
@@ -60,6 +85,7 @@ export async function generateMetadata(): Promise<Metadata> {
       capable: true,
       title: 'Ali Sales',
       statusBarStyle: 'black-translucent',
+      startupImage: STARTUP_IMAGES,
     },
     formatDetection: { telephone: false },
     other: {
@@ -141,6 +167,8 @@ export default async function RootLayout({ children }: { children: ReactNode }) 
               <span>ALI</span>
               <span className="ali-splash-sales">SALES</span>
             </span>
+            {/* Orange light sweep across the lockup. */}
+            <span className="ali-splash-sweep" aria-hidden="true" />
           </span>
         </div>
         <LocaleProvider initialLang={lang}>

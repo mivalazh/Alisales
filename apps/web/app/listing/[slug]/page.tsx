@@ -486,6 +486,7 @@ export default async function ListingDetailPage({
       <NativeBackHeader
         title={displayTitle}
         fallbackHref="/"
+        flush
       />
       <Link
         href="/"

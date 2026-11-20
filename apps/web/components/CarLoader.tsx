@@ -3,24 +3,26 @@
 /**
  * Automotive tire loader.
  *
- * A bold navy tire with a treaded sidewall and a five-spoke alloy spins while
- * «LOADING» stays crisp and upright in the middle of the hub. The mark is
- * drawn inline so it appears without waiting for an image, and it is
- * decorative: the status label carries the meaning for screen readers.
+ * A compact alloy wheel: a clean orange tire ring, a five-spoke rim and a hub,
+ * with crisp uppercase «LOADING» sitting above it. The word is HTML, so it
+ * never rotates with the wheel and never blurs. The mark is drawn inline so it
+ * appears without waiting for an image, and it is decorative: the status label
+ * carries the meaning for screen readers.
  *
  * By default it paints as a viewport-centred overlay (`fixed inset-0`, soft
  * scrim, non-interactive), so it never lands inside a stories rail or a
  * button's text. Callers that genuinely need it inside a control pass
- * `inline`. Every caller gates it behind `useDelayedBusy`, so a request that
- * resolves inside 300ms never flashes the wheel.
+ * `inline`. The wordmark is absolutely positioned above the wheel, so the
+ * wheel itself stays on the optical centre of the overlay. Every caller gates
+ * it behind `useDelayedBusy`, so a request that resolves inside 300ms never
+ * flashes the wheel.
  */
 const SIZES = {
-  sm: 'h-10 w-10',
-  md: 'h-20 w-20',
-  lg: 'h-28 w-28',
+  sm: 'h-6 w-6',
+  md: 'h-11 w-11',
+  lg: 'h-14 w-14',
 } as const;
 
-const TREAD_BLOCKS = Array.from({ length: 28 }, (_, index) => index * (360 / 28));
 const SPOKES = Array.from({ length: 5 }, (_, index) => index * 72);
 
 export function CarLoader({
@@ -36,76 +38,46 @@ export function CarLoader({
   const box = SIZES[size];
 
   const wheel = (
-    <span
-      className={`relative inline-flex shrink-0 items-center justify-center ${box}`}
-      role="status"
-    >
+    <span className="relative inline-flex shrink-0 items-center justify-center" role="status">
+      {/* Above the wheel, never inside the rotating artwork. */}
+      <span
+        aria-hidden="true"
+        className="absolute bottom-full left-1/2 mb-2 -translate-x-1/2 whitespace-nowrap text-[11px] font-bold uppercase tracking-[0.2em] text-[#F98513]"
+      >
+        LOADING
+      </span>
       <svg viewBox="0 0 100 100" className={`${box} block`} aria-hidden="true" focusable="false">
-        {/* Only the wheel rotates; the wordmark is HTML on top and stays upright. */}
         <g className="car-tire">
-          <circle cx="50" cy="50" r="47" fill="#111144" />
+          {/* Tire wall: one clean ring, no tread teeth. */}
+          <circle cx="50" cy="50" r="45" fill="none" stroke="#F98513" strokeWidth="9" />
+          {/* Rim lip. */}
           <circle
             cx="50"
             cy="50"
-            r="46"
+            r="33"
             fill="none"
             stroke="#F98513"
-            strokeOpacity="0.35"
-            strokeWidth="1"
+            strokeWidth="2.5"
+            strokeOpacity="0.5"
           />
-          {TREAD_BLOCKS.map((angle) => (
-            <rect
-              key={angle}
-              x="48.4"
-              y="1.2"
-              width="3.2"
-              height="5.6"
-              rx="1.2"
-              fill="#223382"
-              transform={`rotate(${angle} 50 50)`}
-            />
-          ))}
-          <circle
-            cx="50"
-            cy="50"
-            r="40"
-            fill="none"
-            stroke="#F98513"
-            strokeOpacity="0.8"
-            strokeWidth="1.4"
-          />
-          <circle cx="50" cy="50" r="33" fill="#0B0B33" />
+          {/* Five-spoke alloy: straight spokes from the hub to the rim lip. */}
           {SPOKES.map((angle) => (
-            <path
+            <line
               key={angle}
-              d="M47 50 L42.5 18.5 Q50 13.8 57.5 18.5 L53 50 Z"
-              fill="#DCE3EE"
-              fillOpacity="0.94"
+              x1="50"
+              y1="38"
+              x2="50"
+              y2="18"
+              stroke="#F98513"
+              strokeWidth="7"
+              strokeLinecap="round"
               transform={`rotate(${angle} 50 50)`}
             />
           ))}
-          <circle
-            cx="50"
-            cy="50"
-            r="20"
-            fill="#111144"
-            stroke="#F98513"
-            strokeOpacity="0.7"
-            strokeWidth="1.2"
-          />
+          {/* Hub. */}
+          <circle cx="50" cy="50" r="12" fill="#F98513" />
         </g>
       </svg>
-      <span
-        className="pointer-events-none absolute inset-0 flex items-center justify-center"
-        aria-hidden="true"
-      >
-        <span
-          className="text-[10px] font-black tracking-wider text-[#F98513]"
-          style={{ textShadow: '0 0 3px #111144, 0 0 3px #111144' }}
-        >
-          LOADING
-        </span>
-      </span>
       {/* The one thing a screen reader gets: the caller's localized label. */}
       <span className="sr-only">{label}</span>
     </span>

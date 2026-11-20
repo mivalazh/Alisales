@@ -10,7 +10,12 @@ import {
   profileModeFor,
   type BusinessType,
 } from '@alisales/schemas';
-import { authSecret, createSessionToken, setSessionCookie } from '@/lib/auth/session';
+import {
+  authSecret,
+  createSessionToken,
+  hasAuthSecretConfig,
+  setSessionCookie,
+} from '@/lib/auth/session';
 import { bumpOtpAttempts, deleteOtp, getOtp, verifyOtpHash } from '@/lib/auth/otp-store';
 import { clearDemoOtpCookie, demoOtpCookieMatches } from '@/lib/auth/otp-cookie';
 import { smsReadiness } from '@/lib/auth/sms';
@@ -30,13 +35,13 @@ import { profileCustomization, saveProfileCustomization } from '@/lib/data/socia
  */
 export async function POST(request: Request): Promise<NextResponse> {
   if (!authSecret()) {
-    const missing = !process.env.AUTH_SECRET?.trim();
+    const missing = !hasAuthSecretConfig();
     return NextResponse.json(
       {
         code: missing ? 'AUTH_SECRET_MISSING' : 'AUTH_SECRET_TOO_SHORT',
         error: missing
-          ? 'پیکربندی ورود ناقص است: AUTH_SECRET تنظیم نشده است.'
-          : 'پیکربندی ورود ناقص است: AUTH_SECRET باید حداقل ۱۶ کاراکتر باشد.',
+          ? 'پیکربندی ورود ناقص است: AUTH_SECRET یا SESSION_SECRET تنظیم نشده است.'
+          : 'پیکربندی ورود ناقص است: AUTH_SECRET یا SESSION_SECRET باید حداقل ۱۶ کاراکتر باشد.',
       },
       { status: 503 },
     );

@@ -74,14 +74,15 @@ function DrawerLink({
 function DrawerAccordion({
   href,
   label,
-  icon,
+  iconSrc,
   active,
   allLabel,
   links,
 }: {
   href: string;
   label: string;
-  icon: IconName;
+  /** Brand icon for the category (full-colour artwork, not a glyph). */
+  iconSrc: string;
   active: boolean;
   allLabel: string;
   links: ReadonlyArray<{ href: string; label: string }>;
@@ -94,7 +95,14 @@ function DrawerAccordion({
             active ? 'font-extrabold text-ink' : 'font-semibold text-muted hover:text-ink'
           }`}
         >
-          <Icon name={icon} size={18} className="shrink-0 text-cta" />
+          <img
+            src={iconSrc}
+            alt=""
+            aria-hidden="true"
+            width={24}
+            height={24}
+            className="h-6 w-6 shrink-0 object-contain"
+          />
           <span className="flex-1">{label}</span>
           <Icon
             name="chevronDown"
@@ -287,7 +295,7 @@ export function Header({
                   <DrawerAccordion
                     href="/cars"
                     label={t('خودرو', 'Cars')}
-                    icon="car"
+                    iconSrc="/icons/menu/khodro.svg"
                     active={pathname === '/cars'}
                     allLabel={t('همه خودروها', 'All cars')}
                     links={[
@@ -304,7 +312,7 @@ export function Header({
                   <DrawerAccordion
                     href="/motorcycles"
                     label={t('موتور و اسکوتر برقی', 'Electric bikes & scooters')}
-                    icon="plate"
+                    iconSrc="/icons/menu/motorcycle.svg"
                     active={pathname === '/motorcycles'}
                     allLabel={t('همه موتورها', 'All bikes')}
                     links={[
@@ -318,7 +326,7 @@ export function Header({
                   <DrawerAccordion
                     href="/heavy"
                     label={t('ماشین‌آلات سنگین', 'Heavy machinery')}
-                    icon="gear"
+                    iconSrc="/icons/menu/truck-empty-1.svg"
                     active={pathname === '/heavy'}
                     allLabel={t('همه ماشین‌آلات', 'All machinery')}
                     links={[
@@ -332,7 +340,7 @@ export function Header({
                   <DrawerAccordion
                     href="/parts"
                     label={t('قطعات و لوازم یدکی', 'Spare parts')}
-                    icon="tag"
+                    iconSrc="/icons/menu/wrench.svg"
                     active={pathname === '/parts'}
                     allLabel={t('همه قطعات', 'All parts')}
                     links={[

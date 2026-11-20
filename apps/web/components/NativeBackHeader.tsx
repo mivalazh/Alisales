@@ -14,9 +14,12 @@ import { Icon } from './Icon';
 export function NativeBackHeader({
   title,
   fallbackHref = '/',
+  flush = false,
 }: {
   title: string;
   fallbackHref?: string;
+  /** Sit flush under the fixed header instead of leaving the shell's top inset. */
+  flush?: boolean;
 }) {
   const standalone = useStandalone();
   const router = useRouter();
@@ -30,7 +33,13 @@ export function NativeBackHeader({
   };
 
   return (
-    <div className="sticky top-16 z-30 -mx-4 mb-3 flex items-center gap-2 border-b border-line bg-card/80 px-3 py-1.5 backdrop-blur-xl sm:-mx-6 sm:px-5 lg:static lg:mx-0 lg:border-0 lg:bg-transparent lg:px-0 lg:py-0 lg:backdrop-blur-none">
+    <div
+      className={`sticky z-30 -mx-4 mb-3 flex items-center gap-2 border-b border-line bg-card/80 px-3 py-1.5 backdrop-blur-xl sm:-mx-6 sm:px-5 lg:static lg:mx-0 lg:border-0 lg:bg-transparent lg:px-0 lg:py-0 lg:backdrop-blur-none ${
+        flush
+          ? '-mt-4 top-[calc(4rem+env(safe-area-inset-top))] md:mt-0'
+          : 'top-16'
+      }`}
+    >
       <button
         type="button"
         onClick={goBack}

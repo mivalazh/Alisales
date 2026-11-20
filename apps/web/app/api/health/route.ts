@@ -58,8 +58,8 @@ export async function GET(): Promise<NextResponse> {
                 : 'AUTH_SECRET_TOO_SHORT',
             message:
               authSecret.reason === 'missing'
-                ? 'AUTH_SECRET is not set; session cookie signing is disabled.'
-                : 'AUTH_SECRET is shorter than 16 characters; session cookie signing is disabled.',
+                ? 'Neither AUTH_SECRET nor SESSION_SECRET is set; session cookie signing is disabled.'
+                : 'AUTH_SECRET/SESSION_SECRET is shorter than 16 characters; session cookie signing is disabled.',
           },
       sms: {
         ok: sms.configured,
