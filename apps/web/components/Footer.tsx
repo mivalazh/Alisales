@@ -172,11 +172,15 @@ export function SiteFooter() {
           </div>
         </div>
 
-        {/* The floating assistant orb lives at the bottom-right of the screen,
-            so the bar keeps clear of that corner on top of the requested left
-            padding: the copyright never sits under the orb. */}
-        <div className="mt-5 flex flex-col items-center justify-between gap-3 border-t border-line pt-4 pb-8 md:pl-20 md:pr-0 sm:flex-row sm:items-center">
-          <p className="max-w-md text-center text-xs leading-6 text-faint sm:text-start md:pr-20">
+        {/* The floating assistant orb is pinned to the bottom-right of the
+            viewport, so the bar reserves one inset on that physical edge. A
+            physical `pr` (not a logical `ps`/`pe`) is deliberate: the orb is
+            positioned with `right-*`, so the gap must stay on the right in
+            RTL and in English mode alike. That single inset clears both the
+            copyright text (RTL) and the Miva Tech badge (LTR) without padding
+            a second, empty side. */}
+        <div className="mt-5 flex flex-col items-center justify-between gap-3 border-t border-line pt-4 pb-8 md:pr-20 sm:flex-row sm:items-center">
+          <p className="max-w-md text-center text-xs leading-6 text-faint sm:text-start">
             © {new Date().getFullYear()} Ali Sales —{' '}
             {t(
               'تمامی حقوق محفوظ است. مسئولیت اعلام وضعیت پلاک و صحت اطلاعات آگهی بر عهده فروشنده است.',
