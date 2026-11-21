@@ -6,6 +6,9 @@ import { loadCategoryPage } from '@/lib/category-page';
 import { getLanguage } from '@/lib/i18n/server';
 import { serverT } from '@/lib/i18n/server';
 
+/** One-minute catalogue cache window; see the note in app/page.tsx. */
+export const revalidate = 60;
+
 export const generateMetadata = localizedMetadata(
   { title: 'خودروها', description: 'جستجوی خودروهای نو و کارکرده در کیش — با فیلتر برند، سال، قیمت و پلاک.' },
   { title: 'Vehicles', description: 'Search new and used cars in Kish — filter by brand, year, price and plate.' },

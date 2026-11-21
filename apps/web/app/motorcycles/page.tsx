@@ -5,6 +5,9 @@ import { loadCategoryPage } from '@/lib/category-page';
 import { getLanguage } from '@/lib/i18n/server';
 import { serverT } from '@/lib/i18n/server';
 
+/** One-minute catalogue cache window; see the note in app/page.tsx. */
+export const revalidate = 60;
+
 export const generateMetadata = localizedMetadata(
   { title: 'موتور و اسکوتر برقی', description: 'خرید و فروش موتور و اسکوتر برقی و بنزینی در کیش — فیلتر برند، نوع موتور، توان و سال.' },
   { title: 'Scooters & Bikes', description: 'Buy and sell electric and petrol scooters and motorcycles in Kish — filter by brand, type, power and year.' },

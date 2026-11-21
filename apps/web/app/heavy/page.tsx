@@ -5,6 +5,9 @@ import { loadCategoryPage } from '@/lib/category-page';
 import { getLanguage } from '@/lib/i18n/server';
 import { serverT } from '@/lib/i18n/server';
 
+/** One-minute catalogue cache window; see the note in app/page.tsx. */
+export const revalidate = 60;
+
 export const generateMetadata = localizedMetadata(
   { title: 'ماشین‌آلات سنگین', description: 'کامیون، کشنده، تریلی و ماشین‌آلات راه‌سازی — فیلتر برند، نوع، سال و ساعت کارکرد.' },
   { title: 'Heavy Machinery', description: 'Trucks, tractor units, trailers and road-building machinery — filter by brand, type, year and operating hours.' },

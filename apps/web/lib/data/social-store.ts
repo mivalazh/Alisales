@@ -88,12 +88,18 @@ export async function followedSellerIds(
       .sort((a, b) => b.createdAt.localeCompare(a.createdAt))
       .map((row) => row.sellerId);
   }
-  const { data } = await sb
-    .from('seller_follows')
-    .select('seller_id')
-    .eq('follower_id', userId)
-    .order('created_at', { ascending: false });
-  return ((data ?? []) as Array<{ seller_id: string }>).map((row) => row.seller_id);
+  try {
+    const { data } = await sb
+      .from('seller_follows')
+      .select('seller_id')
+      .eq('follower_id', userId)
+      .order('created_at', { ascending: false });
+    return ((data ?? []) as Array<{ seller_id: string }>).map((row) => row.seller_id);
+  } catch (error) {
+    // A browse page must still render if this personalisation read fails.
+    console.warn('[alisales] followed sellers unavailable:', error);
+    return [];
+  }
 }
 
 export async function isFollowing(

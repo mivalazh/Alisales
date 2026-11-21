@@ -25,6 +25,7 @@ import { matchesFilters } from '../filter-match';
 import { admin } from './s2-store';
 import { visibleCatalog } from './demo-seed';
 import { storeVersion } from '../storage/demo-store';
+import { supabaseFetch } from './supabase-fetch';
 import { mergeMyListings, readMyListings } from './my-listings-cookie';
 
 /** Structured part data for a non-vehicle listing (`parts_listings`). */
@@ -239,7 +240,11 @@ function supabaseClient() {
   const url = process.env.NEXT_PUBLIC_SUPABASE_URL;
   const anon = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY;
   if (!url || !anon) return null;
-  return createClient(url, anon);
+  // Reads are capped at 2.5s; see lib/data/supabase-fetch.ts.
+  return createClient(url, anon, {
+    auth: { persistSession: false },
+    global: { fetch: supabaseFetch },
+  });
 }
 
 /**

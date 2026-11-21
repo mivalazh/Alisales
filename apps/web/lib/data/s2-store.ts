@@ -1,4 +1,5 @@
 import { createClient, type SupabaseClient } from '@supabase/supabase-js';
+import { supabaseFetch } from './supabase-fetch';
 import { readJson, writeJson } from '../storage/demo-store';
 import { publicPhotoUrl } from './photo-rules';
 import { serverSupabaseUrl } from '../config/mode';
@@ -113,7 +114,12 @@ export function admin(): SupabaseClient | null {
   const url = serverSupabaseUrl();
   const key = process.env.SUPABASE_SERVICE_ROLE_KEY;
   if (!url || !key) return null;
-  return createClient(url, key, { auth: { persistSession: false } });
+  // Read queries abort after 2.5s so a page never waits on a hung database;
+  // uploads and table writes keep the platform default.
+  return createClient(url, key, {
+    auth: { persistSession: false },
+    global: { fetch: supabaseFetch },
+  });
 }
 
 function newId(): string {

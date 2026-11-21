@@ -17,6 +17,9 @@ import { parseSortKey } from '@/lib/sort';
 import { getLanguage } from '@/lib/i18n/server';
 import { serverT } from '@/lib/i18n/server';
 
+/** One-minute catalogue cache window; see the note in app/page.tsx. */
+export const revalidate = 60;
+
 export const generateMetadata = localizedMetadata(
   { title: 'قطعات و لوازم یدکی', description: 'قطعات و لوازم یدکی خودروهای وارداتی در کیش — با فیلتر دسته‌بندی، منشأ و سازگاری.' },
   { title: 'Spare Parts & Accessories', description: 'Imported-car spare parts and accessories in Kish — filter by category, origin and compatibility.' },

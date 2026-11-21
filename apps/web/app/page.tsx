@@ -23,6 +23,16 @@ import { absoluteUrl, RENTAL_URL, SITE_URL } from '@/lib/seo';
 
 type SearchParams = Record<string, string | string[] | undefined>;
 
+/**
+ * One-minute revalidate window for the catalogue HTML, so the rendered
+ * document is cacheable instead of rebuilt for every visit. Filters, the
+ * language cookie and the session read still make the render request-scoped in
+ * Next 16; the data layer underneath (hosted search, stories, FX rate) is what
+ * carries the latency win today, and this window takes over once those inputs
+ * move client-side.
+ */
+export const revalidate = 60;
+
 export const metadata: Metadata = {
   alternates: { canonical: '/' },
   openGraph: { url: absoluteUrl('/') },
