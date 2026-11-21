@@ -2,13 +2,16 @@
 
 import { useRouter } from 'next/navigation';
 import { useI18n } from '@/lib/i18n';
-import { Icon } from './Icon';
 
 /**
  * The single navigation control above a listing gallery: one circular arrow
  * button, no title and no second text row. It replaces the old breadcrumb strip
  * plus «بازگشت به آگهی‌ها» label, which cost two rows of vertical space above
  * the photos on every screen size.
+ *
+ * The arrow points RIGHT. The page is RTL, so "back" is the direction the
+ * reading order came from — a left-pointing arrow reads as "forward" here and
+ * was simply the wrong affordance (a mirrored LTR arrow).
  */
 export function DetailBackButton({ fallbackHref = '/' }: { fallbackHref?: string }) {
   const router = useRouter();
@@ -25,9 +28,22 @@ export function DetailBackButton({ fallbackHref = '/' }: { fallbackHref?: string
       onClick={goBack}
       aria-label={t('بازگشت', 'Back')}
       title={t('بازگشت', 'Back')}
-      className="flex h-9 w-9 items-center justify-center rounded-full border border-slate-200/80 bg-white/90 shadow-xs transition hover:border-line-strong active:scale-[0.96] dark:border-white/10 dark:bg-[#161A38]/90"
+      className="flex h-9 w-9 shrink-0 items-center justify-center rounded-full border border-slate-200/80 bg-white/90 shadow-xs transition hover:border-line-strong active:scale-[0.96] dark:border-white/10 dark:bg-[#161A38]/90"
     >
-      <Icon name="arrowLeft" size={18} />
+      <svg
+        aria-hidden="true"
+        focusable="false"
+        viewBox="0 0 24 24"
+        fill="none"
+        stroke="currentColor"
+        strokeWidth="2"
+        strokeLinecap="round"
+        strokeLinejoin="round"
+        className="h-5 w-5 text-[#111144] dark:text-white"
+      >
+        <path d="M4 12h16" />
+        <path d="M13 5l7 7-7 7" />
+      </svg>
     </button>
   );
 }

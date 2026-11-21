@@ -25,6 +25,7 @@ import {
   type VerificationDecision,
 } from './moderation-rules';
 import type { ListingCardData } from './listings';
+import { storeVersion } from '../storage/demo-store';
 
 /**
  * Owner moderation hub (`/admin`).
@@ -205,12 +206,32 @@ export async function moderationQueues(): Promise<ModerationQueues> {
   };
 }
 
-/** Home-page story rail order: owner-approved stories first. */
+/**
+ * Home-page story rail order: owner-approved stories first.
+ *
+ * Read on every catalogue render, written only when an owner approves or
+ * rejects a story, so it is memoised for one revalidate window. The store's
+ * write counter is part of the key, which means a decision invalidates the
+ * cache immediately instead of waiting out the 30 seconds.
+ */
+const STORIES_CACHE_MS = 30_000;
+let storiesCache: { version: number; at: number; slugs: string[] } | null = null;
+
 export async function approvedStories(): Promise<string[]> {
+  const version = storeVersion();
+  if (
+    storiesCache &&
+    storiesCache.version === version &&
+    Date.now() - storiesCache.at < STORIES_CACHE_MS
+  ) {
+    return storiesCache.slugs;
+  }
   const state = readModerationState();
-  return Object.entries(state.stories)
+  const slugs = Object.entries(state.stories)
     .filter(([, decision]) => decision === 'approved')
     .map(([slug]) => slug);
+  storiesCache = { version, at: Date.now(), slugs };
+  return slugs;
 }
 
 export interface ModerationActionResult {

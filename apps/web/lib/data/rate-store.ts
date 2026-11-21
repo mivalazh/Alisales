@@ -29,7 +29,10 @@ import { readJson, writeJson } from '../storage/demo-store';
 const FILE = 'settings.json';
 /** An automatic value younger than this is reused without a network call. */
 const FEED_TTL_MS = 6 * 3_600_000;
-const FEED_TIMEOUT_MS = 3_000;
+/** A stalled FX API must never hold a render: 1.5s, then the stored value. */
+const FEED_TIMEOUT_MS = 1_500;
+/** Downstream (Next data cache) keeps a live quote for the same five minutes. */
+const FEED_REVALIDATE_SECONDS = 300;
 /** A failed fetch backs off for this long so a dead API cannot stall renders. */
 const FAILURE_BACKOFF_MS = 15 * 60_000;
 
@@ -52,7 +55,8 @@ function writeSettings(next: SettingsFile): void {
 }
 
 let cached: { value: AedRate; at: number } | null = null;
-const CACHE_MS = 30_000;
+/** One rate per five minutes: every page reads it, so this is hot. */
+const CACHE_MS = 300_000;
 
 function normalize(raw: Partial<AedRate> | undefined): AedRate | null {
   if (!raw || !isPlausibleAedRate(raw.aedToIrr)) return null;
@@ -118,7 +122,8 @@ async function autoRate(): Promise<AedRate | null> {
   }
   if (Date.now() - feedFailedAt < FAILURE_BACKOFF_MS) return stored;
 
-  const toman = await fetchLiveToman();
+  // A render may read the stale quote; the admin's «بروزرسانی» forces a fresh one.
+  const toman = await fetchLiveToman(false);
   if (!isPlausibleAedRateToman(toman)) {
     feedFailedAt = Date.now();
     return stored;
@@ -126,22 +131,32 @@ async function autoRate(): Promise<AedRate | null> {
   return await setAedRate(toman, 'auto');
 }
 
-async function getJson(url: string): Promise<unknown> {
+/**
+ * One HTTP read of an FX source.
+ *
+ * Cached reads use Next's data cache (`revalidate: 300`) instead of
+ * `no-store`, so an external rate API is consulted at most once every five
+ * minutes no matter how many pages are rendered. `fresh` is the admin's
+ * explicit refresh, which is the one caller that must hit the network.
+ */
+async function getJson(url: string, fresh = false): Promise<unknown> {
   const response = await fetch(url, {
     signal: AbortSignal.timeout(FEED_TIMEOUT_MS),
     headers: { accept: 'application/json' },
-    cache: 'no-store',
+    ...(fresh
+      ? { cache: 'no-store' as RequestCache }
+      : { next: { revalidate: FEED_REVALIDATE_SECONDS } }),
   });
   if (!response.ok) return null;
   return (await response.json()) as unknown;
 }
 
 /** Toman per 1 AED, or null when no source answered a plausible number. */
-async function fetchLiveToman(): Promise<number | null> {
+async function fetchLiveToman(fresh = false): Promise<number | null> {
   const custom = process.env.AED_RATE_FEED_URL;
   if (custom) {
     try {
-      const body = await getJson(custom);
+      const body = await getJson(custom, fresh);
       const raw =
         typeof body === 'number'
           ? body
@@ -157,7 +172,10 @@ async function fetchLiveToman(): Promise<number | null> {
   const navasanKey = process.env.NAVASAN_API_KEY;
   if (navasanKey) {
     try {
-      const body = await getJson(`${NAVASAN_LATEST}?api_key=${encodeURIComponent(navasanKey)}`);
+      const body = await getJson(
+        `${NAVASAN_LATEST}?api_key=${encodeURIComponent(navasanKey)}`,
+        fresh,
+      );
       const entry = (body as Record<string, { value?: unknown } | undefined> | null)?.['aed'];
       const raw = typeof entry?.value === 'string' ? Number(entry.value) : entry?.value;
       // Navasan quotes free-market Toman; a >200k answer is a rial value.
@@ -169,7 +187,7 @@ async function fetchLiveToman(): Promise<number | null> {
   }
 
   try {
-    const body = await getJson(NOBITEX_USDT_IRT);
+    const body = await getJson(NOBITEX_USDT_IRT, fresh);
     const book = body as
       | {
           lastTradePrice?: unknown;
@@ -201,7 +219,7 @@ async function fetchLiveToman(): Promise<number | null> {
 /** Force a market refresh from the admin panel; returns the new stored rate. */
 export async function refreshAedRate(): Promise<AedRate> {
   feedFailedAt = 0;
-  const toman = await fetchLiveToman();
+  const toman = await fetchLiveToman(true);
   if (!isPlausibleAedRateToman(toman)) {
     feedFailedAt = Date.now();
     throw new Error('invalid rate');

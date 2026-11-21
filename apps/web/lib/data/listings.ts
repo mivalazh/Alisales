@@ -353,7 +353,8 @@ function soldLastThenRecency(a: ListingCardData, b: ListingCardData): number {
  * no buyer's data can ever be served to another.
  */
 let catalogBaseCache: { version: number; at: number; rows: ListingCardData[] } | null = null;
-const CATALOG_CACHE_MS = 5_000;
+/** One browse revalidate window: a published card may take up to 30s to lead. */
+const CATALOG_CACHE_MS = 30_000;
 
 function catalogBase(): ListingCardData[] {
   const version = storeVersion();
@@ -387,6 +388,42 @@ async function fixtureSearchListings(
   return applyFiltersLocally(local, filters, category);
 }
 
+/**
+ * Hosted browse rows, memoised per filter payload for 30 seconds.
+ *
+ * Every catalogue tab, chip change and back-navigation used to run the whole
+ * `search_listings` RPC again. The RPC is public (RLS, no per-user rows), so
+ * one answer is valid for every visitor inside a 30-second window; the key is
+ * the serialized filter payload plus the category, and the map is bounded so a
+ * scripted crawler cannot grow it without limit.
+ */
+const HOSTED_CACHE_TTL_MS = 30_000;
+const HOSTED_CACHE_MAX = 64;
+const hostedCache = new Map<string, { at: number; rows: ListingCardData[] }>();
+
+function hostedCacheGet(key: string): ListingCardData[] | null {
+  const hit = hostedCache.get(key);
+  if (!hit) return null;
+  if (Date.now() - hit.at >= HOSTED_CACHE_TTL_MS) {
+    hostedCache.delete(key);
+    return null;
+  }
+  return hit.rows;
+}
+
+function hostedCacheSet(key: string, rows: ListingCardData[]): void {
+  if (hostedCache.size >= HOSTED_CACHE_MAX) {
+    const oldest = hostedCache.keys().next().value;
+    if (oldest !== undefined) hostedCache.delete(oldest);
+  }
+  hostedCache.set(key, { at: Date.now(), rows });
+}
+
+/** Test hook: drop memoised hosted rows (after a seeded write, for example). */
+export function resetHostedCatalogCache(): void {
+  hostedCache.clear();
+}
+
 export async function searchListings(
   filters: SearchFilters = DEFAULT_FILTERS,
   category?: VehicleCategory,
@@ -394,6 +431,10 @@ export async function searchListings(
   const effective = launchFilters(filters);
   const supabase = supabaseClient();
   if (!supabase) return fixtureSearchListings(filters, category);
+
+  const cacheKey = JSON.stringify({ f: filtersToRpcPayload(effective), c: category ?? 'car' });
+  const memo = hostedCacheGet(cacheKey);
+  if (memo) return memo;
 
   try {
     const { data, error } = await supabase.rpc('search_listings', {
@@ -421,7 +462,9 @@ export async function searchListings(
     // The hosted view has no category column yet, so every vehicle row reads as a
     // car; keeping the narrowing here means the three category pages share one
     // code path online and offline.
-    return rankSearch(rows, filters.q);
+    const ranked = rankSearch(rows, filters.q);
+    hostedCacheSet(cacheKey, ranked);
+    return ranked;
   } catch (error) {
     // Missing table/column, PostgREST or RLS failure: keep the public catalogue
     // alive with the seeded/signed-cookie rows instead of throwing to error.tsx.

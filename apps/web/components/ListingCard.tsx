@@ -74,7 +74,14 @@ function cardBadges(listing: ListingCardData): BadgeKey[] {
  * covered by one stretched link, so a tap anywhere opens the listing. Arrow and
  * bookmark stay above that link and never navigate.
  */
-export function ListingCard({ listing }: { listing: ListingCardData }) {
+export function ListingCard({
+  listing,
+  priority = false,
+}: {
+  listing: ListingCardData;
+  /**** First cards above the fold: paint the photo eagerly and at high priority. */
+  priority?: boolean;
+}) {
   const { lang, t } = useI18n();
   const sold = listing.state === 'sold';
   const part = listing.part ?? null;
@@ -149,7 +156,8 @@ export function ListingCard({ listing }: { listing: ListingCardData }) {
             fill
             sizes="(min-width: 1280px) 25vw, (min-width: 1024px) 33vw, (min-width: 640px) 50vw, 50vw"
             unoptimized={isPreSizedSource(current)}
-            loading="lazy"
+            loading={priority ? 'eager' : 'lazy'}
+            fetchPriority={priority ? 'high' : 'auto'}
             decoding="async"
             className={`object-cover ${sold ? 'opacity-60 grayscale' : ''}`}
           />

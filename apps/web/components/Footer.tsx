@@ -3,14 +3,15 @@
 import Link from 'next/link';
 import { useI18n } from '@/lib/i18n';
 import { BrandLockup } from './BrandLockup';
-import { Icon } from './Icon';
 
 /**
  * Site footer — the home of everything that is information rather than action.
  *
- * Desktop keeps the four-column layout. On phones the link columns become an
- * accordion (`<details>`), because three stacked sections pushed the copyright
- * a full screen down and made a browse page feel like it never ended.
+ * Desktop is a balanced four-column grid, right to left: the brand mark with a
+ * one-line tagline, «دسترسی سریع», «راهنما و قوانین», then «پشتیبانی» with the
+ * official eNamad trust seal under it. On phones the three link columns become
+ * an accordion (`<details>`), because three stacked sections pushed the
+ * copyright a full screen down and made a browse page feel like it never ended.
  *
  * The city selector was removed: it already lives in the header sub-bar, so a
  * second «کیش ▾» control in the footer only duplicated the same state.
@@ -76,33 +77,23 @@ function FooterColumn({
 }
 
 /**
- * eNamad slot. The owner can replace the inner anchor with the official
- * verification snippet once their licence is issued; the container id and
- * dimensions stay stable so the seal never shifts the footer.
+ * The official eNamad snippet, byte for byte.
+ *
+ * eNamad's verifier reads the `code` attribute on the seal image, which React
+ * does not know and would drop if the anchor were written as JSX. The markup is
+ * therefore injected untouched into a clean wrapper, so the seal keeps working
+ * exactly as issued. Never rewrite, re-quote or "clean up" this string.
  */
+const ENAMAD_HTML =
+  "<a referrerpolicy='origin' target='_blank' href='https://trustseal.enamad.ir/?id=8743744&Code=7VHPkq3VWifTz2YgUPSKJVbz1XwaJ4iU'><img referrerpolicy='origin' src='https://trustseal.enamad.ir/logo.aspx?id=8743744&Code=7VHPkq3VWifTz2YgUPSKJVbz1XwaJ4iU' alt='' style='cursor:pointer' code='7VHPkq3VWifTz2YgUPSKJVbz1XwaJ4iU'></a>";
+
 function EnamadSeal({ id = 'enamad-seal-slot' }: { id?: string }) {
-  const { t } = useI18n();
   return (
-    <div id={id} className="shrink-0">
-      <a
-        href="https://www.enamad.ir/"
-        target="_blank"
-        referrerPolicy="origin"
-        rel="noreferrer"
-        aria-label={t(
-          'نماد اعتماد الکترونیکی (ای‌نماد)',
-          'Electronic trust seal (eNamad)',
-        )}
-        className="flex h-24 w-20 flex-col items-center justify-center rounded-xl border border-slate-200/80 bg-white p-2 shadow-xs transition hover:border-slate-300 dark:border-white/10 dark:bg-[#161A38] dark:hover:border-white/20"
-      >
-        <span className="flex h-9 w-9 items-center justify-center rounded-full bg-[#DEF434] text-[#111144]">
-          <Icon name="shieldCheck" size={20} />
-        </span>
-        <span className="mt-1.5 text-center text-[8px] font-extrabold leading-3 text-[#111144] dark:text-[#F4F1EC]">
-          {t('نماد اعتماد الکترونیکی (ای‌نماد)', 'eNamad trust seal')}
-        </span>
-      </a>
-    </div>
+    <div
+      id={id}
+      className="inline-flex shrink-0 items-center justify-center rounded-xl bg-white p-2 shadow-xs"
+      dangerouslySetInnerHTML={{ __html: ENAMAD_HTML }}
+    />
   );
 }
 
@@ -143,33 +134,49 @@ export function SiteFooter() {
     <footer className="site-footer mt-8 border-t border-line bg-card pb-24 sm:pb-6">
       <div className="mx-auto w-full max-w-[var(--content-max)] px-4 py-7 sm:px-6">
         {/* Phone: the standalone emblem, compact accordion, then the seal. */}
-        <div className="sm:hidden">
+        <div className="md:hidden">
           <BrandLockup size="lg" wordmark={false} />
+          <p className="mt-2 text-xs leading-6 text-muted">
+            {t('بازار خودرو در کیش', 'Kish’s vehicle marketplace')}
+          </p>
           <div className="mt-3">
             <FooterAccordion />
           </div>
-          <div className="mt-3 flex justify-center">
+          <div className="mt-4 flex justify-center">
             <EnamadSeal id="enamad-seal-slot-mobile" />
           </div>
         </div>
 
-        {/* Tablet and up: four compact columns, with the seal inside the grid. */}
-        <div className="hidden gap-x-6 gap-y-5 sm:grid sm:grid-cols-2 lg:grid-cols-[auto_repeat(3,minmax(0,1fr))_auto] lg:items-start">
-          <div className="flex items-start">
+        {/* Desktop: a balanced four-column grid, right to left. */}
+        <div className="hidden grid-cols-1 gap-8 md:grid md:grid-cols-4 md:items-start">
+          <div className="flex flex-col items-start gap-2">
             <BrandLockup size="lg" wordmark={false} />
+            <p className="text-xs font-semibold leading-6 text-muted">
+              {t('بازار خودرو در کیش', 'Kish’s vehicle marketplace')}
+            </p>
           </div>
-          {SECTIONS.map((section) => (
+          <FooterColumn
+            title={t(SECTIONS[0].title, SECTIONS[0].en)}
+            links={SECTIONS[0].links}
+          />
+          <FooterColumn
+            title={t(SECTIONS[1].title, SECTIONS[1].en)}
+            links={SECTIONS[1].links}
+          />
+          <div className="flex flex-col items-start gap-4">
             <FooterColumn
-              key={section.title}
-              title={t(section.title, section.en)}
-              links={section.links}
+              title={t(SECTIONS[2].title, SECTIONS[2].en)}
+              links={SECTIONS[2].links}
             />
-          ))}
-          <EnamadSeal />
+            <EnamadSeal />
+          </div>
         </div>
 
-        <div className="mt-5 flex flex-col items-center justify-between gap-3 border-t border-line pt-4 sm:flex-row sm:items-center">
-          <p className="max-w-md text-center text-xs leading-6 text-faint sm:text-start">
+        {/* The floating assistant orb lives at the bottom-right of the screen,
+            so the bar keeps clear of that corner on top of the requested left
+            padding: the copyright never sits under the orb. */}
+        <div className="mt-5 flex flex-col items-center justify-between gap-3 border-t border-line pt-4 pb-8 md:pl-20 md:pr-0 sm:flex-row sm:items-center">
+          <p className="max-w-md text-center text-xs leading-6 text-faint sm:text-start md:pr-20">
             © {new Date().getFullYear()} Ali Sales —{' '}
             {t(
               'تمامی حقوق محفوظ است. مسئولیت اعلام وضعیت پلاک و صحت اطلاعات آگهی بر عهده فروشنده است.',

@@ -281,13 +281,29 @@ export function AIAssistantWidget() {
               onChange={(event) => setInput(event.target.value)}
               aria-label={t('سؤال از دستیار')}
             />
+            {/* High-contrast circular send. The old pale chevron read as a
+                «previous» control, not as the action that submits the question;
+                an upward arrow is the send affordance on every chat surface. */}
             <button
               type="submit"
               disabled={busy || !input.trim()}
               aria-label={t('ارسال', 'Send')}
-              className="flex h-10 w-10 shrink-0 items-center justify-center rounded-full bg-[#F98513] text-white transition hover:bg-[#e0770f] disabled:opacity-50"
+              className="flex h-10 w-10 shrink-0 items-center justify-center rounded-full bg-[#F98513] text-white shadow-xs transition-all hover:bg-[#e0740c] active:scale-95 disabled:opacity-50"
             >
-              <Icon name="chevronLeft" size={17} />
+              <svg
+                aria-hidden="true"
+                focusable="false"
+                viewBox="0 0 24 24"
+                fill="none"
+                stroke="currentColor"
+                strokeWidth="2.4"
+                strokeLinecap="round"
+                strokeLinejoin="round"
+                className="h-5 w-5"
+              >
+                <path d="M12 19V5" />
+                <path d="M5 12l7-7 7 7" />
+              </svg>
             </button>
           </form>
         </div>

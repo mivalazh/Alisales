@@ -49,8 +49,15 @@ export function ListingGrid({
       id={RESULTS_ID}
       className="grid scroll-mt-24 grid-cols-2 gap-3 sm:grid-cols-3 sm:gap-4 lg:grid-cols-4 [&>li]:min-w-0"
     >
-      {listings.map((listing) => (
-        <ListingCard key={listing.slug} listing={listing} />
+      {listings.map((listing, index) => (
+        // Only the first row is above the fold on every breakpoint; everything
+        // below stays lazy so a phone does not fetch a screenful of photos it
+        // may never scroll to.
+        <ListingCard
+          key={listing.slug}
+          listing={listing}
+          priority={index < 2}
+        />
       ))}
     </ul>
   );
