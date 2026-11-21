@@ -36,9 +36,11 @@ function isRead(input: FetchInput, init?: RequestInit): boolean {
 export function supabaseFetch(
   input: FetchInput,
   init?: RequestInit,
+  /** Override for tests; production always uses the 2.5s constant. */
+  timeoutMs: number = SUPABASE_READ_TIMEOUT_MS,
 ): Promise<Response> {
   if (!isRead(input, init)) return fetch(input, init);
-  const budget = AbortSignal.timeout(SUPABASE_READ_TIMEOUT_MS);
+  const budget = AbortSignal.timeout(timeoutMs);
   const signal = init?.signal ? AbortSignal.any([init.signal, budget]) : budget;
   return fetch(input, { ...init, signal });
 }
