@@ -8,6 +8,10 @@ import {
  * The read budget is a production safety net, so it is tested by behaviour, not
  * by reading the constant: a stalled request must reject *because it was
  * aborted*, and a write must never be cut off.
+ *
+ * The 2.5s default on a real client is covered end-to-end in
+ * `supabase-client-wiring.test.ts`; here every test passes a tiny budget so the
+ * unit contract stays sub-second.
  */
 
 const SELECT_URL = 'https://project.supabase.co/rest/v1/listing_cards?select=*';
@@ -28,11 +32,18 @@ function stallUntilAborted(_input: unknown, init?: RequestInit): Promise<Respons
   });
 }
 
+type FetchMock = ReturnType<typeof vi.fn> & { mock: { calls: [unknown, RequestInit?][] } };
+
+function mockFetch(implementation: (input: unknown, init?: RequestInit) => Promise<Response>): FetchMock {
+  const mock = vi.fn(implementation) as unknown as FetchMock;
+  globalThis.fetch = mock as unknown as typeof fetch;
+  return mock;
+}
+
 const originalFetch = globalThis.fetch;
 
 afterEach(() => {
   globalThis.fetch = originalFetch;
-  vi.useRealTimers();
 });
 
 describe('supabase read budget', () => {
@@ -40,61 +51,55 @@ describe('supabase read budget', () => {
     expect(SUPABASE_READ_TIMEOUT_MS).toBe(2_500);
   });
 
-  it('aborts a stalled GET and rejects instead of hanging', async () => {
-    globalThis.fetch = vi.fn(stallUntilAborted) as typeof fetch;
+  it('aborts a stalled read: it rejects as TimeoutError and wins a 1s race', async () => {
+    const fetchMock = mockFetch(stallUntilAborted);
 
-    await expect(supabaseFetch(SELECT_URL, {}, 25)).rejects.toMatchObject({
-      name: 'TimeoutError',
+    let timer: ReturnType<typeof setTimeout> | undefined;
+    const stillWaiting = new Promise<string>((resolve) => {
+      timer = setTimeout(() => resolve('still-waiting'), 1_000);
     });
-  });
-
-  it('does not hang at all: the rejection wins a 1s race', async () => {
-    globalThis.fetch = vi.fn(stallUntilAborted) as typeof fetch;
 
     const outcome = await Promise.race([
       supabaseFetch(SELECT_URL, {}, 25).then(
         () => 'resolved',
-        () => 'rejected',
+        (error: unknown) => (error as { name?: string }).name ?? 'rejected',
       ),
-      new Promise<string>((resolve) => setTimeout(() => resolve('still-waiting'), 1_000)),
-    ]);
+      stillWaiting,
+    ]).finally(() => clearTimeout(timer));
 
-    expect(outcome).toBe('rejected');
+    expect(outcome).toBe('TimeoutError');
+    // The abort reached the actual request, not just the helper's promise.
+    const signal = fetchMock.mock.calls[0]?.[1]?.signal;
+    expect(signal?.aborted).toBe(true);
   });
 
   it('aborts a stalled PostgREST RPC, which arrives as a POST', async () => {
-    globalThis.fetch = vi.fn(stallUntilAborted) as typeof fetch;
+    mockFetch(stallUntilAborted);
 
     await expect(
       supabaseFetch(RPC_URL, { method: 'POST', body: '{}' }, 25),
     ).rejects.toMatchObject({ name: 'TimeoutError' });
   });
 
-  it('leaves a table write unbudgeted, so a slow save still completes', async () => {
-    globalThis.fetch = vi.fn(async () => new Response('{}', { status: 201 })) as typeof fetch;
+  it('leaves table writes and storage uploads unbudgeted', async () => {
+    const fetchMock = mockFetch(async () => new Response('{}', { status: 201 }));
 
-    const response = await supabaseFetch(WRITE_URL, { method: 'POST', body: '{}' }, 1);
-    expect(response.status).toBe(201);
-    // No signal was attached: the caller's request is untouched.
-    expect((globalThis.fetch as unknown as ReturnType<typeof vi.fn>).mock.calls[0]?.[1])
-      .not.toHaveProperty('signal');
-  });
-
-  it('leaves a storage upload unbudgeted', async () => {
-    globalThis.fetch = vi.fn(async () => new Response('{}', { status: 200 })) as typeof fetch;
-
+    await supabaseFetch(WRITE_URL, { method: 'POST', body: '{}' }, 1);
     await supabaseFetch(
       UPLOAD_URL,
       { method: 'POST', body: new Uint8Array([1, 2, 3]) },
       1,
     );
 
-    expect((globalThis.fetch as unknown as ReturnType<typeof vi.fn>).mock.calls[0]?.[1])
-      .not.toHaveProperty('signal');
+    expect(fetchMock.mock.calls).toHaveLength(2);
+    for (const [, init] of fetchMock.mock.calls) {
+      // No signal was attached: the caller's request is untouched.
+      expect(init).not.toHaveProperty('signal');
+    }
   });
 
   it('keeps a caller-supplied abort signal working alongside the budget', async () => {
-    globalThis.fetch = vi.fn(stallUntilAborted) as typeof fetch;
+    mockFetch(stallUntilAborted);
     const caller = new AbortController();
 
     const pending = supabaseFetch(SELECT_URL, { signal: caller.signal }, 5_000);
@@ -102,17 +107,4 @@ describe('supabase read budget', () => {
 
     await expect(pending).rejects.toMatchObject({ name: 'AbortError' });
   });
-
-  it('enforces the real 2.5s default on a stalled read', async () => {
-    globalThis.fetch = vi.fn(stallUntilAborted) as typeof fetch;
-    const started = Date.now();
-
-    await expect(supabaseFetch(SELECT_URL)).rejects.toMatchObject({
-      name: 'TimeoutError',
-    });
-
-    const elapsed = Date.now() - started;
-    expect(elapsed).toBeGreaterThanOrEqual(2_300);
-    expect(elapsed).toBeLessThan(6_000);
-  }, 15_000);
 });
