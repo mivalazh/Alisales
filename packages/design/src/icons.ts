@@ -22,6 +22,8 @@ export const ICONS = {
   menu: { paths: ['M4 6h16', 'M4 12h16', 'M4 18h16'] },
   close: { paths: ['M6 6l12 12', 'M18 6L6 18'] },
   arrowLeft: { paths: ['M19 12H5', 'M11 18l-6-6 6-6'] },
+  arrowRight: { paths: ['M5 12h14', 'M13 6l6 6-6 6'] },
+  arrowUp: { paths: ['M12 19V5', 'M5 12l7-7 7 7'] },
   chevronDown: { paths: ['M6 9l6 6 6-6'] },
   chevronLeft: { paths: ['M15 18l-6-6 6-6'] },
   chevronRight: { paths: ['M9 18l6-6-6-6'] },

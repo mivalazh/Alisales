@@ -290,20 +290,7 @@ export function AIAssistantWidget() {
               aria-label={t('ارسال', 'Send')}
               className="flex h-10 w-10 shrink-0 items-center justify-center rounded-full bg-[#F98513] text-white shadow-xs transition-all hover:bg-[#e0740c] active:scale-95 disabled:opacity-50"
             >
-              <svg
-                aria-hidden="true"
-                focusable="false"
-                viewBox="0 0 24 24"
-                fill="none"
-                stroke="currentColor"
-                strokeWidth="2.4"
-                strokeLinecap="round"
-                strokeLinejoin="round"
-                className="h-5 w-5"
-              >
-                <path d="M12 19V5" />
-                <path d="M5 12l7-7 7 7" />
-              </svg>
+              <Icon name="arrowUp" size={20} className="h-5 w-5" />
             </button>
           </form>
         </div>
