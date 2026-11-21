@@ -1,15 +1,31 @@
 'use client';
 
-import { useRef, type ChangeEvent, type ClipboardEvent, type KeyboardEvent } from 'react';
+import {
+  useEffect,
+  useRef,
+  useState,
+  type ChangeEvent,
+  type ClipboardEvent,
+  type KeyboardEvent,
+} from 'react';
 
 const LENGTH = 6;
+
+const splitDigits = (value: string): string[] =>
+  Array.from({ length: LENGTH }, (_, index) => value[index] ?? '');
 
 /**
  * Six square digit boxes for a one-time code.
  *
  * The value stays a plain string in the parent, so every existing caller keeps
- * its state (`setCode`, fallback `devCode` pre-fill) unchanged — the boxes just
- * render `value[i]`.
+ * its state (`setCode`, fallback `devCode` pre-fill) unchanged.
+ *
+ * Inside, the digits live in fixed positional slots rather than being read back
+ * as `value[i]`: clearing a box in the middle must leave the digits after it
+ * where they are, and a joined string would close the gap and slide them left.
+ * Every edit is emitted upward as the compacted string, and a value arriving
+ * from the parent that this component did not itself emit (the fallback
+ * pre-fill, a reset) re-seeds the slots.
  *
  * Behaviour:
  *  · typing a digit advances to the next box;
@@ -38,7 +54,17 @@ export function OtpInput({
   disabled?: boolean;
 }) {
   const refs = useRef<Array<HTMLInputElement | null>>([]);
-  const digits = Array.from({ length: LENGTH }, (_, index) => value[index] ?? '');
+  const [digits, setDigits] = useState<string[]>(() => splitDigits(value));
+  // The last value handed to the parent. Without it the echo of our own change
+  // would come back as a "new" compacted value and re-seed the slots, which is
+  // exactly the shift this component avoids.
+  const emitted = useRef<string | null>(null);
+
+  useEffect(() => {
+    if (value === emitted.current) return;
+    emitted.current = value;
+    setDigits(splitDigits(value));
+  }, [value]);
 
   const focusBox = (index: number) => {
     const target = Math.max(0, Math.min(LENGTH - 1, index));
@@ -46,7 +72,10 @@ export function OtpInput({
   };
 
   const commit = (next: string[], focusIndex?: number) => {
-    onChange(next.join('').slice(0, LENGTH));
+    const joined = next.join('');
+    emitted.current = joined;
+    setDigits(next);
+    onChange(joined);
     if (focusIndex !== undefined) focusBox(focusIndex);
   };
 
@@ -61,7 +90,7 @@ export function OtpInput({
     // A code dropped in by the OS keyboard can arrive as six characters in one
     // box; spread it out instead of keeping only the last digit.
     if (raw.length > 1) {
-      const next = Array.from({ length: LENGTH }, (_, i) => digits[i] ?? '');
+      const next = [...digits];
       for (let offset = 0; offset < raw.length && index + offset < LENGTH; offset += 1) {
         next[index + offset] = raw[offset] ?? '';
       }
@@ -79,8 +108,7 @@ export function OtpInput({
     event.preventDefault();
     // A full code always lands from the first square, whichever box was pasted
     // into; a shorter snippet fills from that box onward.
-    // `digits[i] ?? ''` keeps shorter snippets from leaving holes.
-    const next: string[] = Array.from({ length: LENGTH }, (_, i) => digits[i] ?? '');
+    const next = [...digits];
     if (text.length === LENGTH) {
       for (let i = 0; i < LENGTH; i += 1) next[i] = text[i] ?? '';
     } else {
@@ -138,10 +166,6 @@ export function OtpInput({
           onKeyDown={(event) => handleKeyDown(index, event)}
           onFocus={(event) => {
             event.currentTarget.select();
-            // The value is one string, so a gap before this box would shift the
-            // digits on join: send the caret to the first empty square instead.
-            const firstEmpty = digits.findIndex((entry) => !entry);
-            if (firstEmpty !== -1 && index > firstEmpty) focusBox(firstEmpty);
           }}
           className={`h-12 w-11 rounded-xl border text-center text-lg font-bold tabular-nums outline-none transition sm:h-13 sm:w-12 ${
             digit
