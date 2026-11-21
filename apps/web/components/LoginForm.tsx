@@ -24,6 +24,10 @@ const ACCOUNT_TYPE_FA: Record<AccountType, string> = {
   showroom: 'حساب کسب‌وکار / نمایشگاهی',
 };
 
+// The OTP boxes replaced a single `required` input, so the forms check the code
+// themselves: nothing short of six digits ever reaches the API.
+const COMPLETE_CODE = /^\d{6}$/;
+
 /**
  * Phone + OTP login (S2 / C4).
  *
@@ -88,15 +92,17 @@ export function LoginForm() {
     setBusy(true);
     try {
       const { status, data } = await post('/api/auth/otp', { phone });
-      if (status === 202) {
+      if (status === 200 || status === 202) {
         setStep('code');
         setNeedsProfile(Boolean(data.needsProfile));
         const hint =
-          typeof data.devCode === 'string'
-            ? data.devCode
-            : typeof data.demoCode === 'string'
-              ? data.demoCode
-              : null;
+          typeof data.fallbackCode === 'string'
+            ? data.fallbackCode
+            : typeof data.devCode === 'string'
+              ? data.devCode
+              : typeof data.demoCode === 'string'
+                ? data.demoCode
+                : null;
         setDemoCode(hint);
         if (hint) setCode(hint);
         setNotice(
@@ -131,17 +137,19 @@ export function LoginForm() {
     setBusy(true);
     try {
       const { status, data } = await post('/api/auth/otp', { phone });
-      if (status === 202) {
+      if (status === 200 || status === 202) {
         if (data.needsProfile) {
           setError(t('حسابی با این شماره پیدا نشد.', 'No account was found for this number.'));
           return;
         }
         const hint =
-          typeof data.devCode === 'string'
-            ? data.devCode
-            : typeof data.demoCode === 'string'
-              ? data.demoCode
-              : null;
+          typeof data.fallbackCode === 'string'
+            ? data.fallbackCode
+            : typeof data.devCode === 'string'
+              ? data.devCode
+              : typeof data.demoCode === 'string'
+                ? data.demoCode
+                : null;
         setDemoCode(hint);
         setCode(hint ?? '');
         setPassword('');
@@ -173,6 +181,15 @@ export function LoginForm() {
     if (busy) return;
     setError(null);
     setNotice(null);
+    if (!COMPLETE_CODE.test(code)) {
+      setError(
+        t(
+          'کد تأیید باید شش رقم کامل باشد.',
+          'The verification code must be all six digits.',
+        ),
+      );
+      return;
+    }
     if (password !== resetConfirm) {
       setError(t('تکرار رمز عبور یکسان نیست.', 'The passwords do not match.'));
       return;
@@ -204,13 +221,15 @@ export function LoginForm() {
     setBusy(true);
     try {
       const { status, data } = await post('/api/auth/otp', { phone });
-      if (status === 202) {
+      if (status === 200 || status === 202) {
         const hint =
-          typeof data.devCode === 'string'
-            ? data.devCode
-            : typeof data.demoCode === 'string'
-              ? data.demoCode
-              : null;
+          typeof data.fallbackCode === 'string'
+            ? data.fallbackCode
+            : typeof data.devCode === 'string'
+              ? data.devCode
+              : typeof data.demoCode === 'string'
+                ? data.demoCode
+                : null;
         setDemoCode(hint);
         if (hint) setCode(hint);
         setNotice(t('کد بازیابی دوباره ارسال شد.', 'Reset code sent again.'));
@@ -250,6 +269,15 @@ export function LoginForm() {
     event.preventDefault();
     if (busy) return;
     setError(null);
+    if (!COMPLETE_CODE.test(code)) {
+      setError(
+        t(
+          'کد تأیید باید شش رقم کامل باشد.',
+          'The verification code must be all six digits.',
+        ),
+      );
+      return;
+    }
     setBusy(true);
     try {
       const { status, data } = await post('/api/auth/verify', {

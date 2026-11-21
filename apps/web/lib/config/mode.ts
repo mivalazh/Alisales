@@ -50,11 +50,21 @@ export function hostedReadsConfigured(): boolean {
 }
 
 /**
- * Launch-day switch: when true, no seeded sample listing or sample story is
+ * Launch switch: when true, no seeded sample listing or sample story is
  * served. Real listings written to Supabase or the dev store stay visible.
+ *
+ * It is ON by default for `production` builds, which is what a live deployment
+ * is: the seeded catalogue (and the demo story picks that come from it) must
+ * never reach real visitors unless the operator explicitly opts in. Setting
+ * `NEXT_PUBLIC_HIDE_DEMO_LISTINGS=false` is the only way back to showing the
+ * seed; any other non-empty value hides it. Development keeps its fixtures so
+ * `next dev` still has a catalogue to work on.
  */
 export function demoListingsHidden(): boolean {
-  return flagOn(process.env.NEXT_PUBLIC_HIDE_DEMO_LISTINGS);
+  const raw = process.env.NEXT_PUBLIC_HIDE_DEMO_LISTINGS?.trim().toLowerCase();
+  if (raw === 'false' || raw === '0' || raw === 'no' || raw === 'off') return false;
+  if (raw) return true;
+  return process.env.NODE_ENV === 'production';
 }
 
 /**
@@ -121,6 +131,19 @@ function instantOtpAllowlist(): ReadonlySet<string> {
  */
 export function sandboxOtpFallbackEnabled(): boolean {
   return flagOn(process.env.ALLOW_SANDBOX_OTP_FALLBACK);
+}
+
+/**
+ * Whether this exact phone is one of the operator's launch numbers.
+ *
+ * These are the only numbers allowed to receive a login code on screen when
+ * the SMS gateway fails, without needing the separate
+ * `ALLOW_SANDBOX_OTP_FALLBACK` switch: the allowlist itself is the closed
+ * bracket (it is explicit, small, and has no wildcard), so an arbitrary phone
+ * still cannot obtain a code it did not prove control of.
+ */
+export function instantOtpEmergencyAllowedFor(rawPhone: string): boolean {
+  return instantOtpAllowlist().has(normalizePhone(rawPhone));
 }
 
 /**

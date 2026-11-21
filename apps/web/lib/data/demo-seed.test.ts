@@ -1,4 +1,4 @@
-import { afterEach, describe, expect, it } from 'vitest';
+import { afterEach, describe, expect, it, vi } from 'vitest';
 import { fixtureListings } from './fixtures';
 import { visibleCatalog } from './demo-seed';
 import { storiesFrom } from '../stories';
@@ -44,7 +44,7 @@ describe('demo listing launch switch', () => {
     expect(stories.some((story) => story.slug === sampleSeed.slug)).toBe(false);
   });
 
-  it('keeps the seeded catalogue while the flag is off', () => {
+  it('keeps the seeded catalogue in development while the flag is unset', () => {
     delete process.env[ENV_KEY];
 
     const visible = visibleCatalog(fixtureListings, [userListing]);
@@ -52,5 +52,31 @@ describe('demo listing launch switch', () => {
     expect(visible).toHaveLength(fixtureListings.length + 1);
     expect(visible.some((listing) => listing.slug === sampleSeed.slug)).toBe(true);
     expect(visible.some((listing) => listing.id === 'user-created-listing')).toBe(true);
+  });
+
+  it('hides the seed by default in a production build', () => {
+    vi.stubEnv('NODE_ENV', 'production');
+    delete process.env[ENV_KEY];
+    try {
+      const visible = visibleCatalog(fixtureListings, [userListing]);
+
+      expect(visible.map((listing) => listing.id)).toEqual(['user-created-listing']);
+      expect(visible.some((listing) => listing.slug === sampleSeed.slug)).toBe(false);
+    } finally {
+      vi.unstubAllEnvs();
+    }
+  });
+
+  it('shows the seed again only when the flag is explicitly "false"', () => {
+    vi.stubEnv('NODE_ENV', 'production');
+    process.env[ENV_KEY] = 'false';
+    try {
+      const visible = visibleCatalog(fixtureListings, [userListing]);
+
+      expect(visible).toHaveLength(fixtureListings.length + 1);
+    } finally {
+      vi.unstubAllEnvs();
+      delete process.env[ENV_KEY];
+    }
   });
 });

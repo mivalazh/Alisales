@@ -8,6 +8,7 @@ import {
   demoAuthMode,
   demoOtpHintEnabled,
   instantOtpAllowedFor,
+  instantOtpEmergencyAllowedFor,
   instantOtpFallbackAllowedFor,
 } from '@/lib/config/mode';
 import { findUserByPhone } from '@/lib/data/s2-store';
@@ -125,20 +126,22 @@ async function handlePost(request: Request): Promise<NextResponse> {
 
   const delivery = await sendOtpSms(phone, code);
   const demo = demoAuthMode();
-  // SMS.ir can reject an unverified/sandbox account before delivery. Do not
-  // lock launch users out: fall back to the allowlisted instant code.
-  // A pending template or a temporarily unavailable gateway must not lock out
-  // the operator's explicitly allowlisted launch numbers. Arbitrary numbers
-  // still never receive a code they did not prove control of by SMS.
-  const fallbackAllowed = instantOtpFallbackAllowedFor(phone);
-  const sandboxFallback =
-    !delivery.delivered &&
-    (delivery.reason === 'sandbox' || delivery.reason === 'provider_error') &&
-    fallbackAllowed;
+  // SMS.ir can reject an unverified/sandbox account before delivery, reject a
+  // template, or time out. Do not lock launch users out: an explicitly
+  // allowlisted launch number always gets the code on screen instead, and the
+  // six boxes open immediately on a 200.
+  //
+  // Bounded on purpose: `instantOtpEmergencyAllowedFor` is exact allowlist
+  // membership, and `instantOtpFallbackAllowedFor` is the separate opt-in
+  // switch for anything else. An arbitrary phone still never receives a code it
+  // did not prove control of by SMS. See LOGIN_RUNBOOK.md.
+  const launchNumber = instantOtpEmergencyAllowedFor(phone);
+  const fallbackAllowed = launchNumber || instantOtpFallbackAllowedFor(phone);
+  const fallback = !delivery.delivered && fallbackAllowed;
 
-  if (!delivery.delivered) {
-    if (delivery.reason === 'provider_error' && !sandboxFallback) {
-      deleteOtp(phone);
+  if (!delivery.delivered && !fallback) {
+    deleteOtp(phone);
+    if (delivery.reason === 'provider_error') {
       return NextResponse.json(
         {
           code: 'SMS_PROVIDER_ERROR',
@@ -148,31 +151,30 @@ async function handlePost(request: Request): Promise<NextResponse> {
         { status: 502 },
       );
     }
-    if (delivery.reason === 'sandbox' && !sandboxFallback) {
-      deleteOtp(phone);
+    if (delivery.reason === 'sandbox') {
       return NextResponse.json(
         {
           code: 'SMS_IR_TEMPLATE_NOT_APPROVED',
           error:
-            'حساب یا قالب SMS.ir تأیید نشده است؛ قالب Fast Verification را تأیید یا شماره را به INSTANT_OTP_ALLOWLIST اضافه کنید.',
+            'حساب یا قالب SMS.ir تأیید نشده است؛ قالب Fast Verification را تأیید کنید یا شماره را به INSTANT_OTP_ALLOWLIST اضافه کنید.',
         },
         { status: 503 },
       );
     }
-    if (!demo && !sandboxFallback) {
-      // Hosted deployment with no provider: refuse instead of issuing a code
-      // nobody can receive.
-      deleteOtp(phone);
-      return NextResponse.json(
-        {
-          code: 'SMS_NOT_CONFIGURED',
-          error:
-            'سرویس پیامک پیکربندی نشده است؛ SMS_IR_API_KEY و SMS_IR_TEMPLATE_ID یا هر سه متغیر SMS_API_KEY/SMS_SENDER/SMS_API_URL را تنظیم کنید.',
-        },
-        { status: 503 },
-      );
-    }
-    // Development / demo / SMS.ir sandbox fallback: the code is written to the
+    // Hosted deployment with no provider: refuse instead of issuing a code
+    // nobody can receive.
+    return NextResponse.json(
+      {
+        code: 'SMS_NOT_CONFIGURED',
+        error:
+          'سرویس پیامک پیکربندی نشده است؛ SMS_IR_API_KEY و SMS_IR_TEMPLATE_ID یا هر سه متغیر SMS_API_KEY/SMS_SENDER/SMS_API_URL را تنظیم کنید.',
+      },
+      { status: 503 },
+    );
+  }
+
+  if (!delivery.delivered) {
+    // Development / demo / launch-number fallback: the code is written to the
     // server console and handed to this browser.
     console.info(`[alisales][otp] login code for ${phone}: ${code}`);
   }
@@ -184,16 +186,21 @@ async function handlePost(request: Request): Promise<NextResponse> {
     warning?: string;
     devCode?: string;
     demoCode?: string;
+    fallbackCode?: string;
   } = {
     ok: true,
     needsProfile: !existing,
     delivery: delivery.delivered ? 'sms' : 'instant',
   };
-  if (!delivery.delivered && (demoOtpHintEnabled(phone) || sandboxFallback)) {
+  if (!delivery.delivered && (demoOtpHintEnabled(phone) || fallback)) {
     body.devCode = code;
     body.demoCode = code;
-    body.warning = sandboxFallback
-      ? 'SMS_IR_TEMPLATE_NOT_APPROVED'
+    // The launch-flow name: the client opens the six boxes on this value.
+    body.fallbackCode = code;
+    body.warning = fallback
+      ? delivery.reason === 'sandbox'
+        ? 'SMS_IR_TEMPLATE_NOT_APPROVED'
+        : 'SMS_PROVIDER_ERROR_FALLBACK'
       : sms.missing.length > 0
         ? 'SMS_NOT_CONFIGURED'
         : 'INSTANT_OTP_FALLBACK';
@@ -201,7 +208,9 @@ async function handlePost(request: Request): Promise<NextResponse> {
 
   // Hand the code to this browser too, so verify still works when a different
   // isolate (no shared memory) serves the next request.
-  if (demo || sandboxFallback) await setDemoOtpCookie(phone, code);
+  if (demo || fallback) await setDemoOtpCookie(phone, code);
 
-  return NextResponse.json(body, { status: 202 });
+  // 200 when a code was issued as the on-screen fallback (the boxes open on it);
+  // 202 keeps the "code sent" semantics for a delivered SMS.
+  return NextResponse.json(body, { status: fallback ? 200 : 202 });
 }

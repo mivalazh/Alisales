@@ -107,35 +107,60 @@ afterEach(() => {
   dataDir = '';
 });
 
-describe('sandbox OTP fallback is closed by default', () => {
-  it('returns no code when the provider rejects a sandbox account', async () => {
+describe('SMS.ir failure opens the code for allowlisted launch numbers', () => {
+  it('returns 200 with fallbackCode when the provider rejects the account', async () => {
     const fetchMock = sandboxRejection();
 
     const response = await requestOtp(
       post('/api/auth/otp', { phone: PHONE }, '203.0.113.10'),
     );
     const body = (await response.json()) as {
-      code?: string;
+      ok?: boolean;
+      delivery?: string;
+      warning?: string;
+      fallbackCode?: string;
       devCode?: string;
       demoCode?: string;
     };
 
     expect(fetchMock).toHaveBeenCalledTimes(1);
+    expect(response.status).toBe(200);
+    expect(body.ok).toBe(true);
+    expect(body.delivery).toBe('instant');
+    expect(body.fallbackCode).toMatch(/^\d{6}$/);
+    expect(body.devCode).toBe(body.fallbackCode);
+    expect(body.warning).toBe('SMS_IR_TEMPLATE_NOT_APPROVED');
+    // The code is handed to this browser too, so verify works on another isolate.
+    expect([...jar.keys()].length).toBeGreaterThan(0);
+  });
+
+  it('still issues nothing for a number outside the allowlist', async () => {
+    process.env.INSTANT_OTP_ALLOWLIST = '';
+    sandboxRejection();
+
+    const response = await requestOtp(
+      post('/api/auth/otp', { phone: PHONE }, '203.0.113.15'),
+    );
+    const body = (await response.json()) as {
+      code?: string;
+      fallbackCode?: string;
+      devCode?: string;
+    };
+
     expect(response.status).toBe(503);
     expect(body.code).toBe('SMS_IR_TEMPLATE_NOT_APPROVED');
+    expect(body.fallbackCode).toBeUndefined();
     expect(body.devCode).toBeUndefined();
-    expect(body.demoCode).toBeUndefined();
-    // Nothing was handed to the browser either.
     expect([...jar.keys()]).toEqual([]);
   });
 
-  it('rejects any on-screen code at verify while the flag is off', async () => {
+  it('rejects a wrong code at verify', async () => {
     sandboxRejection();
 
     const issued = await requestOtp(
       post('/api/auth/otp', { phone: PHONE }, '203.0.113.11'),
     );
-    expect(issued.status).toBe(503);
+    expect(issued.status).toBe(200);
 
     const verified = await verifyOtp(
       post(
@@ -151,7 +176,8 @@ describe('sandbox OTP fallback is closed by default', () => {
     );
     const body = (await verified.json()) as { ok?: boolean; error?: string };
 
-    expect(verified.status).toBe(400);
+    // The code exists and does not match, so verify refuses the attempt.
+    expect(verified.status).toBe(401);
     expect(body.ok).toBeUndefined();
     expect([...jar.keys()].filter((name) => name.includes('session'))).toEqual([]);
   });
@@ -173,7 +199,7 @@ describe('sandbox OTP fallback opens only for the allowlist when enabled', () =>
       warning?: string;
     };
 
-    expect(response.status).toBe(202);
+    expect(response.status).toBe(200);
     expect(body.ok).toBe(true);
     expect(body.delivery).toBe('instant');
     expect(body.devCode).toMatch(/^\d{6}$/);
@@ -203,7 +229,7 @@ describe('sandbox OTP fallback opens only for the allowlist when enabled', () =>
       post('/api/auth/otp', { phone: PHONE }, '203.0.113.14'),
     );
     const { devCode } = (await issued.json()) as { devCode: string };
-    expect(issued.status).toBe(202);
+    expect(issued.status).toBe(200);
     expect(devCode).toMatch(/^\d{6}$/);
 
     const verified = await verifyOtp(

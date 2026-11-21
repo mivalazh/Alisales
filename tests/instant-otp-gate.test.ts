@@ -1,6 +1,7 @@
 import { afterEach, beforeEach, describe, expect, it } from 'vitest';
 import {
   instantOtpAllowedFor,
+  instantOtpEmergencyAllowedFor,
   instantOtpFallbackAllowedFor,
   sandboxOtpFallbackEnabled,
 } from '../apps/web/lib/config/mode';
@@ -81,7 +82,7 @@ describe('production instant OTP gate', () => {
     expect(instantOtpAllowedFor('09120000099')).toBe(true);
   });
 
-  it('keeps the sandbox fallback off by default, even for an allowlisted number', () => {
+  it('keeps the flag-gated fallback off by default', () => {
     setEnv('NODE_ENV', 'production');
     setEnv('INSTANT_OTP_ALLOWLIST', '09120000001');
     setEnv('SMS_IR_API_KEY', 'sms-ir-key');
@@ -89,6 +90,28 @@ describe('production instant OTP gate', () => {
 
     expect(sandboxOtpFallbackEnabled()).toBe(false);
     expect(instantOtpFallbackAllowedFor('09120000001')).toBe(false);
+  });
+
+  it('lets exactly the allowlist take the on-screen code when the gateway fails', () => {
+    setEnv('NODE_ENV', 'production');
+    setEnv('INSTANT_OTP_ALLOWLIST', '+98 912 000 0001, 0935-123-4567');
+    setEnv('SMS_IR_API_KEY', 'sms-ir-key');
+    setEnv('SMS_IR_TEMPLATE_ID', '123456');
+
+    expect(instantOtpEmergencyAllowedFor('09120000001')).toBe(true);
+    expect(instantOtpEmergencyAllowedFor('+989120000001')).toBe(true);
+    expect(instantOtpEmergencyAllowedFor('09351234567')).toBe(true);
+    // No wildcard: a number the operator did not list still gets nothing.
+    expect(instantOtpEmergencyAllowedFor('09120000099')).toBe(false);
+  });
+
+  it('has no emergency path when the allowlist is empty', () => {
+    setEnv('NODE_ENV', 'production');
+    setEnv('INSTANT_OTP_ALLOWLIST', undefined);
+    setEnv('SMS_IR_API_KEY', 'sms-ir-key');
+    setEnv('SMS_IR_TEMPLATE_ID', '123456');
+
+    expect(instantOtpEmergencyAllowedFor('09120000001')).toBe(false);
   });
 
   it('also keeps the sandbox fallback off in development without the flag', () => {
