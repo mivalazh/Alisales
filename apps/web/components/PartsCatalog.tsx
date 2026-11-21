@@ -1,8 +1,16 @@
 'use client';
 
-import type { SearchFilters } from '@alisales/schemas';
+import { useSearchParams } from 'next/navigation';
+import { useMemo } from 'react';
+import { DEFAULT_FILTERS, type SearchFilters } from '@alisales/schemas';
 import type { ListingCardData } from '@/lib/data/listings';
-import type { SortKey } from '@/lib/sort';
+import { filtersFromParams, visibleListings } from '@/lib/catalogue';
+import { parseSortKey, type SortKey } from '@/lib/sort';
+import {
+  filterByPartCategory,
+  filterPartsByAttributes,
+  parsePartCategory,
+} from '@/lib/browse';
 import { Catalog } from './Catalog';
 import {
   PartsFilterDrawer,
@@ -13,41 +21,40 @@ import type { StoryItem } from './Stories';
 import { useI18n } from '@/lib/i18n';
 
 /**
- * Client shell for the parts page: category / origin / warranty / compatibility
- * live in their own URL params, so they are passed into the shared catalog
- * filter slots rather than rendered as a horizontal strip.
+ * Client shell for the parts page.
+ *
+ * Same contract as the vehicle category shell (see CategoryCatalog.tsx): the
+ * static page renders the parts pool, and category / origin / warranty /
+ * compatibility / condition are read from the URL here. `PartsCatalogFallback`
+ * is the default-filter render used for the prerendered HTML.
  */
-export function PartsCatalog({
-  listings,
+function PartsCatalogueView({
   pool,
+  stories,
   filters,
   sort,
-  stories,
-  category,
-  origin,
-  warranty,
-  compatibility,
-  condition,
+  values,
 }: {
-  listings: ListingCardData[];
   pool: ListingCardData[];
+  stories: StoryItem[];
   filters: SearchFilters;
   sort: SortKey;
-  stories: StoryItem[];
-  category: string | null;
-  origin: string | null;
-  warranty: boolean;
-  compatibility: string;
-  condition: string | null;
+  values: PartFilterValues;
 }) {
   const { t } = useI18n();
-  const partValues: PartFilterValues = {
-    category,
-    origin,
-    warranty,
-    compatibility,
-    condition,
-  };
+  const { category, origin, warranty, compatibility, condition } = values;
+  const partCategory = parsePartCategory(category);
+
+  const listings = useMemo(() => {
+    const parts = visibleListings(pool, filters);
+    const scoped = partCategory ? filterByPartCategory(parts, partCategory) : parts;
+    return filterPartsByAttributes(scoped, {
+      origin,
+      warrantyOnly: warranty,
+      compatibility,
+      condition,
+    });
+  }, [pool, filters, partCategory, origin, warranty, compatibility, condition]);
 
   return (
     <Catalog
@@ -67,12 +74,12 @@ export function PartsCatalog({
         'Search parts, part numbers or vehicle models...',
       )}
       filterSystem={{
-        activeCount: activePartFilterCount(partValues),
+        activeCount: activePartFilterCount(values),
         sheet: ({ open, onClose }) => (
           <PartsFilterDrawer
             open={open}
             basePath="/parts"
-            value={partValues}
+            value={values}
             pool={pool}
             onClose={onClose}
           />
@@ -82,11 +89,65 @@ export function PartsCatalog({
             open
             variant="sidebar"
             basePath="/parts"
-            value={partValues}
+            value={values}
             pool={pool}
             onClose={onClose}
           />
         ),
+      }}
+    />
+  );
+}
+
+export function PartsCatalog({
+  pool,
+  stories,
+}: {
+  /** Every public parts listing, unfiltered. */
+  pool: ListingCardData[];
+  stories: StoryItem[];
+}) {
+  const params = useSearchParams();
+  const filters = useMemo(() => filtersFromParams(params), [params]);
+  const sort = parseSortKey(params?.get('sort'));
+  const values: PartFilterValues = {
+    category: parsePartCategory(params?.get('category')),
+    origin: params?.get('origin') ?? null,
+    warranty: params?.get('warranty') === '1',
+    compatibility: params?.get('compat') ?? '',
+    condition: params?.get('pcond') ?? null,
+  };
+
+  return (
+    <PartsCatalogueView
+      pool={pool}
+      stories={stories}
+      filters={filters}
+      sort={sort}
+      values={values}
+    />
+  );
+}
+
+export function PartsCatalogFallback({
+  pool,
+  stories,
+}: {
+  pool: ListingCardData[];
+  stories: StoryItem[];
+}) {
+  return (
+    <PartsCatalogueView
+      pool={pool}
+      stories={stories}
+      filters={DEFAULT_FILTERS}
+      sort="newest"
+      values={{
+        category: null,
+        origin: null,
+        warranty: false,
+        compatibility: '',
+        condition: null,
       }}
     />
   );

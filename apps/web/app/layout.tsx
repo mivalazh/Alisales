@@ -13,9 +13,7 @@ import { BackToTop } from '@/components/BackToTop';
 import { themeBootstrapScript } from '@/components/ThemeToggle';
 import { PriceUnitProvider } from '@/components/PriceUnitProvider';
 import { LocaleProvider } from '@/lib/i18n';
-import { getLanguage } from '@/lib/i18n/server';
 import { RateProvider } from '@/components/RateProvider';
-import { getSession } from '@/lib/auth/session';
 import { getAedRate } from '@/lib/data/rate-store';
 import { absoluteUrl, SITE_URL } from '@/lib/seo';
 
@@ -46,68 +44,68 @@ const STARTUP_IMAGES = [
   '(device-width: 375px) and (device-height: 667px)',
 ].map((geometry) => ({ url: SPLASH_IMAGE, media: `${geometry} and (orientation: portrait)` }));
 
-export async function generateMetadata(): Promise<Metadata> {
-  const lang = await getLanguage();
-  const isEnglish = lang === 'en';
-
-  return {
-    metadataBase: new URL(siteUrl),
-    keywords: [
-      'خرید خودرو کیش',
-      'فروش خودرو کیش',
-      'خرید و فروش خودرو و قطعات کیش',
-      'اجاره خودرو کیش',
-      'رنت ماشین کیش',
-      'car marketplace Kish',
-      'buy car Kish',
+/**
+ * Static document metadata.
+ *
+ * This used to read the language cookie, which opted *every* route into dynamic
+ * rendering and made the catalogue HTML uncacheable. The shell is Persian-first
+ * and the client provider swaps chrome copy after hydration, so the document
+ * metadata is Persian too.
+ */
+export const metadata: Metadata = {
+  metadataBase: new URL(siteUrl),
+  keywords: [
+    'خرید خودرو کیش',
+    'فروش خودرو کیش',
+    'خرید و فروش خودرو و قطعات کیش',
+    'اجاره خودرو کیش',
+    'رنت ماشین کیش',
+    'car marketplace Kish',
+    'buy car Kish',
+  ],
+  openGraph: {
+    type: 'website',
+    siteName: 'Ali Sales',
+    url: absoluteUrl('/'),
+    locale: 'fa_IR',
+  },
+  title: {
+    default: 'Ali Sales | آگهی خرید و فروش خودرو در کیش',
+    template: '%s | Ali Sales',
+  },
+  description:
+    'بازار آگهی خودروهای نو و کارکرده در جزیره کیش و سراسر ایران؛ همراه با گزارش بازرسی معتبر کارگاه.',
+  applicationName: 'Ali Sales',
+  authors: [{ name: 'Mahsa Sadr', url: 'https://mivatech.ir' }],
+  creator: 'Mahsa Sadr / Miva Tech',
+  publisher: 'Miva Tech',
+  manifest: '/manifest.webmanifest',
+  appleWebApp: {
+    capable: true,
+    title: 'Ali Sales',
+    statusBarStyle: 'black-translucent',
+    startupImage: STARTUP_IMAGES,
+  },
+  formatDetection: { telephone: false },
+  other: {
+    // Official eNamad domain-verification tag (also served as a root file).
+    enamad: '34868514',
+    'mobile-web-app-capable': 'yes',
+    'apple-mobile-web-app-capable': 'yes',
+    'apple-mobile-web-app-status-bar-style': 'black-translucent',
+    'apple-mobile-web-app-title': 'Ali Sales',
+  },
+  icons: {
+    icon: [
+      { url: '/icon.svg', type: 'image/svg+xml' },
+      { url: '/icons/icon-192.png', sizes: '192x192', type: 'image/png' },
+      { url: '/icons/icon-512.png', sizes: '512x512', type: 'image/png' },
     ],
-    openGraph: {
-      type: 'website',
-      siteName: 'Ali Sales',
-      url: absoluteUrl('/'),
-      locale: isEnglish ? 'en_US' : 'fa_IR',
-    },
-    title: {
-      default: isEnglish
-        ? 'Ali Sales | Buy and sell cars in Kish'
-        : 'Ali Sales | آگهی خرید و فروش خودرو در کیش',
-      template: '%s | Ali Sales',
-    },
-    description: isEnglish
-      ? 'New and used vehicle listings in Kish and across Iran, with a verified workshop inspection report.'
-      : 'بازار آگهی خودروهای نو و کارکرده در جزیره کیش و سراسر ایران؛ همراه با گزارش بازرسی معتبر کارگاه.',
-    applicationName: 'Ali Sales',
-    authors: [{ name: 'Mahsa Sadr', url: 'https://mivatech.ir' }],
-    creator: 'Mahsa Sadr / Miva Tech',
-    publisher: 'Miva Tech',
-    manifest: '/manifest.webmanifest',
-    appleWebApp: {
-      capable: true,
-      title: 'Ali Sales',
-      statusBarStyle: 'black-translucent',
-      startupImage: STARTUP_IMAGES,
-    },
-    formatDetection: { telephone: false },
-    other: {
-      // Official eNamad domain-verification tag (also served as a root file).
-      enamad: '34868514',
-      'mobile-web-app-capable': 'yes',
-      'apple-mobile-web-app-capable': 'yes',
-      'apple-mobile-web-app-status-bar-style': 'black-translucent',
-      'apple-mobile-web-app-title': 'Ali Sales',
-    },
-    icons: {
-      icon: [
-        { url: '/icon.svg', type: 'image/svg+xml' },
-        { url: '/icons/icon-192.png', sizes: '192x192', type: 'image/png' },
-        { url: '/icons/icon-512.png', sizes: '512x512', type: 'image/png' },
-      ],
-      apple: [
-        { url: '/icons/apple-touch-icon.png', sizes: '180x180', type: 'image/png' },
-      ],
-    },
-  };
-}
+    apple: [
+      { url: '/icons/apple-touch-icon.png', sizes: '180x180', type: 'image/png' },
+    ],
+  },
+};
 
 export const viewport: Viewport = {
   width: 'device-width',
@@ -128,11 +126,23 @@ export const viewport: Viewport = {
  * so a short page (an empty favorites list, a 404, a form) still pins the
  * footer to the bottom of the viewport instead of leaving a gap under it.
  */
+/**
+ * Root shell.
+ *
+ * It must not read the session or the language cookie: either one opts every
+ * route out of static rendering and makes the catalogue HTML uncacheable. The
+ * AED rate is the one server read kept here — it is a file/env value with no
+ * request scope, so static generation and revalidation can use it.
+ *
+ * Account state arrives after hydration (`Header` → `/api/auth/me`) and the
+ * stored language is applied by `LocaleProvider`, so the document itself is
+ * identical for every visitor and safe to cache at the edge.
+ */
 export default async function RootLayout({ children }: { children: ReactNode }) {
-  const [session, aedRate, lang] = await Promise.all([getSession(), getAedRate(), getLanguage()]);
+  const aedRate = await getAedRate();
 
   return (
-    <html lang={lang} dir={lang === 'fa' ? 'rtl' : 'ltr'} suppressHydrationWarning>
+    <html lang="fa" dir="rtl" suppressHydrationWarning>
       <head>
         {/* Photo sizing comes from the stylesheet's base layer, which already
             caps every image at its container. It must NOT be repeated as an
@@ -181,7 +191,7 @@ export default async function RootLayout({ children }: { children: ReactNode }) 
             <span className="ali-splash-sweep" aria-hidden="true" />
           </span>
         </div>
-        <LocaleProvider initialLang={lang}>
+        <LocaleProvider>
         <AppRuntime />
         {/* Field Web Vitals → /api/monitor; renders nothing. */}
         <WebVitalsReporter />
@@ -193,7 +203,7 @@ export default async function RootLayout({ children }: { children: ReactNode }) 
             >
               رفتن به محتوای اصلی
             </a>
-            <Header authed={Boolean(session)} displayName={session?.displayName ?? null} />
+            <Header />
             <main
               id="main-content"
               tabIndex={-1}

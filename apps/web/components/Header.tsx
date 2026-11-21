@@ -141,18 +141,32 @@ function DrawerSection({ children }: { children: ReactNode }) {
   return <ul className="space-y-0.5">{children}</ul>;
 }
 
-export function Header({
-  authed = false,
-  displayName = null,
-}: {
-  authed?: boolean;
-  displayName?: string | null;
-}) {
+export function Header() {
   const [menuOpen, setMenuOpen] = useState(false);
   const pathname = usePathname();
   const isActive = useActivePath();
   const { lang, t, toggleLanguage } = useI18n();
   const [rentalSoon, setRentalSoon] = useState(false);
+
+  // The shell is static, so the account state cannot come from the layout's
+  // server render any more: it is read from /api/auth/me after hydration.
+  const [account, setAccount] = useState<{ displayName: string | null } | null>(null);
+  useEffect(() => {
+    let alive = true;
+    fetch('/api/auth/me', { cache: 'no-store' })
+      .then((res) => (res.ok ? res.json() : null))
+      .then((body: { user?: { displayName?: string | null } } | null) => {
+        if (alive && body?.user) setAccount({ displayName: body.user.displayName ?? null });
+      })
+      .catch(() => {
+        // A guest, or the request failed: the signed-out header is correct.
+      });
+    return () => {
+      alive = false;
+    };
+  }, []);
+  const authed = account !== null;
+  const displayName = account?.displayName ?? null;
 
   useEffect(() => {
     setMenuOpen(false);

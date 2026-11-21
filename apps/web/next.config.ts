@@ -16,6 +16,16 @@ function storageImageHost(): NextConfig['images'] {
   }
 }
 
+/**
+ * Statically generated catalogue pages.
+ *
+ * Their HTML is identical for every visitor (no session, no language cookie,
+ * no search params in the render), so the CDN may keep it for a minute and
+ * serve a stale copy while the next one is generated. Every other page stays
+ * `private, no-store`.
+ */
+const CATALOGUE_ROUTES = ['/', '/cars', '/parts', '/motorcycles', '/heavy'] as const;
+
 const isDev = process.env.NODE_ENV !== 'production';
 
 /**
@@ -58,18 +68,17 @@ const nextConfig: NextConfig = {
             key: 'Permissions-Policy',
             value: 'camera=(), microphone=(), geolocation=(self), payment=()',
           },
-          // HTML must revalidate so an edge node never keeps an old document
-          // pointing at a CSS hash that no longer exists.
+          // Personalised HTML (profile, chats, login, admin) must never be
+          // reused for another visitor. The catalogue routes below override
+          // this with a public one-minute edge cache.
           {
             key: 'Cache-Control',
-            value: 'public, max-age=0, must-revalidate',
+            value: 'private, no-store, max-age=0, must-revalidate',
           },
           {
             key: 'CDN-Cache-Control',
-            value: 'public, max-age=0, must-revalidate',
+            value: 'no-store',
           },
-          // The HTML carries the signed-in header state; never let one visitor's
-          // document be reused for another at a shared edge cache.
           { key: 'Vary', value: 'Cookie, Accept-Encoding' },
           ...(isDev
             ? []
@@ -97,6 +106,23 @@ const nextConfig: NextConfig = {
           { key: 'CDN-Cache-Control', value: 'no-store' },
         ],
       },
+      // Catalogue HTML: one minute at the edge, then a background revalidate.
+      // Listed after the catch-all so these values win for these paths, and
+      // without `Vary: Cookie` because the document no longer depends on it.
+      ...CATALOGUE_ROUTES.map((source) => ({
+        source,
+        headers: [
+          {
+            key: 'Cache-Control',
+            value: 'public, max-age=0, s-maxage=60, stale-while-revalidate=300',
+          },
+          {
+            key: 'CDN-Cache-Control',
+            value: 'public, s-maxage=60, stale-while-revalidate=300',
+          },
+          { key: 'Vary', value: 'Accept-Encoding' },
+        ],
+      })),
     ];
   },
   // Dev-only host allowlist (preview tunnels). Production never calls next dev.

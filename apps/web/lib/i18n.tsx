@@ -9,7 +9,6 @@ import {
   useState,
   type ReactNode,
 } from 'react';
-import { useRouter } from 'next/navigation';
 import { translate } from './i18n/dictionary';
 
 export type Language = 'fa' | 'en';
@@ -42,7 +41,22 @@ export function LocaleProvider({
   initialLang?: Language;
 }) {
   const [lang, setLangState] = useState<Language>(initialLang);
-  const router = useRouter();
+
+  // The server document is always Persian so it can be cached at the edge; the
+  // stored preference is applied once, after hydration, with no mismatch.
+  useEffect(() => {
+    let stored: string | null = null;
+    try {
+      stored = window.localStorage.getItem(STORAGE_KEY);
+    } catch {
+      // private mode
+    }
+    if (!stored) {
+      const match = /(?:^|;\s*)alisales-language=(fa|en)/.exec(document.cookie);
+      stored = match?.[1] ?? null;
+    }
+    if (stored === 'en' || stored === 'fa') setLangState(stored);
+  }, []);
 
   useEffect(() => {
     const root = document.documentElement;
@@ -64,10 +78,8 @@ export function LocaleProvider({
       } catch {
         // private mode — the client provider still switches
       }
-      // Re-render server pages so `<html dir/lang>` and server copy follow.
-      router.refresh();
     },
-    [router],
+    [],
   );
   const toggleLanguage = useCallback(
     () => setLanguage(lang === 'fa' ? 'en' : 'fa'),

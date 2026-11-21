@@ -378,11 +378,13 @@ function catalogBase(): ListingCardData[] {
 async function fixtureSearchListings(
   filters: SearchFilters,
   category?: VehicleCategory,
+  /** Read the signed «my listings» cookie (impossible in a static render). */
+  includeMine = true,
 ): Promise<ListingCardData[]> {
   const overlay = moderationOverlay();
   // The seller's own just-published cards ride in a signed cookie so they are
   // visible even when the demo store lives in another Workers isolate.
-  const mine = await readMyListings();
+  const mine = includeMine ? await readMyListings() : [];
   const local = applyModeration(
     applyListingOverrides(mergeMyListings(mine, catalogBase())),
     {
@@ -429,13 +431,22 @@ export function resetHostedCatalogCache(): void {
   hostedCache.clear();
 }
 
-export async function searchListings(
-  filters: SearchFilters = DEFAULT_FILTERS,
-  category?: VehicleCategory,
+/**
+ * The one search implementation.
+ *
+ * `includeMine` is what separates the request-scoped search from the public
+ * one: the signed my-listings cookie is per visitor, so a route that must be
+ * statically generated (and CDN-cached) cannot read it. Everything else — the
+ * hosted RPC, the memo, the seeded fallback — is shared.
+ */
+async function search(
+  filters: SearchFilters,
+  category: VehicleCategory | undefined,
+  includeMine: boolean,
 ): Promise<ListingCardData[]> {
   const effective = launchFilters(filters);
   const supabase = supabaseClient();
-  if (!supabase) return fixtureSearchListings(filters, category);
+  if (!supabase) return fixtureSearchListings(filters, category, includeMine);
 
   const cacheKey = JSON.stringify({ f: filtersToRpcPayload(effective), c: category ?? 'car' });
   const memo = hostedCacheGet(cacheKey);
@@ -462,7 +473,7 @@ export async function searchListings(
       });
       if (probe.error) throw new Error(probe.error.message);
       const hostedHasRows = Array.isArray(probe.data) && probe.data.length > 0;
-      return hostedHasRows ? [] : fixtureSearchListings(filters, category);
+      return hostedHasRows ? [] : fixtureSearchListings(filters, category, includeMine);
     }
     // The hosted view has no category column yet, so every vehicle row reads as a
     // car; keeping the narrowing here means the three category pages share one
@@ -474,8 +485,27 @@ export async function searchListings(
     // Missing table/column, PostgREST or RLS failure: keep the public catalogue
     // alive with the seeded/signed-cookie rows instead of throwing to error.tsx.
     console.warn('[alisales] catalog read fell back to local rows:', error);
-    return fixtureSearchListings(filters, category);
+    return fixtureSearchListings(filters, category, includeMine);
   }
+}
+
+export async function searchListings(
+  filters: SearchFilters = DEFAULT_FILTERS,
+  category?: VehicleCategory,
+): Promise<ListingCardData[]> {
+  return search(filters, category, true);
+}
+
+/**
+ * Catalogue read for statically generated pages: identical rows, but it never
+ * touches the request (no signed my-listings cookie), so the result is safe to
+ * cache at the edge for every visitor.
+ */
+export async function searchPublicListings(
+  filters: SearchFilters = DEFAULT_FILTERS,
+  category?: VehicleCategory,
+): Promise<ListingCardData[]> {
+  return search(filters, category, false);
 }
 
 const UUID_RE =

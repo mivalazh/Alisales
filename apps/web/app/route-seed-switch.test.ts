@@ -211,9 +211,7 @@ const user = devListings()[0]!;
 
 describe('flag-on routes', () => {
   it('home renders only the user-created story and listing', async () => {
-    const html = renderToStaticMarkup(
-      await HomePage({ searchParams: Promise.resolve({}) }),
-    );
+    const html = renderToStaticMarkup(await HomePage());
 
     expect(html).toContain('data-story="user-created-listing"');
     expect(html).toContain('user-created-listing');

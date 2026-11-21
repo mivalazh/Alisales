@@ -19,3 +19,21 @@ export function localizedMetadata(
     return lang === 'en' ? en : fa;
   };
 }
+
+/**
+ * Metadata for statically generated pages.
+ *
+ * Reading the language cookie in `generateMetadata` opts the whole route into
+ * dynamic rendering, which defeats the edge cache, so cached catalogue pages
+ * ship the Persian document (the site's default language) and keep their
+ * English title/description in this one object for later use.
+ */
+export function staticMetadata(
+  fa: LocalizedPageMetadata,
+  _en: LocalizedPageMetadata,
+): Metadata {
+  return {
+    title: fa.title,
+    ...(fa.description ? { description: fa.description } : {}),
+  };
+}
