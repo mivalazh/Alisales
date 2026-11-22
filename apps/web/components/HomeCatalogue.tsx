@@ -152,7 +152,7 @@ function HomeCatalogueView({
 /** URL-driven version (after hydration). */
 export function HomeCatalogue({ pool: staticPool, stories }: HomeCatalogueProps) {
   const params = useSearchParams();
-  // URL filters fetch their own matches, not just the rendered first 48.
+  // After hydration the full matching pool replaces the rendered first 48.
   const { rows, serverMatches } = useCatalogueRows(staticPool, filtersFromParams(params));
   return (
     <HomeCatalogueView

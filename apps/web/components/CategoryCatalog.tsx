@@ -109,8 +109,8 @@ export function CategoryCatalog({
   ...props
 }: CategoryCatalogueProps) {
   const params = useSearchParams();
-  // The static pool is the first paint; URL filters fetch their own matches so
-  // a brand or keyword can reach beyond the rows rendered in the document.
+  // The static pool is the first paint; after hydration the full matching pool
+  // replaces it, so a brand or keyword can reach beyond the rendered rows.
   const { rows, serverMatches } = useCatalogueRows(
     staticPool,
     filtersFromParams(params),

@@ -125,7 +125,7 @@ function PartsCatalogueView({
 
 export function PartsCatalog({ pool: staticPool, stories }: PartsCatalogueProps) {
   const params = useSearchParams();
-  // URL filters fetch their own matches, not just the rendered first 48.
+  // After hydration the full matching pool replaces the rendered first 48.
   const { rows, serverMatches } = useCatalogueRows(staticPool, filtersFromParams(params));
   return (
     <PartsCatalogueView

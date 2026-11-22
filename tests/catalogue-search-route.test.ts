@@ -13,7 +13,9 @@ import type { ListingCardData } from '../apps/web/lib/data/listings';
  *  - the read's rows leave untouched, in the read's order. `searchPublicListings`
  *    ranks a `q` on both data paths; re-ranking here would overwrite that order
  *    with a narrower scorer, and rows the *server* matched (for example on the
- *    description, which the local fuzzy predicate does not read) would sink.
+ *    description, which the local fuzzy predicate does not read) would sink;
+ *  - the answer is the whole pool, paged past the RPC's 100-row clamp, because
+ *    the grid must not stop at the 48 rows a page render carries.
  */
 
 const searchPublicListings = vi.hoisted(() => vi.fn());
@@ -102,7 +104,36 @@ describe('/api/listings/search', () => {
     const response = await get('yearFrom=soon&category=plane&nonsense=1');
 
     expect(response.status).toBe(200);
-    expect(searchPublicListings).toHaveBeenCalledWith(DEFAULT_FILTERS, undefined);
+    expect(searchPublicListings).toHaveBeenCalledWith(DEFAULT_FILTERS, undefined, {
+      limit: 100,
+      offset: 0,
+    });
+  });
+
+  it('keeps paging past the 48-row render until a short page ends the pool', async () => {
+    searchPublicListings
+      .mockResolvedValueOnce(Array.from({ length: 100 }, (_, i) => card({ id: `row-${i}` })))
+      .mockResolvedValueOnce([card({ id: 'last' })]);
+
+    const body = (await (await get('brand=toyota')).json()) as { rows: ListingCardData[] };
+
+    expect(body.rows).toHaveLength(101);
+    expect(body.rows.at(-1)?.id).toBe('last');
+    expect(searchPublicListings.mock.calls.map((call) => call[2])).toEqual([
+      { limit: 100, offset: 0 },
+      { limit: 100, offset: 100 },
+    ]);
+  });
+
+  it('stops at the response ceiling when every page is full', async () => {
+    searchPublicListings.mockResolvedValue(
+      Array.from({ length: 100 }, (_, i) => card({ id: `row-${i}` })),
+    );
+
+    const body = (await (await get('')).json()) as { rows: ListingCardData[] };
+
+    expect(body.rows).toHaveLength(1_000);
+    expect(searchPublicListings).toHaveBeenCalledTimes(10);
   });
 
   it('answers 503 without caching when the read throws', async () => {

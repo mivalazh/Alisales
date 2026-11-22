@@ -5,18 +5,21 @@ import { serializeFilters, type SearchFilters, type VehicleCategory } from '@ali
 import type { ListingCardData } from '@/lib/data/listings';
 
 /**
- * Rows for the URL's filters.
+ * Rows for the URL — the whole matching pool once the browser has it.
  *
- * The catalogue shells render a 48-row static pool for the first paint and for
- * the edge cache. That pool only holds the newest rows, so narrowing it in the
- * browser hides real inventory: a brand or keyword matching row 49 looked empty.
- * When the URL carries filters this hook asks `/api/listings/search` — the one
- * server-side search, parsed with the same URL codec — and hands back its rows.
+ * The catalogue shells render a 48-row static pool for the first paint and the
+ * edge cache. That render only holds the newest rows, so narrowing it in the
+ * browser hides real inventory: a brand or keyword matching row 49 looked
+ * empty, and the unfiltered grid could never show past row 48. After hydration
+ * this hook asks `/api/listings/search` — the one server-side read, parsed with
+ * the same URL codec — with the URL's filters or none at all, and hands back
+ * every match.
  *
  * The static pool remains the first paint and the fallback: while a request is
  * in flight, offline, or after a failed request the grid shows the rendered
  * rows narrowed locally, which is the previous behaviour and never an empty
- * grid.
+ * grid. A successful answer is authoritative even when it is empty — a filter
+ * can match nothing.
  */
 export interface CatalogueRows {
   rows: ListingCardData[];
@@ -53,9 +56,9 @@ export function useCatalogueRows(
   );
 
   useEffect(() => {
-    if (!query) return;
     const controller = new AbortController();
-    fetch(`/api/listings/search?${query}`, { signal: controller.signal })
+    const url = query ? `/api/listings/search?${query}` : '/api/listings/search';
+    fetch(url, { signal: controller.signal })
       .then((res) => (res.ok ? res.json() : null))
       .then((body: { rows?: ListingCardData[] } | null) => {
         // An empty answer is a real answer — a filter can match nothing. Only a
@@ -70,7 +73,6 @@ export function useCatalogueRows(
 
   // A navigation to another category ships a different static pool and query;
   // until the matching answer lands, that pool is the honest first paint.
-  if (!query) return { rows: staticPool, serverMatches: false };
   if (!response || response.query !== query) return { rows: staticPool, serverMatches: false };
   return { rows: response.rows, serverMatches: true };
 }

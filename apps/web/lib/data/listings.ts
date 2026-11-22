@@ -434,6 +434,19 @@ export function resetHostedCatalogCache(): void {
   hostedCache.clear();
 }
 
+/** One page of a catalogue read. The RPC clamps `limit` to 100 rows. */
+export interface CataloguePage {
+  limit: number;
+  offset: number;
+}
+
+/** What a page render carries; the browser shells page wider after hydration. */
+const FIRST_PAGE: CataloguePage = { limit: 48, offset: 0 };
+
+function pageSlice(rows: ListingCardData[], page: CataloguePage): ListingCardData[] {
+  return rows.slice(page.offset, page.offset + page.limit);
+}
+
 /**
  * The one search implementation.
  *
@@ -446,10 +459,15 @@ async function search(
   filters: SearchFilters,
   category: VehicleCategory | undefined,
   includeMine: boolean,
+  page?: CataloguePage,
 ): Promise<ListingCardData[]> {
   const effective = launchFilters(filters);
+  // A caller that does not page keeps its old shape: the hosted read answers
+  // its first page, and the seeded catalogue answers everything it has.
+  const read = page ?? FIRST_PAGE;
+  const slice = (rows: ListingCardData[]) => (page ? pageSlice(rows, page) : rows);
   const supabase = supabaseClient();
-  if (!supabase) return fixtureSearchListings(filters, category, includeMine);
+  if (!supabase) return slice(await fixtureSearchListings(filters, category, includeMine));
 
   // The page's category rides in the payload so the RPC narrows in SQL (a
   // hosted /motorcycles never pages cars across the wire to discard them).
@@ -457,21 +475,21 @@ async function search(
     ...filtersToRpcPayload(effective),
     ...(category ? { category } : {}),
   };
-  const cacheKey = JSON.stringify({ f: payload });
+  const cacheKey = JSON.stringify({ f: payload, l: read.limit, o: read.offset });
   const memo = hostedCacheGet(cacheKey);
   if (memo) return memo;
 
   try {
     const { data, error } = await supabase.rpc('search_listings', {
       p_filters: payload,
-      p_limit: 48,
-      p_offset: 0,
+      p_limit: read.limit,
+      p_offset: read.offset,
     });
     if (error) throw new Error(error.message);
     const rows = ((data ?? []) as unknown as ListingCardRow[])
       .map(mapRow)
       .filter((l) => inBrowseCategory(l, category));
-    if (rows.length === 0) {
+    if (read.offset === 0 && rows.length === 0) {
       // Only an actually empty hosted catalogue may use seeded rows. A second
       // unfiltered, one-row probe distinguishes that from a filter no-match,
       // which must stay empty even when hosted listings exist elsewhere.
@@ -482,7 +500,9 @@ async function search(
       });
       if (probe.error) throw new Error(probe.error.message);
       const hostedHasRows = Array.isArray(probe.data) && probe.data.length > 0;
-      return hostedHasRows ? [] : fixtureSearchListings(filters, category, includeMine);
+      return hostedHasRows
+        ? []
+        : slice(await fixtureSearchListings(filters, category, includeMine));
     }
     // The RPC already scopes the category; this stays as a cheap backstop and
     // keeps the three category pages on one code path online and offline.
@@ -490,18 +510,23 @@ async function search(
     hostedCacheSet(cacheKey, ranked);
     return ranked;
   } catch (error) {
+    // A later page failing means the rest of the pool is unreachable too, so
+    // answer with the error instead of a silently truncated grid. The first
+    // page keeps the catalogue alive from the seeded/signed-cookie rows.
+    if (read.offset > 0) throw error;
     // Missing table/column, PostgREST or RLS failure: keep the public catalogue
     // alive with the seeded/signed-cookie rows instead of throwing to error.tsx.
     console.warn('[alisales] catalog read fell back to local rows:', error);
-    return fixtureSearchListings(filters, category, includeMine);
+    return slice(await fixtureSearchListings(filters, category, includeMine));
   }
 }
 
 export async function searchListings(
   filters: SearchFilters = DEFAULT_FILTERS,
   category?: VehicleCategory,
+  page?: CataloguePage,
 ): Promise<ListingCardData[]> {
-  return search(filters, category, true);
+  return search(filters, category, true, page);
 }
 
 /**
@@ -512,8 +537,9 @@ export async function searchListings(
 export async function searchPublicListings(
   filters: SearchFilters = DEFAULT_FILTERS,
   category?: VehicleCategory,
+  page?: CataloguePage,
 ): Promise<ListingCardData[]> {
-  return search(filters, category, false);
+  return search(filters, category, false, page);
 }
 
 const UUID_RE =
