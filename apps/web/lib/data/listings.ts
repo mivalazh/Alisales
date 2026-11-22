@@ -145,8 +145,10 @@ interface ListingCardRow {
   description?: string | null;
   /** 0007: `vehicle` | `part`. */
   kind?: 'vehicle' | 'part' | null;
-  /** Present when the hosted view exposes the vehicle category. */
+  /** Vehicle category (0014); null for parts. */
   category?: 'car' | 'motorcycle' | 'heavy' | null;
+  /** Body class (0014); null when the seller never picked one. */
+  body_type?: string | null;
   engine_cc?: number | null;
   bike_type?: string | null;
   heavy_type?: string | null;
@@ -205,9 +207,10 @@ function mapRow(r: ListingCardRow): ListingDetailData {
     description: r.description ?? null,
     photos: [],
     kind: r.kind === 'part' ? 'part' : 'vehicle',
-    // Hosted rows without the category column read as cars, which is the
-    // launch default; the fixture catalogue carries the richer value.
+    // Parts carry no category; a vehicle row's value comes from 0014 and
+    // defaults to a car for rows written before it.
     category: r.kind === 'part' ? undefined : (r.category ?? 'car'),
+    bodyType: (r.body_type as BodyType | null | undefined) ?? null,
     engineCc: r.engine_cc ?? null,
     bikeType: r.bike_type ?? null,
     heavyType: r.heavy_type ?? null,
@@ -448,13 +451,19 @@ async function search(
   const supabase = supabaseClient();
   if (!supabase) return fixtureSearchListings(filters, category, includeMine);
 
-  const cacheKey = JSON.stringify({ f: filtersToRpcPayload(effective), c: category ?? 'car' });
+  // The page's category rides in the payload so the RPC narrows in SQL (a
+  // hosted /motorcycles never pages cars across the wire to discard them).
+  const payload = {
+    ...filtersToRpcPayload(effective),
+    ...(category ? { category } : {}),
+  };
+  const cacheKey = JSON.stringify({ f: payload });
   const memo = hostedCacheGet(cacheKey);
   if (memo) return memo;
 
   try {
     const { data, error } = await supabase.rpc('search_listings', {
-      p_filters: filtersToRpcPayload(effective),
+      p_filters: payload,
       p_limit: 48,
       p_offset: 0,
     });
@@ -475,9 +484,8 @@ async function search(
       const hostedHasRows = Array.isArray(probe.data) && probe.data.length > 0;
       return hostedHasRows ? [] : fixtureSearchListings(filters, category, includeMine);
     }
-    // The hosted view has no category column yet, so every vehicle row reads as a
-    // car; keeping the narrowing here means the three category pages share one
-    // code path online and offline.
+    // The RPC already scopes the category; this stays as a cheap backstop and
+    // keeps the three category pages on one code path online and offline.
     const ranked = rankSearch(rows, filters.q);
     hostedCacheSet(cacheKey, ranked);
     return ranked;

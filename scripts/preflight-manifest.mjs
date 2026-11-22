@@ -24,6 +24,7 @@ export const MIGRATION_FILES = [
   '0011_profile_story_media.sql',
   '0012_notification_history.sql',
   '0013_health_probes.sql',
+  '0014_vehicle_category_specs.sql',
 ];
 
 /** Rows in `public` that the app reads or writes directly. */
@@ -97,4 +98,11 @@ export const COLUMNS = [
   { table: 'messages', column: 'visit_date', migration: '0007_parts_and_visit_metadata.sql' },
   { table: 'vehicles', column: 'paint_condition', migration: '0008_vehicle_condition_fields.sql' },
   { table: 'vehicles', column: 'third_party_insurance', migration: '0008_vehicle_condition_fields.sql' },
+  // Motorcycle / heavy-machinery page specs (0014).
+  { table: 'vehicles', column: 'category', migration: '0014_vehicle_category_specs.sql' },
+  { table: 'vehicles', column: 'body_type', migration: '0014_vehicle_category_specs.sql' },
+  { table: 'vehicles', column: 'engine_cc', migration: '0014_vehicle_category_specs.sql' },
+  { table: 'vehicles', column: 'bike_type', migration: '0014_vehicle_category_specs.sql' },
+  { table: 'vehicles', column: 'heavy_type', migration: '0014_vehicle_category_specs.sql' },
+  { table: 'vehicles', column: 'working_hours', migration: '0014_vehicle_category_specs.sql' },
 ];

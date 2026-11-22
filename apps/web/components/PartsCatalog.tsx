@@ -1,11 +1,15 @@
 'use client';
 
 import { useSearchParams } from 'next/navigation';
-import { useMemo } from 'react';
-import { DEFAULT_FILTERS, type SearchFilters } from '@alisales/schemas';
 import type { ListingCardData } from '@/lib/data/listings';
-import { filtersFromParams, visibleListings } from '@/lib/catalogue';
-import { parseSortKey, type SortKey } from '@/lib/sort';
+import {
+  byKind,
+  filtersFromParams,
+  visibleListings,
+  type CatalogueParams,
+} from '@/lib/catalogue';
+import { parseSortKey } from '@/lib/sort';
+import { useCatalogueRows } from '@/lib/use-catalogue-rows';
 import {
   filterByPartCategory,
   filterPartsByAttributes,
@@ -26,40 +30,60 @@ import { useI18n } from '@/lib/i18n';
  * Same contract as the vehicle category shell (see CategoryCatalog.tsx): the
  * static page renders the parts pool, and category / origin / warranty /
  * compatibility / condition are read from the URL here. `PartsCatalogFallback`
- * is the default-filter render used for the prerendered HTML.
+ * is the default-filter render used for the prerendered HTML, because the view
+ * receives `null` params and resolves the same defaults as the wrapper.
  */
+type PartsCatalogueProps = {
+  /** Every public parts listing, unfiltered. */
+  pool: ListingCardData[];
+  /** Unfiltered pool for the drawer's live counts (the static rows). */
+  countPool?: ListingCardData[];
+  stories: StoryItem[];
+};
+
+/** URL → the state this page renders. `null` resolves to the static defaults. */
+function partsState(params: CatalogueParams) {
+  return {
+    filters: filtersFromParams(params),
+    sort: parseSortKey(params?.get('sort')),
+    values: {
+      category: parsePartCategory(params?.get('category')),
+      origin: params?.get('origin') ?? null,
+      warranty: params?.get('warranty') === '1',
+      compatibility: params?.get('compat') ?? '',
+      condition: params?.get('pcond') ?? null,
+    } satisfies PartFilterValues,
+  };
+}
+
 function PartsCatalogueView({
   pool,
+  countPool,
   stories,
-  filters,
-  sort,
-  values,
-}: {
-  pool: ListingCardData[];
-  stories: StoryItem[];
-  filters: SearchFilters;
-  sort: SortKey;
-  values: PartFilterValues;
-}) {
+  params,
+  serverMatches = false,
+}: PartsCatalogueProps & { params: CatalogueParams; serverMatches?: boolean }) {
+  const { filters, sort, values } = partsState(params);
   const { t } = useI18n();
   const { category, origin, warranty, compatibility, condition } = values;
   const partCategory = parsePartCategory(category);
 
-  const listings = useMemo(() => {
-    const parts = visibleListings(pool, filters);
-    const scoped = partCategory ? filterByPartCategory(parts, partCategory) : parts;
-    return filterPartsByAttributes(scoped, {
-      origin,
-      warrantyOnly: warranty,
-      compatibility,
-      condition,
-    });
-  }, [pool, filters, partCategory, origin, warranty, compatibility, condition]);
+  // Server rows already matched the URL's shared filters; only the parts-only
+  // attributes narrow them here. The route has no parts category (its `category`
+  // is vehicle-only), so a fetched answer can carry cars too — keep it parts.
+  const parts = byKind(serverMatches ? pool : visibleListings(pool, filters), 'part');
+  const scoped = partCategory ? filterByPartCategory(parts, partCategory) : parts;
+  const listings = filterPartsByAttributes(scoped, {
+    origin,
+    warrantyOnly: warranty,
+    compatibility,
+    condition,
+  });
 
   return (
     <Catalog
       listings={listings}
-      pool={pool}
+      pool={countPool ?? pool}
       filters={filters}
       sort={sort}
       basePath="/parts"
@@ -80,7 +104,7 @@ function PartsCatalogueView({
             open={open}
             basePath="/parts"
             value={values}
-            pool={pool}
+            pool={countPool ?? pool}
             onClose={onClose}
           />
         ),
@@ -90,7 +114,7 @@ function PartsCatalogueView({
             variant="sidebar"
             basePath="/parts"
             value={values}
-            pool={pool}
+            pool={countPool ?? pool}
             onClose={onClose}
           />
         ),
@@ -99,56 +123,21 @@ function PartsCatalogueView({
   );
 }
 
-export function PartsCatalog({
-  pool,
-  stories,
-}: {
-  /** Every public parts listing, unfiltered. */
-  pool: ListingCardData[];
-  stories: StoryItem[];
-}) {
+export function PartsCatalog({ pool: staticPool, stories }: PartsCatalogueProps) {
   const params = useSearchParams();
-  const filters = useMemo(() => filtersFromParams(params), [params]);
-  const sort = parseSortKey(params?.get('sort'));
-  const values: PartFilterValues = {
-    category: parsePartCategory(params?.get('category')),
-    origin: params?.get('origin') ?? null,
-    warranty: params?.get('warranty') === '1',
-    compatibility: params?.get('compat') ?? '',
-    condition: params?.get('pcond') ?? null,
-  };
-
+  // URL filters fetch their own matches, not just the rendered first 48.
+  const { rows, serverMatches } = useCatalogueRows(staticPool, filtersFromParams(params));
   return (
     <PartsCatalogueView
-      pool={pool}
+      pool={rows}
+      countPool={staticPool}
       stories={stories}
-      filters={filters}
-      sort={sort}
-      values={values}
+      params={params}
+      serverMatches={serverMatches}
     />
   );
 }
 
-export function PartsCatalogFallback({
-  pool,
-  stories,
-}: {
-  pool: ListingCardData[];
-  stories: StoryItem[];
-}) {
-  return (
-    <PartsCatalogueView
-      pool={pool}
-      stories={stories}
-      filters={DEFAULT_FILTERS}
-      sort="newest"
-      values={{
-        category: null,
-        origin: null,
-        warranty: false,
-        compatibility: '',
-        condition: null,
-      }}
-    />
-  );
+export function PartsCatalogFallback(props: PartsCatalogueProps) {
+  return <PartsCatalogueView {...props} params={null} />;
 }

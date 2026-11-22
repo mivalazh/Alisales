@@ -102,6 +102,25 @@ export async function publishHosted(input: HostedPublishInput): Promise<string> 
         color: toLegacyColorSlug(vehicle.color),
         condition: vehicle.condition,
         plate_type: vehicle.plateType,
+        // Category + specs: without these a hosted motorcycle or excavator
+        // would read back as a car and could never reach its own page (0014).
+        category: data.category ?? 'car',
+        body_type: vehicle.bodyType,
+        engine_cc: data.category === 'motorcycle' ? (data.engineCc ?? null) : null,
+        bike_type: data.category === 'motorcycle' ? (data.bikeType ?? null) : null,
+        heavy_type: data.category === 'heavy' ? (data.heavyType ?? null) : null,
+        working_hours: data.category === 'heavy' ? (data.workingHours ?? null) : null,
+        // Seller-declared condition facts, so hosted filters can match them.
+        third_party_insurance: vehicle.thirdPartyInsurance,
+        third_party_months: vehicle.thirdPartyMonths,
+        body_insurance: vehicle.bodyInsurance,
+        body_months: vehicle.bodyMonths,
+        paint_condition: vehicle.paintCondition,
+        chassis_condition: vehicle.chassisCondition,
+        technical_inspection: vehicle.technicalInspection,
+        is_journal_photo: vehicle.isJournalPhoto,
+        inspection_sheet_url: vehicle.inspectionSheetUrl,
+        inspection_note: vehicle.inspectionNote,
       })
       .select('id')
       .single();

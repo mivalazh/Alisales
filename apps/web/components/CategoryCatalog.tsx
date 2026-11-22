@@ -1,12 +1,16 @@
 'use client';
 
 import { useSearchParams } from 'next/navigation';
-import { useMemo } from 'react';
-import { DEFAULT_FILTERS, type SearchFilters, type VehicleCategory } from '@alisales/schemas';
+import { DEFAULT_FILTERS, type VehicleCategory } from '@alisales/schemas';
 import type { ListingCardData } from '@/lib/data/listings';
-import { filtersFromParams, visibleListings } from '@/lib/catalogue';
-import { parseSortKey, type SortKey } from '@/lib/sort';
-import { filterByBodyType, parseBodyType, type CarBodyType } from '@/lib/browse';
+import {
+  filtersFromParams,
+  visibleListings,
+  type CatalogueParams,
+} from '@/lib/catalogue';
+import { parseSortKey } from '@/lib/sort';
+import { useCatalogueRows } from '@/lib/use-catalogue-rows';
+import { filterByBodyType, parseBodyType } from '@/lib/browse';
 import { BrandModelBox } from './BrandModelBox';
 import { Catalog } from './Catalog';
 import type { StoryItem } from './Stories';
@@ -15,43 +19,56 @@ import type { StoryItem } from './Stories';
  * Client shell for a vehicle category page (`/cars`, `/motorcycles`, `/heavy`).
  *
  * The page is statically generated: the server renders the whole category pool
- * once and this component narrows it from the URL (`?brand=`, `?sort=`,
+ * once and the catalogue narrows it from the URL (`?brand=`, `?sort=`,
  * `?body=`, …). No per-visitor data reaches the render, which is what lets the
  * document be cached at the edge and revalidated every minute.
  *
- * `CategoryCatalogFallback` renders the same markup with the default filters, so
- * the prerendered HTML is the real catalogue rather than an empty shell.
+ * `CategoryCatalogueView` stays free of navigation and data hooks: it receives
+ * the URL params as a prop (`null` while prerendering), so the static shell and
+ * the hydrated wrapper render from exactly the same state. The fallback below
+ * passes `null`; it cannot drift from the wrapper because neither repeats the
+ * derived filter state.
  */
-function CategoryCatalogueView({
-  category,
-  pool,
-  stories,
-  storiesLabel,
-  searchPlaceholder,
-  heading,
-  filters,
-  sort,
-  body,
-}: {
+type CategoryCatalogueProps = {
   category: VehicleCategory;
+  /** Every public listing in this category, unfiltered. */
   pool: ListingCardData[];
+  /** Unfiltered pool for the drawer's live counts (the static rows). */
+  countPool?: ListingCardData[];
   stories: StoryItem[];
   storiesLabel: string;
   searchPlaceholder: string;
   heading: string;
-  filters: SearchFilters;
-  sort: SortKey;
-  body: CarBodyType | null;
-}) {
-  const listings = useMemo(() => {
-    const narrowed = visibleListings(pool, filters, category);
-    return body ? filterByBodyType(narrowed, body) : narrowed;
-  }, [pool, filters, category, body]);
+};
+
+/** URL → the state this page renders. `null` resolves to the static defaults. */
+function catalogueState(params: CatalogueParams) {
+  return {
+    filters: filtersFromParams(params),
+    sort: parseSortKey(params?.get('sort')),
+    body: parseBodyType(params?.get('body')),
+  };
+}
+
+function CategoryCatalogueView({
+  category,
+  pool,
+  countPool,
+  stories,
+  storiesLabel,
+  searchPlaceholder,
+  heading,
+  params,
+  serverMatches = false,
+}: CategoryCatalogueProps & { params: CatalogueParams; serverMatches?: boolean }) {
+  const { filters, sort, body } = catalogueState(params);
+  // Server rows already carry the URL's filters, and the hosted q match is
+  // wider than the local fuzzy predicate (it reads the description too), so
+  // re-filtering them would drop real hits.
+  const narrowed = serverMatches ? pool : visibleListings(pool, filters, category);
+  const listings = body ? filterByBodyType(narrowed, body) : narrowed;
   // Unfiltered category pool for the drawer's live counts.
-  const categoryPool = useMemo(
-    () => visibleListings(pool, DEFAULT_FILTERS, category),
-    [pool, category],
-  );
+  const categoryPool = visibleListings(countPool ?? pool, DEFAULT_FILTERS, category);
 
   return (
     <Catalog
@@ -88,57 +105,30 @@ function CategoryCatalogueView({
 }
 
 export function CategoryCatalog({
-  category,
-  pool,
-  stories,
-  storiesLabel,
-  searchPlaceholder,
-  heading,
-}: {
-  category: VehicleCategory;
-  /** Every public listing in this category, unfiltered. */
-  pool: ListingCardData[];
-  stories: StoryItem[];
-  storiesLabel: string;
-  searchPlaceholder: string;
-  heading: string;
-}) {
+  pool: staticPool,
+  ...props
+}: CategoryCatalogueProps) {
   const params = useSearchParams();
-  const filters = useMemo(() => filtersFromParams(params), [params]);
-  const sort = parseSortKey(params?.get('sort'));
-  const body = parseBodyType(params?.get('body'));
-
+  // The static pool is the first paint; URL filters fetch their own matches so
+  // a brand or keyword can reach beyond the rows rendered in the document.
+  const { rows, serverMatches } = useCatalogueRows(
+    staticPool,
+    filtersFromParams(params),
+    props.category,
+  );
   return (
     <CategoryCatalogueView
-      category={category}
-      pool={pool}
-      stories={stories}
-      storiesLabel={storiesLabel}
-      searchPlaceholder={searchPlaceholder}
-      heading={heading}
-      filters={filters}
-      sort={sort}
-      body={body}
+      {...props}
+      pool={rows}
+      countPool={staticPool}
+      params={params}
+      serverMatches={serverMatches}
     />
   );
 }
 
-export function CategoryCatalogFallback(props: {
-  category: VehicleCategory;
-  pool: ListingCardData[];
-  stories: StoryItem[];
-  storiesLabel: string;
-  searchPlaceholder: string;
-  heading: string;
-}) {
-  return (
-    <CategoryCatalogueView
-      {...props}
-      filters={DEFAULT_FILTERS}
-      sort="newest"
-      body={null}
-    />
-  );
+export function CategoryCatalogFallback(props: CategoryCatalogueProps) {
+  return <CategoryCatalogueView {...props} params={null} />;
 }
 
 export function categoryPath(category: VehicleCategory): string {

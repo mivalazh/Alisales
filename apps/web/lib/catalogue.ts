@@ -22,10 +22,14 @@ import type { ListingCardData } from './data/listings';
  * owns the sold-last product rule.
  */
 
-type Params = Pick<URLSearchParams, 'forEach'> | null | undefined;
+/**
+ * The URL subset a catalogue shell needs: `useSearchParams()` after hydration,
+ * or `null` for the prerendered/default render.
+ */
+export type CatalogueParams = Pick<URLSearchParams, 'get' | 'forEach'> | null;
 
 /** First value wins, exactly like the old server-side parser. */
-export function filtersFromParams(params: Params): SearchFilters {
+export function filtersFromParams(params: CatalogueParams): SearchFilters {
   if (!params) return DEFAULT_FILTERS;
   const raw: Record<string, string> = {};
   params.forEach((value, key) => {

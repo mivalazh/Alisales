@@ -2,23 +2,22 @@
 
 import Link from 'next/link';
 import { useSearchParams } from 'next/navigation';
-import { useMemo } from 'react';
-import {
-  DEFAULT_FILTERS,
-  PART_CATEGORY_LABELS,
-  type SearchFilters,
-  type PartCategory,
-} from '@alisales/schemas';
+import { PART_CATEGORY_LABELS } from '@alisales/schemas';
 import type { ListingCardData } from '@/lib/data/listings';
-import { byKind, filtersFromParams, visibleListings } from '@/lib/catalogue';
+import {
+  byKind,
+  filtersFromParams,
+  visibleListings,
+  type CatalogueParams,
+} from '@/lib/catalogue';
 import {
   filterByBodyType,
   filterByPartCategory,
   parseBodyType,
   parsePartCategory,
-  type CarBodyType,
 } from '@/lib/browse';
-import { parseSortKey, type SortKey } from '@/lib/sort';
+import { parseSortKey } from '@/lib/sort';
+import { useCatalogueRows } from '@/lib/use-catalogue-rows';
 import { RENTAL_URL } from '@/lib/seo';
 import { useI18n } from '@/lib/i18n';
 import { Catalog } from './Catalog';
@@ -27,7 +26,7 @@ import type { StoryItem } from './Stories';
 
 type Kind = 'vehicle' | 'part' | null;
 
-function parseKind(value: string | null): Kind {
+function parseKind(value: string | null | undefined): Kind {
   return value === 'vehicle' || value === 'part' ? value : null;
 }
 
@@ -43,28 +42,45 @@ function parseKind(value: string | null): Kind {
  * the prerendered HTML already contains the full catalogue (first paint and
  * crawlers both get real content) instead of an empty Suspense hole.
  */
+type HomeCatalogueProps = {
+  pool: ListingCardData[];
+  /** Unfiltered pool for the category cards' counts (the static rows). */
+  countPool?: ListingCardData[];
+  stories: StoryItem[];
+};
+
+/** URL → the state this page renders. `null` resolves to the static defaults. */
+function homeState(params: CatalogueParams) {
+  return {
+    filters: filtersFromParams(params),
+    sort: parseSortKey(params?.get('sort')),
+    kind: parseKind(params?.get('kind')),
+    body: parseBodyType(params?.get('body')),
+    category: parsePartCategory(params?.get('category')),
+  };
+}
+
 function HomeCatalogueView({
   pool,
+  countPool,
   stories,
-  filters,
-  sort,
-  kind,
-  body,
-  category,
-  listings,
-}: {
-  pool: ListingCardData[];
-  stories: StoryItem[];
-  filters: SearchFilters;
-  sort: SortKey;
-  kind: Kind;
-  body: CarBodyType | null;
-  category: PartCategory | null;
-  listings: ListingCardData[];
-}) {
+  params,
+  serverMatches = false,
+}: HomeCatalogueProps & { params: CatalogueParams; serverMatches?: boolean }) {
+  const { filters, sort, kind, body, category } = homeState(params);
   const { t } = useI18n();
-  const vehicleCount = pool.filter((listing) => listing.kind !== 'part').length;
-  const partCount = pool.filter((listing) => listing.kind === 'part').length;
+
+  // Server rows already matched the URL (its q reads more fields than the local
+  // predicate), so only `kind` / `body` / part category narrow them here.
+  const base = serverMatches ? pool : visibleListings(pool, filters);
+  let listings = byKind(base, kind);
+  if (body) listings = filterByBodyType(listings, body);
+  if (category) listings = filterByPartCategory(listings, category);
+  // Card counts describe the catalogue, not the current filter, so they stay
+  // on the unfiltered pool while the grid shows the URL's matches.
+  const counts = countPool ?? pool;
+  const vehicleCount = counts.filter((listing) => listing.kind !== 'part').length;
+  const partCount = counts.filter((listing) => listing.kind === 'part').length;
   const groupLabel = body ? t(body.label) : category ? t(PART_CATEGORY_LABELS[category]) : null;
   const kindLabel =
     kind === 'vehicle'
@@ -134,38 +150,17 @@ function HomeCatalogueView({
 }
 
 /** URL-driven version (after hydration). */
-export function HomeCatalogue({
-  pool,
-  stories,
-}: {
-  pool: ListingCardData[];
-  stories: StoryItem[];
-}) {
+export function HomeCatalogue({ pool: staticPool, stories }: HomeCatalogueProps) {
   const params = useSearchParams();
-  const filters = useMemo(() => filtersFromParams(params), [params]);
-  const sort = parseSortKey(params?.get('sort'));
-  const kind = parseKind(params?.get('kind'));
-  const body = parseBodyType(params?.get('body'));
-  const category = parsePartCategory(params?.get('category'));
-
-  const listings = useMemo(() => {
-    const base = visibleListings(pool, filters);
-    let next = byKind(base, kind);
-    if (body) next = filterByBodyType(next, body);
-    if (category) next = filterByPartCategory(next, category);
-    return next;
-  }, [pool, filters, kind, body, category]);
-
+  // URL filters fetch their own matches, not just the rendered first 48.
+  const { rows, serverMatches } = useCatalogueRows(staticPool, filtersFromParams(params));
   return (
     <HomeCatalogueView
-      pool={pool}
+      pool={rows}
+      countPool={staticPool}
       stories={stories}
-      filters={filters}
-      sort={sort}
-      kind={kind}
-      body={body}
-      category={category}
-      listings={listings}
+      params={params}
+      serverMatches={serverMatches}
     />
   );
 }
@@ -174,23 +169,6 @@ export function HomeCatalogue({
  * Static-shell version: identical markup with the default filter set. This is
  * what the prerender (and the CDN) serves, so the page is never blank.
  */
-export function HomeCatalogueFallback({
-  pool,
-  stories,
-}: {
-  pool: ListingCardData[];
-  stories: StoryItem[];
-}) {
-  return (
-    <HomeCatalogueView
-      pool={pool}
-      stories={stories}
-      filters={DEFAULT_FILTERS}
-      sort="newest"
-      kind={null}
-      body={null}
-      category={null}
-      listings={visibleListings(pool, DEFAULT_FILTERS)}
-    />
-  );
+export function HomeCatalogueFallback(props: HomeCatalogueProps) {
+  return <HomeCatalogueView {...props} params={null} />;
 }

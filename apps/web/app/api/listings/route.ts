@@ -73,8 +73,8 @@ function toDevCard(data: ListingPublish, sellerId: string): ListingCardData {
     allowPhoneReveal: data.allowPhoneReveal,
     hideAed: data.hideAed,
     kind: 'vehicle',
-    // Category + spec live on the demo card; hosted mode keeps the base row
-    // (the shared `vehicles` table has no category column yet).
+    // Category + spec live on the demo card here and in the hosted `vehicles`
+    // row (0014), so both modes route the listing to the same page.
     category: data.category,
     engineCc: data.engineCc,
     bikeType: data.bikeType,
