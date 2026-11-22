@@ -26,6 +26,7 @@ export const MIGRATION_FILES = [
   '0013_health_probes.sql',
   '0014_vehicle_category_specs.sql',
   '0015_vehicle_category_backfill.sql',
+  '0016_body_type_backfill.sql',
 ];
 
 /** Rows in `public` that the app reads or writes directly. */
