@@ -15,6 +15,8 @@
  * `lib/monitoring/events.ts` for the contract.
  */
 
+import { devOriginWarning } from './lib/config/dev-origins';
+
 const IGNORED_PATH =
   /^\/(?:_next\/|favicon|icons\/|sw\.js)|\.(?:png|jpe?g|webp|avif|svg|ico|css|js|mjs|map|txt|xml|webmanifest)$/i;
 
@@ -71,10 +73,22 @@ export async function onRequestError(
 }
 
 /**
- * No one-time setup is needed — the store opens lazily on first write — but
- * Next calls `register` on boot when it is exported, which is a useful place
- * to keep that statement for the next person.
+ * Boot hook. The store opens lazily on first write, but `register` is the one
+ * place that runs exactly once per server start, which makes it the right spot
+ * for a startup warning.
+ *
+ * A dev server opened through a tunnel, cloud preview or LAN IP without
+ * `NEXT_DEV_ALLOWED_ORIGINS` serves HTML that never hydrates (Next blocks
+ * /_next/hmr), so the assistant orb and every other client effect look broken.
+ * Saying it at startup is cheaper than debugging it.
  */
 export async function register(): Promise<void> {
-  // Intentionally empty.
+  if (process.env.NODE_ENV !== 'development') return;
+  // Edge and Node both boot; the warning belongs to the Node dev server only.
+  if (process.env.NEXT_RUNTIME !== 'nodejs') return;
+  const warning = devOriginWarning({
+    dev: true,
+    allowlist: process.env.NEXT_DEV_ALLOWED_ORIGINS,
+  });
+  if (warning) console.warn(warning);
 }

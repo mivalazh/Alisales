@@ -22,6 +22,7 @@ import { applyListingOverrides, devListings } from './dev-store';
 import { moderationOverlay } from './moderation-store';
 import { applyModeration } from './moderation-rules';
 import { matchesFilters } from '../filter-match';
+import { cataloguePrerenderIssue } from '../config/build-guard';
 import { admin } from './s2-store';
 import { visibleCatalog } from './demo-seed';
 import { storeVersion } from '../storage/demo-store';
@@ -451,6 +452,29 @@ function pageSlice(rows: ListingCardData[], page: CataloguePage): ListingCardDat
 }
 
 /**
+ * Fail a production prerender that would cache an empty catalogue page.
+ *
+ * Runtime pages must still serve a legitimately empty marketplace, so this only
+ * speaks during `next build`. A category page may be empty while the catalogue
+ * is not; the caller only reaches this when the hosted catalogue itself has no
+ * rows (or the read failed), which is the configured-but-broken case.
+ */
+function assertPrerenderedCatalogue(
+  source: string,
+  rows: readonly ListingCardData[],
+  failure?: string,
+): void {
+  const issue = cataloguePrerenderIssue({
+    phase: process.env.NEXT_PHASE,
+    allowEmpty: process.env.ALLOW_EMPTY_CATALOGUE,
+    source,
+    rows: rows.length,
+    failure,
+  });
+  if (issue) throw new Error(issue);
+}
+
+/**
  * The one search implementation.
  *
  * `includeMine` is what separates the request-scoped search from the public
@@ -465,6 +489,7 @@ async function search(
   page?: CataloguePage,
 ): Promise<ListingCardData[]> {
   const effective = launchFilters(filters);
+  const source = category ? `${category} catalogue` : 'public catalogue';
   // A caller that does not page keeps its old shape: the hosted read answers
   // its first page, and the seeded catalogue answers everything it has.
   const read = page ?? FIRST_PAGE;
@@ -482,6 +507,7 @@ async function search(
   const memo = hostedCacheGet(cacheKey);
   if (memo) return memo;
 
+  let failure: string | undefined;
   try {
     const { data, error } = await supabase.rpc('search_listings', {
       p_filters: payload,
@@ -492,36 +518,38 @@ async function search(
     const rows = ((data ?? []) as unknown as ListingCardRow[])
       .map(mapRow)
       .filter((l) => inBrowseCategory(l, category));
-    if (read.offset === 0 && rows.length === 0) {
-      // Only an actually empty hosted catalogue may use seeded rows. A second
-      // unfiltered, one-row probe distinguishes that from a filter no-match,
-      // which must stay empty even when hosted listings exist elsewhere.
-      const probe = await supabase.rpc('search_listings', {
-        p_filters: filtersToRpcPayload(launchFilters(DEFAULT_FILTERS)),
-        p_limit: 1,
-        p_offset: 0,
-      });
-      if (probe.error) throw new Error(probe.error.message);
-      const hostedHasRows = Array.isArray(probe.data) && probe.data.length > 0;
-      return hostedHasRows
-        ? []
-        : slice(await fixtureSearchListings(filters, category, includeMine));
+    if (read.offset > 0 || rows.length > 0) {
+      // The RPC already scopes the category; this stays as a cheap backstop and
+      // keeps the three category pages on one code path online and offline.
+      const ranked = rankSearch(rows, filters.q);
+      hostedCacheSet(cacheKey, ranked);
+      return ranked;
     }
-    // The RPC already scopes the category; this stays as a cheap backstop and
-    // keeps the three category pages on one code path online and offline.
-    const ranked = rankSearch(rows, filters.q);
-    hostedCacheSet(cacheKey, ranked);
-    return ranked;
+    // The first page is empty. A second unfiltered, one-row probe separates an
+    // empty category (real, and it must stay empty) from an empty catalogue
+    // (the seed-hidden failure mode, which may use the seed).
+    const probe = await supabase.rpc('search_listings', {
+      p_filters: filtersToRpcPayload(launchFilters(DEFAULT_FILTERS)),
+      p_limit: 1,
+      p_offset: 0,
+    });
+    if (probe.error) throw new Error(probe.error.message);
+    if (Array.isArray(probe.data) && probe.data.length > 0) return [];
   } catch (error) {
     // A later page failing means the rest of the pool is unreachable too, so
-    // answer with the error instead of a silently truncated grid. The first
-    // page keeps the catalogue alive from the seeded/signed-cookie rows.
+    // answer with the error instead of a silently truncated grid.
     if (read.offset > 0) throw error;
     // Missing table/column, PostgREST or RLS failure: keep the public catalogue
     // alive with the seeded/signed-cookie rows instead of throwing to error.tsx.
     console.warn('[alisales] catalog read fell back to local rows:', error);
-    return slice(await fixtureSearchListings(filters, category, includeMine));
+    failure = error instanceof Error ? error.message : String(error);
   }
+
+  // One exit for "the hosted catalogue produced nothing usable": the seed is
+  // the last first paint, and a build must not cache the zero-row version.
+  const fallback = slice(await fixtureSearchListings(filters, category, includeMine));
+  assertPrerenderedCatalogue(source, fallback, failure);
+  return fallback;
 }
 
 export async function searchListings(

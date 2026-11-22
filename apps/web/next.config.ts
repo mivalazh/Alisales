@@ -1,4 +1,31 @@
+import { networkInterfaces } from 'node:os';
 import type { NextConfig } from 'next';
+import {
+  demoListingsHiddenValue,
+  productionCatalogueIssue,
+} from './lib/config/build-guard';
+import { privateDevOrigins } from './lib/config/dev-origins';
+
+/**
+ * Fail `next build` before it prerenders an empty catalogue: a production build
+ * with the seed hidden and no hosted read credentials would otherwise cache
+ * empty HTML. Next passes the running phase to the config, so this cannot fire
+ * on `next dev` or `next start` — only on `phase-production-build`.
+ */
+function assertCatalogueBuild(phase: string): void {
+  const issue = productionCatalogueIssue({
+    nodeEnv: process.env.NODE_ENV,
+    phase,
+    demoHidden: demoListingsHiddenValue(
+      process.env.NEXT_PUBLIC_HIDE_DEMO_LISTINGS,
+      process.env.NODE_ENV,
+    ),
+    supabaseUrl: process.env.NEXT_PUBLIC_SUPABASE_URL,
+    supabaseAnonKey: process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY,
+    allowEmpty: process.env.ALLOW_EMPTY_CATALOGUE,
+  });
+  if (issue) throw new Error(issue);
+}
 
 /** Allow Supabase storage covers when a project URL is configured. */
 function storageImageHost(): NextConfig['images'] {
@@ -53,7 +80,7 @@ const contentSecurityPolicy = [
   ...(isDev ? [] : ['upgrade-insecure-requests']),
 ].join('; ');
 
-const nextConfig: NextConfig = {
+const config: NextConfig = {
   reactStrictMode: true,
   images: storageImageHost(),
   async headers() {
@@ -125,11 +152,28 @@ const nextConfig: NextConfig = {
       })),
     ];
   },
-  // Dev-only host allowlist (preview tunnels). Production never calls next dev.
+  // Dev-only host allowlist (preview tunnels, cloud previews). Production
+  // never calls next dev. The machine's own LAN addresses are added in
+  // development below, so phone testing needs no environment setup.
   allowedDevOrigins: (process.env.NEXT_DEV_ALLOWED_ORIGINS ?? '')
     .split(',')
     .map((origin) => origin.trim())
     .filter(Boolean),
 };
 
-export default nextConfig;
+/** The function form is what lets Next hand us the phase it is running in. */
+export default function nextConfig(phase: string): NextConfig {
+  assertCatalogueBuild(phase);
+  if (phase !== 'phase-development-server') return config;
+
+  // A phone opening http://<lan-ip>:3000 sends that address as its Origin, and
+  // Next blocks dev resources from unlisted origins — the page renders but
+  // never hydrates. Private addresses are unreachable from the public internet,
+  // so they are the same trust level as localhost and need no opt-in.
+  return {
+    ...config,
+    allowedDevOrigins: [
+      ...new Set([...(config.allowedDevOrigins ?? []), ...privateDevOrigins(networkInterfaces())]),
+    ],
+  };
+}

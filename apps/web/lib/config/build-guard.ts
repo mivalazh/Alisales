@@ -29,9 +29,45 @@ export function demoListingsHiddenValue(
   return nodeEnv === 'production';
 }
 
+export interface CataloguePrerenderInput {
+  /** `process.env.NEXT_PHASE`; only `next build` sets `phase-production-build`. */
+  phase: string | undefined;
+  /** `ALLOW_EMPTY_CATALOGUE` — the same opt-out as the config guard. */
+  allowEmpty: string | undefined;
+  /** What was read, for the message. */
+  source: string;
+  /** Rows the read produced for the page's first paint. */
+  rows: number;
+  /** Why the read produced nothing, when it failed instead of answering []. */
+  failure?: string;
+}
+
+/**
+ * Message for a catalogue read that would prerender an empty page, or null.
+ *
+ * The config guard in `next.config.ts` only sees the environment: it catches a
+ * build with no credentials at all. It cannot catch credentials that are
+ * present but wrong, expired, pointed at an unreachable project, or missing the
+ * migrations. In those cases the read throws, the data layer falls back to the
+ * seed (hidden in production), and every catalogue page prerenders empty HTML
+ * that the CDN then caches. This checks what the read actually returned.
+ *
+ * Only `next build` sets `NEXT_PHASE=phase-production-build` (before it creates
+ * the static workers); `next dev` and `next start` never do, so a served page
+ * can never trip this.
+ */
+export function cataloguePrerenderIssue(input: CataloguePrerenderInput): string | null {
+  if (input.phase !== 'phase-production-build') return null;
+  if (enabled(input.allowEmpty) || input.rows > 0) return null;
+  const cause = input.failure
+    ? `the read failed (${input.failure})`
+    : 'the hosted catalogue returned no rows';
+  return `Refusing to prerender an empty ${input.source}: ${cause}. Credentials are not enough — the project must be reachable and the migrations applied. Set ALLOW_EMPTY_CATALOGUE=true only for an intentional empty catalogue.`;
+}
+
 export interface CatalogueBuildInput {
   nodeEnv: string | undefined;
-  /** Next sets this to `phase-production-build` while `next build` runs. */
+  /** Next passes the phase to the config: build, development or start. */
   phase: string | undefined;
   /** Result of the demo-seed rule for this build. */
   demoHidden: boolean;

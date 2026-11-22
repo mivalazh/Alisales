@@ -49,5 +49,12 @@ jobs:
       - name: Unit tests
         run: npm test
 
+      # This build proves the app compiles as production code; it is not a
+      # deploy. CI has no hosted Supabase credentials, so the catalogue guard
+      # is told the empty build is intentional. Real deploys pass
+      # NEXT_PUBLIC_SUPABASE_URL / NEXT_PUBLIC_SUPABASE_ANON_KEY at build time
+      # instead of this flag.
       - name: Production build
         run: npm run build
+        env:
+          ALLOW_EMPTY_CATALOGUE: 'true'

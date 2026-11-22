@@ -95,10 +95,33 @@ npm run typecheck        # every workspace
 npm run smoke:db         # apply migrations+seeds on PGlite, sanity counts
 npm run build            # next build (web) + workspace builds
 npm run dev -w @alisales/web        # web dev server (:3000)
+NEXT_DEV_ALLOWED_ORIGINS=preview.example.com npm run dev -w @alisales/web  # remote/tunnel preview
 npm run start -w @alisales/mobile   # Expo dev server
 npm run generate:icons   # rebuild PNG app icons from the SVG mark
 node scripts/gen-covers.mjs   # rebuild the demo listing cover SVGs
 ```
+
+**Remote dev previews must be allow-listed.** Next blocks cross-origin
+`/_next/hmr` and other dev resources from any host it does not trust, and its
+dev client then never hydrates the page: the HTML renders, but every client
+effect — the assistant orb (`DeferredAssistant`), the theme switch, filter chips
+— stays dead and the console shows `/_next/hmr` failing. It is not an assistant
+bug; check the dev server log for “Blocked cross-origin request to Next.js dev
+resource”.
+
+Two kinds of remote host exist:
+
+- **A phone on the same Wi-Fi or LAN**, i.e. `http://<lan-ip>:3000`. These need
+  no setup: in development `next.config.ts` adds this machine's own private IPv4
+  addresses (10/8, 172.16/12, 192.168/16, 169.254/16) to `allowedDevOrigins`,
+  because they are unreachable from the public internet and therefore the same
+  trust level as localhost. Restart the dev server after a network change, since
+  the list is read at startup.
+- **A tunnel, cloud preview or custom domain.** Set `NEXT_DEV_ALLOWED_ORIGINS`
+  to that exact host (comma-separated) and restart. The dev server warns at
+  startup when the variable is empty, so an un-hydrated preview names its own
+  cause instead of looking like a broken orb; a localhost-only session can
+  ignore that line.
 
 **Offline demo modes** (no Supabase credentials needed, see `.env.example`):
 the web app serves the seeded fixtures — the luxury Kish catalogue first, one
@@ -107,6 +130,16 @@ sold listing last — plus locally submitted listings (file store
 read-only, wiped with `rm -rf`); the mobile app runs an in-memory demo store
 with a visible «حالت نمایشی محلی» banner. With `NEXT_PUBLIC_SUPABASE_*` set, the
 grid reads the shared `search_listings` RPC and mutations are RLS-gated.
+
+A **production build** hides the demo seed, so `npm run build` needs
+`NEXT_PUBLIC_SUPABASE_URL` and `NEXT_PUBLIC_SUPABASE_ANON_KEY` at build time; it
+otherwise fails with “Refusing to build an empty production catalogue.” For a
+credential-less preview build, set `ALLOW_EMPTY_CATALOGUE=true` (empty
+catalogue) or `NEXT_PUBLIC_HIDE_DEMO_LISTINGS=false` (demo seed). CI and the
+Freebuff Sites build run from this checkout without hosted credentials, so both
+set `ALLOW_EMPTY_CATALOGUE=true` for their builds — the Sites one through the
+gitignored `apps/web/.env.production.local`. See
+[DEPLOY_RUNBOOK.md](DEPLOY_RUNBOOK.md).
 
 **Development fixtures** (`apps/web/lib/config/mode.ts`): `next dev` without
 Supabase credentials serves the fixture store and can print the OTP to the

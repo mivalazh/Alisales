@@ -118,16 +118,44 @@ Any non-empty value other than `false`, `0`, `no` or `off` hides the seed, and
 `true` is the explicit production setting. Set the value in the deployment's
 environment before the build/deploy; do not rely on flipping it at runtime.
 
-**The build refuses to ship an empty catalogue.** When the seed is hidden and
-`NEXT_PUBLIC_SUPABASE_URL` / `NEXT_PUBLIC_SUPABASE_ANON_KEY` are missing at build
-time, `next build` fails with “Refusing to build an empty production
-catalogue.”: without the read client every catalogue page would prerender zero
-listings and that HTML would be cached at the edge. Both variables must be
-present for the build itself, not only at runtime, because the routes are
-statically generated. An intentional credential-less preview build (empty
-catalogue) can opt out with `ALLOW_EMPTY_CATALOGUE=true` — never on a real
-deployment. A deployed site with credentials but zero rows is a legitimate
-empty marketplace and does not trip the guard.
+**The build refuses to ship an empty catalogue.** Two guards cover it, because
+credentials in the environment are not proof that the read works:
+
+- `next.config.ts` fails the build when the seed is hidden and
+  `NEXT_PUBLIC_SUPABASE_URL` / `NEXT_PUBLIC_SUPABASE_ANON_KEY` are missing at
+  build time (“Refusing to build an empty production catalogue.”). Both values
+  must be present for the build itself, not only at runtime, because the routes
+  are statically generated.
+- The catalogue read fails the build when it returns no rows — or throws —
+  while pages prerender (“Refusing to prerender an empty … catalogue”). A wrong
+  or expired anon key, an unreachable project or unapplied migrations look
+  exactly like this: the read falls back to the seed, which is hidden in
+  production, so every page would cache empty HTML. One category may be empty
+  while the catalogue is not; only an empty catalogue or a failed read fails.
+
+An intentional empty build — a credential-less preview, or a brand-new
+marketplace with no rows yet — must set `ALLOW_EMPTY_CATALOGUE=true`; never on a
+real deployment. Both guards are build-time only: a running site with
+credentials and zero rows stays up, and is a legitimate empty marketplace.
+
+### Where each build gets its environment
+
+The two `NEXT_PUBLIC_SUPABASE_*` values must be present **during the build**,
+not only at runtime: Next inlines `NEXT_PUBLIC_*`, and the catalogue is read
+while the bundle is produced. Every path that produces the shipped bundle
+builds from a checkout:
+
+| Build | Runs | Sees | Credential-less? |
+| --- | --- | --- | --- |
+| GitHub Actions (`ci.yml`) | `npm run build` in the checkout | the workflow `env` only | yes — the build step sets `ALLOW_EMPTY_CATALOGUE=true`; it is a compile check, not a deploy |
+| Freebuff Sites publish | `sites_prepare_next` runs the OpenNext `next build` in this checkout, then `sites_deploy` uploads the bundle | the checkout's shell and `apps/web/.env.*` (Next loads them before `next.config.ts`) | yes by default — the gitignored `apps/web/.env.production.local` sets `ALLOW_EMPTY_CATALOGUE=true` |
+| `next start` / `npm run dev` | the built bundle / the dev server | runtime environment | n/a — neither phase can trip either guard |
+
+To publish a preview against a real project instead of an empty catalogue, add
+both public values to `apps/web/.env.production.local` (or export them in the
+shell that runs the publish) and remove `ALLOW_EMPTY_CATALOGUE`; the build then
+reads the live catalogue and the refusal stays armed. Never commit that file or
+put keys in it — it is gitignored for that reason.
 
 ## 4. Key rotation
 
