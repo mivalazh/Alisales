@@ -67,6 +67,29 @@ describe('demo listing launch switch', () => {
     }
   });
 
+  it('hides the seed for any value that is not an explicit opt-out', () => {
+    vi.stubEnv('NODE_ENV', 'test');
+    process.env[ENV_KEY] = 'yes';
+    try {
+      expect(visibleCatalog(fixtureListings, [userListing])).toHaveLength(1);
+    } finally {
+      vi.unstubAllEnvs();
+      delete process.env[ENV_KEY];
+    }
+  });
+
+  it('treats an empty value as unset and follows the build mode', () => {
+    vi.stubEnv('NODE_ENV', 'production');
+    process.env[ENV_KEY] = '';
+    try {
+      expect(visibleCatalog(fixtureListings, [userListing])).toHaveLength(1);
+    } finally {
+      vi.unstubAllEnvs();
+      process.env[ENV_KEY] = '';
+      delete process.env[ENV_KEY];
+    }
+  });
+
   it('shows the seed again only when the flag is explicitly "false"', () => {
     vi.stubEnv('NODE_ENV', 'production');
     process.env[ENV_KEY] = 'false';

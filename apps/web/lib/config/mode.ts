@@ -2,6 +2,7 @@ import { join } from 'node:path';
 import { isValidMobile, normalizePhone } from '@alisales/schemas';
 import { smsConfigured } from '../auth/sms';
 import { nodeFs } from '../storage/node-fs';
+import { demoListingsHiddenValue } from './build-guard';
 
 /**
  * Runtime mode for the web app (S3 demo/preview hardening).
@@ -61,10 +62,10 @@ export function hostedReadsConfigured(): boolean {
  * `next dev` still has a catalogue to work on.
  */
 export function demoListingsHidden(): boolean {
-  const raw = process.env.NEXT_PUBLIC_HIDE_DEMO_LISTINGS?.trim().toLowerCase();
-  if (raw === 'false' || raw === '0' || raw === 'no' || raw === 'off') return false;
-  if (raw) return true;
-  return process.env.NODE_ENV === 'production';
+  return demoListingsHiddenValue(
+    process.env.NEXT_PUBLIC_HIDE_DEMO_LISTINGS,
+    process.env.NODE_ENV,
+  );
 }
 
 /**
