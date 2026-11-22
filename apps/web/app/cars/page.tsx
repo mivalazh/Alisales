@@ -19,6 +19,7 @@ export const revalidate = 60;
 export const metadata = staticMetadata(
   { title: 'خودروها', description: 'جستجوی خودروهای نو و کارکرده در کیش — با فیلتر برند، سال، قیمت و پلاک.' },
   { title: 'Vehicles', description: 'Search new and used cars in Kish — filter by brand, year, price and plate.' },
+  '/cars',
 );
 
 const CAR_STORIES = [

@@ -13,6 +13,7 @@ export const revalidate = 60;
 export const metadata = staticMetadata(
   { title: 'موتور و اسکوتر برقی', description: 'خرید و فروش موتور و اسکوتر برقی و بنزینی در کیش — فیلتر برند، نوع موتور، توان و سال.' },
   { title: 'Scooters & Bikes', description: 'Buy and sell electric and petrol scooters and motorcycles in Kish — filter by brand, type, power and year.' },
+  '/motorcycles',
 );
 
 const BIKE_STORIES = [

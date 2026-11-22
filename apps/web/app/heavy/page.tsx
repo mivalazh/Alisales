@@ -13,6 +13,7 @@ export const revalidate = 60;
 export const metadata = staticMetadata(
   { title: 'ماشین‌آلات سنگین', description: 'کامیون، کشنده، تریلی و ماشین‌آلات راه‌سازی — فیلتر برند، نوع، سال و ساعت کارکرد.' },
   { title: 'Heavy Machinery', description: 'Trucks, tractor units, trailers and road-building machinery — filter by brand, type, year and operating hours.' },
+  '/heavy',
 );
 
 const HEAVY_STORIES = [

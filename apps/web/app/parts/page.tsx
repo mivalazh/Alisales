@@ -19,6 +19,7 @@ export const revalidate = 60;
 export const metadata = staticMetadata(
   { title: 'قطعات و لوازم یدکی', description: 'قطعات و لوازم یدکی خودروهای وارداتی در کیش — با فیلتر دسته‌بندی، منشأ و سازگاری.' },
   { title: 'Spare Parts & Accessories', description: 'Imported-car spare parts and accessories in Kish — filter by category, origin and compatibility.' },
+  '/parts',
 );
 
 /** Editorial parts highs for the parts rail (approved ones come first). */

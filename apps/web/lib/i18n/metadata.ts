@@ -31,9 +31,17 @@ export function localizedMetadata(
 export function staticMetadata(
   fa: LocalizedPageMetadata,
   _en: LocalizedPageMetadata,
+  /**
+   * Base path of the page. A statically generated catalogue renders the same
+   * document for `?brand=`, `?q=`, `?sort=` and every other filter combination,
+   * so those URLs must point search engines at the unfiltered page instead of
+   * competing with it as duplicates.
+   */
+  canonical: string,
 ): Metadata {
   return {
     title: fa.title,
     ...(fa.description ? { description: fa.description } : {}),
+    alternates: { canonical },
   };
 }
