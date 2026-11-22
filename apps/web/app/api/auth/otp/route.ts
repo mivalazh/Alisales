@@ -181,9 +181,15 @@ async function handlePost(request: Request): Promise<NextResponse> {
   }
 
   if (showCode) {
-    // Development / demo / launch-number fallback: the code is written to the
-    // server console and handed to this browser.
-    console.info(`[alisales][otp] login code for ${phone}: ${code}`);
+    // Development / demo / launch-number fallback: the code is handed to this
+    // browser, and printed to the server console only outside production. A
+    // live production code in the logs is replayable by anyone who can read
+    // them, so there the line records the event without the secret.
+    console.info(
+      process.env.NODE_ENV === 'production'
+        ? `[alisales][otp] on-screen code issued for ${phone} (code not logged in production)`
+        : `[alisales][otp] login code for ${phone}: ${code}`,
+    );
   }
 
   const body: {

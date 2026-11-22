@@ -171,6 +171,27 @@ describe('SMS.ir failure opens the code for allowlisted launch numbers', () => {
     expect([...jar.keys()].some((name) => name.includes('session'))).toBe(true);
   });
 
+  it('never writes a production code to the server log', async () => {
+    const log = vi.spyOn(console, 'info').mockImplementation(() => {});
+    try {
+      sandboxRejection();
+
+      const response = await requestOtp(
+        post('/api/auth/otp', { phone: PHONE }, '203.0.113.18'),
+      );
+      const { fallbackCode } = (await response.json()) as { fallbackCode: string };
+      expect(response.status).toBe(200);
+      expect(fallbackCode).toMatch(/^\d{6}$/);
+
+      const logged = log.mock.calls.map((call) => String(call[0])).join('\n');
+      // The browser still gets the code; the log must not carry a replayable one.
+      expect(logged).toContain('code not logged in production');
+      expect(logged).not.toContain(fallbackCode);
+    } finally {
+      log.mockRestore();
+    }
+  });
+
   it('accepts the signed cookie when another isolate lost the record', async () => {
     sandboxRejection();
 
