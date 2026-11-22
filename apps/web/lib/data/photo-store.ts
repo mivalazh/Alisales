@@ -8,8 +8,9 @@ import { PHOTO_BUCKET, devPhotoUrl } from './photo-rules';
  *
  * The browser compresses to WebP (EXIF stripped, ≤ 8 MB) and POSTs the bytes to
  * `/api/photos`; this module is the only place that touches storage:
- *  - hosted: `listing-photos` bucket via the service role, path
- *    `{sellerId}/{uuid}.webp`, public URL returned for rendering,
+ *  - hosted: the public `photos` bucket via the service role (RLS bypassed by
+ *    the service key), path `{sellerId}/{uuid}.webp`, public URL returned for
+ *    rendering,
  *  - fixture mode: the same path shape in the demo store (`.dev-data/photos`,
  *    `/tmp/…`, or isolate memory on Workers), served by the GET route so the
  *    offline catalog shows real images instead of placeholders.
@@ -49,13 +50,25 @@ export async function storePhoto(input: PhotoBytes): Promise<StoredPhoto> {
   const sb = admin();
 
   if (sb) {
-    const uploaded = await sb.storage
-      .from(PHOTO_BUCKET)
-      .upload(path, input.bytes, { contentType: input.mime, upsert: false });
+    // A Blob keeps the upload on storage-js's multipart path and carries the
+    // real content type; the object path is unique, so it can be cached hard.
+    const body = new Blob([new Uint8Array(input.bytes)], { type: input.mime });
+    const uploaded = await sb.storage.from(PHOTO_BUCKET).upload(path, body, {
+      contentType: input.mime,
+      cacheControl: '31536000',
+      upsert: false,
+    });
     if (uploaded.error) {
+      // Log the provider's reason (missing bucket, size limit, network) — the
+      // browser only ever sees the generic Persian message from the route.
+      console.warn(
+        `[alisales] photo upload to «${PHOTO_BUCKET}» failed for ${path}:`,
+        uploaded.error.message,
+      );
       throw new Error(`photo upload failed: ${uploaded.error.message}`);
     }
     const url = sb.storage.from(PHOTO_BUCKET).getPublicUrl(path).data.publicUrl;
+    if (!url) throw new Error('photo upload returned no public URL');
     return { path, url };
   }
 

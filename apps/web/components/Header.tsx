@@ -142,6 +142,11 @@ function DrawerSection({ children }: { children: ReactNode }) {
   return <ul className="space-y-0.5">{children}</ul>;
 }
 
+type AccountState =
+  | { status: 'loading' }
+  | { status: 'guest' }
+  | { status: 'user'; displayName: string | null };
+
 export function Header() {
   const [menuOpen, setMenuOpen] = useState(false);
   const pathname = usePathname();
@@ -151,43 +156,64 @@ export function Header() {
 
   // The shell is static, so the account state cannot come from the layout's
   // server render any more: it is read from /api/auth/me after hydration, and
-  // again whenever a sign-in, sign-out or profile save announces a change —
-  // including one made in another tab.
-  const [account, setAccount] = useState<{ displayName: string | null } | null>(null);
+  // again on navigation, on tab focus, and whenever a sign-in, sign-out or
+  // profile save announces a change (including one made in another tab).
+  //
+  // "Still asking" is a third state on purpose. A null account used to mean
+  // both "guest" and "no answer yet", so a signed-in buyer saw «ورود» until the
+  // request landed — or forever when it failed. Now the loading state renders a
+  // neutral placeholder, and a failed request is retried instead of being read
+  // as signed out.
+  const [account, setAccount] = useState<AccountState>({ status: 'loading' });
   useEffect(() => {
     let alive = true;
     let latest = 0;
+    let retry: ReturnType<typeof setTimeout> | undefined;
 
     const load = () => {
       const request = ++latest;
       fetch('/api/auth/me', { cache: 'no-store' })
-        .then((res) => {
+        .then(async (res): Promise<AccountState> => {
           // 401 is a real answer: this browser is signed out.
-          if (res.status === 401) return null;
-          return res.ok
-            ? (res.json() as Promise<{ user?: { displayName?: string | null } }>)
-            : undefined;
+          if (res.status === 401) return { status: 'guest' };
+          if (!res.ok) throw new Error(`auth/me answered ${res.status}`);
+          const body = (await res.json()) as {
+            user?: { displayName?: string | null };
+          };
+          return body.user
+            ? { status: 'user', displayName: body.user.displayName ?? null }
+            : { status: 'guest' };
         })
-        .then((body) => {
+        .then((next) => {
           // Ignore an older response that landed after a newer request.
           if (!alive || request !== latest) return;
-          if (body === null) setAccount(null);
-          else if (body?.user) setAccount({ displayName: body.user.displayName ?? null });
+          setAccount(next);
         })
         .catch(() => {
-          // A failed request says nothing about the session: keep what we had.
+          // A network blip says nothing about the session: ask again shortly
+          // instead of claiming the buyer is signed out.
+          if (!alive || request !== latest) return;
+          retry = setTimeout(load, 3_000);
         });
     };
 
     load();
     const unsubscribe = onAccountChanged(load);
+    const reloadIfVisible = () => {
+      if (document.visibilityState === 'visible') load();
+    };
+    window.addEventListener('focus', load);
+    document.addEventListener('visibilitychange', reloadIfVisible);
     return () => {
       alive = false;
+      if (retry) clearTimeout(retry);
       unsubscribe();
+      window.removeEventListener('focus', load);
+      document.removeEventListener('visibilitychange', reloadIfVisible);
     };
-  }, []);
-  const authed = account !== null;
-  const displayName = account?.displayName ?? null;
+  }, [pathname]);
+  const authed = account.status === 'user';
+  const displayName = account.status === 'user' ? account.displayName : null;
 
   useEffect(() => {
     setMenuOpen(false);
@@ -229,15 +255,20 @@ export function Header() {
             </button>
             <ThemeToggle />
             <NotificationBell authed={authed} />
-            {authed ? (
-              <>
-                <Link
-                  href="/profile"
-                  className="hidden max-w-40 truncate rounded-[var(--radius-pill)] border border-line bg-card px-3 py-1.5 text-xs font-bold text-ink md:inline-flex"
-                >
-                  {displayName ?? t('پروفایل', 'Profile')}
-                </Link>
-              </>
+            {account.status === 'loading' ? (
+              // Neutral while the answer is unknown — never a «ورود» that a
+              // signed-in buyer has to watch disappear.
+              <span
+                aria-hidden="true"
+                className="hidden h-8 w-16 animate-pulse rounded-[var(--radius-pill)] bg-sunken md:block"
+              />
+            ) : authed ? (
+              <Link
+                href="/profile"
+                className="hidden max-w-40 truncate rounded-[var(--radius-pill)] border border-line bg-card px-3 py-1.5 text-xs font-bold text-ink md:inline-flex"
+              >
+                {displayName ?? t('پروفایل', 'Profile')}
+              </Link>
             ) : (
               <Link href="/login" className="btn-ghost whitespace-nowrap px-3 py-1.5 text-sm">
                 {t('ورود', 'Sign in')}
@@ -419,7 +450,9 @@ export function Header() {
 
               <div className="my-5 flex-1" />
 
-              <div className="space-y-3 border-t border-line pt-3">
+              {/* Safe-area padding: the sign-out button must clear the iOS
+                  home indicator, not sit on top of it. */}
+              <div className="space-y-3 border-t border-line pb-[max(0.75rem,env(safe-area-inset-bottom))] pt-3">
                 <button
                   type="button"
                   aria-label={t(
@@ -446,7 +479,12 @@ export function Header() {
                   >
                     {lang === 'fa' ? 'EN' : 'FA'}
                   </button>
-                  {authed ? (
+                  {account.status === 'loading' ? (
+                    <span
+                      aria-hidden="true"
+                      className="h-10 min-w-0 flex-1 animate-pulse rounded-field bg-sunken"
+                    />
+                  ) : authed ? (
                     <div className="min-w-0 flex-1">
                       <LogoutButton />
                     </div>

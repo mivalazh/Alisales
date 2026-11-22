@@ -207,7 +207,7 @@ export default async function RootLayout({ children }: { children: ReactNode }) 
             <main
               id="main-content"
               tabIndex={-1}
-              className="mx-auto w-full max-w-[var(--content-max)] flex-1 px-4 pb-24 pt-[calc(5rem+env(safe-area-inset-top))] focus:outline-none sm:px-6 sm:pb-6 md:pt-36"
+              className="mx-auto w-full max-w-[var(--content-max)] flex-1 px-4 pb-[calc(7rem+env(safe-area-inset-bottom))] pt-[calc(5rem+env(safe-area-inset-top))] focus:outline-none sm:px-6 sm:pb-8 md:pt-36"
             >
               {children}
             </main>

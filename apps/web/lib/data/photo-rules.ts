@@ -4,15 +4,17 @@ import { MAX_PHOTOS, type ListingPhoto } from '@alisales/schemas';
  * Photo storage rules (pure — no Supabase/Next imports, so tests can load it).
  *
  * Uploads land under `{sellerId}/{uuid}.webp`:
- *  - hosted: the public `listing-photos` bucket (0004 allows writes only inside
- *    the caller's own folder),
+ *  - hosted: the public `photos` bucket (0018). The server writes with the
+ *    service role, so storage RLS can never block an upload; the bucket stays
+ *    public-read so a cover renders without a signed URL. `listing-photos`
+ *    (0004) is kept for objects stored before the switch,
  *  - fixture mode: `.dev-data/photos/` served by `/api/photos/...`.
  *
  * Because the folder is the seller id, the publish/patch routes can prove a
  * submitted path belongs to the caller instead of trusting the browser.
  */
 
-export const PHOTO_BUCKET = 'listing-photos';
+export const PHOTO_BUCKET = 'photos';
 
 /** Legacy/local placeholder prefix — never a durable storage path. */
 export const PENDING_PHOTO_PREFIX = 'pending/';

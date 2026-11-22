@@ -148,10 +148,10 @@ describe('photo rules', () => {
 
   it('builds public and dev URLs', () => {
     expect(publicPhotoUrl('s/a.webp', 'https://x.supabase.co')).toBe(
-      'https://x.supabase.co/storage/v1/object/public/listing-photos/s/a.webp',
+      'https://x.supabase.co/storage/v1/object/public/photos/s/a.webp',
     );
     expect(publicPhotoUrl('s/a.webp', 'https://x.supabase.co/')).toBe(
-      'https://x.supabase.co/storage/v1/object/public/listing-photos/s/a.webp',
+      'https://x.supabase.co/storage/v1/object/public/photos/s/a.webp',
     );
     expect(publicPhotoUrl('s/a.webp', undefined)).toBeNull();
     expect(devPhotoUrl('s/a.webp')).toBe('/api/photos/s/a.webp');

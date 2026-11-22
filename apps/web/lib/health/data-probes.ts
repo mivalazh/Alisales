@@ -12,7 +12,7 @@ import { admin } from '../data/s2-store';
  *
  *  - `database` inserts one throwaway row into `health_probes`, reads it back
  *    by id, compares the token and deletes it;
- *  - `storage` uploads one tiny object into the `listing-photos` bucket,
+ *  - `storage` uploads one tiny object into the `photos` bucket,
  *    downloads it, compares the bytes and removes it.
  *
  * Each probe reports its own check, and every step is bounded so a hung
@@ -238,7 +238,7 @@ export async function probeDatabase(): Promise<DataPathCheck> {
 /**
  * Upload → download → delete one small object in the listing bucket.
  *
- * `listing-photos` is the bucket listings actually depend on, so a missing or
+ * `PHOTO_BUCKET` is the bucket listings actually depend on, so a missing or
  * read-only bucket fails here instead of as a cover that never loads.
  */
 export async function probeStorage(): Promise<DataPathCheck> {

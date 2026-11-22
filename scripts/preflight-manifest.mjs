@@ -28,6 +28,7 @@ export const MIGRATION_FILES = [
   '0015_vehicle_category_backfill.sql',
   '0016_body_type_backfill.sql',
   '0017_search_fuel_filter.sql',
+  '0018_photo_bucket.sql',
 ];
 
 /** Rows in `public` that the app reads or writes directly. */
@@ -83,6 +84,7 @@ export const RPCS = [
 
 /** Storage buckets and whether clients may read them without a secret. */
 export const BUCKETS = [
+  { id: 'photos', public: true, migration: '0018_photo_bucket.sql' },
   { id: 'listing-photos', public: true, migration: '0004_storage.sql' },
   { id: 'report-photos', public: true, migration: '0004_storage.sql' },
   { id: 'showroom-licenses', public: false, migration: '0004_storage.sql' },

@@ -9,7 +9,7 @@ import { smsReadiness } from '../apps/web/lib/auth/sms';
 vi.mock('@/lib/health/data-probes', () => ({
   dataPathChecks: async () => ({
     database: { ok: true, table: 'health_probes', roundTripMs: 1 },
-    storage: { ok: true, bucket: 'listing-photos', roundTripMs: 1 },
+    storage: { ok: true, bucket: 'photos', roundTripMs: 1 },
   }),
 }));
 

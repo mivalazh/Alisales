@@ -155,7 +155,7 @@ describe('health data path', () => {
 
     expect(response.status).toBe(200);
     expect(body.checks.database).toMatchObject({ ok: true, table: 'health_probes' });
-    expect(body.checks.storage).toMatchObject({ ok: true, bucket: 'listing-photos' });
+    expect(body.checks.storage).toMatchObject({ ok: true, bucket: 'photos' });
     expect(typeof body.checks.database.roundTripMs).toBe('number');
 
     // The probe row and the probe object are removed again.
@@ -166,9 +166,9 @@ describe('health data path', () => {
         'insert:health_probes',
         'select:health_probes',
         'delete:health_probes',
-        'upload:listing-photos',
-        'download:listing-photos',
-        'remove:listing-photos',
+        'upload:photos',
+        'download:photos',
+        'remove:photos',
       ]),
     );
   });
@@ -207,7 +207,7 @@ describe('health data path', () => {
     expect(body.checks.database.ok).toBe(true);
     expect(body.checks.storage).toMatchObject({
       ok: false,
-      bucket: 'listing-photos',
+      bucket: 'photos',
       code: 'STORAGE_BUCKET_MISSING',
     });
   });

@@ -6,7 +6,6 @@ import {
   CITY_LABELS,
   DEFAULT_AED_TO_IRR,
   HEAVY_TYPES,
-  VEHICLE_CATEGORY_LABELS,
   brandsForCategory,
   BODY_TYPE_LABELS,
   CHASSIS_CONDITION_LABELS,
@@ -1215,21 +1214,11 @@ export function ListingForm() {
 
   return (
     <form onSubmit={(e) => void handleSubmit(e)} noValidate className="mx-auto flex max-w-3xl flex-col gap-5">
+      {/* The page's only heading: the category is picked in step 1 below, so a
+          second title that names the category was both duplicated and wrong on
+          first paint. */}
       <div>
-        <h1 className="text-2xl font-extrabold">
-          {mode === 'part'
-            ? t('ثبت آگهی قطعه و لوازم جانبی', 'Post a spare-part ad')
-            : t(
-                `ثبت آگهی ${VEHICLE_CATEGORY_LABELS[category]}`,
-                `Post a ${VEHICLE_CATEGORY_LABELS[category] === 'خودرو' ? 'vehicle' : VEHICLE_CATEGORY_LABELS[category] === 'موتور و اسکوتر برقی' ? 'bike' : 'machinery'} ad`,
-              )}
-        </h1>
-        <p className="mt-1 text-sm text-muted">
-          {t(
-            'ابتدا دسته‌بندی را انتخاب کنید؛ فرم و فیلترها بر همان اساس تنظیم می‌شوند.',
-            'Choose a category first; the form and filters adapt to it.',
-          )}
-        </p>
+        <h1 className="text-xl font-extrabold">{t('ثبت آگهی', 'Post an ad')}</h1>
       </div>
 
       {/* Step 1 — the category comes first. */}
@@ -2071,7 +2060,7 @@ export function ListingForm() {
         </Section>
       </StepCard>
 
-      <div className="flex flex-wrap items-center justify-between gap-3">
+      <div className="flex flex-wrap items-center justify-between gap-3 pb-2 sm:pb-0">
         <p className="text-xs text-faint">
           {t(
             'با ثبت آگهی، صحت اطلاعات و وضعیت پلاک را تأیید می‌کنید.',

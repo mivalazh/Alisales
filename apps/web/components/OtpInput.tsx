@@ -35,7 +35,11 @@ const splitDigits = (value: string): string[] =>
  *  · arrow keys move between boxes.
  *
  * `autoComplete="one-time-code"` sits on the first box only, which is where
- * iOS and Android offer the code from the incoming message.
+ * iOS Safari and Android keyboards offer the code from the incoming message.
+ * That first box also allows up to six characters: the OS inserts the whole
+ * code into the focused field in one go, and the spread handler above splits
+ * it across the boxes. With `maxLength={1}` the platform could deliver only
+ * one digit and the suggestion would look broken.
  */
 export function OtpInput({
   value,
@@ -155,8 +159,12 @@ export function OtpInput({
           dir="ltr"
           inputMode="numeric"
           pattern="[0-9]*"
-          maxLength={1}
+          maxLength={index === 0 ? LENGTH : 1}
           autoComplete={index === 0 ? 'one-time-code' : 'off'}
+          autoCapitalize="none"
+          autoCorrect="off"
+          spellCheck={false}
+          enterKeyHint={index === LENGTH - 1 ? 'done' : 'next'}
           autoFocus={autoFocus && index === 0}
           aria-label={`${label} ${index + 1}`}
           disabled={disabled}

@@ -28,6 +28,7 @@ import { visibleCatalog } from './demo-seed';
 import { storeVersion } from '../storage/demo-store';
 import { supabaseFetch } from './supabase-fetch';
 import { mergeMyListings, readMyListings } from './my-listings-cookie';
+import { PHOTO_BUCKET } from './photo-rules';
 
 /** Structured part data for a non-vehicle listing (`parts_listings`). */
 export interface PartInfo {
@@ -173,11 +174,12 @@ interface ListingCardRow {
   inspection_note?: string | null;
 }
 
-const STORAGE_BUCKET = 'listing-photos';
-
+/** Same bucket `POST /api/photos` uploads to — one source of truth. */
 function publicPhotoUrl(path: string): string | null {
   const base = process.env.NEXT_PUBLIC_SUPABASE_URL;
-  return base ? `${base}/storage/v1/object/public/${STORAGE_BUCKET}/${path}` : null;
+  return base
+    ? `${base.replace(/\/$/, '')}/storage/v1/object/public/${PHOTO_BUCKET}/${path}`
+    : null;
 }
 
 function mapRow(r: ListingCardRow): ListingDetailData {
