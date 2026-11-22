@@ -54,6 +54,24 @@ function card(overrides: Partial<ListingCardData> = {}): ListingCardData {
   } as unknown as ListingCardData;
 }
 
+const DEFAULT_PART = {
+  title: 'لنت ترمز جلو',
+  category: 'brake',
+  origin: 'oem',
+  condition: 'new',
+  partNumber: null,
+  compatibility: 'پراید',
+  warranty: null,
+} as const;
+
+function partCard(overrides: Partial<ListingCardData> = {}): ListingCardData {
+  return {
+    ...card({ kind: 'part' } as Partial<ListingCardData>),
+    ...overrides,
+    part: { ...DEFAULT_PART, ...(overrides.part ?? {}) },
+  } as ListingCardData;
+}
+
 function get(query: string): Promise<Response> {
   return import('../apps/web/app/api/listings/search/route').then(({ GET }) =>
     GET(new Request(`https://alisales.ir/api/listings/search?${query}`)),
@@ -134,6 +152,46 @@ describe('/api/listings/search', () => {
 
     expect(body.rows).toHaveLength(1_000);
     expect(searchPublicListings).toHaveBeenCalledTimes(10);
+  });
+
+  it('narrows a body group across pages instead of returning the unfiltered prefix', async () => {
+    searchPublicListings
+      .mockResolvedValueOnce(Array.from({ length: 100 }, (_, i) => card({ id: `sedan-${i}`, model: 'camry' })))
+      .mockResolvedValueOnce([card({ id: 'suv', model: 'land cruiser' })]);
+
+    const body = (await (await get('body=suv')).json()) as { rows: ListingCardData[] };
+
+    // Only the SUV matches; the 100 sedans are dropped, and the walk continued.
+    expect(body.rows.map((row) => row.id)).toEqual(['suv']);
+    expect(searchPublicListings.mock.calls.map((call) => call[2])).toEqual([
+      { limit: 100, offset: 0 },
+      { limit: 100, offset: 100 },
+    ]);
+  });
+
+  it('scopes ?kind=part to parts', async () => {
+    searchPublicListings.mockResolvedValue([
+      card({ id: 'car', model: 'camry' }),
+      partCard({ id: 'brake' }),
+    ]);
+
+    const body = (await (await get('kind=part')).json()) as { rows: ListingCardData[] };
+
+    expect(body.rows.map((row) => row.id)).toEqual(['brake']);
+  });
+
+  it('scopes parts attributes from the URL', async () => {
+    searchPublicListings.mockResolvedValue([
+      card({ id: 'car' }),
+      partCard({ id: 'oem-brake', part: { ...DEFAULT_PART, origin: 'oem' } }),
+      partCard({ id: 'aftermarket-brake', part: { ...DEFAULT_PART, origin: 'aftermarket' } }),
+    ]);
+
+    const origin = (await (await get('origin=oem')).json()) as { rows: ListingCardData[] };
+    expect(origin.rows.map((row) => row.id)).toEqual(['oem-brake']);
+
+    const category = (await (await get('category=brake')).json()) as { rows: ListingCardData[] };
+    expect(category.rows.map((row) => row.id)).toEqual(['oem-brake', 'aftermarket-brake']);
   });
 
   it('answers 503 without caching when the read throws', async () => {

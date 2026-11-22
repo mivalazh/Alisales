@@ -4,13 +4,13 @@ import { useSearchParams } from 'next/navigation';
 import { DEFAULT_FILTERS, type VehicleCategory } from '@alisales/schemas';
 import type { ListingCardData } from '@/lib/data/listings';
 import {
-  filtersFromParams,
+  DEFAULT_CATALOGUE_STATE,
+  catalogueState,
+  narrowExtras,
   visibleListings,
-  type CatalogueParams,
+  type CatalogueState,
 } from '@/lib/catalogue';
-import { parseSortKey } from '@/lib/sort';
 import { useCatalogueRows } from '@/lib/use-catalogue-rows';
-import { filterByBodyType, parseBodyType } from '@/lib/browse';
 import { BrandModelBox } from './BrandModelBox';
 import { Catalog } from './Catalog';
 import type { StoryItem } from './Stories';
@@ -24,10 +24,10 @@ import type { StoryItem } from './Stories';
  * document be cached at the edge and revalidated every minute.
  *
  * `CategoryCatalogueView` stays free of navigation and data hooks: it receives
- * the URL params as a prop (`null` while prerendering), so the static shell and
- * the hydrated wrapper render from exactly the same state. The fallback below
- * passes `null`; it cannot drift from the wrapper because neither repeats the
- * derived filter state.
+ * the parsed `CatalogueState` as a prop, so the static shell and the hydrated
+ * wrapper render from exactly the same state. The fallback passes
+ * `DEFAULT_CATALOGUE_STATE`; it cannot drift because the URL is parsed once, in
+ * `catalogueState`.
  */
 type CategoryCatalogueProps = {
   category: VehicleCategory;
@@ -41,15 +41,6 @@ type CategoryCatalogueProps = {
   heading: string;
 };
 
-/** URL → the state this page renders. `null` resolves to the static defaults. */
-function catalogueState(params: CatalogueParams) {
-  return {
-    filters: filtersFromParams(params),
-    sort: parseSortKey(params?.get('sort')),
-    body: parseBodyType(params?.get('body')),
-  };
-}
-
 function CategoryCatalogueView({
   category,
   pool,
@@ -58,15 +49,15 @@ function CategoryCatalogueView({
   storiesLabel,
   searchPlaceholder,
   heading,
-  params,
+  state,
   serverMatches = false,
-}: CategoryCatalogueProps & { params: CatalogueParams; serverMatches?: boolean }) {
-  const { filters, sort, body } = catalogueState(params);
+}: CategoryCatalogueProps & { state: CatalogueState; serverMatches?: boolean }) {
+  const { filters, sort, extras } = state;
   // Server rows already carry the URL's filters, and the hosted q match is
   // wider than the local fuzzy predicate (it reads the description too), so
   // re-filtering them would drop real hits.
   const narrowed = serverMatches ? pool : visibleListings(pool, filters, category);
-  const listings = body ? filterByBodyType(narrowed, body) : narrowed;
+  const listings = narrowExtras(narrowed, extras);
   // Unfiltered category pool for the drawer's live counts.
   const categoryPool = visibleListings(countPool ?? pool, DEFAULT_FILTERS, category);
 
@@ -111,24 +102,21 @@ export function CategoryCatalog({
   const params = useSearchParams();
   // The static pool is the first paint; after hydration the full matching pool
   // replaces it, so a brand or keyword can reach beyond the rendered rows.
-  const { rows, serverMatches } = useCatalogueRows(
-    staticPool,
-    filtersFromParams(params),
-    props.category,
-  );
+  const state = catalogueState(params);
+  const { rows, serverMatches } = useCatalogueRows(staticPool, state, props.category);
   return (
     <CategoryCatalogueView
       {...props}
       pool={rows}
       countPool={staticPool}
-      params={params}
+      state={state}
       serverMatches={serverMatches}
     />
   );
 }
 
 export function CategoryCatalogFallback(props: CategoryCatalogueProps) {
-  return <CategoryCatalogueView {...props} params={null} />;
+  return <CategoryCatalogueView {...props} state={DEFAULT_CATALOGUE_STATE} />;
 }
 
 export function categoryPath(category: VehicleCategory): string {

@@ -1,8 +1,9 @@
 'use client';
 
 import { useEffect, useState } from 'react';
-import { serializeFilters, type SearchFilters, type VehicleCategory } from '@alisales/schemas';
+import type { VehicleCategory } from '@alisales/schemas';
 import type { ListingCardData } from '@/lib/data/listings';
+import { catalogueRequestQuery, type CatalogueState } from '@/lib/catalogue';
 
 /**
  * Rows for the URL — the whole matching pool once the browser has it.
@@ -11,9 +12,8 @@ import type { ListingCardData } from '@/lib/data/listings';
  * edge cache. That render only holds the newest rows, so narrowing it in the
  * browser hides real inventory: a brand or keyword matching row 49 looked
  * empty, and the unfiltered grid could never show past row 48. After hydration
- * this hook asks `/api/listings/search` — the one server-side read, parsed with
- * the same URL codec — with the URL's filters or none at all, and hands back
- * every match.
+ * this hook asks `/api/listings/search` — the one server-side read — for the
+ * same `CatalogueState` the view renders, and hands back every match.
  *
  * The static pool remains the first paint and the fallback: while a request is
  * in flight, offline, or after a failed request the grid shows the rendered
@@ -27,30 +27,16 @@ export interface CatalogueRows {
   serverMatches: boolean;
 }
 
-/**
- * The request for these filters, built with the shared URL codec so the route
- * parses exactly what the page parsed. Sort, `body`, `kind` and the parts
- * attributes are client-side narrowing only, so they never key a request.
- *
- * `bodyType` does key one: hosted rows carry the stored class, and the shells
- * narrow the static pool's legacy rows by inferred model instead, so a row
- * without a stored class can drop out once the server answers.
- */
-function catalogueSearchQuery(
-  filters: SearchFilters,
-  category?: VehicleCategory,
-): string {
-  const params = new URLSearchParams(serializeFilters(filters));
-  if (category) params.set('category', category);
-  return params.toString();
-}
-
 export function useCatalogueRows(
   staticPool: ListingCardData[],
-  filters: SearchFilters,
+  state: CatalogueState,
   category?: VehicleCategory,
 ): CatalogueRows {
-  const query = catalogueSearchQuery(filters, category);
+  // Every narrowing key in the URL is part of the request, so `/cars?body=suv`,
+  // `/?kind=part` and `/parts?origin=oem` fetch their own full matching set
+  // instead of sharing `/cars` or `/parts`'s unfiltered answer. `sort` is left
+  // out: ordering is the read's ranking plus the grid's own sort.
+  const query = catalogueRequestQuery(state, category);
   const [response, setResponse] = useState<{ query: string; rows: ListingCardData[] } | null>(
     null,
   );

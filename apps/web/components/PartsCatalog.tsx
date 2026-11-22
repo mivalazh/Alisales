@@ -3,18 +3,14 @@
 import { useSearchParams } from 'next/navigation';
 import type { ListingCardData } from '@/lib/data/listings';
 import {
+  DEFAULT_CATALOGUE_STATE,
   byKind,
-  filtersFromParams,
+  catalogueState,
+  narrowExtras,
   visibleListings,
-  type CatalogueParams,
+  type CatalogueState,
 } from '@/lib/catalogue';
-import { parseSortKey } from '@/lib/sort';
 import { useCatalogueRows } from '@/lib/use-catalogue-rows';
-import {
-  filterByPartCategory,
-  filterPartsByAttributes,
-  parsePartCategory,
-} from '@/lib/browse';
 import { Catalog } from './Catalog';
 import {
   PartsFilterDrawer,
@@ -41,44 +37,31 @@ type PartsCatalogueProps = {
   stories: StoryItem[];
 };
 
-/** URL → the state this page renders. `null` resolves to the static defaults. */
-function partsState(params: CatalogueParams) {
-  return {
-    filters: filtersFromParams(params),
-    sort: parseSortKey(params?.get('sort')),
-    values: {
-      category: parsePartCategory(params?.get('category')),
-      origin: params?.get('origin') ?? null,
-      warranty: params?.get('warranty') === '1',
-      compatibility: params?.get('compat') ?? '',
-      condition: params?.get('pcond') ?? null,
-    } satisfies PartFilterValues,
-  };
-}
-
 function PartsCatalogueView({
   pool,
   countPool,
   stories,
-  params,
+  state,
   serverMatches = false,
-}: PartsCatalogueProps & { params: CatalogueParams; serverMatches?: boolean }) {
-  const { filters, sort, values } = partsState(params);
+}: PartsCatalogueProps & { state: CatalogueState; serverMatches?: boolean }) {
+  const { filters, sort, extras } = state;
   const { t } = useI18n();
-  const { category, origin, warranty, compatibility, condition } = values;
-  const partCategory = parsePartCategory(category);
+  // The drawer speaks the parts-only URL shape; the state holds the same fields
+  // already parsed.
+  const values: PartFilterValues = {
+    category: extras.partCategory,
+    origin: extras.partAttributes.origin ?? null,
+    warranty: extras.partAttributes.warrantyOnly ?? false,
+    compatibility: extras.partAttributes.compatibility ?? '',
+    condition: extras.partAttributes.condition ?? null,
+  };
 
-  // Server rows already matched the URL's shared filters; only the parts-only
-  // attributes narrow them here. The route has no parts category (its `category`
-  // is vehicle-only), so a fetched answer can carry cars too — keep it parts.
-  const parts = byKind(serverMatches ? pool : visibleListings(pool, filters), 'part');
-  const scoped = partCategory ? filterByPartCategory(parts, partCategory) : parts;
-  const listings = filterPartsByAttributes(scoped, {
-    origin,
-    warrantyOnly: warranty,
-    compatibility,
-    condition,
-  });
+  // `/parts` is parts-only even when the URL carries no parts filter, so scope
+  // by kind first; `narrowExtras` then applies whatever the URL did ask for.
+  const listings = narrowExtras(
+    byKind(serverMatches ? pool : visibleListings(pool, filters), 'part'),
+    extras,
+  );
 
   return (
     <Catalog
@@ -126,18 +109,19 @@ function PartsCatalogueView({
 export function PartsCatalog({ pool: staticPool, stories }: PartsCatalogueProps) {
   const params = useSearchParams();
   // After hydration the full matching pool replaces the rendered first 48.
-  const { rows, serverMatches } = useCatalogueRows(staticPool, filtersFromParams(params));
+  const state = catalogueState(params);
+  const { rows, serverMatches } = useCatalogueRows(staticPool, state);
   return (
     <PartsCatalogueView
       pool={rows}
       countPool={staticPool}
       stories={stories}
-      params={params}
+      state={state}
       serverMatches={serverMatches}
     />
   );
 }
 
 export function PartsCatalogFallback(props: PartsCatalogueProps) {
-  return <PartsCatalogueView {...props} params={null} />;
+  return <PartsCatalogueView {...props} state={DEFAULT_CATALOGUE_STATE} />;
 }

@@ -5,30 +5,18 @@ import { useSearchParams } from 'next/navigation';
 import { PART_CATEGORY_LABELS } from '@alisales/schemas';
 import type { ListingCardData } from '@/lib/data/listings';
 import {
-  byKind,
-  filtersFromParams,
+  DEFAULT_CATALOGUE_STATE,
+  catalogueState,
+  narrowExtras,
   visibleListings,
-  type CatalogueParams,
+  type CatalogueState,
 } from '@/lib/catalogue';
-import {
-  filterByBodyType,
-  filterByPartCategory,
-  parseBodyType,
-  parsePartCategory,
-} from '@/lib/browse';
-import { parseSortKey } from '@/lib/sort';
 import { useCatalogueRows } from '@/lib/use-catalogue-rows';
 import { RENTAL_URL } from '@/lib/seo';
 import { useI18n } from '@/lib/i18n';
 import { Catalog } from './Catalog';
 import { CategorySwitch } from './CategorySwitch';
 import type { StoryItem } from './Stories';
-
-type Kind = 'vehicle' | 'part' | null;
-
-function parseKind(value: string | null | undefined): Kind {
-  return value === 'vehicle' || value === 'part' ? value : null;
-}
 
 /**
  * Home catalogue, filtered in the browser.
@@ -49,43 +37,33 @@ type HomeCatalogueProps = {
   stories: StoryItem[];
 };
 
-/** URL → the state this page renders. `null` resolves to the static defaults. */
-function homeState(params: CatalogueParams) {
-  return {
-    filters: filtersFromParams(params),
-    sort: parseSortKey(params?.get('sort')),
-    kind: parseKind(params?.get('kind')),
-    body: parseBodyType(params?.get('body')),
-    category: parsePartCategory(params?.get('category')),
-  };
-}
-
 function HomeCatalogueView({
   pool,
   countPool,
   stories,
-  params,
+  state,
   serverMatches = false,
-}: HomeCatalogueProps & { params: CatalogueParams; serverMatches?: boolean }) {
-  const { filters, sort, kind, body, category } = homeState(params);
+}: HomeCatalogueProps & { state: CatalogueState; serverMatches?: boolean }) {
+  const { filters, sort, extras } = state;
   const { t } = useI18n();
 
   // Server rows already matched the URL (its q reads more fields than the local
-  // predicate), so only `kind` / `body` / part category narrow them here.
-  const base = serverMatches ? pool : visibleListings(pool, filters);
-  let listings = byKind(base, kind);
-  if (body) listings = filterByBodyType(listings, body);
-  if (category) listings = filterByPartCategory(listings, category);
+  // predicate), so `narrowExtras` is an idempotent re-apply for the first paint.
+  const listings = narrowExtras(serverMatches ? pool : visibleListings(pool, filters), extras);
   // Card counts describe the catalogue, not the current filter, so they stay
   // on the unfiltered pool while the grid shows the URL's matches.
   const counts = countPool ?? pool;
   const vehicleCount = counts.filter((listing) => listing.kind !== 'part').length;
   const partCount = counts.filter((listing) => listing.kind === 'part').length;
-  const groupLabel = body ? t(body.label) : category ? t(PART_CATEGORY_LABELS[category]) : null;
+  const groupLabel = extras.body
+    ? t(extras.body.label)
+    : extras.partCategory
+      ? t(PART_CATEGORY_LABELS[extras.partCategory])
+      : null;
   const kindLabel =
-    kind === 'vehicle'
+    extras.kind === 'vehicle'
       ? t('خودرو', 'Vehicles')
-      : kind === 'part'
+      : extras.kind === 'part'
         ? t('قطعات و لوازم یدکی', 'Spare Parts & Accessories')
         : null;
 
@@ -140,7 +118,7 @@ function HomeCatalogueView({
         filters={filters}
         sort={sort}
         stories={stories}
-        kind={kind}
+        kind={extras.kind}
         vehicleCount={vehicleCount}
         partCount={partCount}
         sortBar="bottom"
@@ -151,15 +129,15 @@ function HomeCatalogueView({
 
 /** URL-driven version (after hydration). */
 export function HomeCatalogue({ pool: staticPool, stories }: HomeCatalogueProps) {
-  const params = useSearchParams();
+  const state = catalogueState(useSearchParams());
   // After hydration the full matching pool replaces the rendered first 48.
-  const { rows, serverMatches } = useCatalogueRows(staticPool, filtersFromParams(params));
+  const { rows, serverMatches } = useCatalogueRows(staticPool, state);
   return (
     <HomeCatalogueView
       pool={rows}
       countPool={staticPool}
       stories={stories}
-      params={params}
+      state={state}
       serverMatches={serverMatches}
     />
   );
@@ -170,5 +148,5 @@ export function HomeCatalogue({ pool: staticPool, stories }: HomeCatalogueProps)
  * what the prerender (and the CDN) serves, so the page is never blank.
  */
 export function HomeCatalogueFallback(props: HomeCatalogueProps) {
-  return <HomeCatalogueView {...props} params={null} />;
+  return <HomeCatalogueView {...props} state={DEFAULT_CATALOGUE_STATE} />;
 }

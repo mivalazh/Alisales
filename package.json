@@ -22,6 +22,7 @@
   "devDependencies": {
     "@electric-sql/pglite": "^0.5.10",
     "@types/node": "^26.6.5",
+    "jsdom": "^31.0.1",
     "sharp": "^0.35.5",
     "tsx": "^4.23.15",
     "typescript": "^7.0.2",
