@@ -2,6 +2,7 @@
 
 import { useState } from 'react';
 import { useRouter } from 'next/navigation';
+import { notifyAccountChanged } from '@/lib/auth/account-events';
 import { useI18n } from '@/lib/i18n';
 
 /** Signs the account out and returns to the catalog. */
@@ -17,6 +18,7 @@ export function LogoutButton() {
       onClick={async () => {
         setBusy(true);
         await fetch('/api/auth/logout', { method: 'POST' }).catch(() => null);
+        notifyAccountChanged();
         router.push('/');
         router.refresh();
       }}

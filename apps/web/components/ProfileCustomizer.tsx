@@ -2,6 +2,7 @@
 
 import { useState } from 'react';
 import { useRouter } from 'next/navigation';
+import { notifyAccountChanged } from '@/lib/auth/account-events';
 import { useI18n } from '@/lib/i18n';
 import { AvatarPicker } from './AvatarPicker';
 
@@ -46,6 +47,7 @@ export function ProfileCustomizer({
       }
       setSaved(true);
       setOpen(false);
+      notifyAccountChanged();
       router.refresh();
     } catch {
       setNote(t('ارتباط با سرور برقرار نشد.', 'Could not reach the server.'));

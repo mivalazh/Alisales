@@ -12,6 +12,7 @@ import {
 } from '@alisales/schemas';
 import { Icon } from './Icon';
 import { OtpInput } from './OtpInput';
+import { notifyAccountChanged } from '@/lib/auth/account-events';
 import { useI18n } from '@/lib/i18n';
 
 const ACCOUNT_TYPE_EN: Record<AccountType, string> = {
@@ -202,6 +203,8 @@ export function LoginForm() {
         password,
       });
       if (status === 200) {
+        // A reset signs the account in, so the header must ask again.
+        notifyAccountChanged();
         router.push(next.startsWith('/login') ? '/' : next);
         router.refresh();
         return;
@@ -253,6 +256,7 @@ export function LoginForm() {
     try {
       const { status, data } = await post('/api/auth/password', { phone, password });
       if (status === 200) {
+        notifyAccountChanged();
         router.push(next.startsWith('/login') ? '/' : next);
         router.refresh();
         return;
@@ -288,6 +292,7 @@ export function LoginForm() {
         businessType: needsProfile && accountType === 'showroom' ? businessType : undefined,
       });
       if (status === 200) {
+        notifyAccountChanged();
         // Never bounce back into the login screen (a `?next=/login` hand-off
         // would otherwise loop the user through the form again).
         router.push(next.startsWith('/login') ? '/' : next);

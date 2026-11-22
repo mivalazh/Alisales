@@ -2,6 +2,7 @@
 
 import { useState } from 'react';
 import { useRouter } from 'next/navigation';
+import { notifyAccountChanged } from '@/lib/auth/account-events';
 import { useI18n } from '@/lib/i18n';
 import { CURATED_AVATARS } from '@/lib/avatars';
 
@@ -27,6 +28,7 @@ export function AvatarPicker({ currentUrl }: { currentUrl: string | null }) {
         setError(body.error ?? t('ذخیره آواتار ناموفق بود.', 'Could not save the avatar.'));
         return;
       }
+      notifyAccountChanged();
       router.refresh();
     } catch {
       setError(t('ارتباط با سرور برقرار نشد.', 'Could not reach the server.'));

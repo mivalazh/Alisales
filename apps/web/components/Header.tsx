@@ -4,6 +4,7 @@ import Link from 'next/link';
 import { usePathname } from 'next/navigation';
 import { useEffect, useState, type ReactNode } from 'react';
 import type { IconName } from '@studio/design';
+import { ACCOUNT_CHANGED_EVENT } from '@/lib/auth/account-events';
 import { useI18n } from '@/lib/i18n';
 import { NAV_ITEMS, type NavItem } from '@/lib/nav';
 import { BrandLockup } from './BrandLockup';
@@ -149,20 +150,39 @@ export function Header() {
   const [rentalSoon, setRentalSoon] = useState(false);
 
   // The shell is static, so the account state cannot come from the layout's
-  // server render any more: it is read from /api/auth/me after hydration.
+  // server render any more: it is read from /api/auth/me after hydration, and
+  // again whenever a sign-in, sign-out or profile save announces a change.
   const [account, setAccount] = useState<{ displayName: string | null } | null>(null);
   useEffect(() => {
     let alive = true;
-    fetch('/api/auth/me', { cache: 'no-store' })
-      .then((res) => (res.ok ? res.json() : null))
-      .then((body: { user?: { displayName?: string | null } } | null) => {
-        if (alive && body?.user) setAccount({ displayName: body.user.displayName ?? null });
-      })
-      .catch(() => {
-        // A guest, or the request failed: the signed-out header is correct.
-      });
+    let latest = 0;
+
+    const load = () => {
+      const request = ++latest;
+      fetch('/api/auth/me', { cache: 'no-store' })
+        .then((res) => {
+          // 401 is a real answer: this browser is signed out.
+          if (res.status === 401) return null;
+          return res.ok
+            ? (res.json() as Promise<{ user?: { displayName?: string | null } }>)
+            : undefined;
+        })
+        .then((body) => {
+          // Ignore an older response that landed after a newer request.
+          if (!alive || request !== latest) return;
+          if (body === null) setAccount(null);
+          else if (body?.user) setAccount({ displayName: body.user.displayName ?? null });
+        })
+        .catch(() => {
+          // A failed request says nothing about the session: keep what we had.
+        });
+    };
+
+    load();
+    window.addEventListener(ACCOUNT_CHANGED_EVENT, load);
     return () => {
       alive = false;
+      window.removeEventListener(ACCOUNT_CHANGED_EVENT, load);
     };
   }, []);
   const authed = account !== null;

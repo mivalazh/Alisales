@@ -2,6 +2,7 @@
 
 import { useRef, useState } from 'react';
 import { useRouter } from 'next/navigation';
+import { notifyAccountChanged } from '@/lib/auth/account-events';
 import { useI18n } from '@/lib/i18n';
 import { Icon } from './Icon';
 import { GalleryPermissionDialog, useGalleryPicker } from './GalleryPermission';
@@ -67,6 +68,7 @@ export function ProfileMediaButton({
         setError(body.error ?? t('ذخیره تصویر ناموفق بود.', 'Could not save the image.'));
         return;
       }
+      notifyAccountChanged();
       router.refresh();
     } catch (err) {
       if (uploadedUrl) {

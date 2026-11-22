@@ -10,6 +10,7 @@ import {
   type BusinessType,
   type ProfileMode,
 } from '@alisales/schemas';
+import { notifyAccountChanged } from '@/lib/auth/account-events';
 import { useI18n } from '@/lib/i18n';
 import { Icon } from './Icon';
 
@@ -51,6 +52,7 @@ export function AccountModeForm({
         return;
       }
       setSaved(true);
+      notifyAccountChanged();
       router.refresh();
     } catch {
       setError(t('ارتباط با سرور برقرار نشد.', 'Could not reach the server.'));
