@@ -4,7 +4,7 @@ import Link from 'next/link';
 import { usePathname } from 'next/navigation';
 import { useEffect, useState, type ReactNode } from 'react';
 import type { IconName } from '@studio/design';
-import { ACCOUNT_CHANGED_EVENT } from '@/lib/auth/account-events';
+import { onAccountChanged } from '@/lib/auth/account-events';
 import { useI18n } from '@/lib/i18n';
 import { NAV_ITEMS, type NavItem } from '@/lib/nav';
 import { BrandLockup } from './BrandLockup';
@@ -151,7 +151,8 @@ export function Header() {
 
   // The shell is static, so the account state cannot come from the layout's
   // server render any more: it is read from /api/auth/me after hydration, and
-  // again whenever a sign-in, sign-out or profile save announces a change.
+  // again whenever a sign-in, sign-out or profile save announces a change —
+  // including one made in another tab.
   const [account, setAccount] = useState<{ displayName: string | null } | null>(null);
   useEffect(() => {
     let alive = true;
@@ -179,10 +180,10 @@ export function Header() {
     };
 
     load();
-    window.addEventListener(ACCOUNT_CHANGED_EVENT, load);
+    const unsubscribe = onAccountChanged(load);
     return () => {
       alive = false;
-      window.removeEventListener(ACCOUNT_CHANGED_EVENT, load);
+      unsubscribe();
     };
   }, []);
   const authed = account !== null;
