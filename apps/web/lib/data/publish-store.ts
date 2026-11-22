@@ -65,8 +65,19 @@ async function insertPhotoRows(
   sb: NonNullable<ReturnType<typeof admin>>,
   listingId: string,
   photos: readonly ListingPhoto[],
+  /** Bucket of a photo the edit kept unchanged, keyed by its storage path. */
+  bucketByPath?: ReadonlyMap<string, string>,
 ): Promise<string | null> {
-  const rows = orderedPhotoRows(photos).map((row) => ({ listing_id: listingId, ...row }));
+  const rows = orderedPhotoRows(photos).map((row) => ({
+    listing_id: listingId,
+    ...row,
+    // A kept photo stays in the bucket it was uploaded to; a new upload takes
+    // the column default (`photos`). Without this an edit would silently move
+    // an old cover from `listing-photos` to a bucket that has no such object.
+    ...(bucketByPath?.get(row.storage_path)
+      ? { bucket: bucketByPath.get(row.storage_path) as string }
+      : {}),
+  }));
   if (rows.length === 0) return null;
   const inserted = await sb.from('listing_photos').insert(rows);
   return inserted.error ? inserted.error.message : null;
@@ -241,22 +252,27 @@ export async function updateHostedListing(input: {
   if (patch.photos) {
     const previous = await sb
       .from('listing_photos')
-      .select('storage_path, position, mime, bytes, width, height')
+      .select('storage_path, bucket, position, mime, bytes, width, height')
       .eq('listing_id', input.id);
+    const previousRows = (previous.data ?? []) as Array<{
+      storage_path: string;
+      bucket: string | null;
+      position: number;
+      mime: string;
+      bytes: number;
+      width: number;
+      height: number;
+    }>;
+    const keptBuckets = new Map<string, string>();
+    for (const row of previousRows) {
+      if (row.bucket) keptBuckets.set(row.storage_path, row.bucket);
+    }
     const removed = await sb.from('listing_photos').delete().eq('listing_id', input.id);
     if (removed.error) {
       return { ok: false, status: 500, message: removed.error.message };
     }
-    const photoError = await insertPhotoRows(sb, input.id, patch.photos);
+    const photoError = await insertPhotoRows(sb, input.id, patch.photos, keptBuckets);
     if (photoError) {
-      const previousRows = (previous.data ?? []) as Array<{
-        storage_path: string;
-        position: number;
-        mime: string;
-        bytes: number;
-        width: number;
-        height: number;
-      }>;
       if (previousRows.length > 0) {
         await sb
           .from('listing_photos')

@@ -28,7 +28,7 @@ import { visibleCatalog } from './demo-seed';
 import { storeVersion } from '../storage/demo-store';
 import { supabaseFetch } from './supabase-fetch';
 import { mergeMyListings, readMyListings } from './my-listings-cookie';
-import { PHOTO_BUCKET } from './photo-rules';
+import { photoRowUrl } from './photo-rules';
 
 /** Structured part data for a non-vehicle listing (`parts_listings`). */
 export interface PartInfo {
@@ -141,6 +141,8 @@ interface ListingCardRow {
   condition: Condition;
   plate_type: PlateType;
   cover_photo_path: string | null;
+  /** 0019: bucket the cover object lives in (`photos` / `listing-photos`). */
+  cover_photo_bucket?: string | null;
   showroom_name: string | null;
   showroom_verified: boolean;
   allow_phone_reveal: boolean;
@@ -174,14 +176,6 @@ interface ListingCardRow {
   inspection_note?: string | null;
 }
 
-/** Same bucket `POST /api/photos` uploads to — one source of truth. */
-function publicPhotoUrl(path: string): string | null {
-  const base = process.env.NEXT_PUBLIC_SUPABASE_URL;
-  return base
-    ? `${base.replace(/\/$/, '')}/storage/v1/object/public/${PHOTO_BUCKET}/${path}`
-    : null;
-}
-
 function mapRow(r: ListingCardRow): ListingDetailData {
   return {
     id: r.id,
@@ -203,7 +197,9 @@ function mapRow(r: ListingCardRow): ListingDetailData {
     color: r.color,
     condition: r.condition,
     plateType: r.plate_type,
-    coverUrl: r.cover_photo_path ? publicPhotoUrl(r.cover_photo_path) : null,
+    coverUrl: r.cover_photo_path
+      ? photoRowUrl({ storage_path: r.cover_photo_path, bucket: r.cover_photo_bucket })
+      : null,
     showroomName: r.showroom_name,
     showroomVerified: r.showroom_verified,
     allowPhoneReveal: r.allow_phone_reveal,
@@ -658,12 +654,12 @@ export async function getListing(slug: string): Promise<ListingDetailData | null
     try {
       const { data: photoRows, error: photoError } = await supabase
         .from('listing_photos')
-        .select('storage_path')
+        .select('storage_path, bucket')
         .eq('listing_id', (data as { id: string }).id)
         .order('position', { ascending: true });
       if (photoError) throw new Error(photoError.message);
-      photos = ((photoRows ?? []) as Array<{ storage_path: string }>)
-        .map((row) => publicPhotoUrl(row.storage_path))
+      photos = ((photoRows ?? []) as Array<{ storage_path: string; bucket: string | null }>)
+        .map((row) => photoRowUrl(row))
         .filter((url): url is string => Boolean(url));
     } catch (photoError) {
       console.warn('[alisales] listing gallery read failed; using cover:', photoError);
@@ -733,18 +729,19 @@ async function availablePhotoMetas(
 ): Promise<OwnerPhotoMeta[]> {
   const { data } = await sb
     .from('listing_photos')
-    .select('storage_path, mime, bytes, width, height')
+    .select('storage_path, bucket, mime, bytes, width, height')
     .eq('listing_id', listingId)
     .order('position', { ascending: true });
   return ((data ?? []) as Array<{
     storage_path: string;
+    bucket: string | null;
     mime: string;
     bytes: number;
     width: number;
     height: number;
   }>)
     .map((row) => {
-      const url = publicPhotoUrl(row.storage_path);
+      const url = photoRowUrl(row);
       return url
         ? {
             path: row.storage_path,

@@ -29,6 +29,7 @@ export const MIGRATION_FILES = [
   '0016_body_type_backfill.sql',
   '0017_search_fuel_filter.sql',
   '0018_photo_bucket.sql',
+  '0019_photo_bucket.sql',
 ];
 
 /** Rows in `public` that the app reads or writes directly. */
