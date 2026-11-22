@@ -100,10 +100,11 @@ export function demoAuthMode(): boolean {
 }
 
 /**
- * Phone numbers explicitly allowed to use instant OTP in production.
- * Comma/space/semicolon separated; Persian digits, `+98` and `0098` normalize.
- * There is deliberately no wildcard or allow-all switch: the close-bracket of
- * `ALLOW_SANDBOX_OTP_FALLBACK` is this list, never "everyone".
+ * Phone numbers explicitly allowed to use instant OTP and the on-screen
+ * fallback. Comma/space/semicolon separated; Persian digits, `+98` and `0098`
+ * normalize. There is deliberately no wildcard: this list is the only thing
+ * that lets a number past the SMS gate, and the legacy
+ * `ALLOW_SANDBOX_OTP_FALLBACK` cannot widen it in production.
  */
 export function instantOtpAllowlistSize(): number {
   return instantOtpAllowlist().size;
@@ -120,14 +121,16 @@ function instantOtpAllowlist(): ReadonlySet<string> {
 }
 
 /**
- * The sandbox/instant-code fallback: when SMS.ir rejects an unverified or
- * sandbox account, the same code can be shown on screen instead of delivered.
+ * The legacy `ALLOW_SANDBOX_OTP_FALLBACK` switch.
  *
- * That is convenient on a launch day with an unverified gateway, and it is
- * also an account-takeover primitive: whoever can claim a listed phone number
- * gets a session without proving control of it. It is therefore OFF by
- * default, in every environment, and only an explicitly named variable turns
- * it on. See LOGIN_RUNBOOK.md before enabling it.
+ * It no longer gates the on-screen fallback: a number on
+ * `INSTANT_OTP_ALLOWLIST` gets the code when delivery fails whether or not this
+ * is set, and in production setting it can only permit numbers that are
+ * already on that list. The flag is kept so older deployments still boot,
+ * `/api/health` reports it so it cannot stay on unnoticed, and it should be
+ * left unset — the allowlist is the account-takeover boundary. Outside
+ * production it still lets any number use the on-screen code, which is only
+ * useful for local debugging against a real gateway. See LOGIN_RUNBOOK.md.
  */
 export function sandboxOtpFallbackEnabled(): boolean {
   return flagOn(process.env.ALLOW_SANDBOX_OTP_FALLBACK);

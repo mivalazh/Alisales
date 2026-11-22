@@ -55,21 +55,17 @@ export async function GET(): Promise<NextResponse> {
 
   const data = await dataPathChecks();
   const sandboxFallback = sandboxOtpFallbackEnabled();
-  const warnings: string[] = [];
-  if (sandboxFallback) {
-    warnings.push(
-      'ALLOW_SANDBOX_OTP_FALLBACK is enabled but no longer gates the on-screen code: allowlisted numbers receive it automatically when SMS delivery fails. Unset it and trim INSTANT_OTP_ALLOWLIST instead (LOGIN_RUNBOOK.md).',
-    );
-  }
   // The real account-takeover boundary: with a provider configured, every
   // allowlisted number can sign in from an on-screen code the moment delivery
   // fails, whether or not the legacy flag is set.
   const automaticFallback = sms.configured && allowlistCount > 0;
-  if (automaticFallback) {
-    warnings.push(
-      `INSTANT_OTP_ALLOWLIST has ${allowlistCount} number(s): when SMS delivery fails (sandbox/unverified account, template rejection, provider error), those numbers can sign in with an on-screen code without proving they hold the phone. Keep the list minimal and prefer no moderation numbers (LOGIN_RUNBOOK.md).`,
-    );
-  }
+  // One entry per risk that is actually present.
+  const warnings = [
+    sandboxFallback &&
+      'ALLOW_SANDBOX_OTP_FALLBACK is enabled but no longer needed: in production it can only permit numbers already on INSTANT_OTP_ALLOWLIST, which receive the on-screen code automatically when SMS delivery fails. Unset it and trim INSTANT_OTP_ALLOWLIST instead (LOGIN_RUNBOOK.md).',
+    automaticFallback &&
+      `INSTANT_OTP_ALLOWLIST has ${allowlistCount} number(s): when a configured provider cannot deliver (sandbox/unverified account, template rejection, provider error), those numbers can sign in with an on-screen code without proving they hold the phone. Keep the list minimal and prefer no moderation numbers (LOGIN_RUNBOOK.md).`,
+  ].filter((warning): warning is string => Boolean(warning));
 
   const ok = authSecret.ok && loginReady && data.database.ok && data.storage.ok;
   const body = {

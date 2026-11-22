@@ -142,7 +142,7 @@ describe('production instant OTP gate', () => {
     expect(instantOtpFallbackAllowedFor('09120000001')).toBe(false);
   });
 
-  it('reports the risky switch on /api/health while it is on', async () => {
+  it('reports the legacy switch on /api/health while it is on', async () => {
     setEnv('NODE_ENV', 'production');
     setEnv('AUTH_SECRET', 'production-secret-at-least-16-chars');
     setEnv('INSTANT_OTP_ALLOWLIST', '09120000001');

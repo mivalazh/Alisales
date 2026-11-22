@@ -17,7 +17,10 @@ import { dataUnavailableResponse } from '@/lib/http/data-unavailable';
 /**
  * POST /api/auth/otp — { phone }
  *
- * 202 { ok: true, needsProfile } when a code was issued.
+ * 200 { ok: true, needsProfile, fallbackCode } when the code is shown on screen
+ * instead of delivered (no provider in a development/demo build, or a failed
+ * delivery for a number on `INSTANT_OTP_ALLOWLIST`); 202 { ok: true,
+ * needsProfile } when the code went out by SMS.
  * 400 invalid phone · 429 resend too soon · 502 provider failure · 503 product
  * not configured (hosted/strict deployment without SMS credentials, or missing
  * AUTH_SECRET).
@@ -25,8 +28,9 @@ import { dataUnavailableResponse } from '@/lib/http/data-unavailable';
  * Without an SMS provider the six-digit code is returned as `devCode` (and the
  * legacy `demoCode` alias), stored in a signed HTTP-only cookie, and printed to
  * the server log. Development allows every number; production allows only the
- * exact `INSTANT_OTP_ALLOWLIST`, so this path cannot create accounts for
- * arbitrary phones. With an SMS provider configured no code is returned.
+ * exact `INSTANT_OTP_ALLOWLIST`, so that path cannot create accounts for
+ * arbitrary phones. With a provider configured the code is only shown when
+ * delivery fails and the number is on that allowlist.
  */
 export async function POST(request: Request): Promise<NextResponse> {
   try {

@@ -118,7 +118,7 @@ arbitrary phones.
 
 The on-screen code fallback is **automatic for allowlisted numbers**: when a
 configured SMS provider cannot deliver (sandbox/unverified SMS.ir account,
-unapproved template, provider error), a number in `INSTANT_OTP_ALLOWLIST` gets
+unapproved template, provider error or timeout), a number in `INSTANT_OTP_ALLOWLIST` gets
 the code on screen — no switch needed — and `/api/auth/otp` answers 200 with
 `fallbackCode`. It is an account-takeover primitive (an on-screen code proves
 nothing about who holds the phone), so the allowlist is the real boundary; keep
@@ -141,8 +141,8 @@ SMS_API_KEY                 # generic adapter / legacy SMS.ir key
 SMS_SENDER
 SMS_API_URL
 AUTH_SECRET                 # ≥16 random characters
-INSTANT_OTP_ALLOWLIST       # comma-separated launch numbers when SMS is unset
-ALLOW_SANDBOX_OTP_FALLBACK  # DANGER, off by default; read LOGIN_RUNBOOK.md
+INSTANT_OTP_ALLOWLIST       # launch numbers; also the on-screen fallback boundary
+ALLOW_SANDBOX_OTP_FALLBACK  # legacy, no longer gates the fallback; leave empty
 REQUIRE_HOSTED_SERVICES     # optional; production data is already strict
 ```
 

@@ -7,12 +7,14 @@ import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
  * Route-level proof of the on-screen OTP fallback boundary.
  *
  * The provider is configured (so the app is in its "real SMS" branch) and the
- * gateway answers with a sandbox/unverified rejection. An allowlisted launch
- * number gets the code on screen automatically — with or without the legacy
- * ALLOW_SANDBOX_OTP_FALLBACK flag — and can complete the login; a number outside
- * the allowlist receives nothing. The signed cookie also has to carry the code
- * across isolates. This is the account-takeover boundary, exercised through the
- * HTTP handlers rather than the helper functions.
+ * gateway answers with a sandbox/unverified rejection. The fallback is
+ * automatic: a number on INSTANT_OTP_ALLOWLIST gets the code on screen and can
+ * complete the login with no switch involved, while a number outside the list
+ * receives nothing. The legacy ALLOW_SANDBOX_OTP_FALLBACK flag cannot widen
+ * that boundary — the second block shows it changes nothing for the allowlist
+ * — so the list itself is the account-takeover boundary. The signed cookie
+ * also has to carry the code across isolates. Everything is exercised through
+ * the HTTP handlers rather than the helper functions.
  */
 
 const jar = vi.hoisted(() => new Map<string, string>());
@@ -94,7 +96,7 @@ beforeEach(() => {
   process.env.INSTANT_OTP_ALLOWLIST = ALLOWLISTED;
   process.env.SMS_IR_API_KEY = 'sms-ir-key';
   process.env.SMS_IR_TEMPLATE_ID = '123456';
-  // The flag under test stays unset here.
+  // The legacy flag stays unset: the fallback must work without it.
 });
 
 afterEach(() => {
@@ -282,8 +284,8 @@ describe('SMS.ir failure opens the code for allowlisted launch numbers', () => {
   });
 });
 
-describe('sandbox OTP fallback opens only for the allowlist when enabled', () => {
-  it('issues an allowlisted code with the flag on', async () => {
+describe('the legacy flag never widens the allowlist boundary', () => {
+  it('keeps issuing the allowlisted code while the flag is set', async () => {
     process.env.ALLOW_SANDBOX_OTP_FALLBACK = 'true';
     sandboxRejection();
 
@@ -306,7 +308,7 @@ describe('sandbox OTP fallback opens only for the allowlist when enabled', () =>
     expect(body.warning).toBe('SMS_IR_TEMPLATE_NOT_APPROVED');
   });
 
-  it('still refuses an unlisted number with the flag on', async () => {
+  it('still refuses an unlisted number while the flag is set', async () => {
     process.env.ALLOW_SANDBOX_OTP_FALLBACK = 'true';
     sandboxRejection();
 
@@ -320,7 +322,7 @@ describe('sandbox OTP fallback opens only for the allowlist when enabled', () =>
     expect(body.devCode).toBeUndefined();
   });
 
-  it('completes login with the on-screen code once the flag is on', async () => {
+  it('completes login while the flag is set', async () => {
     process.env.ALLOW_SANDBOX_OTP_FALLBACK = 'true';
     sandboxRejection();
 

@@ -16,12 +16,12 @@ The on-screen fallback needs no switch. A number in `INSTANT_OTP_ALLOWLIST` gets
 it whenever delivery fails; a number outside the list never does.
 
 `/api/health` reports which paths are ready (`checks.login`, `checks.sms`,
-`checks.instantOtp`, `checks.sandboxFallback`) and answers 503 when no login path
-exists at all. `checks.sandboxFallback.enabled` is only the legacy flag (see
-below); the boundary that matters is `checks.sandboxFallback.allowlistCount`
-(also `checks.instantOtp.allowlistCount`). When a provider is configured and
-that count is above zero, health adds a warning: those numbers can sign in with
-an on-screen code as soon as delivery fails.
+`checks.instantOtp`, `checks.sandboxFallback`) and answers 503 when the login or
+data path is not ready. In `checks.sandboxFallback`, `enabled` is only the legacy
+flag (see below); `automatic` is the behaviour that ships — true when a provider
+is configured and `allowlistCount` (also `checks.instantOtp.allowlistCount`) is
+above zero. That state adds a warning: those numbers can sign in with an
+on-screen code as soon as delivery fails.
 
 ## The recommendation: real SMS first
 
@@ -71,7 +71,7 @@ Rules that keep this survivable:
 ## What `ALLOW_SANDBOX_OTP_FALLBACK` does now (legacy)
 
 The variable is kept so older deployments still boot, but it no longer gates the
-on-screen code and should stay unset:
+allowlisted on-screen fallback and should stay unset:
 
 - In production it is redundant: it can only permit numbers that are already on
   `INSTANT_OTP_ALLOWLIST`, and unlisted numbers stay refused either way.
