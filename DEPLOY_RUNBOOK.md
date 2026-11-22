@@ -84,6 +84,51 @@ After the app is live:
 npm run auth:e2e -- --url=https://<host>     # real SMS login, session, logout
 ```
 
+### Demo seed in previews and production
+
+The seeded Kish catalogue (`seed_fixtures.sql`, rendered from
+`apps/web/lib/data/fixtures.ts`) is review content, not inventory. One switch
+controls it — `NEXT_PUBLIC_HIDE_DEMO_LISTINGS` — and the default deliberately
+depends on how the app was started, not on the host name:
+
+| Where | Seed served by default? | Why |
+| --- | --- | --- |
+| **Production build** (`npm run build` + `next start`, or any hosted deployment built for production, including a preview URL) | **No** | Real visitors must never see sample sellers or listings. Only rows in Supabase or the dev store appear. |
+| **`next dev`** (local or chat preview) | **Yes** | A dev preview without Supabase credentials would otherwise be an empty catalogue; the seed is the content being reviewed. |
+
+So a preview deployment is only seed-free if it was built with `next build`;
+the seed you see while reviewing is served by the dev server. To check the
+launch view with the production default locally:
+
+```bash
+NEXT_PUBLIC_HIDE_DEMO_LISTINGS=true npm run dev -w @alisales/web
+```
+
+Without hosted credentials the catalogue is then empty — that is the proof that
+nothing seeded is being served, not a bug.
+
+To publish the seed on purpose (a demo or showroom build), set the flag before
+building and deploying:
+
+```bash
+NEXT_PUBLIC_HIDE_DEMO_LISTINGS=false npm run build -w @alisales/web
+```
+
+Any non-empty value other than `false`, `0`, `no` or `off` hides the seed, and
+`true` is the explicit production setting. Set the value in the deployment's
+environment before the build/deploy; do not rely on flipping it at runtime.
+
+**The build refuses to ship an empty catalogue.** When the seed is hidden and
+`NEXT_PUBLIC_SUPABASE_URL` / `NEXT_PUBLIC_SUPABASE_ANON_KEY` are missing at build
+time, `next build` fails with “Refusing to build an empty production
+catalogue.”: without the read client every catalogue page would prerender zero
+listings and that HTML would be cached at the edge. Both variables must be
+present for the build itself, not only at runtime, because the routes are
+statically generated. An intentional credential-less preview build (empty
+catalogue) can opt out with `ALLOW_EMPTY_CATALOGUE=true` — never on a real
+deployment. A deployed site with credentials but zero rows is a legitimate
+empty marketplace and does not trip the guard.
+
 ## 4. Key rotation
 
 Rotate on a schedule, after any suspected exposure, or when someone with access
