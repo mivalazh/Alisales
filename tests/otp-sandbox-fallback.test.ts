@@ -4,14 +4,15 @@ import { join } from 'node:path';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 
 /**
- * Route-level proof that the sandbox/on-screen OTP fallback is closed.
+ * Route-level proof of the on-screen OTP fallback boundary.
  *
  * The provider is configured (so the app is in its "real SMS" branch) and the
- * gateway answers with a sandbox/unverified rejection. Without
- * ALLOW_SANDBOX_OTP_FALLBACK the OTP route must not hand out a code and verify
- * must refuse anything typed in; with the flag on, an allowlisted launch number
- * completes the login. This is the account-takeover boundary, tested through
- * the HTTP handlers rather than the helper functions.
+ * gateway answers with a sandbox/unverified rejection. An allowlisted launch
+ * number gets the code on screen automatically — with or without the legacy
+ * ALLOW_SANDBOX_OTP_FALLBACK flag — and can complete the login; a number outside
+ * the allowlist receives nothing. The signed cookie also has to carry the code
+ * across isolates. This is the account-takeover boundary, exercised through the
+ * HTTP handlers rather than the helper functions.
  */
 
 const jar = vi.hoisted(() => new Map<string, string>());
@@ -31,6 +32,8 @@ vi.mock('next/headers', () => ({
 
 const { POST: requestOtp } = await import('../apps/web/app/api/auth/otp/route');
 const { POST: verifyOtp } = await import('../apps/web/app/api/auth/verify/route');
+const { deleteOtp, getOtp } = await import('../apps/web/lib/auth/otp-store');
+const { demoOtpCookieMatches } = await import('../apps/web/lib/auth/otp-cookie');
 
 const PHONE = '09120000001';
 const ALLOWLISTED = '09120000001';
@@ -130,8 +133,70 @@ describe('SMS.ir failure opens the code for allowlisted launch numbers', () => {
     expect(body.fallbackCode).toMatch(/^\d{6}$/);
     expect(body.devCode).toBe(body.fallbackCode);
     expect(body.warning).toBe('SMS_IR_TEMPLATE_NOT_APPROVED');
-    // The code is handed to this browser too, so verify works on another isolate.
-    expect([...jar.keys()].length).toBeGreaterThan(0);
+    // The code is handed to this browser in a signed cookie too, so verify works
+    // on another isolate. Assert it matches this code, not merely that one exists.
+    expect(body.fallbackCode).toBeTruthy();
+    expect(await demoOtpCookieMatches(PHONE, body.fallbackCode as string)).toBe(true);
+  });
+
+  it('completes the login without the legacy flag', async () => {
+    sandboxRejection();
+
+    const issued = await requestOtp(
+      post('/api/auth/otp', { phone: PHONE }, '203.0.113.16'),
+    );
+    const { fallbackCode } = (await issued.json()) as { fallbackCode: string };
+    expect(issued.status).toBe(200);
+    expect(fallbackCode).toMatch(/^\d{6}$/);
+
+    const verified = await verifyOtp(
+      post(
+        '/api/auth/verify',
+        {
+          phone: PHONE,
+          code: fallbackCode,
+          displayName: 'لانچ بدون فلگ',
+          accountType: 'individual',
+        },
+        '203.0.113.16',
+      ),
+    );
+    const body = (await verified.json()) as { ok?: boolean; user?: { displayName?: string } };
+
+    expect(verified.status).toBe(200);
+    expect(body.ok).toBe(true);
+    expect(body.user?.displayName).toBe('لانچ بدون فلگ');
+    expect([...jar.keys()].some((name) => name.includes('session'))).toBe(true);
+  });
+
+  it('accepts the signed cookie when another isolate lost the record', async () => {
+    sandboxRejection();
+
+    const issued = await requestOtp(
+      post('/api/auth/otp', { phone: PHONE }, '203.0.113.17'),
+    );
+    const { fallbackCode } = (await issued.json()) as { fallbackCode: string };
+    expect(issued.status).toBe(200);
+
+    // Simulate a different isolate: the in-memory record is gone, only the
+    // cookie survives. This is the path the emergency allowlist must cover.
+    deleteOtp(PHONE);
+    expect(getOtp(PHONE)).toBeNull();
+
+    const verified = await verifyOtp(
+      post(
+        '/api/auth/verify',
+        {
+          phone: PHONE,
+          code: fallbackCode,
+          displayName: 'کوکی ایزوله',
+          accountType: 'individual',
+        },
+        '203.0.113.17',
+      ),
+    );
+
+    expect(verified.status).toBe(200);
   });
 
   it('still issues nothing for a number outside the allowlist', async () => {
@@ -152,6 +217,40 @@ describe('SMS.ir failure opens the code for allowlisted launch numbers', () => {
     expect(body.fallbackCode).toBeUndefined();
     expect(body.devCode).toBeUndefined();
     expect([...jar.keys()]).toEqual([]);
+  });
+
+  it('names a missing provider instead of a gateway error', async () => {
+    delete process.env.SMS_IR_API_KEY;
+    delete process.env.SMS_IR_TEMPLATE_ID;
+
+    const response = await requestOtp(
+      post('/api/auth/otp', { phone: PHONE }, '203.0.113.18'),
+    );
+    const body = (await response.json()) as { warning?: string; fallbackCode?: string };
+
+    // No provider is not a provider failure; the code still opens for the
+    // allowlisted launch number, with the accurate warning.
+    expect(response.status).toBe(200);
+    expect(body.fallbackCode).toMatch(/^\d{6}$/);
+    expect(body.warning).toBe('SMS_NOT_CONFIGURED');
+  });
+
+  it('keeps the demo code working in development without an allowlist', async () => {
+    process.env.NODE_ENV = 'development';
+    delete process.env.SMS_IR_API_KEY;
+    delete process.env.SMS_IR_TEMPLATE_ID;
+    process.env.INSTANT_OTP_ALLOWLIST = '';
+
+    const response = await requestOtp(
+      post('/api/auth/otp', { phone: '09120000077' }, '203.0.113.19'),
+    );
+    const body = (await response.json()) as { warning?: string; devCode?: string };
+
+    // Regression guard: demo mode used to be refused once the allowlist stopped
+    // being the only gate; local sign-in must still show its code.
+    expect(response.status).toBe(200);
+    expect(body.devCode).toMatch(/^\d{6}$/);
+    expect(body.warning).toBe('SMS_NOT_CONFIGURED');
   });
 
   it('rejects a wrong code at verify', async () => {

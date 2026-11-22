@@ -6,7 +6,6 @@ import { setDemoOtpCookie } from '@/lib/auth/otp-cookie';
 import { sendOtpSms, smsReadiness } from '@/lib/auth/sms';
 import {
   demoAuthMode,
-  demoOtpHintEnabled,
   instantOtpAllowedFor,
   instantOtpEmergencyAllowedFor,
   instantOtpFallbackAllowedFor,
@@ -125,21 +124,25 @@ async function handlePost(request: Request): Promise<NextResponse> {
   await saveOtp(phone, code);
 
   const delivery = await sendOtpSms(phone, code);
+  // No provider configured: the instant/demo path. The gates above already
+  // restrict that path to the allowlist in production, so `demo` only widens
+  // who sees the code in a development build.
   const demo = demoAuthMode();
   // SMS.ir can reject an unverified/sandbox account before delivery, reject a
-  // template, or time out. Do not lock launch users out: an explicitly
-  // allowlisted launch number always gets the code on screen instead, and the
-  // six boxes open immediately on a 200.
+  // template, or time out. Do not lock launch users out: an allowlisted launch
+  // number gets the code on screen instead, and the six boxes open on a 200.
   //
   // Bounded on purpose: `instantOtpEmergencyAllowedFor` is exact allowlist
   // membership, and `instantOtpFallbackAllowedFor` is the separate opt-in
   // switch for anything else. An arbitrary phone still never receives a code it
   // did not prove control of by SMS. See LOGIN_RUNBOOK.md.
-  const launchNumber = instantOtpEmergencyAllowedFor(phone);
-  const fallbackAllowed = launchNumber || instantOtpFallbackAllowedFor(phone);
-  const fallback = !delivery.delivered && fallbackAllowed;
+  const fallbackAllowed =
+    instantOtpEmergencyAllowedFor(phone) || instantOtpFallbackAllowedFor(phone);
+  // The only paths that reach here without delivery are demo mode and an
+  // allowed fallback (everything else returned above).
+  const showCode = !delivery.delivered && (demo || fallbackAllowed);
 
-  if (!delivery.delivered && !fallback) {
+  if (!delivery.delivered && !showCode) {
     deleteOtp(phone);
     if (delivery.reason === 'provider_error') {
       return NextResponse.json(
@@ -173,7 +176,7 @@ async function handlePost(request: Request): Promise<NextResponse> {
     );
   }
 
-  if (!delivery.delivered) {
+  if (showCode) {
     // Development / demo / launch-number fallback: the code is written to the
     // server console and handed to this browser.
     console.info(`[alisales][otp] login code for ${phone}: ${code}`);
@@ -192,25 +195,26 @@ async function handlePost(request: Request): Promise<NextResponse> {
     needsProfile: !existing,
     delivery: delivery.delivered ? 'sms' : 'instant',
   };
-  if (!delivery.delivered && (demoOtpHintEnabled(phone) || fallback)) {
+  if (showCode) {
     body.devCode = code;
     body.demoCode = code;
     // The launch-flow name: the client opens the six boxes on this value.
     body.fallbackCode = code;
-    body.warning = fallback
-      ? delivery.reason === 'sandbox'
+    // Name the actual failure: a missing provider is not a gateway error.
+    body.warning =
+      delivery.reason === 'sandbox'
         ? 'SMS_IR_TEMPLATE_NOT_APPROVED'
-        : 'SMS_PROVIDER_ERROR_FALLBACK'
-      : sms.missing.length > 0
-        ? 'SMS_NOT_CONFIGURED'
-        : 'INSTANT_OTP_FALLBACK';
+        : delivery.reason === 'provider_error'
+          ? 'SMS_PROVIDER_ERROR_FALLBACK'
+          : sms.missing.length > 0
+            ? 'SMS_NOT_CONFIGURED'
+            : 'INSTANT_OTP_FALLBACK';
+    // Hand the code to this browser too, so verify still works when a different
+    // isolate (no shared memory) serves the next request.
+    await setDemoOtpCookie(phone, code);
   }
 
-  // Hand the code to this browser too, so verify still works when a different
-  // isolate (no shared memory) serves the next request.
-  if (demo || fallback) await setDemoOtpCookie(phone, code);
-
-  // 200 when a code was issued as the on-screen fallback (the boxes open on it);
-  // 202 keeps the "code sent" semantics for a delivered SMS.
-  return NextResponse.json(body, { status: fallback ? 200 : 202 });
+  // 200 when the code is shown on screen (the boxes open on it); 202 keeps the
+  // "code sent" semantics for a delivered SMS.
+  return NextResponse.json(body, { status: showCode ? 200 : 202 });
 }

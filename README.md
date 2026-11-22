@@ -116,14 +116,17 @@ OTP is available only for numbers listed in `INSTANT_OTP_ALLOWLIST` (empty
 blocks it entirely), so missing SMS credentials cannot create accounts for
 arbitrary phones.
 
-The on-screen code fallback for a sandbox/unverified SMS.ir account is **off by
-default**: it requires the deliberately named `ALLOW_SANDBOX_OTP_FALLBACK=true`
-and still only serves allowlisted numbers. It is an account-takeover primitive
-(an on-screen code proves nothing about who holds the phone), so it is a
-launch-day bandage with an expiry date — see [LOGIN_RUNBOOK.md](LOGIN_RUNBOOK.md)
-for when to use it, how to verify real SMS delivery instead, and how to turn it
-off safely. `/api/health` reports `checks.sandboxFallback.enabled` and adds a
-warning while the switch is on.
+The on-screen code fallback is **automatic for allowlisted numbers**: when a
+configured SMS provider cannot deliver (sandbox/unverified SMS.ir account,
+unapproved template, provider error), a number in `INSTANT_OTP_ALLOWLIST` gets
+the code on screen — no switch needed — and `/api/auth/otp` answers 200 with
+`fallbackCode`. It is an account-takeover primitive (an on-screen code proves
+nothing about who holds the phone), so the allowlist is the real boundary; keep
+it minimal and empty it once real delivery works. `ALLOW_SANDBOX_OTP_FALLBACK`
+is legacy: in production it permits nothing beyond the allowlist. See
+[LOGIN_RUNBOOK.md](LOGIN_RUNBOOK.md) for verification and removal steps.
+`/api/health` reports `checks.sandboxFallback` and warns while a provider is
+configured with a non-empty allowlist.
 
 The production names are:
 

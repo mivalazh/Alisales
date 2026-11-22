@@ -55,11 +55,21 @@ export async function GET(): Promise<NextResponse> {
 
   const data = await dataPathChecks();
   const sandboxFallback = sandboxOtpFallbackEnabled();
-  const warnings = sandboxFallback
-    ? [
-        'ALLOW_SANDBOX_OTP_FALLBACK is enabled: an allowlisted phone can sign in with an on-screen code when the SMS gateway is unavailable. Disable it once SMS delivery is verified (LOGIN_RUNBOOK.md).',
-      ]
-    : [];
+  const warnings: string[] = [];
+  if (sandboxFallback) {
+    warnings.push(
+      'ALLOW_SANDBOX_OTP_FALLBACK is enabled but no longer gates the on-screen code: allowlisted numbers receive it automatically when SMS delivery fails. Unset it and trim INSTANT_OTP_ALLOWLIST instead (LOGIN_RUNBOOK.md).',
+    );
+  }
+  // The real account-takeover boundary: with a provider configured, every
+  // allowlisted number can sign in from an on-screen code the moment delivery
+  // fails, whether or not the legacy flag is set.
+  const automaticFallback = sms.configured && allowlistCount > 0;
+  if (automaticFallback) {
+    warnings.push(
+      `INSTANT_OTP_ALLOWLIST has ${allowlistCount} number(s): when SMS delivery fails (sandbox/unverified account, template rejection, provider error), those numbers can sign in with an on-screen code without proving they hold the phone. Keep the list minimal and prefer no moderation numbers (LOGIN_RUNBOOK.md).`,
+    );
+  }
 
   const ok = authSecret.ok && loginReady && data.database.ok && data.storage.ok;
   const body = {
@@ -90,11 +100,13 @@ export async function GET(): Promise<NextResponse> {
         ready: instantOtpReady,
         allowlistCount,
       },
-      // Off by default; visible here so a risky launch switch cannot be left on
-      // unnoticed after handover.
+      // `enabled` is the legacy flag; `automatic` is the behaviour that
+      // actually ships: allowlisted numbers get the on-screen code whenever a
+      // configured provider fails to deliver.
       sandboxFallback: {
         enabled: sandboxFallback,
         allowlistCount,
+        automatic: automaticFallback,
       },
       login: loginReady
         ? {

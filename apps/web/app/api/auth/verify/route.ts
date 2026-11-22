@@ -19,7 +19,11 @@ import {
 import { bumpOtpAttempts, deleteOtp, getOtp, verifyOtpHash } from '@/lib/auth/otp-store';
 import { clearDemoOtpCookie, demoOtpCookieMatches } from '@/lib/auth/otp-cookie';
 import { smsReadiness } from '@/lib/auth/sms';
-import { instantOtpAllowedFor, instantOtpFallbackAllowedFor } from '@/lib/config/mode';
+import {
+  instantOtpAllowedFor,
+  instantOtpEmergencyAllowedFor,
+  instantOtpFallbackAllowedFor,
+} from '@/lib/config/mode';
 import { createUser, findUserByPhone } from '@/lib/data/s2-store';
 import { profileCustomization, saveProfileCustomization } from '@/lib/data/social-store';
 import { dataUnavailableResponse } from '@/lib/http/data-unavailable';
@@ -115,6 +119,11 @@ async function handlePost(request: Request): Promise<NextResponse> {
     return NextResponse.json({ error: 'کد تأیید باید شش رقم باشد.' }, { status: 400 });
   }
 
+  // The cookie hand-off must cover exactly the numbers the OTP route would
+  // show a code to: the launch allowlist (automatic) and the legacy flag.
+  const cookieFallbackAllowed =
+    instantOtpEmergencyAllowedFor(phone) || instantOtpFallbackAllowedFor(phone);
+
   const record = getOtp(phone);
   if (record) {
     const status = otpStatus(record);
@@ -126,9 +135,7 @@ async function handlePost(request: Request): Promise<NextResponse> {
       bumpOtpAttempts(phone);
       return NextResponse.json({ error: otpStatusMessage('ok') }, { status: 401 });
     }
-  } else if (
-    !(instantOtpFallbackAllowedFor(phone) && (await demoOtpCookieMatches(phone, code)))
-  ) {
+  } else if (!cookieFallbackAllowed || !(await demoOtpCookieMatches(phone, code))) {
     // No in-memory record: either the code expired/was used, or another
     // serverless isolate issued it — the signed cookie covers the allowlisted
     // instant fallback so a launch login never dead-ends.

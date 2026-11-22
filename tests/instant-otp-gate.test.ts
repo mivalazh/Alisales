@@ -155,6 +155,27 @@ describe('production instant OTP gate', () => {
     expect(body.warnings?.[0]).toMatch(/ALLOW_SANDBOX_OTP_FALLBACK/);
   });
 
+  it('warns about the allowlist boundary while a provider is configured', async () => {
+    setEnv('NODE_ENV', 'production');
+    setEnv('AUTH_SECRET', 'production-secret-at-least-16-chars');
+    setEnv('INSTANT_OTP_ALLOWLIST', '09120000001');
+    setEnv('SMS_IR_API_KEY', 'sms-ir-key');
+    setEnv('SMS_IR_TEMPLATE_ID', '123456');
+    setEnv('ALLOW_SANDBOX_OTP_FALLBACK', undefined);
+
+    const { GET } = await import('../apps/web/app/api/health/route');
+    const body = await (await GET()).json();
+
+    expect(body.checks.sandboxFallback).toMatchObject({
+      enabled: false,
+      automatic: true,
+      allowlistCount: 1,
+    });
+    expect(body.warnings?.some((warning: string) => /INSTANT_OTP_ALLOWLIST/.test(warning))).toBe(
+      true,
+    );
+  });
+
   it('rejects an unlisted phone at the OTP endpoint and returns no code', async () => {
     setEnv('NODE_ENV', 'production');
     setEnv('AUTH_SECRET', 'production-secret-at-least-16-chars');
