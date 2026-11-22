@@ -1,4 +1,4 @@
-import { createClient, type SupabaseClient } from '@supabase/supabase-js';
+import type { SupabaseClient } from '@supabase/supabase-js';
 import {
   isSlotState,
   type BrandSlug,
@@ -12,6 +12,7 @@ import {
   type PlateType,
 } from '@alisales/schemas';
 import type { ProcessedPhoto } from './photos';
+import { createMobileSupabaseClient } from './supabase-client';
 
 /**
  * Mobile data layer.
@@ -151,8 +152,13 @@ function store(): MyListing[] {
 
 // ── Supabase branch ──────────────────────────────────────────────────────────
 
+/**
+ * Hosted client: reads carry the same 2.5s budget as the web app, so a stalled
+ * query fails and surfaces `mapDbError` instead of spinning until the platform
+ * timeout. Writes and photo uploads stay unbudgeted; see supabase-client.ts.
+ */
 function client(): SupabaseClient {
-  return createClient(
+  return createMobileSupabaseClient(
     process.env.EXPO_PUBLIC_SUPABASE_URL!,
     process.env.EXPO_PUBLIC_SUPABASE_ANON_KEY!,
   );

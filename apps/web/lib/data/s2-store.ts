@@ -115,9 +115,12 @@ export function admin(): SupabaseClient | null {
   const key = process.env.SUPABASE_SERVICE_ROLE_KEY;
   if (!url || !key) return null;
   // Read queries abort after 2.5s so a page never waits on a hung database;
-  // uploads and table writes keep the platform default.
+  // uploads and table writes keep the platform default. PostgREST retries are
+  // off: the budget is per fetch attempt, so a retried GET would pay 2.5s again
+  // and push the settle time to ~15s (3 retries plus exponential backoff).
   return createClient(url, key, {
     auth: { persistSession: false },
+    db: { retry: false },
     global: { fetch: supabaseFetch },
   });
 }

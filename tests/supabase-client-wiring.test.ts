@@ -8,17 +8,23 @@ import { DEFAULT_FILTERS } from '@alisales/schemas';
  * it over as `global.fetch`. Otherwise a real query would hang for the platform
  * default even though the helper is perfect on its own.
  *
+ * It also pins the *total* settle time. The budget lives inside the fetch
+ * wrapper, so it applies per attempt: postgrest-js happily retries a rejected
+ * idempotent request three times (1s, 2s, 4s backoff), and every retry would
+ * start a fresh 2.5s clock — one stalled query would cost ~15s instead of 2.5s.
+ * Both clients therefore pass `db: { retry: false }`, and the assertions below
+ * fail if a query is retried or takes more than one budget to give up.
+ *
  * The proof runs the real `@supabase/supabase-js` against a fetch stub that only
  * ever settles when aborted. No signal → the stub rejects immediately, so a
- * missing wiring fails fast instead of looking like a timeout.
- *
- * The 2.5s default is used deliberately, and both queries run concurrently, so
- * the test costs one read budget (~2.5s) rather than one per client.
+ * missing wiring fails fast instead of looking like a timeout. Both queries run
+ * concurrently, so the test costs one read budget (~2.5s) rather than one each.
  */
 
 interface StubbedCall {
   url: string;
   signal: AbortSignal | null;
+  headers: HeadersInit | undefined;
 }
 
 const calls: StubbedCall[] = [];
@@ -31,7 +37,7 @@ function requestUrl(input: unknown): string {
 
 const stallUntilAborted = (input: unknown, init?: RequestInit): Promise<Response> => {
   const signal = init?.signal ?? null;
-  calls.push({ url: requestUrl(input), signal });
+  calls.push({ url: requestUrl(input), signal, headers: init?.headers });
   if (!signal) {
     // No budget reached the network: that is the regression this test guards.
     return Promise.reject(new Error('supabase request left without an abort budget'));
@@ -44,6 +50,20 @@ const stallUntilAborted = (input: unknown, init?: RequestInit): Promise<Response
     signal.addEventListener('abort', () => reject(signal.reason), { once: true });
   });
 };
+
+/** postgrest-js stamps retried attempts with `X-Retry-Count`. */
+function retryCount(call: StubbedCall): string | null {
+  const { headers } = call;
+  if (!headers) return null;
+  if (headers instanceof Headers) return headers.get('X-Retry-Count');
+  if (Array.isArray(headers)) {
+    const hit = headers.find(([key]) => key.toLowerCase() === 'x-retry-count');
+    return hit?.[1] ?? null;
+  }
+  const record = headers as Record<string, string>;
+  const key = Object.keys(record).find((name) => name.toLowerCase() === 'x-retry-count');
+  return key ? record[key] : null;
+}
 
 async function waitForCall(match: (call: StubbedCall) => boolean): Promise<StubbedCall> {
   const deadline = Date.now() + 2_000;
@@ -97,7 +117,7 @@ afterEach(() => {
 });
 
 describe('supabase clients carry the read budget', () => {
-  it('aborts a stalled query issued through both createClient call sites', async () => {
+  it('settles a stalled query in one budget for both createClient call sites', async () => {
     const { searchListings } = await import('../apps/web/lib/data/listings');
     const { admin } = await import('../apps/web/lib/data/s2-store');
 
@@ -107,22 +127,18 @@ describe('supabase clients carry the read budget', () => {
     const catalogRead = searchListings(DEFAULT_FILTERS, 'car');
     const rpcCall = await waitForCall((call) => call.url.includes('/rest/v1/rpc/'));
 
-    // Service-role client: a plain table GET. Postgrest builders are lazy, so the
-    // request only goes out once the builder is awaited; the caller signal is here
-    // to stop postgrest's own GET retry loop after the budget has been observed.
-    const caller = new AbortController();
+    // Service-role client: a plain table GET. No caller signal: the client's own
+    // budget is what has to end the query, exactly as on a page render.
     const serviceClient = admin();
     expect(serviceClient).not.toBeNull();
-    const adminRead = serviceClient!
-      .from('users')
-      .select('id')
-      .eq('phone', '09120000000')
-      .abortSignal(caller.signal)
-      .maybeSingle()
-      .then(
-        () => 'settled',
-        () => 'errored',
-      );
+    // Postgrest builders are lazy; subscribing (`.then`) is what sends the GET.
+    const adminRead = Promise.resolve(
+      serviceClient!
+        .from('users')
+        .select('id')
+        .eq('phone', '09120000000')
+        .maybeSingle(),
+    );
     const tableCall = await waitForCall((call) => call.url.includes('/rest/v1/users'));
 
     for (const call of [rpcCall, tableCall]) {
@@ -131,18 +147,24 @@ describe('supabase clients carry the read budget', () => {
     }
 
     await Promise.all([waitForAbort(rpcCall.signal!, 6_000), waitForAbort(tableCall.signal!, 6_000)]);
+    const abortedAt = Date.now();
 
-    const elapsed = Date.now() - started;
     expect(rpcCall.signal?.aborted).toBe(true);
     expect(tableCall.signal?.aborted).toBe(true);
-    expect(elapsed).toBeGreaterThanOrEqual(2_300);
-    expect(elapsed).toBeLessThan(6_000);
+    // One budget (~2.5s), not one per postgrest retry.
+    expect(abortedAt - started).toBeGreaterThanOrEqual(2_300);
+    expect(abortedAt - started).toBeLessThan(4_000);
 
-    // The abort surfaced as a failed read; the catalogue falls back to seeds.
-    expect(await catalogRead).not.toHaveLength(0);
+    // Both queries return instead of hanging: the admin read resolves with the
+    // abort as a PostgREST error, the catalogue falls back to its seeded rows.
+    const [adminResult, catalogRows] = await Promise.all([adminRead, catalogRead]);
+    const settledAt = Date.now();
+    expect(settledAt - started).toBeLessThan(4_000);
+    expect(adminResult.error).not.toBeNull();
+    expect(catalogRows).not.toHaveLength(0);
 
-    caller.abort();
-    // Settled either way: the point is that the query returned instead of hanging.
-    expect(['settled', 'errored']).toContain(await adminRead);
+    // No retries: a retried GET would issue another fetch and carry the header.
+    expect(calls.filter((call) => call.url.includes('/rest/v1/users'))).toHaveLength(1);
+    for (const call of calls) expect(retryCount(call)).toBeNull();
   }, 20_000);
 });

@@ -243,9 +243,12 @@ function supabaseClient() {
   const url = process.env.NEXT_PUBLIC_SUPABASE_URL;
   const anon = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY;
   if (!url || !anon) return null;
-  // Reads are capped at 2.5s; see lib/data/supabase-fetch.ts.
+  // Reads are capped at 2.5s; see lib/data/supabase-fetch.ts. PostgREST retries
+  // are off because the budget lives in the fetch wrapper: each retry would get
+  // a fresh 2.5s and the total (2.5s + backoff + retries) would stretch to ~15s.
   return createClient(url, anon, {
     auth: { persistSession: false },
+    db: { retry: false },
     global: { fetch: supabaseFetch },
   });
 }

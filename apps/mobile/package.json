@@ -12,6 +12,7 @@
   },
   "dependencies": {
     "@alisales/schemas": "*",
+    "@alisales/supabase-read": "*",
     "@studio/design": "*",
     "@supabase/supabase-js": "^2.118.0",
     "@tanstack/react-query": "^5.0.0",
