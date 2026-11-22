@@ -1,4 +1,5 @@
 import {
+  inferBodyType,
   toLegacyColorSlug,
   type ListingPhoto,
   type ListingPublish,
@@ -86,6 +87,7 @@ export async function publishHosted(input: HostedPublishInput): Promise<string> 
 
   if (input.kind === 'vehicle') {
     const vehicle = (data as ListingPublish).vehicle;
+    const category = data.category ?? 'car';
     const insertedVehicle = await sb
       .from('vehicles')
       .insert({
@@ -104,8 +106,12 @@ export async function publishHosted(input: HostedPublishInput): Promise<string> 
         plate_type: vehicle.plateType,
         // Category + specs: without these a hosted motorcycle or excavator
         // would read back as a car and could never reach its own page (0014).
-        category: data.category ?? 'car',
-        body_type: vehicle.bodyType,
+        category,
+        // The seller may skip the optional body-class pick. Storing the same
+        // model inference the grid uses keeps the SQL body filter (which reads
+        // the column) from hiding a brand-new row the way 0016 un-hides legacy
+        // ones; a bike or machine has no body class at all.
+        body_type: category === 'car' ? (vehicle.bodyType ?? inferBodyType(vehicle.model)) : null,
         engine_cc: data.category === 'motorcycle' ? (data.engineCc ?? null) : null,
         bike_type: data.category === 'motorcycle' ? (data.bikeType ?? null) : null,
         heavy_type: data.category === 'heavy' ? (data.heavyType ?? null) : null,
