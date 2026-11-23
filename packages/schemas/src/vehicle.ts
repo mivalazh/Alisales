@@ -211,14 +211,18 @@ export const vehicleSchema = z.object({
 export type VehicleInput = z.infer<typeof vehicleSchema>;
 
 /**
- * Body class inferred from a model name.
+ * Body class inferred from a model name, and the keyword table behind it.
  *
  * Listings created before the body-class picker have no `bodyType`; without a
  * hint the drawer's «شاسی‌بلند» / «سدان» shortcuts would always be empty. The
  * keywords cover the catalogue's actual models and only ever supplement a
  * missing value — an explicit pick always wins.
+ *
+ * Exported because this table is also the source of truth for the 0016 SQL
+ * backfill (which mirrors it): `tests/body-type-hints-drift.test.ts` fails when
+ * the two drift apart.
  */
-const BODY_TYPE_HINTS: ReadonlyArray<[BodyType, readonly string[]]> = [
+export const BODY_TYPE_HINTS: ReadonlyArray<[BodyType, readonly string[]]> = [
   ['pickup', ['hilux', 'f-150', 'f150', 'ram', 'silverado', 'l200', 'gladiator', 'tundra']],
   ['van', ['v-class', 'v class', 'odyssey', 'sienna', 'carnival', 'transporter']],
   ['convertible', ['boxster', 'convertible', 'cabriolet', 'spyder', 'roadster']],
