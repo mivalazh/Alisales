@@ -17,10 +17,12 @@
     "typecheck": "npm run typecheck --workspaces --if-present",
     "build": "npm run build --workspaces --if-present",
     "auth:e2e": "node scripts/e2e-auth.mjs",
+    "e2e": "playwright test",
     "preflight": "node scripts/preflight.mjs"
   },
   "devDependencies": {
     "@electric-sql/pglite": "^0.5.10",
+    "@playwright/test": "^1.65.1",
     "@types/node": "^26.6.5",
     "jsdom": "^31.0.1",
     "sharp": "^0.35.5",

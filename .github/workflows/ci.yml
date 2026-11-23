@@ -58,3 +58,43 @@ jobs:
         run: npm run build
         env:
           ALLOW_EMPTY_CATALOGUE: 'true'
+
+  # The catalogue shells are the one wiring the unit suite cannot see: a static
+  # first paint that a client hook replaces with the full matching pool. These
+  # specs run the real dev server against the seeded fixture catalogue (no
+  # Supabase credentials), so they cover the swap, the request URL and the
+  # failed/aborted fallback exactly as a browser sees them.
+  e2e:
+    name: e2e · catalogue shells
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    steps:
+      - name: Check out
+        uses: actions/checkout@v4
+
+      - name: Set up Node
+        uses: actions/setup-node@v4
+        with:
+          node-version: '26'
+          cache: npm
+
+      - name: Install dependencies
+        run: npm ci
+
+      # Chromium plus the OS libraries it needs; the runner has no browser.
+      - name: Install Chromium
+        run: npx playwright install --with-deps chromium
+
+      - name: Playwright specs
+        run: npm run e2e
+
+      # Traces and screenshots are the only way to see what a failed CI run saw.
+      - name: Upload Playwright report
+        if: failure()
+        uses: actions/upload-artifact@v4
+        with:
+          name: playwright-report
+          path: |
+            playwright-report/
+            test-results/
+          retention-days: 7
