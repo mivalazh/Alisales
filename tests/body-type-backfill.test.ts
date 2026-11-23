@@ -113,17 +113,14 @@ describe('0016 backfills the body class of pre-0014 cars', () => {
     expect(await search({ category: 'car', bodyType: 'suv' })).not.toContain(slug('suv'));
   });
 
-  it('writes the class the shared keyword inference assigns', async () => {
+  it('stores the class the shared keyword inference assigns', async () => {
     await db.exec(BACKFILL);
 
     for (const [key, entry] of Object.entries(LEGACY)) {
-      expect(await bodyTypeOf(IDS_BY_CLASS[key]!), `${key} (${entry.model})`).toBe(entry.body);
-    }
-  });
-
-  it('agrees with the API inference for every backfilled model', async () => {
-    for (const [key, entry] of Object.entries(LEGACY)) {
-      expect(inferBodyType(entry.model), key).toBe(entry.body);
+      const label = `${key} (${entry.model})`;
+      expect(await bodyTypeOf(IDS_BY_CLASS[key]!), label).toBe(entry.body);
+      // The SQL result must equal what the API would infer from the same model.
+      expect(inferBodyType(entry.model), label).toBe(entry.body);
     }
   });
 

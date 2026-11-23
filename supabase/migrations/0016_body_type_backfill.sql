@@ -10,8 +10,9 @@
 --
 -- This writes the same inference into the column, mirroring
 -- `BODY_TYPE_HINTS` in packages/schemas/src/vehicle.ts — same keywords, same
--- order, first match wins. Only cars are touched: a motorcycle or a machine
--- has no body class, and an explicit seller pick is never overridden.
+-- order, first match wins (tests/body-type-hints-drift.test.ts pins the two
+-- together). Only cars are touched: a motorcycle or a machine has no body
+-- class, and an explicit seller pick is never overridden.
 --
 -- Additive and idempotent: every update is guarded by `body_type is null`, so
 -- running it again changes nothing. A model no hint recognises stays null —
@@ -25,7 +26,7 @@ begin
   for rule in
     select *
     from (values
-      ('pickup'::text, array['hilux', 'f-150', 'f150', 'ram', 'silverado', 'l200', 'gladiator', 'tundra']::text[]),
+      ('pickup', array['hilux', 'f-150', 'f150', 'ram', 'silverado', 'l200', 'gladiator', 'tundra']),
       ('van', array['v-class', 'v class', 'odyssey', 'sienna', 'carnival', 'transporter']),
       ('convertible', array['boxster', 'convertible', 'cabriolet', 'spyder', 'roadster']),
       ('coupe', array['supra', '370z', 'gt-r', 'gtr', 'amg gt', '911', 'cayman', 'huracan', 'aventador', '720s', '570s', 'artura', '765lt', '488', 'f8', 'roma', 'portofino', 'sf90', 'db11', 'vantage', 'dbs', 'rapide', 'mustang', 'camaro', 'corvette', 'challenger', 'charger']),
@@ -40,8 +41,8 @@ begin
       and v.category = 'car'
       and exists (
         select 1
-        from unnest(rule.hints) as hint(keyword)
-        where position(hint.keyword in lower(coalesce(v.model, ''))) > 0
+        from unnest(rule.hints) as keyword
+        where v.model ilike '%' || keyword || '%'
       );
   end loop;
 end
