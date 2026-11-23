@@ -8,14 +8,10 @@ import { BODY_TYPE_HINTS, inferBodyType } from '@alisales/schemas';
  * filters on that column while the browser infers the class on the fly. Both
  * sides must use the same keywords in the same order (first match wins), or a
  * car can render as an SUV in the UI and be invisible to `/cars?bodyType=suv`
- * in the hosted catalogue.
- *
- * This test reads the actual migration file and compares it with the exported
- * table, so editing one side without the other fails here instead of shipping
- * two disagreeing inferences.
+ * in the hosted catalogue. This is the one guard for that pairing.
  *
  * 0016 is applied history, though — `supabase db push` will never run it again.
- * So if `BODY_TYPE_HINTS` gains a keyword later, do not copy it into 0016: new
+ * If `BODY_TYPE_HINTS` gains a keyword later, do not copy it into 0016: new
  * writes store the inferred class already (`lib/data/publish-store.ts`), and a
  * repair for already-stored rows belongs in a new migration, at which point
  * this comparison moves to that migration.
@@ -25,33 +21,29 @@ const BACKFILL_SQL = readFileSync(
   'utf8',
 );
 
-/** The (body, hints) rows of 0016, in the order the migration applies them. */
-function sqlHintRows(sql: string): Array<[string, string[]]> {
-  const values = sql.match(/from\s*\(\s*values([\s\S]*?)\)\s*as\s*t\s*\(\s*body\s*,\s*hints\s*\)/i)?.[1];
-  if (!values) throw new Error('0016: the (body, hints) VALUES table was not found');
-
-  const rows = [
-    ...values.matchAll(/\(\s*'([a-z-]+)'\s*,\s*array\s*\[([\s\S]*?)\]\s*\)/gi),
-  ];
-  if (rows.length === 0) throw new Error('0016: the (body, hints) VALUES table has no rows');
-
-  return rows.map(([, body, list]) => [
-    body!,
-    [...list!.matchAll(/'([^']*)'/g)].map((match) => match[1]!),
-  ]);
+/** The `(body, hints)` rows of 0016, in the order the migration applies them. */
+function hintsInSql(sql: string): Array<[string, string[]]> {
+  const table = sql.match(/from\s*\(\s*values([\s\S]*?)\)\s*as\s*t\s*\(\s*body\s*,\s*hints\s*\)/i)?.[1];
+  if (!table) throw new Error('0016: the (body, hints) VALUES table was not found');
+  // The equality assertion below compares whole rows, so a row written in a
+  // shape this pattern misses fails the test instead of being silently dropped.
+  return [...table.matchAll(/\(\s*'([a-z-]+)'\s*,\s*array\s*\[([\s\S]*?)\]\s*\)/gi)].map(
+    ([, body, list]) => [body!, [...list!.matchAll(/'([^']*)'/g)].map(([, keyword]) => keyword!)],
+  );
 }
 
+const HINTS_IN_SQL = hintsInSql(BACKFILL_SQL);
+
 describe('0016 body-class backfill matches BODY_TYPE_HINTS', () => {
-  it('uses the same classes, keywords and order as the client inference', () => {
-    const expected = BODY_TYPE_HINTS.map(([body, keywords]) => [body, [...keywords]]);
-    expect(sqlHintRows(BACKFILL_SQL)).toEqual(expected);
+  it('uses the same classes and keywords, in the same order', () => {
+    expect(HINTS_IN_SQL).toEqual(BODY_TYPE_HINTS);
   });
 
-  it('resolves every SQL keyword to the class 0016 would write', () => {
-    // Order matters: the first class with a matching keyword wins. A keyword
-    // moved between classes — or added to the wrong one — changes what the UI
-    // shows even if the sets still look plausible.
-    for (const [body, keywords] of sqlHintRows(BACKFILL_SQL)) {
+  it('resolves every keyword to the class it is listed under', () => {
+    // The table is ordered and first match wins, so a keyword added above the
+    // class it belongs to is shadowed: the UI would show that class even though
+    // the keyword sits under another one.
+    for (const [body, keywords] of HINTS_IN_SQL) {
       for (const keyword of keywords) {
         expect(inferBodyType(keyword), `keyword «${keyword}»`).toBe(body);
       }
