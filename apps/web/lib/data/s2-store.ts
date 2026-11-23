@@ -2,7 +2,7 @@ import { createClient, type SupabaseClient } from '@supabase/supabase-js';
 import { supabaseFetch } from './supabase-fetch';
 import { readJson, writeJson } from '../storage/demo-store';
 import { photoRowUrl } from './photo-rules';
-import { serverSupabaseUrl } from '../config/mode';
+import { serverSupabaseServiceKey, serverSupabaseUrl } from '../config/mode';
 import { dataUnavailable } from './unavailable';
 import type {
   AccountType,
@@ -112,7 +112,7 @@ function writeData(data: S2Data): void {
 /** Service-role client for hosted mode, or null in fixture mode. */
 export function admin(): SupabaseClient | null {
   const url = serverSupabaseUrl();
-  const key = process.env.SUPABASE_SERVICE_ROLE_KEY;
+  const key = serverSupabaseServiceKey();
   if (!url || !key) return null;
   // Read queries abort after 2.5s so a page never waits on a hung database;
   // uploads and table writes keep the platform default. PostgREST retries are

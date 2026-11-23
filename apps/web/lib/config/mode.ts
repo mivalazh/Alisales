@@ -37,12 +37,24 @@ function flagOn(value: string | undefined): boolean {
  * keeps the browser reads and the service-role writes pointed at one project.
  */
 export function serverSupabaseUrl(): string | undefined {
-  return process.env.SUPABASE_URL ?? process.env.NEXT_PUBLIC_SUPABASE_URL;
+  return process.env.NEXT_PUBLIC_SUPABASE_URL || process.env.SUPABASE_URL;
+}
+
+/**
+ * Server-side Supabase secret key.
+ *
+ * `SUPABASE_SERVICE_ROLE_KEY` is the documented name; Supabase's newer secret
+ * keys are also exported as `SUPABASE_SECRET_KEY`, and a deployment that only
+ * has the latter must still write to storage instead of falling back to demo
+ * data (or answering 500 on upload).
+ */
+export function serverSupabaseServiceKey(): string | undefined {
+  return process.env.SUPABASE_SERVICE_ROLE_KEY || process.env.SUPABASE_SECRET_KEY;
 }
 
 /** Supabase URL + service role key: the app can read AND write real rows. */
 export function hostedDataConfigured(): boolean {
-  return Boolean(serverSupabaseUrl() && process.env.SUPABASE_SERVICE_ROLE_KEY);
+  return Boolean(serverSupabaseUrl() && serverSupabaseServiceKey());
 }
 
 /** Public Supabase credentials: browse/search reads the hosted RPC. */

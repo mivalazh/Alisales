@@ -373,7 +373,7 @@ export const EN_DICTIONARY: Readonly<Record<string, string>> = {
   'گیربکس و کلاچ': 'Gearbox & clutch',
   'ترمز و تعلیق': 'Brakes & suspension',
   'بدنه و چراغ': 'Body & lights',
-  'برق و الکترونیک': 'Electrical & electronics',
+  'برق و کولر': 'Electrical & AC',
   'داخلی': 'Interior',
   'لاستیک و رینگ': 'Tyres & wheels',
   'روغن و فیلتر': 'Oil & filters',

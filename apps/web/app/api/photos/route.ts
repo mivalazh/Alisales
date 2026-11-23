@@ -72,12 +72,17 @@ export async function POST(request: Request): Promise<NextResponse> {
     });
     return NextResponse.json({ ok: true, path: stored.path, url: stored.url }, { status: 201 });
   } catch (error) {
-    // Keep the opaque Persian message for the browser, but never swallow the
-    // reason: the server log is the only place a missing bucket or a storage
-    // quota shows up.
-    console.error('[alisales] POST /api/photos failed:', error);
+    // Keep the Persian message for the seller, but never swallow the reason:
+    // the server log is the only place a missing bucket or a storage quota
+    // shows up, and `detail` makes the failure diagnosable from the browser's
+    // network panel too instead of an opaque 500.
+    console.error('[alisales/photos] upload failed:', error);
     return NextResponse.json(
-      { error: 'بارگذاری عکس انجام نشد؛ دوباره تلاش کنید.' },
+      {
+        error: 'بارگذاری عکس انجام نشد؛ دوباره تلاش کنید.',
+        code: 'photo_upload_failed',
+        detail: error instanceof Error ? error.message : String(error),
+      },
       { status: 500 },
     );
   }

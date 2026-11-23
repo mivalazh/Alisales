@@ -32,7 +32,7 @@ export const PART_CATEGORY_LABELS: Record<PartCategory, string> = {
   engine: 'گیربکس و کلاچ',
   brake: 'ترمز و تعلیق',
   body: 'بدنه و چراغ',
-  electrical: 'برق و الکترونیک',
+  electrical: 'برق و کولر',
   interior: 'داخلی',
   tires: 'لاستیک و رینگ',
   oil_filters: 'روغن و فیلتر',

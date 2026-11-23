@@ -38,26 +38,78 @@ const EXT: Record<string, string> = {
   'image/webp': 'webp',
   'image/jpeg': 'jpg',
   'image/png': 'png',
+  'image/heic': 'heic',
+  'image/heif': 'heif',
   'video/mp4': 'mp4',
   'video/webm': 'webm',
   'video/quicktime': 'mov',
 };
 
+/**
+ * ASCII extension for the stored object name.
+ *
+ * The browser's filename is never used (it can hold Persian text, spaces or
+ * an extension that disagrees with the bytes); an unexpected type — a HEIC
+ * from iOS, an `application/octet-stream` from a file manager — still gets a
+ * safe extension instead of failing the upload.
+ */
+function extensionFor(mime: string): string {
+  const known = EXT[mime];
+  if (known) return known;
+  const subtype = (mime.split('/')[1] ?? '').toLowerCase();
+  return /^[a-z0-9]{2,5}$/.test(subtype) ? subtype : 'bin';
+}
+
+/** Storage's "missing bucket" answer: a 404, or a message naming the bucket. */
+function missingBucket(error: { message?: string; status?: number }): boolean {
+  const message = (error.message ?? '').toLowerCase();
+  return (
+    error.status === 404 ||
+    (message.includes('bucket') &&
+      (message.includes('not found') ||
+        message.includes('not exist') ||
+        message.includes('does not exist')))
+  );
+}
+
+function bucketAlreadyExists(message: string | undefined): boolean {
+  return /already exists|duplicate|resource.*exist/i.test(message ?? '');
+}
+
 export async function storePhoto(input: PhotoBytes): Promise<StoredPhoto> {
   // The extension drives the served content type, so a clip is stored as a
-  // clip instead of a `.webp` whose bytes are an MP4.
-  const path = `${input.sellerId}/${randomUUID()}.${EXT[input.mime] ?? 'webp'}`;
+  // clip instead of a `.webp` whose bytes are an MP4. The timestamp prefix
+  // keeps objects listed in upload order for storage browsing/cleanup.
+  const path = `${input.sellerId}/${Date.now()}-${randomUUID()}.${extensionFor(input.mime)}`;
   const sb = admin();
 
   if (sb) {
     // A Blob keeps the upload on storage-js's multipart path and carries the
     // real content type; the object path is unique, so it can be cached hard.
+    // The bytes go up exactly as received: no server-side re-encode, so a
+    // phone image (HEIC, PNG, JPEG) can never fail on an image-optimizer or
+    // `sharp` error — the browser already normalised what it could.
     const body = new Blob([new Uint8Array(input.bytes)], { type: input.mime });
-    const uploaded = await sb.storage.from(PHOTO_BUCKET).upload(path, body, {
-      contentType: input.mime,
-      cacheControl: '31536000',
-      upsert: false,
-    });
+    const upload = () =>
+      sb.storage.from(PHOTO_BUCKET).upload(path, body, {
+        contentType: input.mime,
+        cacheControl: '31536000',
+        upsert: false,
+      });
+
+    let uploaded = await upload();
+    if (uploaded.error && missingBucket(uploaded.error)) {
+      // A fresh project (or a deploy that skipped migration 0018) has no
+      // `photos` bucket; create the public bucket once and retry instead of
+      // answering 500 on the seller's first upload.
+      const created = await sb.storage.createBucket(PHOTO_BUCKET, { public: true });
+      if (created.error && !bucketAlreadyExists(created.error.message)) {
+        throw new Error(
+          `photo bucket «${PHOTO_BUCKET}» is missing and could not be created: ${created.error.message}`,
+        );
+      }
+      uploaded = await upload();
+    }
     if (uploaded.error) {
       // Log the provider's reason (missing bucket, size limit, network) — the
       // browser only ever sees the generic Persian message from the route.

@@ -219,7 +219,7 @@ export function PhotoUploader({
         type="file"
         accept="image/*,video/*"
         multiple
-        hidden
+        className="hidden"
         onChange={(e) => void handleFiles(e.target.files)}
       />
 
