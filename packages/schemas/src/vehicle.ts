@@ -218,7 +218,7 @@ export type VehicleInput = z.infer<typeof vehicleSchema>;
  * keywords cover the catalogue's actual models and only ever supplement a
  * missing value — an explicit pick always wins.
  */
-const BODY_TYPE_HINTS: ReadonlyArray<[BodyType, readonly string[]]> = [
+export const BODY_TYPE_HINTS: ReadonlyArray<[BodyType, readonly string[]]> = [
   ['pickup', ['hilux', 'f-150', 'f150', 'ram', 'silverado', 'l200', 'gladiator', 'tundra']],
   ['van', ['v-class', 'v class', 'odyssey', 'sienna', 'carnival', 'transporter']],
   ['convertible', ['boxster', 'convertible', 'cabriolet', 'spyder', 'roadster']],

@@ -78,6 +78,7 @@ export {
   vehicleSchema,
   toLegacyColorSlug,
   inferBodyType,
+  BODY_TYPE_HINTS,
 } from './vehicle';
 export type { BrandSlug, VehicleInput } from './vehicle';
 
