@@ -1,7 +1,13 @@
 import { NextResponse } from 'next/server';
 import { vehicleCategories, type VehicleCategory } from '@alisales/schemas';
-import { catalogueState, narrowExtras, type CatalogueState } from '@/lib/catalogue';
+import {
+  canonicalSearchQuery,
+  catalogueState,
+  narrowExtras,
+  type CatalogueState,
+} from '@/lib/catalogue';
 import { searchPublicListings, type ListingCardData } from '@/lib/data/listings';
+import { rateLimit } from '@/lib/security/rate-limit';
 
 /**
  * GET /api/listings/search?<catalogue filters>[&category=car|motorcycle|heavy]
@@ -35,10 +41,24 @@ import { searchPublicListings, type ListingCardData } from '@/lib/data/listings'
  *
  * Public data only — no cookie, no session — so the response is safe to cache
  * per URL at the edge.
+ *
+ * Because the cache key is the URL, the query is canonicalised first: sorted,
+ * with marketing parameters (`utm_*`) dropped. `?brand=toyota&priceTo=500` and
+ * `?priceTo=500&utm_source=telegram&brand=toyota` are one view, so they must be
+ * one cache entry instead of three. A non-canonical request answers with a
+ * cacheable 308 to the canonical URL before any read runs.
+ *
+ * Reading the pool is the most expensive public work in the app (up to ten RPC
+ * pages per request), so anonymous callers are rate-limited per address. This
+ * is a flood brake, not a product limit: a buyer changes a filter at human
+ * speed, and the 30s edge cache absorbs repeat views.
  */
 const POOL_PAGE = 100;
 const POOL_MAX = 1_000;
 const POOL_SCAN_MAX = 5_000;
+
+/** Flood brake for anonymous catalogue reads (per client address, per minute). */
+export const SEARCH_RATE_LIMIT = { limit: 120, windowMs: 60_000 } as const;
 
 async function readPool(
   state: CatalogueState,
@@ -59,6 +79,44 @@ async function readPool(
 
 export async function GET(request: Request): Promise<NextResponse> {
   const url = new URL(request.url);
+
+  // One cache entry per view: redirect before parsing or reading, and cache the
+  // mapping itself — it never changes and it is cheaper than a cache miss.
+  const canonical = canonicalSearchQuery(url.searchParams);
+  if (url.search.slice(1) !== canonical) {
+    return new NextResponse(null, {
+      status: 308,
+      headers: {
+        Location: `${url.pathname}${canonical ? `?${canonical}` : ''}`,
+        'Cache-Control': 'public, s-maxage=300, stale-while-revalidate=600',
+      },
+    });
+  }
+
+  const limited = rateLimit({
+    request,
+    bucket: 'catalogue-search',
+    limit: SEARCH_RATE_LIMIT.limit,
+    windowMs: SEARCH_RATE_LIMIT.windowMs,
+  });
+  const limitHeaders = {
+    'X-RateLimit-Limit': String(limited.limit),
+    'X-RateLimit-Remaining': String(limited.remaining),
+  };
+  if (!limited.ok) {
+    return NextResponse.json(
+      { error: 'تعداد درخواست‌ها بیش از حد مجاز است؛ لحظه‌ای بعد تلاش کنید.' },
+      {
+        status: 429,
+        headers: {
+          ...limitHeaders,
+          'Retry-After': String(limited.retryAfterSeconds),
+          'Cache-Control': 'no-store',
+        },
+      },
+    );
+  }
+
   const state = catalogueState(url.searchParams);
   const raw = url.searchParams.get('category');
   // A parts category (`?category=engine`) travels in the same key; it scopes
@@ -73,6 +131,7 @@ export async function GET(request: Request): Promise<NextResponse> {
       { rows },
       {
         headers: {
+          ...limitHeaders,
           'Cache-Control': 'public, s-maxage=30, stale-while-revalidate=120',
         },
       },

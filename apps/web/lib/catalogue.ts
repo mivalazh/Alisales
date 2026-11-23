@@ -115,6 +115,29 @@ export function catalogueState(params: CatalogueParams): CatalogueState {
 /** `null` params: the prerendered/default render, shared by every fallback. */
 export const DEFAULT_CATALOGUE_STATE: CatalogueState = catalogueState(null);
 
+/** Marketing tags never change a catalogue view. */
+const CACHE_NOISE_PARAM = /^utm_/i;
+
+/**
+ * The one URL shape that owns a view's cache entry.
+ *
+ * Two orderings of one filter set are two URLs, and the edge cache keys on the
+ * URL: without canonicalising, the same grid is fetched, stored and re-read
+ * once per parameter order. Keys are sorted, values are not — the codec is
+ * first-value-wins, so reordering repeated keys would change the filter set —
+ * and marketing parameters (`utm_*`) are dropped.
+ *
+ * Shared by the hook (which asks for the canonical URL directly) and by
+ * `/api/listings/search` (which redirects a hand-written URL to it), so the
+ * client can never generate a key the route would rewrite.
+ */
+export function canonicalSearchQuery(params: URLSearchParams): string {
+  const entries = [...params.entries()]
+    .filter(([key]) => !CACHE_NOISE_PARAM.test(key))
+    .sort(([aKey], [bKey]) => (aKey < bKey ? -1 : aKey > bKey ? 1 : 0));
+  return new URLSearchParams(entries).toString();
+}
+
 /**
  * The request for a parsed page state.
  *
@@ -139,7 +162,7 @@ export function catalogueRequestQuery(
   // tells the two apart because only vehicle categories are in `vehicleCategories`.
   if (category) params.set('category', category);
   else if (extras.partCategory) params.set('category', extras.partCategory);
-  return params.toString();
+  return canonicalSearchQuery(params);
 }
 
 /** The launch rule: while city selection is off, browse is Kish-only. */

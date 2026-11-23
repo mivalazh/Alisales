@@ -72,10 +72,22 @@ function partCard(overrides: Partial<ListingCardData> = {}): ListingCardData {
   } as ListingCardData;
 }
 
-function get(query: string): Promise<Response> {
+function load(query: string, ip?: string): Promise<Response> {
   return import('../apps/web/app/api/listings/search/route').then(({ GET }) =>
-    GET(new Request(`https://alisales.ir/api/listings/search?${query}`)),
+    GET(
+      new Request(`https://alisales.ir/api/listings/search?${query}`, {
+        headers: ip ? { 'x-forwarded-for': ip } : undefined,
+      }),
+    ),
   );
+}
+
+/** What the grid's fetch sees: the canonical redirect is followed, like fetch. */
+async function get(query: string, ip?: string): Promise<Response> {
+  const first = await load(query, ip);
+  if (first.status !== 308) return first;
+  const location = new URL(first.headers.get('location')!, 'https://alisales.ir');
+  return load(location.search.slice(1), ip);
 }
 
 beforeEach(() => {
@@ -202,5 +214,64 @@ describe('/api/listings/search', () => {
     expect(response.status).toBe(503);
     expect(response.headers.get('Cache-Control')).toBe('no-store');
     expect(await response.json()).toHaveProperty('error');
+  });
+
+  it('canonicalises the cache key: sorted params, utm_* dropped, no read', async () => {
+    const response = await load('priceTo=500&utm_source=telegram&brand=toyota&utm_medium=cpc');
+
+    expect(response.status).toBe(308);
+    expect(response.headers.get('location')).toBe('/api/listings/search?brand=toyota&priceTo=500');
+    expect(response.headers.get('Cache-Control')).toContain('s-maxage=300');
+    expect(searchPublicListings).not.toHaveBeenCalled();
+  });
+
+  it('preserves first-value-wins when repeated keys are canonicalised', async () => {
+    searchPublicListings.mockResolvedValue([]);
+
+    const redirect = await load('brand=toyota,bmw&brand=ford&kind=vehicle');
+    expect(redirect.headers.get('location')).toBe(
+      '/api/listings/search?brand=toyota%2Cbmw&brand=ford&kind=vehicle',
+    );
+
+    await get('brand=toyota,bmw&brand=ford&kind=vehicle');
+    const filters = searchPublicListings.mock.calls[0]?.[0];
+    expect(filters?.brand).toEqual(['toyota', 'bmw']);
+  });
+
+  it('drops utm_* even when the rest of the query is already canonical', async () => {
+    searchPublicListings.mockResolvedValue([]);
+
+    const response = await load('brand=toyota&utm_campaign=spring');
+
+    expect(response.status).toBe(308);
+    expect(response.headers.get('location')).toBe('/api/listings/search?brand=toyota');
+  });
+
+  it('answers a canonical URL directly, with rate-limit headers', async () => {
+    searchPublicListings.mockResolvedValue([]);
+
+    const response = await get('brand=toyota&priceTo=500');
+
+    expect(response.status).toBe(200);
+    expect(response.headers.get('X-RateLimit-Limit')).toBe('120');
+    expect(Number(response.headers.get('X-RateLimit-Remaining'))).toBeGreaterThanOrEqual(0);
+  });
+
+  it('rate-limits an address that floods the pool read', async () => {
+    searchPublicListings.mockResolvedValue([]);
+    const { SEARCH_RATE_LIMIT } = await import('../apps/web/app/api/listings/search/route');
+    const ip = '203.0.113.99';
+
+    for (let i = 0; i < SEARCH_RATE_LIMIT.limit; i += 1) {
+      expect((await get('brand=toyota', ip)).status, `request ${i + 1}`).toBe(200);
+    }
+
+    const blocked = await get('brand=toyota', ip);
+
+    expect(blocked.status).toBe(429);
+    expect(blocked.headers.get('Retry-After')).toBeTruthy();
+    expect(blocked.headers.get('Cache-Control')).toBe('no-store');
+    expect(blocked.headers.get('X-RateLimit-Remaining')).toBe('0');
+    expect(await blocked.json()).toHaveProperty('error');
   });
 });

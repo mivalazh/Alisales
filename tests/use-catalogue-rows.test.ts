@@ -80,9 +80,10 @@ describe('useCatalogueRows', () => {
     await render(new URLSearchParams('brand=bmw&body=suv&sort=priceAsc'), 'car');
 
     // `sort` stays client-side; the codec's filters, the extra narrowing and the
-    // category are what the server needs to return the full matching set.
+    // category are what the server needs to return the full matching set, and
+    // they are emitted in canonical (sorted) order so one view is one cache key.
     expect(fetchMock).toHaveBeenCalledTimes(1);
-    expect(requestedUrl(0)).toBe('/api/listings/search?brand=bmw&body=suv&category=car');
+    expect(requestedUrl(0)).toBe('/api/listings/search?body=suv&brand=bmw&category=car');
     expect(latest).toEqual({ rows: SERVER_ROWS, serverMatches: true });
   });
 
@@ -104,6 +105,18 @@ describe('useCatalogueRows', () => {
     expect(fetchMock).toHaveBeenCalledTimes(2);
     expect(requestedUrl(0)).toBe('/api/listings/search?body=suv&category=car');
     expect(requestedUrl(1)).toBe('/api/listings/search?body=sedan&category=car');
+  });
+
+  it('builds one cache key for one view, whatever order the URL used', async () => {
+    fetchMock.mockResolvedValue({ ok: true, json: async () => ({ rows: SERVER_ROWS }) });
+
+    await render(new URLSearchParams('brand=bmw&body=suv'), 'car');
+    await render(new URLSearchParams('body=suv&brand=bmw'), 'car');
+
+    // The route's canonical redirect must never be on the hot path: the hook
+    // asks for the canonical URL directly, so reordering the same filters is
+    // not a second cache entry or a second request.
+    expect(fetchMock).toHaveBeenCalledTimes(1);
   });
 
   it('does not re-request when a parameter the request ignores changes', async () => {
