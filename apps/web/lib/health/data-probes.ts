@@ -1,4 +1,9 @@
-import { hostedDataConfigured, requireHostedServices, serverSupabaseUrl } from '../config/mode';
+import {
+  hostedDataConfigured,
+  requireHostedServices,
+  serverSupabaseServiceKey,
+  serverSupabaseUrl,
+} from '../config/mode';
 import { PHOTO_BUCKET } from '../data/photo-rules';
 import { admin } from '../data/s2-store';
 
@@ -76,12 +81,16 @@ function missingSupabaseConfig(): DataPathCheck | null {
         'SUPABASE_URL / NEXT_PUBLIC_SUPABASE_URL is not set, so the hosted data path cannot be exercised.',
     };
   }
-  if (!process.env.SUPABASE_SERVICE_ROLE_KEY) {
+  // Ask the same accessor the upload and publish paths use, so a deployment
+  // that only exports Supabase's newer `SUPABASE_SECRET_KEY` is not reported as
+  // unconfigured while its uploads work. The code keeps the documented name:
+  // operators and monitors already match on `SUPABASE_SERVICE_ROLE_KEY_MISSING`.
+  if (!serverSupabaseServiceKey()) {
     return {
       ok: false,
       code: 'SUPABASE_SERVICE_ROLE_KEY_MISSING',
       message:
-        'SUPABASE_SERVICE_ROLE_KEY is missing; server writes cannot reach Supabase and listings or media would silently fail to persist.',
+        'SUPABASE_SERVICE_ROLE_KEY (or SUPABASE_SECRET_KEY) is missing; server writes cannot reach Supabase and listings or media would silently fail to persist.',
     };
   }
   return null;

@@ -144,6 +144,9 @@ async function sendSmsIr(phone: string, code: string): Promise<SmsDelivery> {
       body: JSON.stringify({
         mobile: phone,
         templateId,
+        // The template placeholder is `#CODE#`, so `CODE` is the name that
+        // matters; the lower-case twin stays for templates authored as
+        // `#code#`, which SMS.ir matches case-sensitively.
         parameters: [
           { name: 'CODE', value: code },
           { name: 'code', value: code },

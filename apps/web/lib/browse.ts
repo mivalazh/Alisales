@@ -1,4 +1,10 @@
-import { PART_CATEGORY_LABELS, partCategories, type PartCategory } from '@alisales/schemas';
+import {
+  CAR_BODY_GROUPS,
+  PART_CATEGORY_LABELS,
+  matchesBodyKeyword,
+  partCategories,
+  type PartCategory,
+} from '@alisales/schemas';
 import type { ListingCardData } from './data/listings';
 
 /**
@@ -6,6 +12,12 @@ import type { ListingCardData } from './data/listings';
  * these groups are curated model keywords applied on top of the one search
  * result. Links stay `?body=…` / `?category=…` on the home page, so filters,
  * sort and search keep working inside the chosen group.
+ *
+ * The keyword table itself lives in `@alisales/schemas` (`CAR_BODY_GROUPS`),
+ * next to the inference that fills `vehicles.body_type`: one list, one matcher,
+ * so a model can never be an SUV to the database and invisible in the SUV chip.
+ * Each group here is that table's `keywords` plus its `browseOnly` words, in
+ * `browseOrder` — the drawer menu order, which is not the inference order.
  */
 export interface CarBodyType {
   key: string;
@@ -13,88 +25,16 @@ export interface CarBodyType {
   keywords: readonly string[];
 }
 
-export const CAR_BODY_TYPES: readonly CarBodyType[] = [
-  {
-    key: 'suv',
-    label: 'SUV',
-    keywords: [
-      'suv',
-      'land cruiser',
-      'prado',
-      'patrol',
-      'x5',
-      'x6',
-      'x-trail',
-      'tucson',
-      'sportage',
-      'santa fe',
-      'palisade',
-      'range rover',
-      'cayenne',
-      'gle',
-      'g-class',
-      'lx',
-      'fortuner',
-    ],
-  },
-  {
-    key: 'sedan',
-    label: 'سدان',
-    keywords: [
-      'sedan',
-      'camry',
-      'sonata',
-      'elantra',
-      'optima',
-      'e-class',
-      's-class',
-      '5 series',
-      '7 series',
-      '3 series',
-      'accord',
-      'teana',
-      'cerato',
-    ],
-  },
-  {
-    key: 'hatchback',
-    label: 'هاچ‌بک',
-    keywords: ['hatchback', 'هاچبک', 'i20', 'picanto', 'cerato'],
-  },
-  {
-    key: 'coupe',
-    label: 'کوپه و اسپورت',
-    keywords: ['coupe', 'کوپه', 'sport', 'اسپرت', 'mustang', 'camaro', '911', 'm4', 'c63'],
-  },
-  {
-    key: 'crossover',
-    label: 'کراس‌اوور',
-    keywords: ['crossover', 'کراساوور', 'hr-v', 'cx-5', 'qashqai', 'creta', 'seltos', 'juke'],
-  },
-  {
-    key: 'luxury',
-    label: 'لوکس و لیموزین',
-    keywords: [
-      'luxury',
-      'limousine',
-      'لیموزین',
-      's-class',
-      '7 series',
-      'a8',
-      'range rover',
-      'bentley',
-      'rolls',
-      'porsche',
-      'panamera',
-      'lexus',
-    ],
-  },
-  {
-    key: 'hybrid',
-    label: 'خودروی برقی و هیبرید',
-    keywords: ['hybrid', 'هیبرید', 'electric', 'برقی', 'ev', 'tesla', 'priya', 'prius', 'byd'],
-  },
-] as const;
+export const CAR_BODY_TYPES: readonly CarBodyType[] = CAR_BODY_GROUPS.filter(
+  (group) => group.browseOrder !== null,
+)
+  .slice()
+  .sort((a, b) => (a.browseOrder ?? 0) - (b.browseOrder ?? 0))
+  .map((group) => ({
+    key: group.key,
+    label: group.label,
+    keywords: [...group.keywords, ...(group.browseOnly ?? [])],
+  }));
 
 export function parseBodyType(value: string | null | undefined): CarBodyType | null {
   return CAR_BODY_TYPES.find((type) => type.key === value) ?? null;
@@ -106,16 +46,34 @@ export function parsePartCategory(value: string | null | undefined): PartCategor
     : null;
 }
 
-/** «خودرو» group: model/trim keyword match; parts never match a body type. */
+/**
+ * «خودرو» group: model/trim keyword match, through the shared matcher.
+ *
+ * Parts never match (they have no model line worth reading), and neither do
+ * motorcycles or heavy machinery: the chips are car body classes, and a
+ * motorcycle called «Sportster» must not answer a `?body=coupe` link.
+ */
+export function matchesCarBodyKeywords(
+  listing: ListingCardData,
+  keywords: readonly string[],
+): boolean {
+  // Parts are excluded, everything else is a car unless the category says
+  // motorcycle/heavy (`kind` is absent on the seeded catalogue's vehicles).
+  if (listing.kind === 'part') return false;
+  if ((listing.category ?? 'car') !== 'car') return false;
+  return matchesBodyKeyword(`${listing.model} ${listing.trim ?? ''}`, keywords);
+}
+
+/**
+ * The same predicate the SQL page applies to `p_filters->'bodyKeywords'`
+ * (0023), exported so the fixture path and the parity test narrow with exactly
+ * the rules the database uses.
+ */
 export function filterByBodyType(
   listings: readonly ListingCardData[],
   type: CarBodyType,
 ): ListingCardData[] {
-  return listings.filter((listing) => {
-    if (listing.kind === 'part') return false;
-    const haystack = `${listing.model} ${listing.trim ?? ''}`.toLowerCase();
-    return type.keywords.some((keyword) => haystack.includes(keyword.toLowerCase()));
-  });
+  return listings.filter((listing) => matchesCarBodyKeywords(listing, type.keywords));
 }
 
 export function filterByPartCategory(

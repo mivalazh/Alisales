@@ -108,6 +108,7 @@ const ENV_KEYS = [
   'SUPABASE_URL',
   'NEXT_PUBLIC_SUPABASE_URL',
   'SUPABASE_SERVICE_ROLE_KEY',
+  'SUPABASE_SECRET_KEY',
   'REQUIRE_HOSTED_SERVICES',
 ] as const;
 
@@ -194,6 +195,24 @@ describe('health data path', () => {
     // Nothing was attempted against a half-configured project.
     expect(fake.calls).toEqual([]);
     expect(text).not.toContain('service-role-key');
+  });
+
+  it('accepts SUPABASE_SECRET_KEY as the same credential', async () => {
+    // Uploads read `serverSupabaseServiceKey()`, which takes either name. The
+    // probe must not report a missing key on a deployment whose uploads work.
+    hostedEnv();
+    delete process.env.SUPABASE_SERVICE_ROLE_KEY;
+    process.env.SUPABASE_SECRET_KEY = 'sb_secret_test';
+
+    const response = await GET();
+    const body = await response.json();
+
+    expect(response.status).toBe(200);
+    expect(body.checks.database).toMatchObject({ ok: true, table: 'health_probes' });
+    expect(body.checks.storage).toMatchObject({ ok: true, bucket: 'photos' });
+    expect(fake.calls).toEqual(
+      expect.arrayContaining(['insert:health_probes', 'upload:photos']),
+    );
   });
 
   it('names the missing bucket instead of reporting a generic failure', async () => {

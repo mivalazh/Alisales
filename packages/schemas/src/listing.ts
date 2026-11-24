@@ -8,11 +8,47 @@ import { bikeTypeKeys, heavyTypeKeys, vehicleCategories } from './categories';
 export const MAX_PHOTOS = 20;
 export const MAX_PHOTO_BYTES = 8 * 1024 * 1024; // 8 MB after webp conversion
 export const ALLOWED_PHOTO_MIME = ['image/jpeg', 'image/png', 'image/webp'] as const;
+/**
+ * HEIC/HEIF stills — the iPhone and macOS default.
+ *
+ * Nothing in this stack can decode them: the browser pipeline re-encodes
+ * through a canvas (Chrome, Firefox and Android have no HEVC decoder), the
+ * server stores the bytes exactly as received, and no cover can be painted from
+ * a HEIC URL by those browsers either. Rejecting them by name at every layer
+ * with one shared message beats a generic «unsupported format» after the seller
+ * has picked a folder of holiday photos.
+ *
+ * The filename is checked too: some platforms hand over a HEIC with no MIME at
+ * all, or `application/octet-stream`.
+ */
+export const HEIC_MIME = [
+  'image/heic',
+  'image/heif',
+  'image/heic-sequence',
+  'image/heif-sequence',
+] as const;
+
+export function isHeicMime(
+  mime: string | null | undefined,
+  filename?: string | null,
+): boolean {
+  if (mime && (HEIC_MIME as readonly string[]).includes(mime.toLowerCase())) return true;
+  const name = (filename ?? '').toLowerCase();
+  return name.endsWith('.heic') || name.endsWith('.heif');
+}
 /** Short clips uploaded next to the photos (never as the cover). */
+/**
+ * Why a HEIC was refused, in the seller's own words.
+ *
+ * Shared by the client pipeline and the upload route so the browser and a
+ * direct POST explain the same thing: the setting to flip, or convert the file.
+ */
+export const HEIC_PHOTO_MESSAGE =
+  'عکس HEIC پشتیبانی نمی‌شود. در آیفون: تنظیمات → دوربین → فرمت‌ها → «سازگارترین» را انتخاب کنید، یا عکس را به JPG تبدیل کنید.';
+
 export const ALLOWED_VIDEO_MIME = ['video/mp4', 'video/webm', 'video/quicktime'] as const;
 export const MAX_VIDEO_BYTES = 40 * 1024 * 1024; // 40 MB per clip
 export const ALLOWED_MEDIA_MIME = [...ALLOWED_PHOTO_MIME, ...ALLOWED_VIDEO_MIME] as const;
-
 export function isVideoMime(mime: string): boolean {
   return (ALLOWED_VIDEO_MIME as readonly string[]).includes(mime);
 }

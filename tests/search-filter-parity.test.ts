@@ -44,7 +44,9 @@ function latestSearchSql(): string {
     .reverse();
   for (const file of files) {
     const sql = readFileSync(MIGRATIONS + file, 'utf8');
-    if (sql.includes('function public.search_listings')) return sql;
+    // The opening paren keeps `search_listings_page` (0020) out of this match:
+    // that function returns a jsonb envelope, not `setof listing_cards`.
+    if (sql.includes('function public.search_listings(')) return sql;
   }
   throw new Error('no migration defines public.search_listings');
 }

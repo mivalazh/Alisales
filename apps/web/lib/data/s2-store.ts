@@ -20,8 +20,9 @@ import type { ListingCardData } from './listings';
  *  - Fixture mode (no Supabase credentials): the demo store (a JSON file under
  *    `.dev-data`/`/tmp`, or isolate memory on Workers), exactly like the
  *    listing dev store, so the whole flow is reviewable offline.
- *  - Hosted mode (SUPABASE_URL + SUPABASE_SERVICE_ROLE_KEY set): the same
- *    operations against Supabase. These functions run on the server only;
+ *  - Hosted mode (SUPABASE_URL + SUPABASE_SERVICE_ROLE_KEY, or Supabase's newer
+ *    SUPABASE_SECRET_KEY): the same operations against Supabase. These
+ *    functions run on the server only;
  *    RLS keeps direct client access read-only for the statistics tables and
  *    own-rows-only for favorites.
  *

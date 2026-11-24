@@ -166,7 +166,7 @@ The production names are:
 ```
 SUPABASE_URL
 NEXT_PUBLIC_SUPABASE_URL
-SUPABASE_SERVICE_ROLE_KEY
+SUPABASE_SERVICE_ROLE_KEY # server writes; SUPABASE_SECRET_KEY is accepted too
 NEXT_PUBLIC_SUPABASE_ANON_KEY
 SMS_IR_API_KEY              # preferred: SMS.ir Fast Verification
 SMS_IR_TEMPLATE_ID          # required approved template id (no implicit default)

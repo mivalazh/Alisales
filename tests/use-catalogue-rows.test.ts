@@ -83,8 +83,8 @@ describe('useCatalogueRows', () => {
     // category are what the server needs to return the full matching set, and
     // they are emitted in canonical (sorted) order so one view is one cache key.
     expect(fetchMock).toHaveBeenCalledTimes(1);
-    expect(requestedUrl(0)).toBe('/api/listings/search?body=suv&brand=bmw&category=car');
-    expect(latest).toEqual({ rows: SERVER_ROWS, serverMatches: true });
+    expect(requestedUrl(0)).toBe('/api/listings/search?body=suv&brand=bmw&category=car&limit=48');
+    expect(latest).toMatchObject({ rows: SERVER_ROWS, serverMatches: true, nextCursor: null });
   });
 
   it('sends the bare route when the URL has no catalogue state left to send', async () => {
@@ -92,7 +92,7 @@ describe('useCatalogueRows', () => {
 
     await render(new URLSearchParams('sort=newest&utm_source=newsletter'));
 
-    expect(requestedUrl(0)).toBe('/api/listings/search');
+    expect(requestedUrl(0)).toBe('/api/listings/search?limit=48');
     expect(latest?.serverMatches).toBe(true);
   });
 
@@ -103,8 +103,8 @@ describe('useCatalogueRows', () => {
     await render(new URLSearchParams('body=sedan'), 'car');
 
     expect(fetchMock).toHaveBeenCalledTimes(2);
-    expect(requestedUrl(0)).toBe('/api/listings/search?body=suv&category=car');
-    expect(requestedUrl(1)).toBe('/api/listings/search?body=sedan&category=car');
+    expect(requestedUrl(0)).toBe('/api/listings/search?body=suv&category=car&limit=48');
+    expect(requestedUrl(1)).toBe('/api/listings/search?body=sedan&category=car&limit=48');
   });
 
   it('builds one cache key for one view, whatever order the URL used', async () => {
@@ -134,8 +134,36 @@ describe('useCatalogueRows', () => {
 
     await render(new URLSearchParams('body=suv'), 'car');
 
-    expect(latest).toEqual({ rows: POOL, serverMatches: false });
+    expect(latest).toMatchObject({ rows: POOL, serverMatches: false });
     expect(latest?.rows).toBe(POOL);
+  });
+
+  it('appends the next page on loadMore and de-duplicates a row that moved', async () => {
+    fetchMock
+      .mockResolvedValueOnce({
+        ok: true,
+        json: async () => ({ rows: [SERVER_ROWS[0]], nextCursor: 'page-2' }),
+      })
+      .mockResolvedValueOnce({
+        ok: true,
+        // `server-1` appears again: two reads are not one snapshot.
+        json: async () => ({ rows: [SERVER_ROWS[1], SERVER_ROWS[0]], nextCursor: null }),
+      });
+
+    await render(new URLSearchParams('body=suv'), 'car');
+    expect(latest?.rows).toEqual([SERVER_ROWS[0]]);
+    expect(latest?.nextCursor).toBe('page-2');
+
+    await act(async () => {
+      latest?.loadMore();
+    });
+    await act(async () => {
+      await new Promise((resolve) => setTimeout(resolve, 0));
+    });
+
+    expect(requestedUrl(1)).toContain('cursor=page-2');
+    expect(latest?.rows).toEqual([SERVER_ROWS[0], SERVER_ROWS[1]]);
+    expect(latest?.nextCursor).toBeNull();
   });
 
   it('keeps the static pool when the request rejects', async () => {

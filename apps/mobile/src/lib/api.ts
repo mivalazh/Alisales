@@ -1,5 +1,7 @@
 import type { SupabaseClient } from '@supabase/supabase-js';
 import {
+  browseGroupsFor,
+  inferBodyType,
   isSlotState,
   type BrandSlug,
   type ColorSlug,
@@ -344,6 +346,13 @@ export async function createListing(
       color: payload.vehicle.color,
       condition: payload.vehicle.condition,
       plate_type: payload.vehicle.plateType,
+      // The mobile form has no body-class picker, so every row would store
+      // `null` and the SQL body filter (which reads the column) would hide it.
+      // Store the same model inference the web publish path and 0016 use.
+      body_type: payload.vehicle.bodyType ?? inferBodyType(payload.vehicle.model),
+      // The curated chips this model answers (0024) — the mobile form defaults
+      // to a car, so no category guard is needed here.
+      browse_groups: browseGroupsFor(payload.vehicle.model, payload.vehicle.trim),
       vin: payload.vehicle.vin,
     })
     .select('id')
@@ -419,6 +428,9 @@ export async function updateListing(
         color: payload.vehicle.color,
         condition: payload.vehicle.condition,
         plate_type: payload.vehicle.plateType,
+        // Editing the model line moves the row between chips, so the derived
+        // array is rewritten with it (0024) or the old chips would linger.
+        browse_groups: browseGroupsFor(payload.vehicle.model, payload.vehicle.trim),
         vin: payload.vehicle.vin,
       })
       .eq('id', row.vehicle_id)

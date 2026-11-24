@@ -32,7 +32,8 @@ not the dev CLI.
 Names only — values live in Infisical, never in git.
 
 - `SUPABASE_URL`
-- `SUPABASE_SERVICE_ROLE_KEY`
+- `SUPABASE_SERVICE_ROLE_KEY` (either this or `SUPABASE_SECRET_KEY`; the app reads both)
+- `SUPABASE_SECRET_KEY`
 - `NEXT_PUBLIC_SUPABASE_URL`
 - `NEXT_PUBLIC_SUPABASE_ANON_KEY`
 - `NEXT_PUBLIC_SITE_URL`

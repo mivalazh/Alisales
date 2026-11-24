@@ -54,7 +54,10 @@ function describe(error) {
 
 async function main() {
   const url = projectUrl();
-  const key = arg('key') ?? process.env.SUPABASE_SERVICE_ROLE_KEY ?? '';
+  // Same two names the app accepts (lib/config/mode.ts): a project using the
+  // newer secret key must not be reported as unconfigured here either.
+  const key =
+    arg('key') ?? process.env.SUPABASE_SERVICE_ROLE_KEY ?? process.env.SUPABASE_SECRET_KEY ?? '';
   const checks = [];
 
   const record = (group, label, ok, detail) => {
@@ -69,12 +72,12 @@ async function main() {
   if (!key) {
     record(
       'config',
-      'SUPABASE_SERVICE_ROLE_KEY',
+      'SUPABASE_SERVICE_ROLE_KEY / SUPABASE_SECRET_KEY',
       false,
-      'not set — the schema probe and bucket listing need the service role',
+      'neither is set — the schema probe and bucket listing need the service key',
     );
   } else {
-    record('config', 'SUPABASE_SERVICE_ROLE_KEY', true, 'set');
+    record('config', 'SUPABASE_SERVICE_ROLE_KEY / SUPABASE_SECRET_KEY', true, 'set');
   }
 
   if (url && key) {

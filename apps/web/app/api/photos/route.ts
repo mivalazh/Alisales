@@ -1,8 +1,10 @@
 import { NextResponse } from 'next/server';
 import {
   ALLOWED_MEDIA_MIME,
+  HEIC_PHOTO_MESSAGE,
   MAX_PHOTO_BYTES,
   MAX_VIDEO_BYTES,
+  isHeicMime,
   isVideoMime,
 } from '@alisales/schemas';
 import { getSession } from '@/lib/auth/session';
@@ -19,6 +21,9 @@ import { storePhoto } from '@/lib/data/photo-store';
  * - Guests get 401 (the upload happens on the guarded /new page).
  * - mime / size / dimension limits mirror the shared schema and the
  *   `listing_photos` table constraints, so an invalid file cannot reach the DB.
+ * - HEIC answers 415 with the one sentence that tells the seller what to change
+ *   (see HEIC_PHOTO_MESSAGE): the bytes are stored as received and no browser
+ *   but Safari can paint them, so they are refused here, not stored.
  */
 export const runtime = 'nodejs';
 
@@ -41,6 +46,9 @@ export async function POST(request: Request): Promise<NextResponse> {
   const file = form.get('file');
   if (!(file instanceof File) || file.size === 0) {
     return NextResponse.json({ error: 'فایلی ارسال نشده است.' }, { status: 400 });
+  }
+  if (isHeicMime(file.type, file.name)) {
+    return NextResponse.json({ error: HEIC_PHOTO_MESSAGE, code: 'heic_unsupported' }, { status: 415 });
   }
   if (!(ALLOWED_MEDIA_MIME as readonly string[]).includes(file.type)) {
     return NextResponse.json(

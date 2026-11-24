@@ -22,6 +22,7 @@ import { applyListingOverrides, devListings } from './dev-store';
 import { moderationOverlay } from './moderation-store';
 import { applyModeration } from './moderation-rules';
 import { matchesFilters } from '../filter-match';
+import { matchesCarBodyKeywords } from '../browse';
 import { cataloguePrerenderIssue } from '../config/build-guard';
 import { admin } from './s2-store';
 import { visibleCatalog } from './demo-seed';
@@ -469,7 +470,10 @@ function assertPrerenderedCatalogue(
     rows: rows.length,
     failure,
   });
-  // if (issue) throw new Error(issue);
+  // A real build failure, not a warning: this page is about to be cached as
+  // empty HTML. An intentionally empty marketplace opts out through
+  // ALLOW_EMPTY_CATALOGUE, which `cataloguePrerenderIssue` already honours.
+  if (issue) throw new Error(issue);
 }
 
 /**
@@ -569,6 +573,70 @@ export async function searchPublicListings(
   page?: CataloguePage,
 ): Promise<ListingCardData[]> {
   return search(filters, category, false, page);
+}
+
+/** One keyset page of the public catalogue, plus the cursor for the next. */
+export interface CataloguePageResult {
+  rows: ListingCardData[];
+  /** Null on the last page. Opaque to the caller; the route passes it back. */
+  nextCursor: string | null;
+}
+
+/**
+ * Keyset page for the catalogue grid.
+ *
+ * Hosted: `search_listings_page` (0020) answers one page of `listing_cards` in
+ * exactly the ranking `search_listings` uses, with a cursor bound to the filter
+ * payload — a cursor presented with another filter set raises instead of
+ * skipping rows. Rows keep the SQL order: a client-side relevance sort would
+ * reshuffle them across page boundaries and make a row appear twice.
+ *
+ * Fixture mode has no database to page: the seeded catalogue answers in one
+ * page with no cursor, which is the whole demo catalogue.
+ */
+export async function searchPublicListingsPage(
+  filters: SearchFilters,
+  category: VehicleCategory | undefined,
+  page: { limit: number; cursor: string | null },
+  /**
+   * Curated `?body=` narrowing. The route maps the group key to
+   * `CAR_BODY_GROUPS` keywords on the server; the words travel in `p_filters`
+   * (0023), so the page is keyset-paged instead of the whole-pool walk.
+   */
+  options: { bodyKeywords?: readonly string[] } = {},
+): Promise<CataloguePageResult> {
+  const effective = launchFilters(filters);
+  const bodyKeywords = options.bodyKeywords?.length ? options.bodyKeywords : null;
+  const supabase = supabaseClient();
+  if (!supabase) {
+    const rows = await fixtureSearchListings(filters, category, false);
+    return {
+      rows: bodyKeywords
+        ? rows.filter((row) => matchesCarBodyKeywords(row, bodyKeywords))
+        : rows,
+      nextCursor: null,
+    };
+  }
+
+  const payload = {
+    ...filtersToRpcPayload(effective),
+    ...(category ? { category } : {}),
+    ...(bodyKeywords ? { bodyKeywords } : {}),
+  };
+  const { data, error } = await supabase.rpc('search_listings_page', {
+    p_filters: payload,
+    p_limit: Math.max(1, Math.min(Math.trunc(page.limit), 100)),
+    p_cursor: page.cursor,
+  });
+  if (error) throw new Error(error.message);
+
+  const envelope = (
+    (data ?? []) as unknown as Array<{ rows?: ListingCardRow[]; next_cursor?: string | null }>
+  )[0];
+  const rows = (Array.isArray(envelope?.rows) ? envelope.rows : [])
+    .map(mapRow)
+    .filter((l) => inBrowseCategory(l, category));
+  return { rows, nextCursor: envelope?.next_cursor ?? null };
 }
 
 const UUID_RE =

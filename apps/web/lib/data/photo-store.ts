@@ -38,8 +38,6 @@ const EXT: Record<string, string> = {
   'image/webp': 'webp',
   'image/jpeg': 'jpg',
   'image/png': 'png',
-  'image/heic': 'heic',
-  'image/heif': 'heif',
   'video/mp4': 'mp4',
   'video/webm': 'webm',
   'video/quicktime': 'mov',
@@ -49,9 +47,13 @@ const EXT: Record<string, string> = {
  * ASCII extension for the stored object name.
  *
  * The browser's filename is never used (it can hold Persian text, spaces or
- * an extension that disagrees with the bytes); an unexpected type — a HEIC
- * from iOS, an `application/octet-stream` from a file manager — still gets a
- * safe extension instead of failing the upload.
+ * an extension that disagrees with the bytes); an unexpected type — an
+ * `application/octet-stream` from a file manager — still gets a safe extension
+ * instead of failing the upload.
+ *
+ * HEIC has no entry on purpose: `/api/photos` answers 415 for it, so no object
+ * ever needs a `.heic` name (the fallback would still produce one if something
+ * bypassed the route).
  */
 function extensionFor(mime: string): string {
   const known = EXT[mime];
@@ -87,8 +89,9 @@ export async function storePhoto(input: PhotoBytes): Promise<StoredPhoto> {
     // A Blob keeps the upload on storage-js's multipart path and carries the
     // real content type; the object path is unique, so it can be cached hard.
     // The bytes go up exactly as received: no server-side re-encode, so a
-    // phone image (HEIC, PNG, JPEG) can never fail on an image-optimizer or
-    // `sharp` error — the browser already normalised what it could.
+    // phone image can never fail on an image-optimizer or `sharp` error — the
+    // browser already normalised what it could. (What it cannot normalise,
+    // HEIC, never gets this far: the route refuses it.)
     const body = new Blob([new Uint8Array(input.bytes)], { type: input.mime });
     const upload = () =>
       sb.storage.from(PHOTO_BUCKET).upload(path, body, {

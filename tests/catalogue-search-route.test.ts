@@ -1,5 +1,6 @@
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 import { DEFAULT_FILTERS } from '@alisales/schemas';
+import { parseBodyType } from '../apps/web/lib/browse';
 import type { ListingCardData } from '../apps/web/lib/data/listings';
 
 /**
@@ -19,10 +20,11 @@ import type { ListingCardData } from '../apps/web/lib/data/listings';
  */
 
 const searchPublicListings = vi.hoisted(() => vi.fn());
+const searchPublicListingsPage = vi.hoisted(() => vi.fn());
 
 vi.mock('@/lib/data/listings', async (importOriginal) => {
   const actual = await importOriginal<typeof import('@/lib/data/listings')>();
-  return { ...actual, searchPublicListings };
+  return { ...actual, searchPublicListings, searchPublicListingsPage };
 });
 
 function card(overrides: Partial<ListingCardData> = {}): ListingCardData {
@@ -92,6 +94,7 @@ async function get(query: string, ip?: string): Promise<Response> {
 
 beforeEach(() => {
   searchPublicListings.mockReset();
+  searchPublicListingsPage.mockReset();
 });
 
 describe('/api/listings/search', () => {
@@ -109,7 +112,7 @@ describe('/api/listings/search', () => {
     expect(filters.priceTo).toBe(500); // Persian digits, exactly like the page
     expect(filters.q).toBe('land cruiser');
     expect(category).toBe('motorcycle');
-    expect(await response.json()).toEqual({ rows: [] });
+    expect(await response.json()).toEqual({ rows: [], nextCursor: null });
     expect(response.headers.get('Cache-Control')).toContain('s-maxage=30');
   });
 
@@ -179,6 +182,56 @@ describe('/api/listings/search', () => {
       { limit: 100, offset: 0 },
       { limit: 100, offset: 100 },
     ]);
+  });
+
+  it('pages a curated body group through the RPC instead of walking the pool', async () => {
+    searchPublicListingsPage.mockResolvedValue({
+      rows: [card({ id: 'suv', model: 'land cruiser' })],
+      nextCursor: 'next-group-page',
+    });
+
+    const body = (await (await get('body=suv&limit=2')).json()) as {
+      rows: ListingCardData[];
+      nextCursor: string | null;
+    };
+
+    expect(searchPublicListings).not.toHaveBeenCalled();
+    const [filters, category, page, options] = searchPublicListingsPage.mock.calls[0];
+    expect(filters).toEqual(DEFAULT_FILTERS);
+    expect(category).toBeUndefined();
+    expect(page).toEqual({ limit: 2, cursor: null });
+    // The keywords are the shared table's, not the URL's.
+    expect(options.bodyKeywords).toEqual(parseBodyType('suv')!.keywords);
+    expect(body.nextCursor).toBe('next-group-page');
+  });
+
+  it('never trusts keywords sent by the client', async () => {
+    searchPublicListingsPage.mockResolvedValue({ rows: [], nextCursor: null });
+
+    await get('body=suv&bodyKeywords=camry&bodyKeywords=motorcycle&limit=2');
+
+    const options = searchPublicListingsPage.mock.calls[0][3];
+    expect(options.bodyKeywords).toEqual(parseBodyType('suv')!.keywords);
+    expect(options.bodyKeywords).not.toContain('camry');
+  });
+
+  it('passes a curated cursor straight back to the paged read', async () => {
+    searchPublicListingsPage.mockResolvedValue({ rows: [], nextCursor: null });
+
+    await get('body=hatchback&limit=2&cursor=opaque-page');
+
+    expect(searchPublicListingsPage.mock.calls[0][2]).toEqual({
+      limit: 2,
+      cursor: 'opaque-page',
+    });
+  });
+
+  it('sends no body predicate for a group key it does not know', async () => {
+    searchPublicListingsPage.mockResolvedValue({ rows: [], nextCursor: null });
+
+    await get('body=spaceship&limit=2');
+
+    expect(searchPublicListingsPage.mock.calls[0][3]).toEqual({ bodyKeywords: undefined });
   });
 
   it('scopes ?kind=part to parts', async () => {
@@ -273,5 +326,70 @@ describe('/api/listings/search', () => {
     expect(blocked.headers.get('Cache-Control')).toBe('no-store');
     expect(blocked.headers.get('X-RateLimit-Remaining')).toBe('0');
     expect(await blocked.json()).toHaveProperty('error');
+  });
+});
+
+/**
+ * Paging is opt-in on the wire: the first page must carry `limit`, and its
+ * answer carries the cursor for the next. A request with neither keeps the
+ * older whole-pool answer, and curated narrowing always takes that path because
+ * it is applied to rows after the read.
+ */
+describe('/api/listings/search · keyset pages', () => {
+  it('returns one page and its cursor when limit is asked for', async () => {
+    const pageRows = [card({ id: 'page-1' }), card({ id: 'page-2' })];
+    searchPublicListingsPage.mockResolvedValue({ rows: pageRows, nextCursor: 'cursor-2' });
+
+    const response = await get('brand=toyota&limit=2');
+
+    expect(response.status).toBe(200);
+    expect(await response.json()).toEqual({ rows: pageRows, nextCursor: 'cursor-2' });
+    expect(searchPublicListingsPage).toHaveBeenCalledWith(
+      expect.objectContaining({ brand: ['toyota'] }),
+      undefined,
+      { limit: 2, cursor: null },
+      { bodyKeywords: undefined },
+    );
+    expect(searchPublicListings).not.toHaveBeenCalled();
+  });
+
+  it('passes the cursor through and clamps an oversized limit', async () => {
+    searchPublicListingsPage.mockResolvedValue({ rows: [], nextCursor: null });
+
+    await get('cursor=cursor-2&limit=500');
+
+    expect(searchPublicListingsPage).toHaveBeenCalledWith(
+      expect.anything(),
+      undefined,
+      { limit: 100, cursor: 'cursor-2' },
+      { bodyKeywords: undefined },
+    );
+  });
+
+  it('keeps the whole-pool answer for a request that does not page', async () => {
+    const pool = [card({ id: 'pool-1' })];
+    searchPublicListings.mockResolvedValue(pool);
+
+    const response = await get('brand=toyota');
+
+    expect(await response.json()).toEqual({ rows: pool, nextCursor: null });
+    expect(searchPublicListingsPage).not.toHaveBeenCalled();
+  });
+
+  it('keeps the whole-pool answer for narrowing that has no SQL predicate', async () => {
+    // `?kind=part` is applied to rows after the read: paging before narrowing
+    // would skip matches that fall on a later page. `?body=` used to be in this
+    // group and is now pushed into the RPC (0023) instead.
+    const pool = [card({ id: 'pool-1' })];
+    searchPublicListings.mockResolvedValue(pool);
+
+    const response = await get('kind=vehicle&limit=2');
+    const body = (await response.json()) as { rows: unknown[]; nextCursor: unknown };
+
+    expect(response.status).toBe(200);
+    expect(Array.isArray(body.rows)).toBe(true);
+    expect(body.nextCursor).toBeNull();
+    expect(searchPublicListings).toHaveBeenCalled();
+    expect(searchPublicListingsPage).not.toHaveBeenCalled();
   });
 });

@@ -51,7 +51,16 @@ function CategoryCatalogueView({
   heading,
   state,
   serverMatches = false,
-}: CategoryCatalogueProps & { state: CatalogueState; serverMatches?: boolean }) {
+  nextCursor = null,
+  onLoadMore,
+  loadingMore = false,
+}: CategoryCatalogueProps & {
+  state: CatalogueState;
+  serverMatches?: boolean;
+  nextCursor?: string | null;
+  onLoadMore?: () => void;
+  loadingMore?: boolean;
+}) {
   const { filters, sort, extras } = state;
   // Server rows already carry the URL's filters, and the hosted q match is
   // wider than the local fuzzy predicate (it reads the description too), so
@@ -76,6 +85,9 @@ function CategoryCatalogueView({
       stories={stories}
       storiesLabel={storiesLabel}
       hideQuickChips
+      nextCursor={nextCursor}
+      onLoadMore={onLoadMore}
+      loadingMore={loadingMore}
       searchPlaceholder={searchPlaceholder}
       brandBox={({ filters: current, commitFilters }) => (
         <BrandModelBox
@@ -103,7 +115,11 @@ export function CategoryCatalog({
   // The static pool is the first paint; after hydration the full matching pool
   // replaces it, so a brand or keyword can reach beyond the rendered rows.
   const state = catalogueState(params);
-  const { rows, serverMatches } = useCatalogueRows(staticPool, state, props.category);
+  const { rows, serverMatches, nextCursor, loadMore, loadingMore } = useCatalogueRows(
+    staticPool,
+    state,
+    props.category,
+  );
   return (
     <CategoryCatalogueView
       {...props}
@@ -111,6 +127,9 @@ export function CategoryCatalog({
       countPool={staticPool}
       state={state}
       serverMatches={serverMatches}
+      nextCursor={nextCursor}
+      onLoadMore={loadMore}
+      loadingMore={loadingMore}
     />
   );
 }

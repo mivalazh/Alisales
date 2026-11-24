@@ -49,6 +49,9 @@ from public.subscription_plans pl where pl.code = 'basic'
 on conflict do nothing;
 
 -- ── Vehicles ────────────────────────────────────────────────────────────────
+-- `browse_groups` (0024) is filled by the guarded block after these inserts:
+-- the column does not exist in the pre-0019 harness that also runs this seed
+-- (tests/photo-bucket-fallback.test.ts).
 insert into public.vehicles (id, created_by, brand, model, trim, year, mileage_km, gearbox, fuel, color, condition, plate_type, vin) values
   ('00000000-0000-0000-0000-000000000030', '00000000-0000-0000-0000-00000000000d', 'saipa', 'کوییک', 'S', 1402, 32000, 'manual', 'petrol', 'white', 'used', 'standard', null),
   ('00000000-0000-0000-0000-000000000031', '00000000-0000-0000-0000-00000000000d', 'ikco', 'پژو ۲۰۶', null, 1401, 58000, 'manual', 'petrol', 'silver', 'used', 'kish', null),
@@ -118,6 +121,23 @@ insert into public.vehicles (id, created_by, brand, model, year, mileage_km, gea
 values ('00000000-0000-0000-0000-000000000039', '00000000-0000-0000-0000-00000000000d',
         'ikco', 'سمند LX', 1397, 150000, 'manual', 'petrol', 'white', 'used', 'standard')
 on conflict (id) do nothing;
+
+-- Curated chips (0024), as `browseGroupsFor(model, trim)` derives them: the
+-- Iranian models match no chip (so the default `{}` is already right), and
+-- «سمند LX» lands in suv because «LX» is a Lexus model hint — the same false
+-- positive 0016's inference has. Guarded because this seed also runs on a
+-- database stopped before 0019, where the column does not exist.
+do $$
+begin
+  if exists (
+    select 1 from information_schema.columns
+    where table_schema = 'public' and table_name = 'vehicles' and column_name = 'browse_groups'
+  ) then
+    update public.vehicles
+    set browse_groups = array['suv']
+    where id = '00000000-0000-0000-0000-000000000039';
+  end if;
+end $$;
 
 insert into public.listings
   (id, slug, created_by, showroom_id, vehicle_id, price_irr, city, description, state, published_at, created_at)

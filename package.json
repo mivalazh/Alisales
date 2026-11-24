@@ -13,6 +13,7 @@
     "test": "vitest run",
     "test:watch": "vitest",
     "smoke:db": "tsx scripts/smoke-db.ts",
+    "measure:pagination": "tsx scripts/measure-search-pagination.ts",
     "generate:icons": "node scripts/generate-app-icons.mjs",
     "typecheck": "npm run typecheck --workspaces --if-present",
     "build": "npm run build --workspaces --if-present",

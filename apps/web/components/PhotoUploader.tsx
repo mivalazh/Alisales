@@ -214,10 +214,14 @@ export function PhotoUploader({
         </li>
       </ul>
 
+      {/* The accept list is enumerated rather than `image/*,video/*`: macOS
+          Safari hands over the original HEIC when a wildcard (or image/heic)
+          is allowed, and HEIC cannot be decoded here. Naming the supported
+          types makes it transcode to the first of them instead. */}
       <input
         ref={filesRef}
         type="file"
-        accept="image/*,video/*"
+        accept="image/jpeg,image/png,image/webp,video/mp4,video/webm,video/quicktime"
         multiple
         className="hidden"
         onChange={(e) => void handleFiles(e.target.files)}

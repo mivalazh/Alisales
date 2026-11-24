@@ -81,6 +81,9 @@ export function Catalog({
   pool,
   category,
   filterSystem,
+  nextCursor = null,
+  onLoadMore,
+  loadingMore = false,
   sortBar: _sortBar = 'top',
 }: {
   listings: ListingCardData[];
@@ -108,6 +111,10 @@ export function Catalog({
   category?: VehicleCategory;
   /** A custom drawer, currently used by the parts catalog. */
   filterSystem?: CatalogFilterSlots;
+  /** Cursor for the next keyset page; null when the grid already has it all. */
+  nextCursor?: string | null;
+  onLoadMore?: () => void;
+  loadingMore?: boolean;
   /** Kept for page compatibility; the redundant heading is no longer shown. */
   heading?: string;
   sortBar?: 'top' | 'bottom';
@@ -312,6 +319,18 @@ export function Catalog({
 
         <div className="min-w-0 flex-1 space-y-4">
           <ListingGrid listings={sortedListings} view={view} />
+          {nextCursor && onLoadMore ? (
+            <div className="flex justify-center">
+              <button
+                type="button"
+                onClick={onLoadMore}
+                disabled={loadingMore}
+                className="inline-flex min-h-11 items-center justify-center rounded-[var(--radius-pill)] border border-line bg-card px-6 py-2.5 text-sm font-extrabold text-ink transition hover:border-line-strong disabled:cursor-progress disabled:opacity-60"
+              >
+                {loadingMore ? 'در حال بارگذاری…' : 'نمایش بیشتر'}
+              </button>
+            </div>
+          ) : null}
           <EndOfFeed count={sortedListings.length} />
         </div>
       </div>

@@ -79,8 +79,11 @@ export {
   toLegacyColorSlug,
   inferBodyType,
   BODY_TYPE_HINTS,
+  CAR_BODY_GROUPS,
+  matchesBodyKeyword,
+  browseGroupsFor,
 } from './vehicle';
-export type { BrandSlug, VehicleInput } from './vehicle';
+export type { BrandSlug, CarBodyGroup, VehicleInput } from './vehicle';
 
 // Vehicle categories (car / motorcycle / heavy) + parts
 export {
@@ -118,6 +121,9 @@ export {
   ALLOWED_PHOTO_MIME,
   ALLOWED_VIDEO_MIME,
   ALLOWED_MEDIA_MIME,
+  HEIC_MIME,
+  HEIC_PHOTO_MESSAGE,
+  isHeicMime,
   MAX_VIDEO_BYTES,
   isVideoMime,
   listingPhotoSchema,

@@ -3,6 +3,8 @@ import {
   MAX_VIDEO_BYTES,
   ALLOWED_PHOTO_MIME,
   ALLOWED_VIDEO_MIME,
+  HEIC_PHOTO_MESSAGE,
+  isHeicMime,
   type ListingPhoto,
 } from '@alisales/schemas';
 
@@ -43,6 +45,9 @@ export interface ProcessedPhoto {
 export class PhotoPipelineError extends Error {}
 
 function ensureSupportedMime(file: File): void {
+  // HEIC gets its own sentence: it is what an iPhone or Mac hands over by
+  // default, and «JPG، PNG یا WebP» alone leaves the seller without a next step.
+  if (isHeicMime(file.type, file.name)) throw new PhotoPipelineError(HEIC_PHOTO_MESSAGE);
   if (!file.type || !(ALLOWED_PHOTO_MIME as readonly string[]).includes(file.type)) {
     throw new PhotoPipelineError('فرمت عکس پشتیبانی نمی‌شود (JPG، PNG یا WebP).');
   }

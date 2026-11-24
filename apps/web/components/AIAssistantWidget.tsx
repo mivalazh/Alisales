@@ -142,157 +142,168 @@ export function AIAssistantWidget() {
   return (
     <>
       {open && (
+        // Full-viewport click-away layer. The sheet is modal, so everything
+        // behind it is inert and a backdrop sibling would never receive the
+        // tap; owning the dialog and the empty area on one element is what
+        // makes a click anywhere outside the panel close it. A pointerdown
+        // inside the panel has a different target, so selecting text or
+        // scrolling the transcript never dismisses it.
         <div
           ref={sheet}
           role="dialog"
           aria-modal="true"
           aria-label={t('دستیار هوشمند Ali Sales')}
           tabIndex={-1}
-          className="fixed bottom-24 right-4 z-50 flex h-[390px] max-h-[60dvh] w-[calc(100vw-2rem)] max-w-[340px] flex-col overflow-hidden rounded-2xl border border-line bg-card shadow-2xl sm:bottom-6 sm:right-6 sm:h-[460px] sm:max-h-[72dvh] sm:max-w-[380px]"
+          onPointerDown={(event) => {
+            if (event.target === event.currentTarget) setOpen(false);
+          }}
+          className="fixed inset-0 z-50"
         >
-          <div className="flex items-center gap-2 bg-[#111144] px-3 py-2.5 text-white">
-            <span className="ai-orb ai-orb-sm shrink-0" aria-hidden="true">
-              <span className="ai-orb-eye" />
-              <span className="ai-orb-eye" />
-            </span>
-            <div className="min-w-0 flex-1">
-              <p className="text-xs font-extrabold">{t('دستیار هوشمند Ali Sales')}</p>
+          <div className="absolute bottom-24 right-4 flex h-[390px] max-h-[60dvh] w-[calc(100vw-2rem)] max-w-[340px] flex-col overflow-hidden rounded-2xl border border-line bg-card shadow-2xl sm:bottom-6 sm:right-6 sm:h-[460px] sm:max-h-[72dvh] sm:max-w-[380px]">
+            <div className="flex items-center gap-2 bg-[#111144] px-3 py-2.5 text-white">
+              <span className="ai-orb ai-orb-sm shrink-0" aria-hidden="true">
+                <span className="ai-orb-eye" />
+                <span className="ai-orb-eye" />
+              </span>
+              <div className="min-w-0 flex-1">
+                <p className="text-xs font-extrabold">{t('دستیار هوشمند Ali Sales')}</p>
+              </div>
+              <button
+                type="button"
+                onClick={() => setOpen(false)}
+                aria-label={t('بستن دستیار')}
+                className="flex h-7 w-7 items-center justify-center rounded-full text-white/80 hover:bg-white/10"
+              >
+                <Icon name="close" size={15} />
+              </button>
             </div>
-            <button
-              type="button"
-              onClick={() => setOpen(false)}
-              aria-label={t('بستن دستیار')}
-              className="flex h-7 w-7 items-center justify-center rounded-full text-white/80 hover:bg-white/10"
-            >
-              <Icon name="close" size={15} />
-            </button>
-          </div>
 
-          <div ref={scroller} className="flex-1 space-y-2.5 overflow-y-auto px-3 py-3">
-            {messages.map((message, index) =>
-              message.role === 'user' ? (
-                <p
-                  key={index}
-                  className="ms-auto w-fit max-w-[86%] rounded-2xl rounded-br-sm bg-[#111144] px-2.5 py-1.5 text-[11px] font-bold leading-5 text-white"
-                >
-                  {message.text}
-                </p>
-              ) : (
-                <div key={index} className="w-fit max-w-[90%] space-y-1.5">
-                  <p className="whitespace-pre-line rounded-2xl rounded-bl-sm bg-page px-2.5 py-1.5 text-[11px] leading-5 text-ink">
+            <div ref={scroller} className="flex-1 space-y-2.5 overflow-y-auto px-3 py-3">
+              {messages.map((message, index) =>
+                message.role === 'user' ? (
+                  <p
+                    key={index}
+                    className="ms-auto w-fit max-w-[86%] rounded-2xl rounded-br-sm bg-[#111144] px-2.5 py-1.5 text-[11px] font-bold leading-5 text-white"
+                  >
                     {message.text}
                   </p>
-                  {message.listings && message.listings.length > 0 && (
-                    <ul className="space-y-1.5">
-                      {message.listings.map((listing) => (
-                        <li key={listing.slug}>
-                          <Link
-                            href={`/listing/${listing.slug}`}
-                            className="flex items-center gap-2 rounded-xl border border-line bg-card p-1.5 transition hover:border-cta"
-                          >
-                            <span className="relative h-11 w-11 shrink-0 overflow-hidden rounded-lg bg-sunken">
-                              {listing.coverUrl ? (
-                                <Image
-                                  src={listing.coverUrl}
-                                  alt=""
-                                  fill
-                                  sizes="44px"
-                                  className="h-11 w-11 rounded-lg object-cover"
-                                />
-                              ) : (
-                                <span className="flex h-full items-center justify-center text-faint">
-                                  <Icon name="imageX" size={15} />
-                                  <span className="sr-only">No image</span>
+                ) : (
+                  <div key={index} className="w-fit max-w-[90%] space-y-1.5">
+                    <p className="whitespace-pre-line rounded-2xl rounded-bl-sm bg-page px-2.5 py-1.5 text-[11px] leading-5 text-ink">
+                      {message.text}
+                    </p>
+                    {message.listings && message.listings.length > 0 && (
+                      <ul className="space-y-1.5">
+                        {message.listings.map((listing) => (
+                          <li key={listing.slug}>
+                            <Link
+                              href={`/listing/${listing.slug}`}
+                              className="flex items-center gap-2 rounded-xl border border-line bg-card p-1.5 transition hover:border-cta"
+                            >
+                              <span className="relative h-11 w-11 shrink-0 overflow-hidden rounded-lg bg-sunken">
+                                {listing.coverUrl ? (
+                                  <Image
+                                    src={listing.coverUrl}
+                                    alt=""
+                                    fill
+                                    sizes="44px"
+                                    className="h-11 w-11 rounded-lg object-cover"
+                                  />
+                                ) : (
+                                  <span className="flex h-full items-center justify-center text-faint">
+                                    <Icon name="imageX" size={15} />
+                                    <span className="sr-only">No image</span>
+                                  </span>
+                                )}
+                              </span>
+                              <span className="min-w-0 flex-1">
+                                <span className="block truncate text-[11px] font-extrabold text-ink">
+                                  {listing.title}
                                 </span>
-                              )}
-                            </span>
-                            <span className="min-w-0 flex-1">
-                              <span className="block truncate text-[11px] font-extrabold text-ink">
-                                {listing.title}
+                                <span dir="ltr" className="mt-0.5 block text-[10px] font-extrabold text-[#B45309] dark:text-[#F98513]">                                  {listing.priceToman.toLocaleString('en-US')} {t('تومان')}
+                                </span>
                               </span>
-                              <span dir="ltr" className="mt-0.5 block text-[10px] font-extrabold text-[#B45309] dark:text-[#F98513]">                                  {listing.priceToman.toLocaleString('en-US')} {t('تومان')}
-                              </span>
-                            </span>
-                          </Link>
-                        </li>
-                      ))}
-                    </ul>
-                  )}
-                  {message.cta && (
-                    <Link
-                      href={message.cta.href}
-                      className="inline-flex rounded-[var(--radius-pill)] border border-cta bg-cta-soft px-2.5 py-1 text-[10px] font-extrabold text-ink"
-                    >
-                      {message.cta.label}
-                    </Link>
-                  )}
+                            </Link>
+                          </li>
+                        ))}
+                      </ul>
+                    )}
+                    {message.cta && (
+                      <Link
+                        href={message.cta.href}
+                        className="inline-flex rounded-[var(--radius-pill)] border border-cta bg-cta-soft px-2.5 py-1 text-[10px] font-extrabold text-ink"
+                      >
+                        {message.cta.label}
+                      </Link>
+                    )}
+                  </div>
+                ),
+              )}
+              {showBusy && (
+                <div
+                  role="status"
+                  aria-live="polite"
+                  className="w-fit max-w-[92%] rounded-2xl rounded-bl-sm border border-line bg-page px-3 py-2.5"
+                >
+                  <span className="flex items-center gap-1" aria-hidden="true">
+                    <span className="h-1.5 w-1.5 animate-bounce rounded-full bg-cta [animation-delay:-0.2s]" />
+                    <span className="h-1.5 w-1.5 animate-bounce rounded-full bg-cta [animation-delay:-0.1s]" />
+                    <span className="h-1.5 w-1.5 animate-bounce rounded-full bg-cta" />
+                  </span>
+                  <span className="sr-only">{t('در حال فکر کردن', 'Thinking')}</span>
                 </div>
-              ),
-            )}
-            {showBusy && (
-              <div
-                role="status"
-                aria-live="polite"
-                className="w-fit max-w-[92%] rounded-2xl rounded-bl-sm border border-line bg-page px-3 py-2.5"
-              >
-                <span className="flex items-center gap-1" aria-hidden="true">
-                  <span className="h-1.5 w-1.5 animate-bounce rounded-full bg-cta [animation-delay:-0.2s]" />
-                  <span className="h-1.5 w-1.5 animate-bounce rounded-full bg-cta [animation-delay:-0.1s]" />
-                  <span className="h-1.5 w-1.5 animate-bounce rounded-full bg-cta" />
-                </span>
-                <span className="sr-only">{t('در حال فکر کردن', 'Thinking')}</span>
-              </div>
-            )}
-          </div>
-
-          {!messages.some((message) => message.role === 'user') && (
-            <div className="shrink-0 border-t border-line px-2.5 py-2">
-              <div className="flex gap-1.5 overflow-x-auto pb-0.5 [scrollbar-width:none] [&::-webkit-scrollbar]:hidden">
-                {SMART_CHIPS.map((chip) => (
-                  <button
-                    key={chip}
-                    type="button"
-                    onClick={() => void ask(chip)}
-                    className="shrink-0 whitespace-nowrap rounded-[var(--radius-pill)] border border-line bg-page px-2.5 py-1.5 text-[10px] font-bold text-muted transition hover:border-cta hover:text-ink"
-                  >
-                    {t(chip)}
-                  </button>
-                ))}
-              </div>
+              )}
             </div>
-          )}
 
-          <form
-            onSubmit={(event) => {
-              event.preventDefault();
-              void ask(input);
-            }}
-            className="flex items-center gap-1.5 border-t border-line p-2"
-          >
-            {/* 16px keeps iOS Safari from zooming the page when the composer
-                takes focus; anything under 16px forces an auto-zoom. */}
-            <input
-              className="field h-11 flex-1 text-[16px] leading-6"
-              inputMode="text"
-              enterKeyHint="send"
-              autoComplete="off"
-              placeholder={t('سؤال‌تان را بنویسید…')}
-              value={input}
-              onChange={(event) => setInput(event.target.value)}
-              aria-label={t('سؤال از دستیار')}
-            />
-            {/* High-contrast circular send. The old pale chevron read as a
-                «previous» control, not as the action that submits the question;
-                an upward arrow is the send affordance on every chat surface. */}
-            <button
-              type="submit"
-              disabled={busy || !input.trim()}
-              aria-label={t('ارسال', 'Send')}
-              className="flex h-10 w-10 shrink-0 items-center justify-center rounded-full bg-[#F98513] text-white shadow-xs transition-all hover:bg-[#e0740c] active:scale-95 disabled:opacity-50"
+            {!messages.some((message) => message.role === 'user') && (
+              <div className="shrink-0 border-t border-line px-2.5 py-2">
+                <div className="flex gap-1.5 overflow-x-auto pb-0.5 [scrollbar-width:none] [&::-webkit-scrollbar]:hidden">
+                  {SMART_CHIPS.map((chip) => (
+                    <button
+                      key={chip}
+                      type="button"
+                      onClick={() => void ask(chip)}
+                      className="shrink-0 whitespace-nowrap rounded-[var(--radius-pill)] border border-line bg-page px-2.5 py-1.5 text-[10px] font-bold text-muted transition hover:border-cta hover:text-ink"
+                    >
+                      {t(chip)}
+                    </button>
+                  ))}
+                </div>
+              </div>
+            )}
+
+            <form
+              onSubmit={(event) => {
+                event.preventDefault();
+                void ask(input);
+              }}
+              className="flex items-center gap-1.5 border-t border-line p-2"
             >
-              <Icon name="arrowUp" size={20} className="h-5 w-5" />
-            </button>
-          </form>
+              {/* 16px keeps iOS Safari from zooming the page when the composer
+                  takes focus; anything under 16px forces an auto-zoom. */}
+              <input
+                className="field h-11 flex-1 text-[16px] leading-6"
+                inputMode="text"
+                enterKeyHint="send"
+                autoComplete="off"
+                placeholder={t('سؤال‌تان را بنویسید…')}
+                value={input}
+                onChange={(event) => setInput(event.target.value)}
+                aria-label={t('سؤال از دستیار')}
+              />
+              {/* High-contrast circular send. The old pale chevron read as a
+                  «previous» control, not as the action that submits the question;
+                  an upward arrow is the send affordance on every chat surface. */}
+              <button
+                type="submit"
+                disabled={busy || !input.trim()}
+                aria-label={t('ارسال', 'Send')}
+                className="flex h-10 w-10 shrink-0 items-center justify-center rounded-full bg-[#F98513] text-white shadow-xs transition-all hover:bg-[#e0740c] active:scale-95 disabled:opacity-50"
+              >
+                <Icon name="arrowUp" size={20} className="h-5 w-5" />
+              </button>
+            </form>
+          </div>
         </div>
       )}
 

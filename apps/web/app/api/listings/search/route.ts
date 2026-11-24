@@ -6,7 +6,11 @@ import {
   narrowExtras,
   type CatalogueState,
 } from '@/lib/catalogue';
-import { searchPublicListings, type ListingCardData } from '@/lib/data/listings';
+import {
+  searchPublicListings,
+  searchPublicListingsPage,
+  type ListingCardData,
+} from '@/lib/data/listings';
 import { rateLimit } from '@/lib/security/rate-limit';
 
 /**
@@ -32,12 +36,25 @@ import { rateLimit } from '@/lib/security/rate-limit';
  * hosted and the seeded path, and re-ranking here would overwrite that order
  * with a narrower scorer (a description-only server hit scores zero locally).
  *
- * Narrowing that has no `SearchFilters` column — `?body=` (a curated model
- * group), `?kind=` (vehicle/part) and the parts attributes `origin`, `warranty`,
- * `compat`, `pcond` — is applied to each page *before* the walk continues, so a
- * matching row past the first page is still part of "the full matching set"
- * instead of being cut off by the unfiltered prefix. `POOL_SCAN_MAX` bounds the
- * scan; `POOL_MAX` bounds what the response carries.
+ * Narrowing that has no `SearchFilters` column — `?kind=` (vehicle/part) and
+ * the parts attributes `origin`, `warranty`, `compat`, `pcond` — is applied to
+ * each page *before* the walk continues, so a matching row past the first page
+ * is still part of "the full matching set" instead of being cut off by the
+ * unfiltered prefix. `POOL_SCAN_MAX` bounds the scan; `POOL_MAX` bounds what
+ * the response carries.
+ *
+ * `?body=` is no such case: the URL carries a group key (`?body=suv`), the
+ * route resolves it to keywords from `CAR_BODY_GROUPS`, and the words ride in
+ * `p_filters->'bodyKeywords'` into `search_listings_page` (0023). A curated URL
+ * therefore pages like any other filter — a matching row past page one is
+ * reachable with the cursor instead of forcing a pool walk.
+ *
+ * Paging: a request with `limit` (or `cursor`) answers one keyset page plus the
+ * cursor for the next, so the grid can grow with what the buyer scrolls instead
+ * of fetching the whole pool. A request with neither keeps the older
+ * whole-pool answer, as does `?kind=`/parts narrowing, which is applied to rows
+ * after the read and cannot be pushed into a keyset page without skipping
+ * matches.
  *
  * Public data only — no cookie, no session — so the response is safe to cache
  * per URL at the edge.
@@ -56,6 +73,11 @@ import { rateLimit } from '@/lib/security/rate-limit';
 const POOL_PAGE = 100;
 const POOL_MAX = 1_000;
 const POOL_SCAN_MAX = 5_000;
+
+/** Rows per keyset page when the caller does not ask for a size. */
+const PAGE_DEFAULT = 48;
+/** The RPC's own clamp; the route never asks for more than this. */
+const PAGE_MAX = 100;
 
 /** Flood brake for anonymous catalogue reads (per client address, per minute). */
 export const SEARCH_RATE_LIMIT = { limit: 120, windowMs: 60_000 } as const;
@@ -125,16 +147,45 @@ export async function GET(request: Request): Promise<NextResponse> {
     ? (raw as VehicleCategory)
     : undefined;
 
+  const cursor = url.searchParams.get('cursor');
+  const requested = Number.parseInt(url.searchParams.get('limit') ?? '', 10);
+  const limit =
+    Number.isFinite(requested) && requested > 0 ? Math.min(requested, PAGE_MAX) : PAGE_DEFAULT;
+  // Curated narrowing without a column in `SearchFilters` — `?kind=` and the
+  // parts attributes — is applied to rows after the read and cannot be pushed
+  // into a keyset page: those views keep the whole-pool answer, one page deep.
+  // `?body=` is *not* in that list any more: its group key is resolved to
+  // keywords from the shared table below and the predicate rides in
+  // `p_filters` (0023), so a curated URL pages like any other filter.
+  const curated = Boolean(
+    state.extras.kind || state.extras.partCategory || state.extras.partsScoped,
+  );
+  // The client sends a group key (`?body=suv`), never words. The keywords come
+  // from `CAR_BODY_GROUPS` through `catalogueState`, so a request cannot widen
+  // its own predicate, and the cursor hash covers them like any other filter.
+  const bodyKeywords = state.extras.body?.keywords ?? null;
+
+  const cacheHeaders = {
+    'Cache-Control': 'public, s-maxage=30, stale-while-revalidate=120',
+  };
+
   try {
-    const rows = await readPool(state, category);
+    if (curated || (!cursor && !url.searchParams.has('limit'))) {
+      // Callers that do not page (the prerender contract, curated extras) keep
+      // the whole matching pool and no cursor.
+      const rows = await readPool(state, category);
+      return NextResponse.json({ rows, nextCursor: null }, { headers: { ...limitHeaders, ...cacheHeaders } });
+    }
+
+    const page = await searchPublicListingsPage(
+      state.filters,
+      category,
+      { limit, cursor },
+      { bodyKeywords: bodyKeywords ?? undefined },
+    );
     return NextResponse.json(
-      { rows },
-      {
-        headers: {
-          ...limitHeaders,
-          'Cache-Control': 'public, s-maxage=30, stale-while-revalidate=120',
-        },
-      },
+      { rows: page.rows, nextCursor: page.nextCursor },
+      { headers: { ...limitHeaders, ...cacheHeaders } },
     );
   } catch (error) {
     console.warn('[alisales] catalogue search request failed:', error);

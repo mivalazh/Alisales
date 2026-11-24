@@ -22,7 +22,6 @@ export default defineConfig({
   expect: { timeout: 20_000 },
   // One worker: every spec shares the one dev server, and a serial run keeps
   // the request/response assertions readable when something fails.
-  fullyParallel: false,
   workers: 1,
   forbidOnly: Boolean(process.env.CI),
   retries: process.env.CI ? 1 : 0,
@@ -36,7 +35,10 @@ export default defineConfig({
     command: `npm run dev --workspace @alisales/web -- --port ${PORT} --hostname 127.0.0.1`,
     url: BASE_URL,
     // Locally, a dev server already on this port is reused; CI always starts
-    // a fresh one, so the run can never test an older build.
+    // a fresh one, so the run can never test an older build. A dev server on
+    // some *other* port does not help: Next 16 allows one per app directory and
+    // this one exits with "Another next dev server is already running" — stop
+    // yours before running the suite.
     reuseExistingServer: !process.env.CI,
     timeout: 240_000,
     env: {

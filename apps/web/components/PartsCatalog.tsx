@@ -43,7 +43,16 @@ function PartsCatalogueView({
   stories,
   state,
   serverMatches = false,
-}: PartsCatalogueProps & { state: CatalogueState; serverMatches?: boolean }) {
+  nextCursor = null,
+  onLoadMore,
+  loadingMore = false,
+}: PartsCatalogueProps & {
+  state: CatalogueState;
+  serverMatches?: boolean;
+  nextCursor?: string | null;
+  onLoadMore?: () => void;
+  loadingMore?: boolean;
+}) {
   const { filters, sort, extras } = state;
   const { t } = useI18n();
   // The drawer speaks the parts-only URL shape; the state holds the same fields
@@ -76,6 +85,9 @@ function PartsCatalogueView({
       stories={stories}
       storiesLabel={t('داستان‌های قطعات', 'Spare-part stories')}
       hideQuickChips
+      nextCursor={nextCursor}
+      onLoadMore={onLoadMore}
+      loadingMore={loadingMore}
       searchPlaceholder={t(
         'جستجوی قطعه، شماره فنی یا نام خودرو...',
         'Search parts, part numbers or vehicle models...',
@@ -110,7 +122,10 @@ export function PartsCatalog({ pool: staticPool, stories }: PartsCatalogueProps)
   const params = useSearchParams();
   // After hydration the full matching pool replaces the rendered first 48.
   const state = catalogueState(params);
-  const { rows, serverMatches } = useCatalogueRows(staticPool, state);
+  const { rows, serverMatches, nextCursor, loadMore, loadingMore } = useCatalogueRows(
+    staticPool,
+    state,
+  );
   return (
     <PartsCatalogueView
       pool={rows}
@@ -118,6 +133,9 @@ export function PartsCatalog({ pool: staticPool, stories }: PartsCatalogueProps)
       stories={stories}
       state={state}
       serverMatches={serverMatches}
+      nextCursor={nextCursor}
+      onLoadMore={loadMore}
+      loadingMore={loadingMore}
     />
   );
 }

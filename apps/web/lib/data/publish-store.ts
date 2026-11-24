@@ -1,4 +1,5 @@
 import {
+  browseGroupsFor,
   inferBodyType,
   toLegacyColorSlug,
   type ListingPhoto,
@@ -13,9 +14,9 @@ import { devPhotoUrl, isOwnedPhotoPath, orderedPhotoRows } from './photo-rules';
 /**
  * Listing publish/edit pipeline (S2 + hosted persistence).
  *
- * - Hosted mode (SUPABASE_URL + SUPABASE_SERVICE_ROLE_KEY): inserts the real
- *   rows — `vehicles` + `listings` for cars, `listings(kind='part')` +
- *   `part_details` for parts. `state` is written as `active` and published_at
+ * - Hosted mode (SUPABASE_URL + SUPABASE_SERVICE_ROLE_KEY, or Supabase's newer
+ *   SUPABASE_SECRET_KEY): inserts the real rows — `vehicles` + `listings` for
+ *   cars, `listings(kind='part')` + `part_details` for parts. `state` is written as `active` and published_at
  *   set immediately (C6); the column default stays `draft`.
  * - Fixture mode: the route hands over a prepared card for the local dev store.
  *
@@ -123,6 +124,12 @@ export async function publishHosted(input: HostedPublishInput): Promise<string> 
         // the column) from hiding a brand-new row the way 0016 un-hides legacy
         // ones; a bike or machine has no body class at all.
         body_type: category === 'car' ? (vehicle.bodyType ?? inferBodyType(vehicle.model)) : null,
+        // The curated chips this model answers, derived from the shared table
+        // (0024 prototype). Same haystack as the chip, so `?body=suv` can be a
+        // GIN containment test instead of an `ilike` over every visible row.
+        // A bike or machine stores `{}`: the chips are car classes.
+        browse_groups:
+          category === 'car' ? browseGroupsFor(vehicle.model, vehicle.trim) : [],
         engine_cc: data.category === 'motorcycle' ? (data.engineCc ?? null) : null,
         bike_type: data.category === 'motorcycle' ? (data.bikeType ?? null) : null,
         heavy_type: data.category === 'heavy' ? (data.heavyType ?? null) : null,

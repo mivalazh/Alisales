@@ -43,7 +43,16 @@ function HomeCatalogueView({
   stories,
   state,
   serverMatches = false,
-}: HomeCatalogueProps & { state: CatalogueState; serverMatches?: boolean }) {
+  nextCursor = null,
+  onLoadMore,
+  loadingMore = false,
+}: HomeCatalogueProps & {
+  state: CatalogueState;
+  serverMatches?: boolean;
+  nextCursor?: string | null;
+  onLoadMore?: () => void;
+  loadingMore?: boolean;
+}) {
   const { filters, sort, extras } = state;
   const { t } = useI18n();
 
@@ -121,6 +130,9 @@ function HomeCatalogueView({
         kind={extras.kind}
         vehicleCount={vehicleCount}
         partCount={partCount}
+        nextCursor={nextCursor}
+        onLoadMore={onLoadMore}
+        loadingMore={loadingMore}
         sortBar="bottom"
       />
     </>
@@ -131,7 +143,10 @@ function HomeCatalogueView({
 export function HomeCatalogue({ pool: staticPool, stories }: HomeCatalogueProps) {
   const state = catalogueState(useSearchParams());
   // After hydration the full matching pool replaces the rendered first 48.
-  const { rows, serverMatches } = useCatalogueRows(staticPool, state);
+  const { rows, serverMatches, nextCursor, loadMore, loadingMore } = useCatalogueRows(
+    staticPool,
+    state,
+  );
   return (
     <HomeCatalogueView
       pool={rows}
@@ -139,6 +154,9 @@ export function HomeCatalogue({ pool: staticPool, stories }: HomeCatalogueProps)
       stories={stories}
       state={state}
       serverMatches={serverMatches}
+      nextCursor={nextCursor}
+      onLoadMore={loadMore}
+      loadingMore={loadingMore}
     />
   );
 }

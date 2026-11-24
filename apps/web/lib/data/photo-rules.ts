@@ -86,10 +86,15 @@ export function orderedPhotoRows(photos: readonly ListingPhoto[]): PhotoRow[] {
  * `bucket` is the bucket the object was written to: `photos` for new uploads,
  * `listing-photos` for anything uploaded before 0018. The prior default keeps
  * every existing two-argument call pointing at the new bucket.
+ *
+ * The project URL falls back to `SUPABASE_URL` as well: server-side renders
+ * need a URL to build a cover, and a deployment that only sets the server
+ * credentials (valid for uploads, which read `serverSupabaseUrl`) would
+ * otherwise return null and render every cover as the placeholder.
  */
 export function publicPhotoUrl(
   path: string,
-  projectUrl: string | undefined = process.env.NEXT_PUBLIC_SUPABASE_URL,
+  projectUrl: string | undefined = process.env.NEXT_PUBLIC_SUPABASE_URL ?? process.env.SUPABASE_URL,
   bucket: string | null | undefined = PHOTO_BUCKET,
 ): string | null {
   if (!path || !projectUrl) return null;

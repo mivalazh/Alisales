@@ -211,45 +211,194 @@ export const vehicleSchema = z.object({
 export type VehicleInput = z.infer<typeof vehicleSchema>;
 
 /**
- * Body class inferred from a model name, and the keyword table behind it.
+ * Every car body group, and the body-class inference, in one table.
  *
- * Listings created before the body-class picker have no `bodyType`; without a
- * hint the drawer's «شاسی‌بلند» / «سدان» shortcuts would always be empty. The
- * keywords cover the catalogue's actual models and only ever supplement a
- * missing value — an explicit pick always wins.
+ * There used to be two lists: `BODY_TYPE_HINTS` here — which decides the
+ * stored `vehicles.body_type` and is mirrored by the SQL migrations — and
+ * `CAR_BODY_TYPES` in the web app's browse module, which only narrows a grid.
+ * They shared models but not keywords, so «x7» was an SUV to the database and
+ * invisible in the SUV chip, and every new car had to be added twice. This is
+ * now the only keyword list: the browse groups are derived from it
+ * (`apps/web/lib/browse.ts`), and so is `BODY_TYPE_HINTS` below.
  *
- * Exported because this table is also the source of truth for the 0016 SQL
- * backfill (which mirrors it): `tests/body-type-hints-drift.test.ts` fails when
- * the two drift apart.
+ *  - `keywords` are model/trim words that BOTH narrow the browse chip and
+ *    decide the stored class. They are what 0016/0022 mirror in SQL.
+ *  - `browseOnly` words narrow the chip and never classify: literals a seller
+ *    types («suv», «هاچ‌بک»), the «sport» alias, and the few models whose class
+ *    the inference must not change (the hatchback chip lists «cerato» without
+ *    overriding the sedan inference, which owns it).
+ *  - `browseOrder` is the drawer-menu order; `null` means the class has no chip
+ *    (pickup/van/convertible are inference-only today).
+ *
+ * Table order is the inference order — first match wins — and it is pinned to
+ * the SQL by `tests/body-type-hints-drift.test.ts`. `crossover` is a real
+ * `bodyType` a seller can pick, but no hint ever infers it: its keywords are
+ * all SUV hints, and assigning the class behind the seller's back would move
+ * rows between two stored values. Hence `bodyType: null` on that group.
  */
-export const BODY_TYPE_HINTS: ReadonlyArray<[BodyType, readonly string[]]> = [
+export interface CarBodyGroup {
+  key: string;
+  label: string;
+  /** Stored class this group's `keywords` infer, or null for browse-only. */
+  bodyType: BodyType | null;
+  keywords: readonly string[];
+  browseOnly?: readonly string[];
+  browseOrder: number | null;
+}
+
+export const CAR_BODY_GROUPS: readonly CarBodyGroup[] = [
   // «ram» alone matched any model containing those three letters, so the pickups
   // are named by their model instead: a bare «Ram» is unknown, not a guess.
-  ['pickup', ['hilux', 'f-150', 'f150', 'ram 1500', 'ram 2500', 'ram 3500', 'ram trx', 'silverado', 'l200', 'gladiator', 'tundra']],
-  ['van', ['v-class', 'v class', 'odyssey', 'sienna', 'carnival', 'transporter']],
-  ['convertible', ['boxster', 'convertible', 'cabriolet', 'spyder', 'roadster']],
-  [
-    'coupe',
-    ['supra', '370z', 'gt-r', 'gtr', 'amg gt', '911', 'cayman', 'huracan', 'aventador', '720s', '570s', 'artura', '765lt', '488', 'f8', 'roma', 'portofino', 'sf90', 'db11', 'vantage', 'dbs', 'rapide', 'mustang', 'camaro', 'corvette', 'challenger', 'charger'],
-  ],
-  [
-    'suv',
-    ['land cruiser', 'prado', 'patrol', 'x5', 'x6', 'x7', 'x1', 'x3', 'gle', 'gls', 'glc', 'g-class', 'rx', 'nx', 'gx', 'lx', 'qx', 'cayenne', 'macan', 'touareg', 'tiguan', 'x-trail', 'qashqai', 'cr-v', 'pilot', 'hr-v', 'cx-5', 'cx-9', 'outlander', 'pajero', 'forester', 'outback', 'xv', 'xc40', 'xc60', 'xc90', 'range rover', 'defender', 'discovery', 'evoque', 'velar', 'escalade', 'tahoe', 'explorer', 'expedition', 'bronco', 'wrangler', 'grand cherokee', 'compass', 'cherokee', 'tucson', 'santa fe', 'palisade', 'kona', 'sportage', 'sorento', 'telluride', 'tiggo', 'h6', 'h9', 'jolion', 'dargo', 'coolray', 'tugella', 'okavango', 'atlas', 'cs35', 'cs55', 'cs75', 'uni-t', 'x50', 'x60', 'x70', 's3', 's5', 'j4', 't8', 'urus', 'bentayga', 'cullinan', 'dbx', 'qx80'],
-  ],
+  {
+    key: 'pickup',
+    label: 'پیکاپ / وانت',
+    bodyType: 'pickup',
+    browseOrder: null,
+    keywords: ['hilux', 'f-150', 'f150', 'ram 1500', 'ram 2500', 'ram 3500', 'ram trx', 'silverado', 'l200', 'gladiator', 'tundra'],
+  },
+  {
+    key: 'van',
+    label: 'ون',
+    bodyType: 'van',
+    browseOrder: null,
+    keywords: ['v-class', 'v class', 'odyssey', 'sienna', 'carnival', 'transporter'],
+  },
+  {
+    key: 'convertible',
+    label: 'کروک / کانورتیبل',
+    bodyType: 'convertible',
+    browseOrder: null,
+    keywords: ['boxster', 'convertible', 'cabriolet', 'spyder', 'roadster'],
+  },
+  {
+    key: 'coupe',
+    label: 'کوپه و اسپرت',
+    bodyType: 'coupe',
+    browseOrder: 4,
+    keywords: ['supra', '370z', 'gt-r', 'gtr', 'amg gt', '911', 'cayman', 'huracan', 'aventador', '720s', '570s', 'artura', '765lt', '488', 'f8', 'roma', 'portofino', 'sf90', 'db11', 'vantage', 'dbs', 'rapide', 'mustang', 'camaro', 'corvette', 'challenger', 'charger'],
+    // «sport» stays browse-only: a stored class must not come from a trim word
+    // («F-Sport», «Sportster» are not coupes).
+    browseOnly: ['coupe', 'کوپه', 'sport', 'اسپرت', 'm4', 'c63'],
+  },
+  {
+    key: 'suv',
+    label: 'SUV',
+    bodyType: 'suv',
+    browseOrder: 1,
+    keywords: ['land cruiser', 'prado', 'patrol', 'x5', 'x6', 'x7', 'x1', 'x3', 'gle', 'gls', 'glc', 'g-class', 'rx', 'nx', 'gx', 'lx', 'qx', 'cayenne', 'macan', 'touareg', 'tiguan', 'x-trail', 'qashqai', 'cr-v', 'pilot', 'hr-v', 'cx-5', 'cx-9', 'outlander', 'pajero', 'forester', 'outback', 'xv', 'xc40', 'xc60', 'xc90', 'range rover', 'defender', 'discovery', 'evoque', 'velar', 'escalade', 'tahoe', 'explorer', 'expedition', 'bronco', 'wrangler', 'grand cherokee', 'compass', 'cherokee', 'tucson', 'santa fe', 'palisade', 'kona', 'sportage', 'sorento', 'telluride', 'tiggo', 'h6', 'h9', 'jolion', 'dargo', 'coolray', 'tugella', 'okavango', 'atlas', 'cs35', 'cs55', 'cs75', 'uni-t', 'x50', 'x60', 'x70', 's3', 's5', 'j4', 't8', 'urus', 'bentayga', 'cullinan', 'dbx', 'qx80'],
+    // «fortuner» is a real SUV the class table has not learned yet; the chip
+    // knowing it must not mean the column starts guessing.
+    browseOnly: ['suv', 'fortuner'],
+  },
   // No bare «500»: it also matched «S 500» and «GLE 500». The Fiat needs its
   // brand in the model now; an unmatched 500 stays unknown instead.
-  ['hatchback', ['golf', 'cooper', 'picanto', '206', '207', 'panda', 'fiat 500', 'corsa', 'i20']],
-  [
-    'sedan',
-    ['camry', 'corolla', 'accord', 'civic', 'mazda 3', 'mazda 6', 's-class', 'e-class', 'c-class', '3 series', '5 series', '7 series', 'a4', 'a6', 'a8', 'passat', 's60', 's90', 'xe', 'xf', 'ghibli', 'quattroporte', 'ct4', 'ct5', 'malibu', 'sonata', 'elantra', 'accent', 'optima', 'k5', 'cerato', 'stinger', 'g70', 'g80', 'g90', 'mg5', 'mg6', 'arrizo', 'tondar', 'altima', 'maxima'],
-  ],
+  {
+    key: 'hatchback',
+    label: 'هاچ‌بک',
+    bodyType: 'hatchback',
+    browseOrder: 3,
+    keywords: ['golf', 'cooper', 'picanto', '206', '207', 'panda', 'fiat 500', 'corsa', 'i20'],
+    // «cerato» is a sedan hint below; listing it here keeps the hatchback chip's
+    // old reach without moving the stored class.
+    browseOnly: ['hatchback', 'هاچبک', 'cerato'],
+  },
+  {
+    key: 'sedan',
+    label: 'سدان',
+    bodyType: 'sedan',
+    browseOrder: 2,
+    keywords: ['camry', 'corolla', 'accord', 'civic', 'mazda 3', 'mazda 6', 's-class', 'e-class', 'c-class', '3 series', '5 series', '7 series', 'a4', 'a6', 'a8', 'passat', 's60', 's90', 'xe', 'xf', 'ghibli', 'quattroporte', 'ct4', 'ct5', 'malibu', 'sonata', 'elantra', 'accent', 'optima', 'k5', 'cerato', 'stinger', 'g70', 'g80', 'g90', 'mg5', 'mg6', 'arrizo', 'tondar', 'altima', 'maxima'],
+    browseOnly: ['sedan', 'teana'],
+  },
+  {
+    key: 'crossover',
+    label: 'کراس‌اوور',
+    bodyType: null,
+    browseOrder: 5,
+    keywords: ['crossover', 'کراساوور', 'hr-v', 'cx-5', 'qashqai', 'creta', 'seltos', 'juke'],
+  },
+  {
+    key: 'luxury',
+    label: 'لوکس و لیموزین',
+    bodyType: null,
+    browseOrder: 6,
+    keywords: [
+      'luxury',
+      'limousine',
+      'لیموزین',
+      's-class',
+      '7 series',
+      'a8',
+      'range rover',
+      'bentley',
+      'rolls',
+      'porsche',
+      'panamera',
+      'lexus',
+    ],
+  },
+  {
+    key: 'hybrid',
+    label: 'خودروی برقی و هیبرید',
+    bodyType: null,
+    browseOrder: 7,
+    keywords: ['hybrid', 'هیبرید', 'electric', 'برقی', 'ev', 'tesla', 'priya', 'prius', 'byd'],
+  },
 ];
 
+/**
+ * The inference view of the table: `(body class, keywords)` in table order.
+ *
+ * This is the array the SQL migrations mirror (0016 shipped it, 0022 re-infers
+ * with it) and `tests/body-type-hints-drift.test.ts` compares against, so its
+ * order and contents must stay in step with `CAR_BODY_GROUPS` — which they are
+ * by construction.
+ */
+export const BODY_TYPE_HINTS: ReadonlyArray<[BodyType, readonly string[]]> =
+  CAR_BODY_GROUPS.flatMap((group): Array<[BodyType, readonly string[]]> =>
+    group.bodyType ? [[group.bodyType, group.keywords]] : [],
+  );
+
+/**
+ * One keyword matcher for inference and browsing: lowercase substring.
+ *
+ * Both sides must agree or a car can be an SUV in the column and invisible in
+ * the SUV chip; this is the single comparison they call.
+ */
+export function matchesBodyKeyword(haystack: string | null | undefined, keywords: readonly string[]): boolean {
+  const text = (haystack ?? '').toLowerCase();
+  if (!text) return false;
+  return keywords.some((keyword) => text.includes(keyword.toLowerCase()));
+}
+
+/**
+ * Every curated chip a model belongs to, as drawer keys in menu order.
+ *
+ * This is the value the prototype stores in `vehicles.browse_groups`
+ * (0024) so `?body=` can be one GIN-indexed containment test instead of a
+ * scan over keyword `ilike`. It uses the same haystack and the same matcher as
+ * `filterByBodyType` (model + trim, `keywords ∪ browseOnly`), so the stored
+ * array and the browser predicate cannot disagree; a motorcycle or machine is
+ * the caller's job to keep out (the chips are car classes).
+ */
+export function browseGroupsFor(
+  model: string | null | undefined,
+  trim?: string | null,
+): string[] {
+  const haystack = `${model ?? ''} ${trim ?? ''}`;
+  return CAR_BODY_GROUPS.filter(
+    (group) =>
+      group.browseOrder !== null &&
+      matchesBodyKeyword(haystack, [...group.keywords, ...(group.browseOnly ?? [])]),
+  )
+    .sort((a, b) => (a.browseOrder ?? 0) - (b.browseOrder ?? 0))
+    .map((group) => group.key);
+}
+
 export function inferBodyType(model: string | null | undefined): BodyType | null {
-  const text = (model ?? '').toLowerCase();
-  if (!text) return null;
+  if (!model) return null;
   for (const [body, hints] of BODY_TYPE_HINTS) {
-    if (hints.some((hint) => text.includes(hint))) return body;
+    if (matchesBodyKeyword(model, hints)) return body;
   }
   return null;
 }

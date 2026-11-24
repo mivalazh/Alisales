@@ -14,9 +14,11 @@ read-only — no rows or objects are written.
 
 - Supabase CLI linked to the project: `supabase link --project-ref <ref>`
   (`supabase/config.toml` pins `project_id = "alisales"`).
-- `SUPABASE_URL` (or `NEXT_PUBLIC_SUPABASE_URL`) and
-  `SUPABASE_SERVICE_ROLE_KEY` exported in the shell or secret store. Never paste
-  the key into a command line you will share, and never commit it.
+- `SUPABASE_URL` (or `NEXT_PUBLIC_SUPABASE_URL`) and the server key exported in
+  the shell or secret store. The app accepts either name — the legacy
+  `SUPABASE_SERVICE_ROLE_KEY` or Supabase's newer `SUPABASE_SECRET_KEY` — and
+  reports whichever it found in `/api/health`. Never paste the key into a
+  command line you will share, and never commit it.
 - Know the **current** release: record the git SHA you are deploying from and
   the one you are replacing. Rollback needs both.
 
@@ -67,6 +69,7 @@ missing bucket.
 ## 3. Preflight, then deploy
 
 ```bash
+# Either name works for the key (SUPABASE_SECRET_KEY for a newer secret key).
 SUPABASE_URL=https://<project>.supabase.co \
 SUPABASE_SERVICE_ROLE_KEY=... \
 npm run preflight
@@ -168,7 +171,9 @@ leaves. Rotate one key at a time and verify before moving on.
    rotate the project's JWT secret if the old key must stop working immediately.
    Rotating the JWT secret also invalidates the anon key and every issued
    session — plan a sign-in announcement.
-2. Update `SUPABASE_SERVICE_ROLE_KEY` in the host's secret store and redeploy.
+2. Update the server key in the host's secret store and redeploy — whichever
+   name that deployment uses, `SUPABASE_SERVICE_ROLE_KEY` or
+   `SUPABASE_SECRET_KEY`.
 3. `npm run preflight` and `GET /api/health` must pass with the new key.
 4. Revoke the old key.
 

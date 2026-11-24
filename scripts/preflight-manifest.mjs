@@ -30,7 +30,11 @@ export const MIGRATION_FILES = [
   '0017_search_fuel_filter.sql',
   '0018_photo_bucket.sql',
   '0019_photo_bucket.sql',
+  '0020_search_listings_page.sql',
+  '0021_photo_bucket_trueup.sql',
   '0022_body_type_keyword_repair.sql',
+  '0023_search_listings_body_groups.sql',
+  '0024_vehicles_browse_groups.sql',
 ];
 
 /** Rows in `public` that the app reads or writes directly. */
@@ -69,6 +73,7 @@ export const TABLES = [
 /** RPCs the server calls; a missing one breaks a feature quietly. */
 export const RPCS = [
   { name: 'search_listings', migration: '0005_sold_visibility_reactivation.sql' },
+  { name: 'search_listings_page', migration: '0023_search_listings_body_groups.sql' },
   { name: 'is_listing_public', migration: '0005_sold_visibility_reactivation.sql' },
   { name: 'get_seller_phone', migration: '0005_sold_visibility_reactivation.sql' },
   { name: 'effective_plan', migration: '0002_functions.sql' },
@@ -112,4 +117,6 @@ export const COLUMNS = [
   { table: 'vehicles', column: 'bike_type', migration: '0014_vehicle_category_specs.sql' },
   { table: 'vehicles', column: 'heavy_type', migration: '0014_vehicle_category_specs.sql' },
   { table: 'vehicles', column: 'working_hours', migration: '0014_vehicle_category_specs.sql' },
+  // Prototype: curated chips stored per vehicle, GIN-indexed (0024).
+  { table: 'vehicles', column: 'browse_groups', migration: '0024_vehicles_browse_groups.sql' },
 ];
