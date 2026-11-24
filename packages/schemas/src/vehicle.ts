@@ -223,7 +223,9 @@ export type VehicleInput = z.infer<typeof vehicleSchema>;
  * the two drift apart.
  */
 export const BODY_TYPE_HINTS: ReadonlyArray<[BodyType, readonly string[]]> = [
-  ['pickup', ['hilux', 'f-150', 'f150', 'ram', 'silverado', 'l200', 'gladiator', 'tundra']],
+  // «ram» alone matched any model containing those three letters, so the pickups
+  // are named by their model instead: a bare «Ram» is unknown, not a guess.
+  ['pickup', ['hilux', 'f-150', 'f150', 'ram 1500', 'ram 2500', 'ram 3500', 'ram trx', 'silverado', 'l200', 'gladiator', 'tundra']],
   ['van', ['v-class', 'v class', 'odyssey', 'sienna', 'carnival', 'transporter']],
   ['convertible', ['boxster', 'convertible', 'cabriolet', 'spyder', 'roadster']],
   [
@@ -234,7 +236,9 @@ export const BODY_TYPE_HINTS: ReadonlyArray<[BodyType, readonly string[]]> = [
     'suv',
     ['land cruiser', 'prado', 'patrol', 'x5', 'x6', 'x7', 'x1', 'x3', 'gle', 'gls', 'glc', 'g-class', 'rx', 'nx', 'gx', 'lx', 'qx', 'cayenne', 'macan', 'touareg', 'tiguan', 'x-trail', 'qashqai', 'cr-v', 'pilot', 'hr-v', 'cx-5', 'cx-9', 'outlander', 'pajero', 'forester', 'outback', 'xv', 'xc40', 'xc60', 'xc90', 'range rover', 'defender', 'discovery', 'evoque', 'velar', 'escalade', 'tahoe', 'explorer', 'expedition', 'bronco', 'wrangler', 'grand cherokee', 'compass', 'cherokee', 'tucson', 'santa fe', 'palisade', 'kona', 'sportage', 'sorento', 'telluride', 'tiggo', 'h6', 'h9', 'jolion', 'dargo', 'coolray', 'tugella', 'okavango', 'atlas', 'cs35', 'cs55', 'cs75', 'uni-t', 'x50', 'x60', 'x70', 's3', 's5', 'j4', 't8', 'urus', 'bentayga', 'cullinan', 'dbx', 'qx80'],
   ],
-  ['hatchback', ['golf', 'cooper', 'picanto', '206', '207', 'panda', '500', 'corsa', 'i20']],
+  // No bare «500»: it also matched «S 500» and «GLE 500». The Fiat needs its
+  // brand in the model now; an unmatched 500 stays unknown instead.
+  ['hatchback', ['golf', 'cooper', 'picanto', '206', '207', 'panda', 'fiat 500', 'corsa', 'i20']],
   [
     'sedan',
     ['camry', 'corolla', 'accord', 'civic', 'mazda 3', 'mazda 6', 's-class', 'e-class', 'c-class', '3 series', '5 series', '7 series', 'a4', 'a6', 'a8', 'passat', 's60', 's90', 'xe', 'xf', 'ghibli', 'quattroporte', 'ct4', 'ct5', 'malibu', 'sonata', 'elantra', 'accent', 'optima', 'k5', 'cerato', 'stinger', 'g70', 'g80', 'g90', 'mg5', 'mg6', 'arrizo', 'tondar', 'altima', 'maxima'],
