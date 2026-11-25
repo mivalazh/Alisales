@@ -24,6 +24,19 @@ interface Message {
   cta?: { label: string; href: string };
 }
 
+/**
+ * Last tidy before paint. The endpoint keeps replies to a few sentences and
+ * strips links, so this only removes leftover markdown dressing and blank-line
+ * runs — a bubble should read like a message from a person, not a document.
+ */
+function tidyBubble(text: string): string {
+  return text
+    .replace(/\*\*([^*]+)\*\*/g, '$1')
+    .replace(/^\s*[-*•]\s+/gm, '• ')
+    .replace(/\n{3,}/g, '\n\n')
+    .trim();
+}
+
 const SMART_CHIPS = [
   'راهنمای خرید خودرو مناسب بودجه من',
   'مقایسه پلاک منطقه آزاد کیش و گذر موقت',
@@ -112,7 +125,7 @@ export function AIAssistantWidget() {
         ...current,
         {
           role: 'assistant',
-          text: body.reply!,
+          text: tidyBubble(body.reply!),
           listings: body.listings ?? [],
           ...(body.cta ? { cta: body.cta } : {}),
         },

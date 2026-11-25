@@ -256,30 +256,11 @@ function Section({ title, children }: { title: string; children: ReactNode }) {
   );
 }
 
-/** One of the three boxed steps, with its «مرحله n از 3» progress header. */
-function StepCard({
-  step,
-  title,
-  children,
-}: {
-  step: 1 | 2 | 3;
-  /** Omitted on step 3: the «مرحله ۳ از ۳» badge is the whole header. */
-  title?: string;
-  children: ReactNode;
-}) {
-  const { t } = useI18n();
+/** One of the three boxed sections, titled but without a step counter. */
+function StepCard({ title, children }: { title: string; children: ReactNode }) {
   return (
     <section className="rounded-card border border-line bg-card p-3.5 sm:p-4">
-      <div className="mb-3 flex items-center justify-between gap-3 border-b border-line pb-2.5">
-        {title ? (
-          <h2 className="text-md font-extrabold text-ink">{title}</h2>
-        ) : (
-          <span aria-hidden className="flex-1" />
-        )}
-        <span className="rounded-[var(--radius-pill)] bg-cta-soft px-3 py-1 text-xs font-extrabold text-ink">
-          {t(`مرحله ${step} از 3`, `Step ${step} of 3`)}
-        </span>
-      </div>
+      <h2 className="mb-3 border-b border-line pb-2 text-md font-extrabold text-ink">{title}</h2>
       <div className="space-y-3">{children}</div>
     </section>
   );
@@ -1223,7 +1204,7 @@ export function ListingForm() {
       </div>
 
       {/* Step 1 — the category comes first. */}
-      <StepCard step={1} title={t('دسته‌بندی آگهی', 'Listing category')}>
+      <StepCard title={t('دسته‌بندی آگهی', 'Listing category')}>
         <div
           className="grid gap-2 sm:grid-cols-2"
           role="group"
@@ -1271,7 +1252,7 @@ export function ListingForm() {
         </div>
       </StepCard>
 
-      <StepCard step={2} title={t('مشخصات', 'Specifications')}>
+      <StepCard title={t('مشخصات', 'Specifications')}>
         {mode === 'vehicle' && (
           <>
             <Section
@@ -1838,7 +1819,7 @@ export function ListingForm() {
         )}
       </StepCard>
 
-      <StepCard step={3}>
+      <StepCard title={t('قیمت و عکس‌ها', 'Price & photos')}>
         <Section title={t('قیمت، شهر و تماس', 'Price, city and contact')}>
           <div className="col-span-full rounded-field border border-line bg-page px-3 py-2">
             <p className="mb-0.5 text-[11px] font-bold text-faint">

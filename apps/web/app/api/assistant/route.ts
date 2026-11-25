@@ -134,15 +134,40 @@ function compactCatalogue(
     .join('\n');
 }
 
-const ADVISOR_SYSTEM = `You are the senior automotive and Kish Free Zone market consultant for Ali Sales.
-Answer in the language of the buyer's question (Persian by default, fluent C1 English if asked in English).
-Be warm, analytical and conversational. Lead with a direct answer, then explain the trade-offs a senior buyer would care about: budget fit, running costs, body/engine choice, battery range, plate and customs implications in Kish, and what to inspect before purchase.
-Ask at most one useful clarifying question about budget or daily use when it would materially improve the advice.
-Do NOT dump a list of vehicles or parts on every reply. Only discuss specific stock when the buyer explicitly asks for suggestions, options, comparisons or a shortlist.
-Use ONLY the live catalogue below for specific stock, prices and availability. If the exact model the buyer names is absent, say so plainly and never invent a listing, price or specification.
-Keep the answer under 160 words. Do not use markdown headings or bullet dumps; write like a trusted consultant.
+const ADVISOR_SYSTEM = `You are Ali, the friendly car expert at Ali Sales in Kish.
+Talk like a warm, clued-up friend: natural conversational Persian, and fluent English only when the buyer writes in English. Never robotic, never a brochure.
+Default to 2–4 short sentences: answer first, then one genuinely useful detail. Ask at most one follow-up question, and only when it really changes your advice.
+No markdown, no headings, no bullet dumps, no wall of text, no emoji spam.
+Do NOT attach or mention links, page names, URLs or listings unless the buyer explicitly asks to see listings, asks for a link, or names a specific car or part they want to buy or rent.
+Use ONLY the live catalogue below for stock, prices and availability. If the model they name is not there, say so kindly and never invent a listing, price or specification.
 LIVE CATALOGUE:
 `;
+
+/**
+ * Keep a model reply presentable whatever it returns: prompts are not
+ * guarantees, so markdown dressing is flattened and — unless the buyer asked
+ * for a link — any URL the model slips in is dropped. A general question must
+ * never grow a stray link.
+ */
+function tidyReply(text: string, allowLinks: boolean): string {
+  let reply = text
+    .replace(/```[\s\S]*?```/g, '')
+    .replace(/^#{1,6}\s+/gm, '')
+    .replace(/\*\*([^*]+)\*\*/g, '$1')
+    .replace(/__([^_]+)__/g, '$1')
+    .replace(/^\s{0,3}[-*•]\s+/gm, '· ')
+    .replace(/[ \t]+\n/g, '\n')
+    .replace(/\n{3,}/g, '\n\n')
+    .trim();
+  if (!allowLinks) {
+    reply = reply
+      .replace(/\[([^\]]+)\]\([^)]+\)/g, '$1')
+      .replace(/https?:\/\/\S+/g, '')
+      .replace(/[ \t]{2,}/g, ' ')
+      .trim();
+  }
+  return reply;
+}
 
 async function llmReply(message: string, rows: Awaited<ReturnType<typeof searchListings>>): Promise<string | null> {
   const gemini = process.env.GEMINI_API_KEY;
@@ -308,12 +333,31 @@ async function handlePost(request: Request): Promise<NextResponse> {
   }
 
   const text = toAsciiDigits(message).toLowerCase();
-  // Cards are a deliberate CTA, not decoration on every answer. Attach them
-  // only when the buyer asks for options, a shortlist, a comparison or parts.
-  const wantsListingSuggestions =
-    /پیشنهاد|گزینه|گزینه‌ها|لیست|کدام|چه (ماشین|خودرو|موتور|اسکوتر)|چی بخرم|بخرم|بودجه|ارزان|اقتصادی|زیر|تا \d|مقایسه|انتخاب|بهترین|option|recommend|suggest|which|compare|budget|under|best/i.test(
+  // The strict link rule: a general question or a greeting gets words, not
+  // navigation. Cards and buttons appear only when the buyer asks to see
+  // listings, asks for a link, or searches for a specific car or part.
+  const wantsListings =
+    /آگهی|آگهی‌ها|لیست|لیستینگ|گزینه|موجودی|چند تا|نشون|نشان|ببینم|ببین|بگرد|سرچ|جستجو|لیست بده|listing|listings|list |show me|browse|search|options/i.test(
       text,
     );
+  const wantsLink = /لینک|پیوند|url|link|صفحه|page|کجا ببینم|نشانی|آدرس|ادرس/i.test(text);
+  const showCta = wantsLink || wantsListings;
+  const withCta = (cta: { label: string; href: string }) => (showCta ? { cta } : {});
+
+  // A greeting is small talk: warm words, no cards, no buttons, no links.
+  const bareGreeting =
+    /^(سلام( علیکم| و علیکم)?|درود|وقت (بخیر|شما بخیر)|صبح بخیر|ظهر بخیر|شب بخیر|hi|hello|hey|yo)$/i.test(
+      text.replace(/[!.,،؛;؟?\s]+/g, ' ').trim(),
+    );
+  if (bareGreeting) {
+    return NextResponse.json({
+      reply: english
+        ? 'Hi! 👋 Great to have you here — ask me anything about buying a car, bike or part in Kish, and I’ll help you choose well.'
+        : 'سلام! 👋 خوشحالم که اینجایی؛ هر سؤالی درباره‌ی خرید خودرو، موتور یا قطعه در کیش داشتی بپرس، همین‌جام که کمکت کنم.',
+      listings: [],
+      faqs: await topFaqTopics(),
+    });
+  }
 
   if (isAbusive(text)) {
     return NextResponse.json({
@@ -358,10 +402,10 @@ async function handlePost(request: Request): Promise<NextResponse> {
         : 'لندکروزر VXR سواری نرم‌تر، قطعات فراوان‌تر و ارزش فروش بالاتری دارد؛ پاترول پلاتینیوم موتور قوی‌تر و مصرف بالاتر، با تعلیق راحت‌تر در آفرود. برای کیش و مسیرهای ساحلی، لندکروزر کم‌دردسرتر است؛ اگر آفرود جدی می‌خواهید، پاترول با لاستیک مناسب انتخاب خوبی است. هر دو را قبل از خرید با کارشناسی شاسی و گیربکس چک کنید.',
       listings: [],
       faqs: await topFaqTopics(),
-      cta: {
+      ...withCta({
         label: english ? 'Compare with brand filter' : 'مقایسه با فیلتر برند',
         href: '/cars?brand=toyota,nissan',
-      },
+      }),
     });
   }
 
@@ -372,10 +416,10 @@ async function handlePost(request: Request): Promise<NextResponse> {
       reply: english ? EN.plate : PLATE_ANSWER,
       listings: [],
       faqs: await topFaqTopics(),
-      cta: {
+      ...withCta({
         label: english ? 'See free-zone plate vehicles' : 'دیدن خودروهای پلاک منطقه آزاد',
         href: '/cars?plateType=kish',
-      },
+      }),
     });
   }
 
@@ -386,12 +430,12 @@ async function handlePost(request: Request): Promise<NextResponse> {
       reply: english ? EN.workshop : WORKSHOP_ANSWER,
       listings: [],
       faqs: await topFaqTopics(),
-      cta: {
+      ...withCta({
         // Buying/inspection advice opens the safe-trade guide on /support, not
         // the seller-facing «راهنمای ثبت آگهی» page that used to live here.
         label: english ? 'View the buying guide' : 'مشاهده راهنمای خرید',
         href: '/support?guide=safe-buy',
-      },
+      }),
     });
   }
 
@@ -411,10 +455,10 @@ async function handlePost(request: Request): Promise<NextResponse> {
             : BUYING_CHECKLIST,
       listings: [],
       faqs: await topFaqTopics(),
-      cta: {
+      ...withCta({
         label: english ? 'Filter sealed-chassis vehicles' : 'فیلتر خودروهای شاسی‌پلمپ',
         href: '/cars?chassisCondition=sealed',
-      },
+      }),
     });
   }
 
@@ -430,10 +474,10 @@ async function handlePost(request: Request): Promise<NextResponse> {
     const llm = await llmReply(message, rows.length > 0 ? rows : active);
     await trackFaq('مشاوره خرید خودرو');
     return NextResponse.json({
-      reply: llm ?? adviceAnswer(text, rows, english),
-      listings: wantsListingSuggestions ? pickListings(rows) : [],
+      reply: llm ? tidyReply(llm, wantsLink) : adviceAnswer(text, rows, english),
+      listings: wantsListings ? pickListings(rows) : [],
       faqs: await topFaqTopics(),
-      cta: {
+      ...withCta({
         label: /موتور|اسکوتر|bike|scooter/.test(text)
           ? english
             ? 'Browse bikes'
@@ -442,7 +486,7 @@ async function handlePost(request: Request): Promise<NextResponse> {
             ? 'Browse cars'
             : 'دیدن خودروها',
         href: /موتور|اسکوتر|bike|scooter/.test(text) ? '/motorcycles' : '/cars',
-      },
+      }),
     });
   }
 
@@ -468,7 +512,7 @@ async function handlePost(request: Request): Promise<NextResponse> {
             : 'فعلاً قطعه‌ی منطبقی در فهرست نیست؛ فیلتر دسته‌بندی قطعات را ببینید یا درخواست خود را به پشتیبانی بدهید.',
       listings: pickListings(rows),
       faqs: await topFaqTopics(),
-      cta: { label: english ? 'All parts' : 'همه‌ی قطعات', href: '/parts' },
+      ...withCta({ label: english ? 'All parts' : 'همه‌ی قطعات', href: '/parts' }),
     });
   }
 
@@ -501,21 +545,30 @@ async function handlePost(request: Request): Promise<NextResponse> {
       .sort((a, b) => a.priceIRR - b.priceIRR)
       .slice(0, 3);
     await trackFaq('خودروی ارزان کیش');
+    // Without an explicit «show me» the names stay in the sentence instead of
+    // turning into cards; earning a card needs the buyer to ask for one.
+    const budgetNames = cars
+      .map((car) => `${car.model}${car.trim ? ` ${car.trim}` : ''}`)
+      .join(english ? ', ' : '، ');
     return NextResponse.json({
       reply:
         cars.length > 0
-          ? english
-            ? EN.budgetFound(cars.length)
-            : `در این محدوده‌ی بودجه، این ${cars.length} خودرو را پیشنهاد می‌کنم؛ همه فعال و آماده‌ی بازدید هستند.`
+          ? wantsListings
+            ? english
+              ? EN.budgetFound(cars.length)
+              : `در این محدوده‌ی بودجه، این ${cars.length} خودرو را پیشنهاد می‌کنم؛ همه فعال و آماده‌ی بازدید هستند.`
+            : english
+              ? `Within that budget, ${budgetNames} look like the best fit; all are active and ready to view. Tell me which one you like and I’ll go deeper.`
+              : `با این بودجه، ${budgetNames} را ببین؛ هر کدام فعال و آماده‌ی بازدیدند. اگر بگویی کدام را بیشتر پسندیدی، همان را دقیق‌تر بررسی می‌کنم.`
           : english
             ? EN.budgetNone
-            : 'در این بودجه خودروی فعالی پیدا نکردم؛ بودجه را کمی بالاتر ببرید یا فیلترها را در صفحه‌ی خودروها ببینید.',
-      listings: wantsListingSuggestions ? pickListings(cars) : [],
+            : 'در این بودجه خودروی فعالی پیدا نکردم؛ بودجه را کمی بالاتر ببرید یا بگویید چه کاربری‌ای دارید تا دنبال گزینه‌ی بهتری بگردم.',
+      listings: wantsListings ? pickListings(cars) : [],
       faqs: await topFaqTopics(),
-      cta: {
+      ...withCta({
         label: english ? 'Search vehicles by price' : 'جستجوی خودرو با فیلتر قیمت',
         href: '/cars',
-      },
+      }),
     });
   }
 
@@ -554,13 +607,13 @@ async function handlePost(request: Request): Promise<NextResponse> {
             : 'این مدل خاص در موجودی فعال امروز نیست و چیزی از خودم نمی‌سازم. نزدیک‌ترین گزینه‌های موجود در کاتالوگ را برایتان آورده‌ام؛ برند، بازه‌ی بودجه یا کاربری را هم بگویید تا دقیق‌تر محدود کنم.'
           : english
             ? EN.generic
-            : 'برای اینکه دقیق راهنمایی کنم، بودجه، کاربری (شهری، خانواده، آفرود یا مسافت بلند) و نوع پلاک را بگویید؛ با همین چند مورد، به‌جای ریختن کل کاتالوگ، چند گزینه‌ی دقیق را جدا می‌کنم.',
+            : 'سؤال خوبی است! برای اینکه دقیق راهنمایی کنم، بودجه‌ی تقریبی و کاربری‌ات (شهری، خانواده، آفرود یا سفر) را بگو؛ با همین دو مورد بهترین گزینه‌ها را برایت جدا می‌کنم.',
     listings:
-      wantsListingSuggestions || namedModel
+      wantsListings || namedModel
         ? pickListings(rows.length > 0 ? rows : active.slice(0, 3))
         : [],
     faqs: await topFaqTopics(),
-    cta: { label: english ? 'All listings' : 'همه‌ی آگهی‌ها', href: '/' },
+    ...withCta({ label: english ? 'All listings' : 'همه‌ی آگهی‌ها', href: '/' }),
   });
 }
 
