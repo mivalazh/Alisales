@@ -33,7 +33,10 @@ export const CAR_BODY_TYPES: readonly CarBodyType[] = [
       'cayenne',
       'gle',
       'g-class',
-      'lx',
+      // A Lexus LX only: a bare «lx» also matched «سمند LX».
+      'lexus lx',
+      'lx 570',
+      'lx570',
       'fortuner',
     ],
   },
