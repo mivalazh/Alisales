@@ -12,6 +12,7 @@ import { isOwnedPhotoPath } from '@/lib/data/photo-rules';
 import { fixtureMode } from '@/lib/config/mode';
 import { rememberMyListing } from '@/lib/data/my-listings-cookie';
 import type { ListingCardData } from '@/lib/data/listings';
+import { isStaleSessionUser, staleSessionResponse } from '@/lib/http/stale-session';
 
 /**
  * POST /api/listings — publish a listing (S2).
@@ -211,6 +212,10 @@ export async function POST(request: Request): Promise<NextResponse> {
       });
       return NextResponse.json({ ok: true, slug }, { status: 201 });
     } catch (error) {
+      // A still-valid cookie can name a user row a database reset removed; the
+      // created_by foreign key then fails. That is a stale session, not a
+      // server fault, so clear the cookie and let the UI ask for a re-login.
+      if (isStaleSessionUser(error)) return staleSessionResponse();
       // The exact Supabase reason (a missing column, an RLS refusal, a storage
       // quota) belongs in the server log; `detail` carries it to the network
       // panel so a failed publish can be diagnosed without guessing.

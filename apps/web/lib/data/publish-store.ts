@@ -142,7 +142,13 @@ export async function publishHosted(input: HostedPublishInput): Promise<string> 
       .select('id')
       .single();
     if (insertedVehicle.error || !insertedVehicle.data) {
-      throw new Error(`insert vehicle failed: ${insertedVehicle.error?.message ?? 'unknown'}`);
+      // Keep the Postgres code (23503 = foreign key) on the thrown error so the
+      // route can tell a stale session from a genuine write failure.
+      const failure = new Error(
+        `insert vehicle failed: ${insertedVehicle.error?.message ?? 'unknown'}`,
+      ) as Error & { code?: string };
+      if (insertedVehicle.error?.code) failure.code = insertedVehicle.error.code;
+      throw failure;
     }
     vehicleId = String(insertedVehicle.data.id);
   }
@@ -168,7 +174,11 @@ export async function publishHosted(input: HostedPublishInput): Promise<string> 
     .select('id')
     .single();
   if (listing.error || !listing.data) {
-    throw new Error(`insert listing failed: ${listing.error?.message ?? 'unknown'}`);
+    const failure = new Error(
+      `insert listing failed: ${listing.error?.message ?? 'unknown'}`,
+    ) as Error & { code?: string };
+    if (listing.error?.code) failure.code = listing.error.code;
+    throw failure;
   }
   const listingId = String(listing.data.id);
 

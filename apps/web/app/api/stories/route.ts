@@ -5,6 +5,7 @@ import { adminSettings, addStory, listStories } from '@/lib/data/platform-store'
 import { profileCustomization } from '@/lib/data/social-store';
 import { MAX_MEDIA_URL_CHARS, isStoryMediaUrl, ownsMediaUrl } from '@/lib/media-rules';
 import { dataUnavailableResponse } from '@/lib/http/data-unavailable';
+import { isStaleSessionUser, staleSessionResponse } from '@/lib/http/stale-session';
 
 /**
  * Story submissions.
@@ -107,14 +108,22 @@ export async function POST(request: Request): Promise<NextResponse> {
     }
   }
 
-  const story = await addStory({
-    title,
-    mediaUrl,
-    mediaKind,
-    authorId: session.sub,
-    authorName: session.displayName ?? '',
-    listingSlug,
-  });
+  let story: Awaited<ReturnType<typeof addStory>>;
+  try {
+    story = await addStory({
+      title,
+      mediaUrl,
+      mediaKind,
+      authorId: session.sub,
+      authorName: session.displayName ?? '',
+      listingSlug,
+    });
+  } catch (error) {
+    // A signed cookie whose `public.users` row was wiped (a database reset)
+    // hits the author_id foreign key; treat it as a signed-out session.
+    if (isStaleSessionUser(error)) return staleSessionResponse();
+    throw error;
+  }
 
   return NextResponse.json(
     { ok: true, id: story.id, status: story.status },

@@ -1,6 +1,5 @@
 'use client';
 
-import Image from 'next/image';
 import Link from 'next/link';
 import { useI18n } from '@/lib/i18n';
 
@@ -29,14 +28,14 @@ export function CategoryCards({
       href: '/cars',
       label: 'خودرو',
       count: vehicleCount,
-      image: '/covers/category-car.webp',
+      image: '/covers/category-car.jpg',
     },
     {
       key: 'part' as const,
       href: '/parts',
       label: 'قطعات و لوازم یدکی',
       count: partCount,
-      image: '/covers/category-part.webp',
+      image: '/covers/category-part.jpg',
     },
   ];
 
@@ -48,13 +47,18 @@ export function CategoryCards({
           href={card.href}
           className="group relative flex min-h-[120px] items-end overflow-hidden rounded-2xl bg-[#111144] text-start shadow-sm ring-1 ring-black/5 transition-all hover:ring-2 hover:ring-[#F98513]/70 dark:ring-white/10 sm:min-h-[148px]"
         >
-          <Image
+          {/* A plain bundled JPEG, not the image optimizer: Safari on iOS has
+              shown a broken-image glyph for the optimized WebP path, while a
+              same-origin `/covers/*.jpg` loads everywhere. */}
+          {/* eslint-disable-next-line @next/next/no-img-element */}
+          <img
             src={card.image}
             alt=""
-            fill
-            sizes="(min-width: 640px) 46vw, 50vw"
-            unoptimized
-            className="object-cover transition-transform duration-500 group-hover:scale-105"
+            width={720}
+            height={720}
+            loading="eager"
+            decoding="async"
+            className="absolute inset-0 h-full w-full object-cover transition-transform duration-500 group-hover:scale-105"
           />
           <span
             aria-hidden

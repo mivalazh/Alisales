@@ -4,7 +4,7 @@
  * circle. Every broken cover falls back to same-origin automotive artwork that
  * ships with the app.
  */
-export const STORY_FALLBACK_IMAGE = '/covers/category-car.webp';
+export const STORY_FALLBACK_IMAGE = '/covers/category-car.jpg';
 
 const LOCAL_STORY_IMAGES: Record<string, string> = {
   'land-cruiser-kish': '/covers/photos/land-cruiser-kish-thumb.webp',

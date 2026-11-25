@@ -316,7 +316,7 @@ export function AIAssistantWidget() {
           aria-expanded={false}
           data-assistant-trigger=""
           aria-label={t('باز کردن دستیار هوشمند')}
-          className="ai-fab fixed bottom-24 right-4 z-40 flex h-14 w-14 items-center justify-center rounded-full border-2 border-[#F98513]/70 bg-[#111144] shadow-[0_12px_30px_-4px_rgba(249,133,19,0.5),0_6px_16px_-2px_rgba(17,17,68,0.4)] ring-2 ring-[#F98513]/70 transition-all duration-200 hover:-translate-y-1 sm:bottom-6 sm:right-6"
+          className="ai-fab fixed bottom-[calc(88px+env(safe-area-inset-bottom))] left-4 z-40 flex h-14 w-14 items-center justify-center rounded-full border-2 border-[#F98513]/70 bg-[#111144] shadow-[0_12px_30px_-4px_rgba(249,133,19,0.5),0_6px_16px_-2px_rgba(17,17,68,0.4)] ring-2 ring-[#F98513]/70 transition-all duration-200 hover:-translate-y-1 sm:bottom-6 sm:left-auto sm:right-6"
         >
           <span className="ai-orb" aria-hidden="true">
             <span className="ai-orb-eye" />

@@ -195,11 +195,16 @@ export const CAR_BRANDS: readonly CategoryBrand[] = [
     latin: 'Land Rover',
     models: ['Range Rover Vogue', 'Range Rover Sport', 'Range Rover Evoque', 'Velar', 'Defender', 'Discovery'],
   },
+  // Range Rover is Land Rover's own model line, and its emblem file is a copy
+  // of the Land Rover oval — offering it as a second marque printed the same
+  // badge twice in the brand grid. It stays in the schema so rows already
+  // saved with this slug still validate, but the catalog surfaces hide it.
   {
     slug: 'range-rover',
     label: 'رنج‌روور',
     latin: 'Range Rover',
     models: ['Vogue', 'Sport', 'Velar', 'Evoque', 'Autobiography'],
+    legacy: true,
   },
   {
     slug: 'audi',

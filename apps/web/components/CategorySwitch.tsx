@@ -33,34 +33,35 @@ export function CategorySwitch() {
 
   return (
     <nav aria-label={t('دسته‌بندی‌ها', 'Categories')} className="-mx-4 mt-3 sm:mx-0">
-      <div className="overflow-hidden rounded-xl border border-line bg-[#F4F1EC] dark:border-white/10 dark:bg-[#111144]">
-        <ul className="grid grid-cols-4 divide-x divide-x-reverse divide-line dark:divide-white/10">
-          {CATEGORIES.map((item) => {
-            const active = pathname === item.href || pathname.startsWith(`${item.href}/`);
-            return (
-              <li key={item.href} className="min-w-0">
-                <Link
-                  href={item.href}
-                  prefetch
-                  aria-current={active ? 'page' : undefined}
-                  className={`relative flex min-h-11 items-center justify-center px-1.5 py-2.5 text-center text-[11px] font-extrabold leading-tight transition sm:px-3 sm:text-sm sm:whitespace-nowrap ${
-                    active ? 'text-ink' : 'text-muted hover:text-ink'
+      {/* One closed strip: the grid itself carries the rounding, the outer
+          border and the clipping, so all four tabs plus every divider between
+          them sit inside the same symmetrical edge on phone and desktop. */}
+      <ul className="grid grid-cols-4 divide-x divide-x-reverse divide-line overflow-hidden rounded-xl border border-line bg-[#F4F1EC] dark:divide-white/10 dark:border-white/10 dark:bg-[#111144]">
+        {CATEGORIES.map((item) => {
+          const active = pathname === item.href || pathname.startsWith(`${item.href}/`);
+          return (
+            <li key={item.href} className="min-w-0">
+              <Link
+                href={item.href}
+                prefetch
+                aria-current={active ? 'page' : undefined}
+                className={`relative flex min-h-11 items-center justify-center px-1.5 py-2.5 text-center text-[11px] font-extrabold leading-tight transition sm:px-3 sm:text-sm sm:whitespace-nowrap ${
+                  active ? 'text-ink' : 'text-muted hover:text-ink'
+                }`}
+              >
+                <span className="sm:hidden">{t(item.short)}</span>
+                <span className="hidden sm:inline">{t(item.label)}</span>
+                <span
+                  aria-hidden="true"
+                  className={`absolute inset-x-3 bottom-0 h-[2px] rounded-full transition-opacity ${
+                    active ? 'bg-[#F98513]' : 'bg-transparent'
                   }`}
-                >
-                  <span className="sm:hidden">{t(item.short)}</span>
-                  <span className="hidden sm:inline">{t(item.label)}</span>
-                  <span
-                    aria-hidden="true"
-                    className={`absolute inset-x-3 bottom-0 h-[2px] rounded-full transition-opacity ${
-                      active ? 'bg-[#F98513]' : 'bg-transparent'
-                    }`}
-                  />
-                </Link>
-              </li>
-            );
-          })}
-        </ul>
-      </div>
+                />
+              </Link>
+            </li>
+          );
+        })}
+      </ul>
     </nav>
   );
 }

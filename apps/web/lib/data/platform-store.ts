@@ -237,7 +237,13 @@ export async function addStory(
     .select(STORY_COLUMNS)
     .single();
   if (error || !data) {
-    throw new Error(`create story failed: ${error?.message ?? 'no row returned'}`);
+    // The route needs the Postgres code to recognise a stale author_id (23503)
+    // and answer 401 instead of 500.
+    const failure = new Error(
+      `create story failed: ${error?.message ?? 'no row returned'}`,
+    ) as Error & { code?: string };
+    if (error?.code) failure.code = error.code;
+    throw failure;
   }
   return mapStory(data as StoryRow);
 }
