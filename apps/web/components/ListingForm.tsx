@@ -50,6 +50,7 @@ import { CustomSelect, type SelectOption } from './CustomSelect';
 import { YearGridSelect } from './YearGridSelect';
 import { Icon } from './Icon';
 import { PhotoUploader } from './PhotoUploader';
+import { PriceEstimateHelper } from './PriceEstimateHelper';
 import { PriceText } from './PriceText';
 import { RateLine } from './RateLine';
 import { useAedRate } from './RateProvider';
@@ -1270,15 +1271,6 @@ export function ListingForm() {
         </div>
       </StepCard>
 
-      {formError && (
-        <div
-          className="rounded-field border-2 border-red-500 bg-red-50 px-4 py-3 text-sm font-bold text-red-700 dark:bg-red-950/30 dark:text-red-300"
-          role="alert"
-        >
-          {formError}
-        </div>
-      )}
-
       <StepCard step={2} title={t('مشخصات', 'Specifications')}>
         {mode === 'vehicle' && (
           <>
@@ -1934,6 +1926,17 @@ export function ListingForm() {
             </p>
           </Field>
 
+          {/* Vehicle comps only: a part has no brand/model/year of its own. */}
+          {mode === 'vehicle' && (
+            <PriceEstimateHelper
+              brand={draft.brand}
+              model={draft.model}
+              year={draft.year}
+              plateType={draft.plateType}
+              category={category}
+            />
+          )}
+
           {/* City is a disabled select with کیش as the only option. */}
           <Field
             htmlFor="city"
@@ -2059,6 +2062,17 @@ export function ListingForm() {
           </div>
         </Section>
       </StepCard>
+
+      {/* Submission errors sit with the button, so a failure is visible where
+          the seller pressed rather than at the top of a long form. */}
+      {formError && (
+        <div
+          className="rounded-field border-2 border-red-500 bg-red-50 px-4 py-3 text-sm font-bold text-red-700 dark:bg-red-950/30 dark:text-red-300"
+          role="alert"
+        >
+          {formError}
+        </div>
+      )}
 
       <div className="flex flex-wrap items-center justify-between gap-3 pb-2 sm:pb-0">
         <p className="text-xs text-faint">

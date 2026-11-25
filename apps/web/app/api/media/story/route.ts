@@ -54,9 +54,17 @@ export async function POST(request: Request): Promise<NextResponse> {
       height,
     });
     return NextResponse.json({ ok: true, path: stored.path, url: stored.url }, { status: 201 });
-  } catch {
+  } catch (error) {
+    // The seller sees one Persian sentence; the server log keeps the provider's
+    // reason (missing bucket, size limit, RLS) and `detail` surfaces it in the
+    // browser's network panel instead of an opaque 500.
+    console.error('[alisales/stories] media upload failed:', error);
     return NextResponse.json(
-      { error: 'بارگذاری رسانه استوری انجام نشد؛ دوباره تلاش کنید.' },
+      {
+        error: 'بارگذاری رسانه استوری انجام نشد؛ دوباره تلاش کنید.',
+        code: 'story_upload_failed',
+        detail: error instanceof Error ? error.message : String(error),
+      },
       { status: 500 },
     );
   }

@@ -69,15 +69,6 @@ export function AIAssistantWidget() {
 
   useEffect(() => {
     if (!open) return;
-    const onKey = (event: KeyboardEvent) => {
-      if (event.key === 'Escape') setOpen(false);
-    };
-    document.addEventListener('keydown', onKey);
-    return () => document.removeEventListener('keydown', onKey);
-  }, [open]);
-
-  useEffect(() => {
-    if (!open) return;
     scroller.current?.scrollTo({ top: scroller.current.scrollHeight, behavior: 'smooth' });
   }, [messages, open, busy]);
 
@@ -142,12 +133,10 @@ export function AIAssistantWidget() {
   return (
     <>
       {open && (
-        // Full-viewport click-away layer. The sheet is modal, so everything
-        // behind it is inert and a backdrop sibling would never receive the
-        // tap; owning the dialog and the empty area on one element is what
-        // makes a click anywhere outside the panel close it. A pointerdown
-        // inside the panel has a different target, so selecting text or
-        // scrolling the transcript never dismisses it.
+        // The dialog owns the empty area too: a backdrop sibling would sit
+        // inside the inert background and never receive the tap. Only a
+        // pointerdown on the layer itself closes, so taps, drags and text
+        // selection inside the panel leave it open.
         <div
           ref={sheet}
           role="dialog"

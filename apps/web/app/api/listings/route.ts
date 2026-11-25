@@ -210,9 +210,17 @@ export async function POST(request: Request): Promise<NextResponse> {
         sellerId: session.sub,
       });
       return NextResponse.json({ ok: true, slug }, { status: 201 });
-    } catch {
+    } catch (error) {
+      // The exact Supabase reason (a missing column, an RLS refusal, a storage
+      // quota) belongs in the server log; `detail` carries it to the network
+      // panel so a failed publish can be diagnosed without guessing.
+      console.error('[alisales/listings] insert failed:', error);
       return NextResponse.json(
-        { error: 'ثبت آگهی در پایگاه‌داده انجام نشد؛ دوباره تلاش کنید.' },
+        {
+          error: 'ثبت آگهی در پایگاه‌داده انجام نشد؛ دوباره تلاش کنید.',
+          code: 'listing_insert_failed',
+          detail: error instanceof Error ? error.message : String(error),
+        },
         { status: 500 },
       );
     }

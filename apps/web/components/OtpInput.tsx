@@ -161,6 +161,7 @@ export function OtpInput({
           pattern="[0-9]*"
           maxLength={index === 0 ? LENGTH : 1}
           autoComplete={index === 0 ? 'one-time-code' : 'off'}
+          name={index === 0 ? 'one-time-code' : `${id}-digit-${index + 1}`}
           autoCapitalize="none"
           autoCorrect="off"
           spellCheck={false}

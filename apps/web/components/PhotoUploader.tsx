@@ -214,10 +214,13 @@ export function PhotoUploader({
         </li>
       </ul>
 
+      {/* iPhone photos are HEIC/HEIF by default, so both are offered here; the
+          pipeline converts them to JPEG (1600px, quality 0.82) before upload,
+          which also keeps the request under the 4.5 MB platform limit. */}
       <input
         ref={filesRef}
         type="file"
-        accept="image/*,video/*"
+        accept="image/*,image/heic,image/heif,video/*"
         multiple
         className="hidden"
         onChange={(e) => void handleFiles(e.target.files)}

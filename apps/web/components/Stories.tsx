@@ -153,7 +153,7 @@ export function Stories({ stories, label = 'داستان‌های آگهی' }: {
       <input
         ref={mediaInput}
         type="file"
-        accept="image/*,video/mp4,video/webm,video/quicktime"
+        accept="image/*,image/heic,image/heif,video/*"
         hidden
         onChange={(event) => {
           void draftPicked(event.target.files?.[0]);
@@ -265,9 +265,10 @@ function StoryComposer({
   onPublished: () => void;
 }) {
   const { t } = useI18n();
-  const [target, setTarget] = useState<'listing' | 'profile'>(
-    listings.length > 0 ? 'listing' : 'profile',
-  );
+  // The story header already links to the poster's profile, so a destination
+  // choice is not needed: the only optional decision is which of the seller's
+  // own listings the story is attached to.
+  const [linkListing, setLinkListing] = useState(listings.length > 0);
   const [listingSlug, setListingSlug] = useState(listings[0]?.slug ?? '');
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -289,7 +290,7 @@ function StoryComposer({
 
   const publish = async () => {
     if (busy) return;
-    if (target === 'listing' && !listingSlug) {
+    if (linkListing && !listingSlug) {
       setError(t('یکی از آگهی‌هایتان را انتخاب کنید.', 'Choose one of your listings.'));
       return;
     }
@@ -321,11 +322,10 @@ function StoryComposer({
         body: JSON.stringify({
           mediaUrl: uploaded.url,
           mediaKind: media.kind,
-          listingSlug: target === 'listing' ? listingSlug : null,
-          title:
-            target === 'listing'
-              ? (picked?.title ?? displayName ?? 'استوری Ali Sales')
-              : (displayName ?? 'استوری Ali Sales'),
+          listingSlug: linkListing ? listingSlug : null,
+          title: linkListing
+            ? (picked?.title ?? displayName ?? 'استوری Ali Sales')
+            : (displayName ?? 'استوری Ali Sales'),
         }),
       });
       const body = (await res.json().catch(() => ({}))) as { ok?: boolean; error?: string };
@@ -393,35 +393,37 @@ function StoryComposer({
           </div>
           <div className="min-w-0 flex-1">
             <p className="text-xs font-extrabold text-ink">{t('مقصد استوری', 'Story destination')}</p>
-            <div className="mt-2 grid gap-2">
-              <button
-                type="button"
-                onClick={() => setTarget('listing')}
+            <label
+              className={`mt-2 flex cursor-pointer items-start gap-2 rounded-xl border p-2.5 text-xs transition ${
+                listings.length === 0
+                  ? 'cursor-not-allowed border-line bg-page/60 opacity-50'
+                  : linkListing
+                    ? 'border-cta bg-cta-soft'
+                    : 'border-line bg-page/60'
+              }`}
+            >
+              <input
+                type="checkbox"
+                checked={linkListing && listings.length > 0}
                 disabled={listings.length === 0}
-                aria-pressed={target === 'listing'}
-                className={`rounded-xl border p-2.5 text-start text-xs transition disabled:cursor-not-allowed disabled:opacity-50 ${
-                  target === 'listing' ? 'border-cta bg-cta-soft' : 'border-line bg-page/60'
-                }`}
-              >
-                <span className="block font-extrabold text-ink">{t('۱. انتقال به آگهی من', '1. Link to my listing')}</span>
-                <span className="mt-0.5 block text-[10px] text-muted">{t('لینک به یکی از آگهی‌ها', 'Link to one of your listings')}</span>
-              </button>
-              <button
-                type="button"
-                onClick={() => setTarget('profile')}
-                aria-pressed={target === 'profile'}
-                className={`rounded-xl border p-2.5 text-start text-xs transition ${
-                  target === 'profile' ? 'border-cta bg-cta-soft' : 'border-line bg-page/60'
-                }`}
-              >
-                <span className="block font-extrabold text-ink">{t('۲. انتقال به پروفایل من', '2. Link to my profile')}</span>
-                <span className="mt-0.5 block text-[10px] text-muted">{t('نمایش پروفایل/صفحه من', 'Show my profile page')}</span>
-              </button>
-            </div>
+                onChange={(event) => setLinkListing(event.target.checked)}
+                className="mt-0.5 accent-[var(--color-accent)]"
+              />
+              <span>
+                <span className="block font-extrabold text-ink">
+                  {t('انتقال به آگهی من', 'Link to my listing')}
+                </span>
+                <span className="mt-0.5 block text-[10px] text-muted">
+                  {listings.length === 0
+                    ? t('هنوز آگهی‌ای برای اتصال ندارید', 'You have no listing to link yet')
+                    : t('اختیاری؛ استوری به یکی از آگهی‌های شما وصل می‌شود', 'Optional; attach the story to one of your listings')}
+                </span>
+              </span>
+            </label>
           </div>
         </div>
 
-        {target === 'listing' && listings.length > 0 && (
+        {linkListing && listings.length > 0 && (
           <div className="mt-3">
             <span className="label mb-0">{t('آگهی مرتبط', 'Related listing')}</span>
             <CustomSelect

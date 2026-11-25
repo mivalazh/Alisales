@@ -119,7 +119,9 @@ export function Catalog({
   // Category filters are a right-hand column from `lg`, exactly like home.
   // Only one surface is mounted at a time so focus handling never doubles up.
   const [wide, setWide] = useState(false);
-  const [view, setView] = useState<ViewMode>('grid');
+  // Lists read better than a grid on a phone, and every chip/filter row stays
+  // aligned with the cards; the toggle still lets a buyer switch to the grid.
+  const [view, setView] = useState<ViewMode>('row');
   const [isPending, startTransition] = useTransition();
   const showPending = useDelayedBusy(isPending);
 

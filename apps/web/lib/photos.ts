@@ -10,8 +10,9 @@ import {
  * Client-side listing photo pipeline (spec §6 / storage migration header):
  *
  *   pick → decode (EXIF orientation applied) → downscale (max edge 1600)
- *        → re-encode WebP (canvas holds pixels only, so **all** EXIF metadata
- *          — GPS, serials, timestamps — is dropped by construction)
+ *        → re-encode WebP, or JPEG for an iPhone HEIC/HEIF (canvas holds
+ *          pixels only, so **all** EXIF metadata — GPS, serials, timestamps —
+ *          is dropped by construction)
  *        → enforce ≤ 8 MB (one quality retry) → upload → storage path
  *
  * Validation of the *set* (≤ 20 photos, unique positions, ≥ 1 to publish) is
@@ -19,13 +20,22 @@ import {
  */
 
 export const MAX_EDGE_PX = 1600;
-const WEBP_QUALITY = 0.85;
-const WEBP_RETRY_QUALITY = 0.6;
+/** Target quality of the canvas re-encode (WebP, or JPEG for HEIC stills). */
+const IMAGE_QUALITY = 0.82;
+const RETRY_QUALITY = 0.6;
+
+/**
+ * Shown when a HEIC reaches a browser with no HEVC decoder (Chrome, Firefox,
+ * Android): the file is fine, the browser cannot re-encode it. Safari — the
+ * browser an iPhone user actually has — converts it before this can fire.
+ */
+const HEIC_CONVERT_FAILED =
+  'تبدیل عکس HEIC در این مرورگر ممکن نیست؛ با Safari عکس را انتخاب کنید یا آن را به JPG تبدیل کنید.';
 
 export interface ProcessedPhoto {
   /** Media class — the cover slot only accepts `image`. */
   kind: 'image' | 'video';
-  /** MIME actually uploaded (WebP for images, the clip's own type for video). */
+  /** MIME actually uploaded (WebP, JPEG for a converted HEIC, the clip's own type for video). */
   mime: ListingPhoto['mime'];
   /** Null for media that already lives in storage (edit form initial set). */
   blob: Blob | null;
@@ -42,68 +52,142 @@ export interface ProcessedPhoto {
 
 export class PhotoPipelineError extends Error {}
 
+/**
+ * HEIC/HEIF stills — the iPhone and macOS default.
+ *
+ * Recognised by MIME *and* by filename: some platforms hand over a HEIC with
+ * no MIME at all, or `application/octet-stream`.
+ */
+const HEIC_MIMES = new Set([
+  'image/heic',
+  'image/heif',
+  'image/heic-sequence',
+  'image/heif-sequence',
+]);
+
+function isHeic(file: File): boolean {
+  if (HEIC_MIMES.has((file.type || '').toLowerCase())) return true;
+  const name = file.name.toLowerCase();
+  return name.endsWith('.heic') || name.endsWith('.heif');
+}
+
 function ensureSupportedMime(file: File): void {
+  // HEIC/HEIF is accepted now: an iPhone hands it over by default and the
+  // canvas converts it to JPEG below. Everything else must be a raster format
+  // the canvas can read back.
+  if (isHeic(file)) return;
   if (!file.type || !(ALLOWED_PHOTO_MIME as readonly string[]).includes(file.type)) {
-    throw new PhotoPipelineError('فرمت عکس پشتیبانی نمی‌شود (JPG، PNG یا WebP).');
+    throw new PhotoPipelineError('فرمت عکس پشتیبانی نمی‌شود (JPG، PNG، WebP یا HEIC).');
   }
 }
 
-async function encodeCanvas(canvas: HTMLCanvasElement, quality: number): Promise<Blob> {
+async function encodeCanvas(
+  canvas: HTMLCanvasElement,
+  mime: 'image/webp' | 'image/jpeg',
+  quality: number,
+): Promise<Blob> {
   const blob = await new Promise<Blob | null>((resolve) =>
-    canvas.toBlob(resolve, 'image/webp', quality),
+    canvas.toBlob(resolve, mime, quality),
   );
-  if (!blob) throw new PhotoPipelineError('تبدیل عکس به WebP در این مرورگر ممکن نیست.');
+  if (!blob) throw new PhotoPipelineError('تبدیل عکس در این مرورگر ممکن نیست.');
   return blob;
+}
+
+interface DecodedImage {
+  source: CanvasImageSource;
+  width: number;
+  height: number;
+  /** Frees the bitmap or the object URL once the pixels are on the canvas. */
+  release: () => void;
+}
+
+/**
+ * Decode a picked still into something `drawImage` accepts.
+ *
+ * `createImageBitmap` is the fast path and applies EXIF orientation. When it
+ * refuses the file, an `<img>` decode is tried once: Safari can paint HEIC/HEIF
+ * there even though the bitmap API cannot read it, which is exactly the case
+ * an iPhone photo hits.
+ */
+async function decodeImage(file: File): Promise<DecodedImage> {
+  try {
+    const bitmap = await createImageBitmap(file, { imageOrientation: 'from-image' });
+    return {
+      source: bitmap,
+      width: bitmap.width,
+      height: bitmap.height,
+      release: () => bitmap.close(),
+    };
+  } catch {
+    const url = URL.createObjectURL(file);
+    try {
+      const image = await new Promise<HTMLImageElement>((resolve, reject) => {
+        const element = new Image();
+        element.onload = () => resolve(element);
+        element.onerror = () => reject(new Error('image decode failed'));
+        element.src = url;
+      });
+      return {
+        source: image,
+        width: image.naturalWidth || image.width,
+        height: image.naturalHeight || image.height,
+        release: () => URL.revokeObjectURL(url),
+      };
+    } catch {
+      URL.revokeObjectURL(url);
+      throw new PhotoPipelineError(
+        isHeic(file)
+          ? HEIC_CONVERT_FAILED
+          : 'خواندن فایل عکس ممکن نیست؛ فایل دیگری انتخاب کنید.',
+      );
+    }
+  }
 }
 
 export async function processListingPhoto(file: File): Promise<ProcessedPhoto> {
   ensureSupportedMime(file);
   if (file.size === 0) throw new PhotoPipelineError('فایل عکس خالی است.');
 
-  let bitmap: ImageBitmap;
+  // A HEIC is stored as JPEG: no browser but Safari paints HEIC, and the
+  // server stores bytes exactly as received.
+  const mime = isHeic(file) ? 'image/jpeg' : 'image/webp';
+
+  const decoded = await decodeImage(file);
   try {
-    // imageOrientation: 'from-image' bakes EXIF rotation into the pixels before
-    // the metadata itself is discarded by the canvas re-encode below.
-    bitmap = await createImageBitmap(file, { imageOrientation: 'from-image' });
-  } catch {
-    throw new PhotoPipelineError('خواندن فایل عکس ممکن نیست؛ فایل دیگری انتخاب کنید.');
-  }
+    const scale = Math.min(1, MAX_EDGE_PX / Math.max(decoded.width, decoded.height));
+    const width = Math.max(1, Math.round(decoded.width * scale));
+    const height = Math.max(1, Math.round(decoded.height * scale));
 
-  const scale = Math.min(1, MAX_EDGE_PX / Math.max(bitmap.width, bitmap.height));
-  const width = Math.max(1, Math.round(bitmap.width * scale));
-  const height = Math.max(1, Math.round(bitmap.height * scale));
+    const canvas = document.createElement('canvas');
+    canvas.width = width;
+    canvas.height = height;
+    const ctx = canvas.getContext('2d');
+    if (!ctx) throw new PhotoPipelineError('پردازش تصویر در این مرورگر در دسترس نیست.');
+    ctx.drawImage(decoded.source, 0, 0, width, height);
 
-  const canvas = document.createElement('canvas');
-  canvas.width = width;
-  canvas.height = height;
-  const ctx = canvas.getContext('2d');
-  if (!ctx) {
-    bitmap.close();
-    throw new PhotoPipelineError('پردازش تصویر در این مرورگر در دسترس نیست.');
-  }
-  ctx.drawImage(bitmap, 0, 0, width, height);
-  bitmap.close();
+    let blob = await encodeCanvas(canvas, mime, IMAGE_QUALITY);
+    if (blob.size > MAX_PHOTO_BYTES) {
+      // One retry at lower quality before giving up (huge panoramas).
+      blob = await encodeCanvas(canvas, mime, RETRY_QUALITY);
+    }
+    if (blob.size > MAX_PHOTO_BYTES) {
+      throw new PhotoPipelineError('حجم عکس حتی پس از فشرده‌سازی بیش از حد مجاز است.');
+    }
 
-  let blob = await encodeCanvas(canvas, WEBP_QUALITY);
-  if (blob.size > MAX_PHOTO_BYTES) {
-    // One retry at lower quality before giving up (huge panoramas).
-    blob = await encodeCanvas(canvas, WEBP_RETRY_QUALITY);
+    return {
+      kind: 'image',
+      mime,
+      blob,
+      previewUrl: URL.createObjectURL(blob),
+      width,
+      height,
+      bytes: blob.size,
+      path: null,
+      url: null,
+    };
+  } finally {
+    decoded.release();
   }
-  if (blob.size > MAX_PHOTO_BYTES) {
-    throw new PhotoPipelineError('حجم عکس حتی پس از فشرده‌سازی بیش از حد مجاز است.');
-  }
-
-  return {
-    kind: 'image',
-    mime: 'image/webp',
-    blob,
-    previewUrl: URL.createObjectURL(blob),
-    width,
-    height,
-    bytes: blob.size,
-    path: null,
-    url: null,
-  };
 }
 
 const VIDEO_EXT: Record<string, string> = {
@@ -176,7 +260,11 @@ export async function uploadProcessedPhoto(photo: ProcessedPhoto): Promise<Proce
   if (!photo.blob) throw new PhotoPipelineError('فایل رسانه در دسترس نیست؛ دوباره انتخاب کنید.');
   const form = new FormData();
   const filename =
-    photo.kind === 'video' ? `clip.${videoExtension(photo.mime)}` : 'photo.webp';
+    photo.kind === 'video'
+      ? `clip.${videoExtension(photo.mime)}`
+      : photo.mime === 'image/jpeg'
+        ? 'photo.jpg'
+        : 'photo.webp';
   form.append('file', new File([photo.blob], filename, { type: photo.mime }), filename);
   form.append('mime', photo.mime);
   form.append('width', String(photo.width));
