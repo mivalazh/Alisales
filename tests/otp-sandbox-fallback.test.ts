@@ -35,7 +35,7 @@ vi.mock('next/headers', () => ({
 const { POST: requestOtp } = await import('../apps/web/app/api/auth/otp/route');
 const { POST: verifyOtp } = await import('../apps/web/app/api/auth/verify/route');
 const { deleteOtp, getOtp } = await import('../apps/web/lib/auth/otp-store');
-const { demoOtpCookieMatches } = await import('../apps/web/lib/auth/otp-cookie');
+const { otpChallengeMatches } = await import('../apps/web/lib/auth/otp-cookie');
 
 const PHONE = '09120000001';
 const ALLOWLISTED = '09120000001';
@@ -138,7 +138,7 @@ describe('SMS.ir failure opens the code for allowlisted launch numbers', () => {
     // The code is handed to this browser in a signed cookie too, so verify works
     // on another isolate. Assert it matches this code, not merely that one exists.
     expect(body.fallbackCode).toBeTruthy();
-    expect(await demoOtpCookieMatches(PHONE, body.fallbackCode as string)).toBe(true);
+    expect(await otpChallengeMatches(PHONE, body.fallbackCode as string)).toBe(true);
   });
 
   it('completes the login without the legacy flag', async () => {

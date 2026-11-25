@@ -9,20 +9,26 @@ import {
 /**
  * Client-side listing photo pipeline (spec §6 / storage migration header):
  *
- *   pick → decode (EXIF orientation applied) → downscale (max edge 1600)
- *        → re-encode WebP, or JPEG for an iPhone HEIC/HEIF (canvas holds
- *          pixels only, so **all** EXIF metadata — GPS, serials, timestamps —
- *          is dropped by construction)
- *        → enforce ≤ 8 MB (one quality retry) → upload → storage path
+ *   pick → decode (EXIF orientation applied, HEIC/HEIF converted to pixels)
+ *        → downscale (max edge 1280) → re-encode WebP, or JPEG for an iPhone
+ *          HEIC/HEIF (canvas holds pixels only, so **all** EXIF metadata —
+ *          GPS, serials, timestamps — is dropped by construction)
+ *        → ~150–350 KB at quality 0.8 → enforce ≤ 8 MB (one quality retry)
+ *        → upload → storage path
+ *
+ * Compressing before the request is what keeps a phone photo off Vercel's
+ * 4.5 MB body limit (and off a slow LTE upload) instead of failing at the edge.
  *
  * Validation of the *set* (≤ 20 photos, unique positions, ≥ 1 to publish) is
  * the shared @alisales/schemas rule set — enforced again on the server route.
  */
 
-export const MAX_EDGE_PX = 1600;
+export const MAX_EDGE_PX = 1280;
 /** Target quality of the canvas re-encode (WebP, or JPEG for HEIC stills). */
-const IMAGE_QUALITY = 0.82;
+const IMAGE_QUALITY = 0.8;
 const RETRY_QUALITY = 0.6;
+/** A mobile upload that has not answered in this long is reported, not hung. */
+const UPLOAD_TIMEOUT_MS = 60_000;
 
 /**
  * Shown when a HEIC reaches a browser with no HEVC decoder (Chrome, Firefox,
@@ -270,11 +276,19 @@ export async function uploadProcessedPhoto(photo: ProcessedPhoto): Promise<Proce
   form.append('width', String(photo.width));
   form.append('height', String(photo.height));
 
+  const controller = new AbortController();
+  const timer = setTimeout(() => controller.abort(), UPLOAD_TIMEOUT_MS);
   let res: Response;
   try {
-    res = await fetch('/api/photos', { method: 'POST', body: form });
-  } catch {
-    throw new PhotoPipelineError('ارتباط با سرور برای بارگذاری عکس برقرار نشد.');
+    res = await fetch('/api/photos', { method: 'POST', body: form, signal: controller.signal });
+  } catch (error) {
+    throw new PhotoPipelineError(
+      error instanceof DOMException && error.name === 'AbortError'
+        ? 'بارگذاری عکس بیش از حد طول کشید؛ اتصال اینترنت را بررسی کنید و دوباره تلاش کنید.'
+        : 'ارتباط با سرور برای بارگذاری عکس برقرار نشد.',
+    );
+  } finally {
+    clearTimeout(timer);
   }
 
   const body = (await res.json().catch(() => null)) as {
@@ -285,7 +299,13 @@ export async function uploadProcessedPhoto(photo: ProcessedPhoto): Promise<Proce
   } | null;
 
   if (!res.ok || !body?.path) {
-    throw new PhotoPipelineError(body?.error ?? 'بارگذاری عکس ناموفق بود؛ دوباره تلاش کنید.');
+    // Name the real reason (a 413 is a size problem, not a dropped connection).
+    throw new PhotoPipelineError(
+      body?.error ??
+        (res.status === 413
+          ? 'حجم عکس پس از فشرده‌سازی بیش از حد مجاز است (خطای 413).'
+          : `بارگذاری عکس ناموفق بود (خطای ${res.status})؛ دوباره تلاش کنید.`),
+    );
   }
   return { ...photo, path: body.path, url: body.url ?? null };
 }

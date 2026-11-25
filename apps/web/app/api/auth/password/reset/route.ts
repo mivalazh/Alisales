@@ -13,10 +13,15 @@ import {
   setSessionCookie,
 } from '@/lib/auth/session';
 import { bumpOtpAttempts, deleteOtp, getOtp, verifyOtpHash } from '@/lib/auth/otp-store';
-import { clearDemoOtpCookie, demoOtpCookieMatches } from '@/lib/auth/otp-cookie';
+import {
+  bumpOtpChallenge,
+  clearOtpChallenge,
+  otpChallengeMatches,
+  readOtpChallenge,
+} from '@/lib/auth/otp-cookie';
 import { clearPasswordFailures, passwordProblem, saveAccountPassword } from '@/lib/auth/password';
 import { smsReadiness } from '@/lib/auth/sms';
-import { instantOtpAllowedFor, instantOtpFallbackAllowedFor } from '@/lib/config/mode';
+import { instantOtpAllowedFor } from '@/lib/config/mode';
 import { findUserByPhone } from '@/lib/data/s2-store';
 import { rateLimit } from '@/lib/security/rate-limit';
 import { dataUnavailableResponse } from '@/lib/http/data-unavailable';
@@ -114,23 +119,28 @@ async function handlePost(request: Request): Promise<NextResponse> {
     );
   }
 
+  // The store may be empty on another serverless instance; the signed cookie
+  // challenge carries the same hash, so a reset never dead-ends there.
   const record = getOtp(phone);
-  if (record) {
-    const status = otpStatus(record);
-    if (status !== 'ok') {
-      return NextResponse.json({ error: otpStatusMessage(status) }, { status: 401 });
-    }
-    if (!(await verifyOtpHash(phone, code, record))) {
-      bumpOtpAttempts(phone);
-      return NextResponse.json({ error: otpStatusMessage('ok') }, { status: 401 });
-    }
-  } else if (
-    !(instantOtpFallbackAllowedFor(phone) && (await demoOtpCookieMatches(phone, code)))
-  ) {
+  const challenge = record ? null : await readOtpChallenge(phone);
+  const stored = record ?? challenge;
+  if (!stored) {
     return NextResponse.json(
       { error: 'کد تأیید یافت نشد؛ دوباره درخواست کنید.' },
       { status: 400 },
     );
+  }
+  const status = otpStatus(stored);
+  if (status !== 'ok') {
+    return NextResponse.json({ error: otpStatusMessage(status) }, { status: 401 });
+  }
+  const matched = record
+    ? await verifyOtpHash(phone, code, record)
+    : await otpChallengeMatches(phone, code);
+  if (!matched) {
+    if (record) bumpOtpAttempts(phone);
+    else if (challenge) await bumpOtpChallenge(challenge);
+    return NextResponse.json({ error: otpStatusMessage('ok') }, { status: 401 });
   }
 
   const account = await findUserByPhone(phone);
@@ -151,7 +161,7 @@ async function handlePost(request: Request): Promise<NextResponse> {
 
   clearPasswordFailures(phone);
   deleteOtp(phone);
-  await clearDemoOtpCookie();
+  await clearOtpChallenge();
 
   const token = await createSessionToken({
     sub: account.id,

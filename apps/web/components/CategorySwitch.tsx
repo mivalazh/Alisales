@@ -15,7 +15,9 @@ import { useI18n } from '@/lib/i18n';
  * of a top/bottom-only rule, so RTL shows the same closing edge on both ends
  * (the first tab sits at the right edge, the last at the left) and the bar
  * matches the banner and the search/filter surfaces under it. The internal
- * dividers are the only lines inside it.
+ * dividers are explicit `border-e` rules on tabs 1–3: `divide-x` could leave
+ * the ماشین‌آلات | قطعات edge unpainted, while a logical end border is exactly
+ * one line after every tab in RTL and LTR, on phone and desktop.
  *
  * Every tab prefetches its route so stepping between the four browse pages is
  * instant on a phone connection.
@@ -36,11 +38,15 @@ export function CategorySwitch() {
       {/* One closed strip: the grid itself carries the rounding, the outer
           border and the clipping, so all four tabs plus every divider between
           them sit inside the same symmetrical edge on phone and desktop. */}
-      <ul className="grid grid-cols-4 divide-x divide-x-reverse divide-line overflow-hidden rounded-xl border border-line bg-[#F4F1EC] dark:divide-white/10 dark:border-white/10 dark:bg-[#111144]">
-        {CATEGORIES.map((item) => {
+      <ul className="grid grid-cols-4 overflow-hidden rounded-xl border border-line bg-[#F4F1EC] dark:border-white/10 dark:bg-[#111144]">
+        {CATEGORIES.map((item, index) => {
           const active = pathname === item.href || pathname.startsWith(`${item.href}/`);
+          const divided = index < CATEGORIES.length - 1;
           return (
-            <li key={item.href} className="min-w-0">
+            <li
+              key={item.href}
+              className={`min-w-0${divided ? ' border-e border-line dark:border-white/10' : ''}`}
+            >
               <Link
                 href={item.href}
                 prefetch

@@ -52,11 +52,17 @@ export function generateOtp(): string {
   return code;
 }
 
-async function hashCode(phone: string, code: string): Promise<string> {
+/**
+ * HMAC of a code, bound to its phone number. Exported so the signed cookie
+ * challenge can keep (and compare) the same hash without storing the code.
+ */
+export async function hashOtpCode(phone: string, code: string): Promise<string> {
   const secret = authSecret();
   if (!secret) throw new Error('AUTH_SECRET is not configured');
   return hmacSha256(secret, `otp:${phone}:${code}`);
 }
+
+const hashCode = hashOtpCode;
 
 export async function saveOtp(
   phone: string,

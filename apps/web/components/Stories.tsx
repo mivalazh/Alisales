@@ -305,13 +305,50 @@ function StoryComposer({
       );
       form.append('width', String(media.width));
       form.append('height', String(media.height));
-      const upload = await fetch('/api/media/story', { method: 'POST', body: form });
+      // The bytes are already compressed to ≤1280px / 0.8 by the photo pipeline,
+      // so a slow LTE request finishes well inside this budget. A request that
+      // does not answer is reported as a timeout, not left spinning.
+      const controller = new AbortController();
+      const timer = setTimeout(() => controller.abort(), 60_000);
+      let upload: Response;
+      try {
+        upload = await fetch('/api/media/story', {
+          method: 'POST',
+          body: form,
+          signal: controller.signal,
+        });
+      } catch (err) {
+        setError(
+          err instanceof DOMException && err.name === 'AbortError'
+            ? t(
+                'بارگذاری استوری بیش از حد طول کشید؛ اتصال اینترنت را بررسی کنید و دوباره تلاش کنید.',
+                'The story upload timed out; check your connection and try again.',
+              )
+            : t('ارتباط با سرور برقرار نشد.', 'Could not connect to the server.'),
+        );
+        return;
+      } finally {
+        clearTimeout(timer);
+      }
       const uploaded = (await upload.json().catch(() => ({}))) as {
         url?: string;
         error?: string;
       };
       if (!upload.ok || !uploaded.url) {
-        setError(uploaded.error ?? t('بارگذاری رسانه انجام نشد.', 'Could not upload the media.'));
+        // Show what the server actually said; a 413 is a size refusal, not a
+        // dropped connection, and the user needs to know which it was.
+        setError(
+          uploaded.error ??
+            (upload.status === 413
+              ? t(
+                  'حجم رسانه پس از فشرده‌سازی بیش از حد مجاز است (خطای 413).',
+                  'The media is still too large after compression (413).',
+                )
+              : t(
+                  `بارگذاری رسانه انجام نشد (خطای ${upload.status}).`,
+                  `Could not upload the media (HTTP ${upload.status}).`,
+                )),
+        );
         return;
       }
       uploadedUrl = uploaded.url;

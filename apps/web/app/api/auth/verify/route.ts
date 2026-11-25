@@ -17,13 +17,14 @@ import {
   setSessionCookie,
 } from '@/lib/auth/session';
 import { bumpOtpAttempts, deleteOtp, getOtp, verifyOtpHash } from '@/lib/auth/otp-store';
-import { clearDemoOtpCookie, demoOtpCookieMatches } from '@/lib/auth/otp-cookie';
-import { smsReadiness } from '@/lib/auth/sms';
 import {
-  instantOtpAllowedFor,
-  instantOtpEmergencyAllowedFor,
-  instantOtpFallbackAllowedFor,
-} from '@/lib/config/mode';
+  bumpOtpChallenge,
+  clearOtpChallenge,
+  otpChallengeMatches,
+  readOtpChallenge,
+} from '@/lib/auth/otp-cookie';
+import { smsReadiness } from '@/lib/auth/sms';
+import { instantOtpAllowedFor } from '@/lib/config/mode';
 import { createUser, findUserByPhone } from '@/lib/data/s2-store';
 import { profileCustomization, saveProfileCustomization } from '@/lib/data/social-store';
 import { dataUnavailableResponse } from '@/lib/http/data-unavailable';
@@ -119,30 +120,33 @@ async function handlePost(request: Request): Promise<NextResponse> {
     return NextResponse.json({ error: 'کد تأیید باید شش رقم باشد.' }, { status: 400 });
   }
 
-  // The cookie hand-off must cover exactly the numbers the OTP route would
-  // show a code to: the launch allowlist (automatic) and the legacy flag.
-  const cookieFallbackAllowed =
-    instantOtpEmergencyAllowedFor(phone) || instantOtpFallbackAllowedFor(phone);
-
+  // On a serverless host the issuing request and this one may run on different
+  // instances, so the process-local record can be missing even though the code
+  // was just issued. The signed challenge cookie (phone + code hash + expiry)
+  // is the shared source of truth then, and it is issued for every code — SMS
+  // included — not only the on-screen fallback.
   const record = getOtp(phone);
-  if (record) {
-    const status = otpStatus(record);
-    if (status !== 'ok') {
-      return NextResponse.json({ error: otpStatusMessage(status) }, { status: 401 });
-    }
-    const matched = await verifyOtpHash(phone, code, record);
-    if (!matched) {
-      bumpOtpAttempts(phone);
-      return NextResponse.json({ error: otpStatusMessage('ok') }, { status: 401 });
-    }
-  } else if (!cookieFallbackAllowed || !(await demoOtpCookieMatches(phone, code))) {
-    // No in-memory record: either the code expired/was used, or another
-    // serverless isolate issued it — the signed cookie covers the allowlisted
-    // instant fallback so a launch login never dead-ends.
+  const challenge = record ? null : await readOtpChallenge(phone);
+  const stored = record ?? challenge;
+  if (!stored) {
     return NextResponse.json(
       { error: 'کد تأیید یافت نشد؛ دوباره درخواست کنید.' },
       { status: 400 },
     );
+  }
+
+  const status = otpStatus(stored);
+  if (status !== 'ok') {
+    return NextResponse.json({ error: otpStatusMessage(status) }, { status: 401 });
+  }
+
+  const matched = record
+    ? await verifyOtpHash(phone, code, record)
+    : await otpChallengeMatches(phone, code);
+  if (!matched) {
+    if (record) bumpOtpAttempts(phone);
+    else if (challenge) await bumpOtpChallenge(challenge);
+    return NextResponse.json({ error: otpStatusMessage('ok') }, { status: 401 });
   }
 
   const existing = await findUserByPhone(phone);
@@ -166,8 +170,17 @@ async function handlePost(request: Request): Promise<NextResponse> {
     });
   }
 
-  if (!(await profileCustomization(account.id))) {
+  // The OTP is consumed only here, after the user row exists; a failed profile
+  // step or DB write above leaves both the record and the cookie intact so the
+  // same code can finish the signup.
+  const customization = await profileCustomization(account.id);
+  if (!customization) {
+    // Only a business account keeps a business sub-type: `profile_mode` and
+    // `business_type` must agree, and the DB checks reject anything outside
+    // ('individual'|'business') and ('car-dealer'|'parts-store'|'workshop'|'rental').
+    const businessAccount = account.accountType === 'showroom';
     const requestedBusiness =
+      businessAccount &&
       typeof body.businessType === 'string' &&
       businessTypes.includes(body.businessType as never)
         ? (body.businessType as BusinessType)
@@ -176,10 +189,14 @@ async function handlePost(request: Request): Promise<NextResponse> {
       profileMode: profileModeFor(account.accountType),
       businessType: requestedBusiness,
     });
+  } else if (customization.profileMode === 'business' && account.accountType !== 'showroom') {
+    // Hosted `users` rows carry no account type, so a returning business account
+    // would otherwise be signed in as فردی and lose its storefront identity.
+    account = { ...account, accountType: 'showroom' };
   }
 
   deleteOtp(phone);
-  await clearDemoOtpCookie();
+  await clearOtpChallenge();
 
   const token = await createSessionToken({
     sub: account.id,

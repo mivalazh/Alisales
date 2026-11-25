@@ -2,7 +2,7 @@ import { NextResponse } from 'next/server';
 import { isValidMobile, normalizePhone, otpRequestSchema } from '@alisales/schemas';
 import { authSecret, hasAuthSecretConfig } from '@/lib/auth/session';
 import { deleteOtp, generateOtp, resendWaitSeconds, saveOtp } from '@/lib/auth/otp-store';
-import { setDemoOtpCookie } from '@/lib/auth/otp-cookie';
+import { clearOtpChallenge, setOtpChallenge } from '@/lib/auth/otp-cookie';
 import { sendOtpSms, smsReadiness } from '@/lib/auth/sms';
 import {
   demoAuthMode,
@@ -31,6 +31,11 @@ import { dataUnavailableResponse } from '@/lib/http/data-unavailable';
  * exact `INSTANT_OTP_ALLOWLIST`, so that path cannot create accounts for
  * arbitrary phones. With a provider configured the code is only shown when
  * delivery fails and the number is on that allowlist.
+ *
+ * Every issued code also writes a signed, hash-only challenge cookie. A
+ * serverless host may answer the next request from another instance with no
+ * OTP record, and that cookie is what keeps verification working there; the
+ * code itself is never stored in it.
  */
 export async function POST(request: Request): Promise<NextResponse> {
   try {
@@ -125,7 +130,7 @@ async function handlePost(request: Request): Promise<NextResponse> {
 
   const existing = await findUserByPhone(phone);
   const code = generateOtp();
-  await saveOtp(phone, code);
+  const record = await saveOtp(phone, code);
 
   const delivery = await sendOtpSms(phone, code);
   // No provider configured: the instant/demo path. The gates above already
@@ -148,6 +153,7 @@ async function handlePost(request: Request): Promise<NextResponse> {
 
   if (!delivery.delivered && !showCode) {
     deleteOtp(phone);
+    await clearOtpChallenge();
     if (delivery.reason === 'provider_error') {
       return NextResponse.json(
         {
@@ -219,10 +225,17 @@ async function handlePost(request: Request): Promise<NextResponse> {
           : sms.missing.length > 0
             ? 'SMS_NOT_CONFIGURED'
             : 'INSTANT_OTP_FALLBACK';
-    // Hand the code to this browser too, so verify still works when a different
-    // isolate (no shared memory) serves the next request.
-    await setDemoOtpCookie(phone, code);
   }
+
+  // Hand the challenge to this browser so verify still works when a different
+  // instance (no shared memory) serves the next request. The payload holds the
+  // hash, never the code, and is issued for SMS codes too.
+  await setOtpChallenge({
+    phone,
+    codeHash: record.codeHash,
+    expiresAt: record.expiresAt,
+    attempts: 0,
+  });
 
   // 200 when the code is shown on screen (the boxes open on it); 202 keeps the
   // "code sent" semantics for a delivered SMS.

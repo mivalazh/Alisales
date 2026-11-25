@@ -1,28 +1,36 @@
 import { cookies } from 'next/headers';
+import { OTP_MAX_ATTEMPTS, OTP_TTL_MS } from '@alisales/schemas';
 import { authSecret } from './session';
+import { hashOtpCode } from './otp-store';
 
 /**
- * Demo-only OTP hand-off, carried by a signed cookie.
+ * Signed OTP challenge, carried by an httpOnly cookie.
  *
- * Why this exists: on the hosted preview the app runs on Workers with no
- * filesystem, so the OTP store is *isolate memory*. Two requests from the same
- * visitor are routinely served by different isolates, and then the code that
- * was just issued "does not exist" at the verify step — login dead-ends on a
- * preview link with no console access.
+ * Why this exists: on a serverless host (Vercel) every request may be served by
+ * a different instance, so the OTP store — isolate memory there — cannot be
+ * trusted to remember a code between `/api/auth/otp` and `/api/auth/verify`.
+ * "کد تأیید یافت نشد" is exactly that failure.
  *
- * The fix is stateless and scoped to demo auth only (`demoAuthMode()`: fixture
- * data, no SMS provider): `/api/auth/otp` also returns the code in an
- * httpOnly, SameSite=Lax cookie signed with the session secret, and
- * `/api/auth/verify` accepts it when the in-memory record is missing. The code
- * is still short-lived (10 minutes) and still bound to the phone number.
+ * The challenge cookie makes verification stateless: it carries the phone, the
+ * HMAC hash of the code, its expiry and the attempt count, signed with
+ * AUTH_SECRET. The code itself is never stored in the cookie, so reading it
+ * does not reveal what the user has to type, and it cannot be replayed for
+ * another number or after the expiry.
  *
- * Hosted deployments never set this cookie: with an SMS provider configured the
- * normal store path applies, and a real code is never echoed into a cookie.
+ * The cookie is issued for every code (SMS or on-screen), not only for the
+ * demo/allowlist fallback, so a real SMS login also survives a cold instance.
  */
-export const DEMO_OTP_COOKIE = 'alisales_demo_otp';
+export const OTP_CHALLENGE_COOKIE = 'alisales_otp_challenge';
+/** Cleared on sign-out of the challenge; old builds wrote a plaintext code here. */
+const LEGACY_DEMO_OTP_COOKIE = 'alisales_demo_otp';
 
-/** Minimum lifetime of a delivered demo code. */
-const TTL_MS = 10 * 60 * 1000;
+export interface OtpChallenge {
+  phone: string;
+  /** HMAC-SHA256 of `otp:phone:code` — the only form the code is kept in. */
+  codeHash: string;
+  expiresAt: number;
+  attempts: number;
+}
 
 const encoder = new TextEncoder();
 
@@ -52,46 +60,81 @@ function equal(a: string, b: string): boolean {
   return diff === 0;
 }
 
-/** Stores `phone:code:expiry` plus its HMAC for the verify step. */
-export async function setDemoOtpCookie(phone: string, code: string): Promise<void> {
+function encode(challenge: OtpChallenge): string {
+  return `${challenge.phone}:${challenge.codeHash}:${challenge.expiresAt}:${challenge.attempts}`;
+}
+
+async function write(challenge: OtpChallenge): Promise<void> {
   const secret = authSecret();
   if (!secret) return;
-  const expiresAt = Date.now() + TTL_MS;
-  const payload = `${phone}:${code}:${expiresAt}`;
+  const payload = encode(challenge);
   const value = `${encodeURIComponent(payload)}.${await sign(secret, payload)}`;
   const jar = await cookies();
-  jar.set(DEMO_OTP_COOKIE, value, {
+  jar.set(OTP_CHALLENGE_COOKIE, value, {
     httpOnly: true,
     sameSite: 'lax',
     secure: process.env.NODE_ENV === 'production',
     path: '/',
-    maxAge: Math.floor(TTL_MS / 1000),
+    maxAge: Math.ceil(OTP_TTL_MS / 1000),
   });
 }
 
-/** True when the cookie holds this phone/code and has not expired. */
-export async function demoOtpCookieMatches(phone: string, code: string): Promise<boolean> {
+/** Store the challenge for the code that was just issued. */
+export async function setOtpChallenge(challenge: OtpChallenge): Promise<void> {
+  await write(challenge);
+}
+
+/** True when the cookie holds a valid, unexpired challenge for `phone`. */
+export async function readOtpChallenge(phone: string): Promise<OtpChallenge | null> {
   const secret = authSecret();
-  if (!secret) return false;
+  if (!secret) return null;
   const jar = await cookies();
-  const raw = jar.get(DEMO_OTP_COOKIE)?.value;
-  if (!raw) return false;
+  const raw = jar.get(OTP_CHALLENGE_COOKIE)?.value;
+  if (!raw) return null;
   const [encoded, signature] = raw.split('.');
-  if (!encoded || !signature) return false;
+  if (!encoded || !signature) return null;
   let payload: string;
   try {
     payload = decodeURIComponent(encoded);
   } catch {
-    return false;
+    return null;
   }
-  if (!equal(signature, await sign(secret, payload))) return false;
-  const [storedPhone, storedCode, expiry] = payload.split(':');
-  if (!storedPhone || !storedCode || !expiry) return false;
-  if (Number(expiry) <= Date.now()) return false;
-  return storedPhone === phone && storedCode === code;
+  if (!equal(signature, await sign(secret, payload))) return null;
+  const [storedPhone, codeHash, expiry, attempts] = payload.split(':');
+  if (!storedPhone || !codeHash || !expiry || attempts === undefined) return null;
+  if (storedPhone !== phone) return null;
+  return {
+    phone: storedPhone,
+    codeHash,
+    expiresAt: Number(expiry),
+    attempts: Number(attempts),
+  };
 }
 
-export async function clearDemoOtpCookie(): Promise<void> {
+/** Persist one more wrong attempt on the cookie (bounded by the policy). */
+export async function bumpOtpChallenge(challenge: OtpChallenge): Promise<OtpChallenge> {
+  const next: OtpChallenge = {
+    ...challenge,
+    attempts: Math.min(OTP_MAX_ATTEMPTS, challenge.attempts + 1),
+  };
+  await write(next);
+  return next;
+}
+
+/**
+ * True when `code` hashes to the challenge stored in this browser's cookie.
+ * The code is hashed here, so the cookie never carries it.
+ */
+export async function otpChallengeMatches(phone: string, code: string): Promise<boolean> {
+  const challenge = await readOtpChallenge(phone);
+  if (!challenge) return false;
+  const hash = await hashOtpCode(phone, code);
+  return equal(hash, challenge.codeHash);
+}
+
+export async function clearOtpChallenge(): Promise<void> {
   const jar = await cookies();
-  jar.set(DEMO_OTP_COOKIE, '', { httpOnly: true, sameSite: 'lax', path: '/', maxAge: 0 });
+  for (const name of [OTP_CHALLENGE_COOKIE, LEGACY_DEMO_OTP_COOKIE]) {
+    jar.delete(name);
+  }
 }
