@@ -119,6 +119,8 @@
     border-radius: var(--radius-field);
     background: var(--color-surface);
     color: var(--color-text-primary);
+    /* Wide inputs must read from the RTL start edge, never centred. */
+    text-align: start;
     transition: border-color 100ms var(--motion-ease-standard);
   }
 
@@ -144,6 +146,21 @@
     font-size: var(--font-size-sm);
     font-weight: 600;
     color: var(--color-text-primary);
+  }
+
+  /* Publish form: the main column is one flat workspace, so controls sit as
+     soft tinted wells instead of boxed white bars. */
+  .listing-entry .field {
+    border-radius: 0.75rem;
+    background: color-mix(in srgb, var(--color-surface) 82%, #f2ede6);
+  }
+
+  .dark .listing-entry .field {
+    background: rgb(255 255 255 / 0.05);
+  }
+
+  .listing-entry .field:focus {
+    background: var(--color-surface);
   }
 
   /* A field the seller still has to fix — a clear 2px red frame plus a red

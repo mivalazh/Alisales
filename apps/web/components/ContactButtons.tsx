@@ -147,7 +147,7 @@ export function ContactButtons({
       {shownPhone ? (
         <a href={`tel:${shownPhone}`} onClick={recordCall} className="btn-ghost w-full text-sm">
           <Icon name="phone" size={18} />
-          {t('تماس تلفنی', 'Call')}
+          {t('تماس با فروشنده', 'Call seller')}
         </a>
       ) : revealable ? (
         <button

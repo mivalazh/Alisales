@@ -26,7 +26,7 @@ export function ListingGallery({
   alt: string;
   sold?: boolean;
 }) {
-  const { t } = useI18n();
+  const { t, lang } = useI18n();
   const [index, setIndex] = useState(0);
   const [viewer, setViewer] = useState(false);
   const [zoomed, setZoomed] = useState(false);
@@ -35,6 +35,10 @@ export function ListingGallery({
   const current = photos[Math.min(index, Math.max(count - 1, 0))] ?? null;
 
   const go = (step: number) => setIndex((i) => (i + step + count) % count);
+
+  /** «۱ از ۳» — never «3 / 1» mirrored by the RTL paragraph direction. */
+  const numberFa = new Intl.NumberFormat('fa-IR');
+  const counterLabel = lang === 'en' ? `${index + 1} / ${count}` : `${numberFa.format(index + 1)} از ${numberFa.format(count)}`;
 
   // The fullscreen viewer is modal: the page behind it is inert, Tab stays on
   // the zoom/close controls and focus returns to the thumbnail that opened it.
@@ -132,8 +136,11 @@ export function ListingGallery({
             >
               <Icon name="chevronLeft" size={18} />
             </button>
-            <span className="absolute bottom-2 end-2 z-10 rounded-full bg-[#111144]/75 px-2 py-0.5 text-[11px] font-bold text-white">
-              {index + 1} / {count}
+            <span
+              dir={lang === 'en' ? 'ltr' : 'rtl'}
+              className="absolute bottom-2 end-2 z-10 rounded-full bg-[#111144]/75 px-2 py-0.5 text-[11px] font-bold text-white"
+            >
+              {counterLabel}
             </span>
           </>
         )}
@@ -188,7 +195,9 @@ export function ListingGallery({
           onClick={() => setViewer(false)}
         >
           <div className="flex shrink-0 items-center justify-between px-3 py-2 text-white">
-            <span className="text-xs font-bold" dir="ltr">{index + 1} / {count}</span>
+            <span className="text-xs font-bold" dir={lang === 'en' ? 'ltr' : 'rtl'}>
+              {counterLabel}
+            </span>
             <div className="flex items-center gap-2">
               <button
                 type="button"

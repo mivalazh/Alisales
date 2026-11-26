@@ -19,12 +19,15 @@ export function DeleteListingButton({
   label = 'حذف آگهی',
   redirectTo,
   compact = false,
+  className,
 }: {
   id: string;
   label?: string;
   /** Where to go after a successful delete; omit to just `router.refresh()`. */
   redirectTo?: string;
   compact?: boolean;
+  /** Full class override, for a caller that needs a matched-width action. */
+  className?: string;
 }) {
   const router = useRouter();
   const { t } = useI18n();
@@ -74,12 +77,13 @@ export function DeleteListingButton({
         type="button"
         onClick={() => setOpen(true)}
         className={
-          compact
+          className ??
+          (compact
             ? 'inline-flex items-center gap-1 rounded-field border border-line px-2 py-1 text-[11px] font-bold text-red-600 transition hover:border-red-300'
-            : 'btn-ghost text-sm text-red-600'
+            : 'btn-ghost text-sm text-red-600')
         }
       >
-        <Icon name="trash" size={compact ? 13 : 16} />
+        <Icon name="trash" size={compact ? 13 : className ? 15 : 16} />
         {t(label)}
       </button>
 

@@ -26,7 +26,7 @@ import { ReportListingButton } from '@/components/ReportListingButton';
 import { DeleteListingButton } from '@/components/DeleteListingButton';
 import { PriceText } from '@/components/PriceText';
 import { RateLine } from '@/components/RateLine';
-import { VerifiedPill, sellerDisplayName } from '@/components/SellerVerified';
+import { VerifiedStar, sellerDisplayName } from '@/components/SellerVerified';
 import { SoldBadge } from '@/components/SoldBadge';
 import { getListing, getSellerPhone } from '@/lib/data/listings';
 import { profileCustomization } from '@/lib/data/social-store';
@@ -197,6 +197,12 @@ export default async function ListingDetailPage({
   if (session && shouldRecordView(session.sub, listing.sellerId)) {
     await safeRecordView(listing.id, session.sub);
   }
+  const isOwner = session?.sub === listing.sellerId;
+  // The seller card names the seller: a badge alone loses the showroom's brand.
+  const sellerName = sellerIsBusiness
+    ? sellerDisplayName(displaySeller) ??
+      t(part ? 'تعمیرگاه' : 'فروشنده', part ? 'Workshop' : 'Seller')
+    : t('فروشنده حقیقی', 'Private seller');
 
   const badges: BadgeKey[] = [];
   if (listing.state !== 'active' && listing.state !== 'sold') {
@@ -268,10 +274,13 @@ export default async function ListingDetailPage({
   const pushSpec = (
     label: string,
     value: string | null | undefined,
-    positive = false,
+    /** `true` → ✓ badge, `false` → ✕ badge, omitted → neutral fact. */
+    positive?: boolean,
   ) => {
     const text = (value ?? '').trim();
-    if (text) extraSpecs.push({ label, value: text, ...(positive ? { positive } : {}) });
+    if (text) {
+      extraSpecs.push({ label, value: text, ...(positive === undefined ? {} : { positive }) });
+    }
   };
   if (listing.kind === 'part' && part) {
     pushSpec(t('سازگاری'), compatibilityLabel(part.compatibility));
@@ -281,6 +290,7 @@ export default async function ListingDetailPage({
       lang === 'en' && part.warranty
         ? translateListingContentToEn(part.warranty)
         : part.warranty,
+      Boolean(part.warranty),
     );
   } else if (listing.kind !== 'part') {
     pushSpec(
@@ -328,7 +338,6 @@ export default async function ListingDetailPage({
             listing.paintCondition as keyof typeof PAINT_CONDITION_LABELS
           ] ?? listing.paintCondition,
         ),
-        listing.paintCondition === 'factory',
       );
     }
     if (listing.chassisCondition) {
@@ -339,7 +348,6 @@ export default async function ListingDetailPage({
             listing.chassisCondition as keyof typeof CHASSIS_CONDITION_LABELS
           ] ?? listing.chassisCondition,
         ),
-        listing.chassisCondition === 'sealed',
       );
     }
     if (listing.technicalInspection !== null && listing.technicalInspection !== undefined) {
@@ -349,8 +357,11 @@ export default async function ListingDetailPage({
         listing.technicalInspection,
       );
     }
-    if (listing.isJournalPhoto) pushSpec(t('عکس ژورنالی'), t('دارد'), true);
-    if (listing.inspectionSheetUrl) pushSpec(t('برگه کارشناسی'), t('دارد'), true);
+    pushSpec(
+      t('عکس ژورنالی'),
+      listing.isJournalPhoto ? t('دارد') : t('ندارد'),
+      listing.isJournalPhoto,
+    );
   }
 
   /** «توضیحات آگهی» + its extra-spec tags. Rendered once: on phones it sits
@@ -360,7 +371,7 @@ export default async function ListingDetailPage({
   const descriptionCard = (
     <section className="rounded-card border border-line bg-card p-4 sm:p-5">
       <h2 className="text-base font-extrabold text-ink">{t('توضیحات آگهی')}</h2>
-      <p className="mt-3 whitespace-pre-line text-justify text-sm leading-8 text-ink/85">
+      <p className="mt-3 max-w-[68ch] whitespace-pre-line text-start text-sm leading-8 text-ink/85">
         {displayDescription || t('فروشنده برای این آگهی توضیحی ثبت نکرده است.')}
       </p>
 
@@ -374,14 +385,20 @@ export default async function ListingDetailPage({
                 className="flex flex-col gap-1 rounded-xl border border-slate-200/70 bg-[#F4F1EC]/60 p-3 dark:border-white/10 dark:bg-white/[0.04]"
               >
                 <dt className="text-xs text-slate-500 dark:text-slate-400">{spec.label}</dt>
-                <dd className="flex items-center gap-1.5 text-sm font-bold text-[#111144] dark:text-[#F4F1EC]">
-                  {spec.positive && (
-                    <span
-                      aria-hidden
-                      className="h-2 w-2 shrink-0 rounded-full bg-emerald-500"
-                    />
+                <dd className="mt-0.5 flex items-center gap-1.5 text-sm font-bold text-[#111144] dark:text-[#F4F1EC]">
+                  {spec.positive === true ? (
+                    <span className="inline-flex min-w-0 items-center gap-1 rounded-full bg-emerald-500/12 px-1.5 py-0.5 text-[11px] font-extrabold text-emerald-700 dark:text-emerald-400">
+                      <Icon name="check" size={12} />
+                      <span className="min-w-0 break-words">{spec.value}</span>
+                    </span>
+                  ) : spec.positive === false ? (
+                    <span className="inline-flex min-w-0 items-center gap-1 rounded-full bg-rose-500/12 px-1.5 py-0.5 text-[11px] font-extrabold text-rose-700 dark:text-rose-400">
+                      <Icon name="close" size={10} />
+                      <span className="min-w-0 break-words">{spec.value}</span>
+                    </span>
+                  ) : (
+                    <span className="min-w-0 break-words">{spec.value}</span>
                   )}
-                  <span className="min-w-0 break-words">{spec.value}</span>
                 </dd>
               </div>
             ))}
@@ -502,7 +519,7 @@ export default async function ListingDetailPage({
         </div>
 
         {/* Left column in RTL: the decision block, sticky on desktop. */}
-        <aside className="flex flex-col gap-4 lg:col-span-5 lg:sticky lg:top-24">
+        <aside className="flex flex-col gap-4 lg:col-span-5 lg:sticky lg:top-[7.75rem]">
           <div className="rounded-card border border-line bg-card p-4 sm:p-5">
             <div className="flex items-start justify-between gap-3">
               <div className="flex flex-wrap items-center gap-1.5">
@@ -584,32 +601,19 @@ export default async function ListingDetailPage({
           <div className="lg:hidden">{descriptionCard}</div>
 
           <div className="rounded-card border border-line bg-card p-4 sm:p-5">
+            {/* One identity row: avatar, real name, verified seal and city on
+                the RTL start; the profile link (or own-listing badge) on the
+                end edge — no empty half-row. */}
             <div className="flex items-center justify-between gap-3">
-              <div className="min-w-0">
-                {sellerIsBusiness ? (
-                  listing.showroomVerified ? (
-                    <VerifiedPill label={t(part ? 'تعمیرگاه معتبر' : 'نمایشگاه معتبر')} />
-                  ) : (
-                    <p className="truncate text-sm font-extrabold">
-                      {displaySeller ?? t('فروشنده', 'Seller')}
-                    </p>
-                  )
-                ) : (
-                  <p className="truncate text-sm font-extrabold">
-                    {t('فروشنده حقیقی', 'Private seller')}
-                  </p>
-                )}
-                <p className="mt-1 text-xs font-bold text-muted">
-                  {t(CITY_LABELS[listing.city] ?? listing.city)}
-                </p>
-              </div>
-
-              {sellerIsBusiness ? (
+              <div className="flex min-w-0 items-center gap-3">
                 <Link
-                  href={`/seller/${listing.sellerId}`}
-                  aria-label={t('مشاهده‌ی پروفایل فروشنده', 'View seller profile')}
-                  title={t('مشاهده‌ی پروفایل فروشنده', 'View seller profile')}
-                  className="flex h-11 w-11 shrink-0 items-center justify-center overflow-hidden rounded-full bg-[#111144] text-white shadow-xs ring-2 ring-[#F98513]/60 transition-transform hover:scale-105"
+                  href={isOwner ? '/profile' : `/seller/${listing.sellerId}`}
+                  aria-label={
+                    isOwner
+                      ? t('پروفایل من', 'My profile')
+                      : t('مشاهده‌ی پروفایل فروشنده', 'View seller profile')
+                  }
+                  className="flex h-11 w-11 shrink-0 items-center justify-center overflow-hidden rounded-full bg-[#223382]/10 text-sm font-extrabold text-[#223382] ring-1 ring-[#223382]/15 transition hover:ring-[#F98513]/60 dark:bg-white/10 dark:text-[#9BACD8]"
                 >
                   {sellerCustom?.avatarUrl ? (
                     <img
@@ -620,41 +624,69 @@ export default async function ListingDetailPage({
                       className="h-full w-full object-cover"
                     />
                   ) : (
-                    <span className="text-sm font-extrabold" aria-hidden="true">
-                      {(displaySeller ?? t('فروشنده', 'Seller')).trim().charAt(0)}
-                    </span>
+                    <span aria-hidden="true">{sellerName.trim().charAt(0)}</span>
                   )}
                 </Link>
-              ) : null}
+                <div className="min-w-0">
+                  <p className="flex items-center gap-1.5 text-sm font-extrabold text-ink">
+                    <span className="truncate">{sellerName}</span>
+                    {sellerIsBusiness && listing.showroomVerified && (
+                      <VerifiedStar label={t('نمایشگاه معتبر', 'Verified showroom')} />
+                    )}
+                  </p>
+                  <span className="mt-1 inline-flex items-center gap-1 rounded-full bg-page px-2 py-0.5 text-[11px] font-bold text-muted">
+                    <Icon name="pin" size={11} />
+                    {t(CITY_LABELS[listing.city] ?? listing.city)}
+                  </span>
+                </div>
+              </div>
+
+              {isOwner ? (
+                <span className="shrink-0 rounded-full bg-[#223382]/10 px-2.5 py-1 text-[11px] font-extrabold text-[#223382] dark:bg-white/10 dark:text-[#9BACD8]">
+                  {t('آگهی شما', 'Your listing')}
+                </span>
+              ) : (
+                <Link
+                  href={`/seller/${listing.sellerId}`}
+                  className="shrink-0 whitespace-nowrap text-xs font-extrabold text-[#223382] transition hover:text-[#F98513] dark:text-[#9BACD8]"
+                >
+                  {t('مشاهده پروفایل', 'View profile')}{' '}
+                  <span aria-hidden="true">›</span>
+                </Link>
+              )}
             </div>
 
             <div className="mt-4 border-t border-line pt-4">
-              <ContactButtons
-                listingId={listing.id}
-                slug={listing.slug}
-                phone={phone}
-                sold={sold}
-                revealable={listing.allowPhoneReveal && !sold}
-              />
+              {isOwner ? (
+                <div className="grid grid-cols-2 gap-3">
+                  <Link
+                    href={`/edit/${listing.id}`}
+                    className="inline-flex h-11 items-center justify-center gap-1.5 rounded-[var(--radius-pill)] border border-line bg-card px-3 text-xs font-extrabold text-ink transition hover:border-line-strong"
+                  >
+                    <Icon name="pencil" size={15} />
+                    {t('ویرایش آگهی', 'Edit listing')}
+                  </Link>
+                  <DeleteListingButton
+                    id={listing.id}
+                    redirectTo={
+                      sellerIsBusiness ? `/seller/${listing.sellerId}` : '/profile/listings'
+                    }
+                    className="inline-flex h-11 w-full items-center justify-center gap-1.5 rounded-[var(--radius-pill)] border border-red-200 bg-red-50/60 px-3 text-xs font-extrabold text-red-600 transition hover:border-red-400 hover:bg-red-50 dark:border-red-400/30 dark:bg-red-400/10 dark:text-red-300"
+                  />
+                </div>
+              ) : (
+                <ContactButtons
+                  listingId={listing.id}
+                  slug={listing.slug}
+                  phone={phone}
+                  sold={sold}
+                  revealable={listing.allowPhoneReveal && !sold}
+                />
+              )}
             </div>
 
-            {session?.sub === listing.sellerId ? (
-              <div className="mt-3 flex flex-wrap items-center gap-2 border-t border-line pt-3">
-                <Link
-                  href={`/edit/${listing.id}`}
-                  className="inline-flex items-center gap-1 rounded-[var(--radius-pill)] border border-line bg-card px-3 py-1.5 text-xs font-extrabold text-ink transition hover:border-line-strong"
-                >
-                  <Icon name="pencil" size={14} />
-                  {t('ویرایش آگهی', 'Edit listing')}
-                </Link>
-                <DeleteListingButton
-                  id={listing.id}
-                  redirectTo={sellerIsBusiness ? `/seller/${listing.sellerId}` : '/profile/listings'}
-                  compact
-                />
-              </div>
-            ) : (
-              <div className="mt-3 border-t border-line pt-3">
+            {!isOwner && (
+              <div className="mt-3 border-t border-line pt-2 text-center">
                 <ReportListingButton listingId={listing.id} />
               </div>
             )}

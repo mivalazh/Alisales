@@ -1,6 +1,14 @@
 'use client';
 
-import { useEffect, useMemo, useRef, useState, type FormEvent, type ReactNode } from 'react';
+import {
+  useEffect,
+  useId,
+  useMemo,
+  useRef,
+  useState,
+  type FormEvent,
+  type ReactNode,
+} from 'react';
 import {
   BIKE_TYPES,
   CITY_LABELS,
@@ -247,22 +255,162 @@ function Field({
   );
 }
 
-function Section({ title, children }: { title: string; children: ReactNode }) {
+/**
+ * One logical block of the publish form. A single hairline divider separates
+ * sections — no nested cards, so the desktop page reads as one workspace.
+ */
+function Section({
+  title,
+  hint,
+  columns = 'three',
+  children,
+}: {
+  title: string;
+  hint?: string;
+  columns?: 'two' | 'three';
+  children: ReactNode;
+}) {
   return (
-    <section className="rounded-card border border-line bg-card p-3.5 sm:p-4">
-      <h2 className="mb-3 border-b border-line pb-2 text-md font-extrabold">{title}</h2>
-      <div className="grid gap-3 sm:grid-cols-2">{children}</div>
+    <section className="border-b border-line pb-6">
+      <h2 className="text-sm font-extrabold text-ink">{title}</h2>
+      {hint && <p className="mt-1 text-xs leading-5 text-muted">{hint}</p>}
+      <div
+        className={`mt-4 grid gap-4 ${
+          columns === 'two' ? 'sm:grid-cols-2' : 'sm:grid-cols-2 lg:grid-cols-3'
+        }`}
+      >
+        {children}
+      </div>
     </section>
   );
 }
 
-/** One of the three boxed sections, titled but without a step counter. */
-function StepCard({ title, children }: { title: string; children: ReactNode }) {
+/** One accessible iOS-style switch used by every binary field in the form. */
+function ToggleSwitch({
+  checked,
+  onChange,
+  label,
+  hint,
+  className = '',
+}: {
+  checked: boolean;
+  onChange: (next: boolean) => void;
+  label: string;
+  hint?: string;
+  className?: string;
+}) {
+  const labelId = useId();
   return (
-    <section className="rounded-card border border-line bg-card p-3.5 sm:p-4">
-      <h2 className="mb-3 border-b border-line pb-2 text-md font-extrabold text-ink">{title}</h2>
-      <div className="space-y-3">{children}</div>
-    </section>
+    <div
+      className={`flex items-start justify-between gap-4 rounded-xl bg-[#F7F6F2] px-4 py-3 dark:bg-white/5 ${className}`}
+    >
+      <div className="min-w-0">
+        <p id={labelId} className="text-sm font-bold text-ink">
+          {label}
+        </p>
+        {hint && <p className="mt-0.5 text-xs leading-5 text-muted">{hint}</p>}
+      </div>
+      <button
+        type="button"
+        role="switch"
+        aria-checked={checked}
+        aria-labelledby={labelId}
+        dir="ltr"
+        onClick={() => onChange(!checked)}
+        className={`relative mt-0.5 inline-flex h-6 w-11 shrink-0 items-center rounded-full transition-colors duration-200 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[#111144] dark:focus-visible:outline-[#9BACD8] ${
+          checked ? 'bg-[#111144] dark:bg-[#9BACD8]' : 'bg-[#DAD1C8] dark:bg-white/20'
+        }`}
+      >
+        <span
+          aria-hidden="true"
+          className={`inline-block h-5 w-5 rounded-full bg-white shadow-sm transition-transform duration-200 ${
+            checked ? 'translate-x-[22px]' : 'translate-x-[2px]'
+          }`}
+        />
+      </button>
+    </div>
+  );
+}
+
+/** Two-choice pill control (نو / کارکرده) — not a dropdown. */
+function SegmentedControl({
+  options,
+  value,
+  onChange,
+  invalid = false,
+  ariaLabel,
+}: {
+  options: readonly SelectOption[];
+  value: string;
+  onChange: (next: string) => void;
+  invalid?: boolean;
+  ariaLabel: string;
+}) {
+  return (
+    <div
+      role="group"
+      aria-label={ariaLabel}
+      className={`flex rounded-xl bg-[#F7F6F2] p-1 dark:bg-white/5 ${
+        invalid ? 'ring-2 ring-red-500' : ''
+      }`}
+    >
+      {options.map((option) => {
+        const selected = option.value === value;
+        return (
+          <button
+            key={option.value}
+            type="button"
+            aria-pressed={selected}
+            onClick={() => onChange(option.value)}
+            className={`flex min-h-10 flex-1 items-center justify-center rounded-lg px-3 py-2 text-xs font-extrabold transition ${
+              selected
+                ? 'bg-[#111144] text-white shadow-sm dark:bg-[#F4F1EC] dark:text-[#111144]'
+                : 'text-muted hover:text-ink'
+            }`}
+          >
+            {option.label}
+          </button>
+        );
+      })}
+    </div>
+  );
+}
+
+/** «۱ تا ۱۲ ماه» chips, revealed inline when an insurance toggle is on. */
+function MonthChips({
+  label,
+  value,
+  onChange,
+}: {
+  label: string;
+  value: string;
+  onChange: (next: string) => void;
+}) {
+  return (
+    <div
+      role="group"
+      aria-label={label}
+      className="rounded-xl border border-dashed border-line px-3 py-2.5"
+    >
+      <p className="text-[11px] font-bold text-muted">{label}</p>
+      <div className="mt-2 grid grid-cols-6 gap-1.5 sm:grid-cols-12">
+        {Array.from({ length: 12 }, (_, index) => String(index + 1)).map((month) => (
+          <button
+            key={month}
+            type="button"
+            aria-pressed={value === month}
+            onClick={() => onChange(month)}
+            className={`flex h-8 items-center justify-center rounded-lg text-[11px] font-extrabold transition ${
+              value === month
+                ? 'bg-[#111144] text-white dark:bg-[#F4F1EC] dark:text-[#111144]'
+                : 'bg-page text-muted hover:text-ink dark:bg-white/5'
+            }`}
+          >
+            {month}
+          </button>
+        ))}
+      </div>
+    </div>
   );
 }
 
@@ -644,14 +792,6 @@ export function ListingForm() {
   const cityOptions: SelectOption[] = selectableCities().map((c) => ({
     value: c.slug,
     label: t(c.label),
-  }));
-  const yesNoOptions: SelectOption[] = [
-    { value: 'yes', label: t('دارد', 'Yes') },
-    { value: 'no', label: t('ندارد', 'No') },
-  ];
-  const monthOptions: SelectOption[] = Array.from({ length: 12 }, (_, i) => ({
-    value: String(i + 1),
-    label: t(`${i + 1} ماه`, `${i + 1} months`),
   }));
   const paintOptions: SelectOption[] = paintConditions.map((paint) => ({
     value: paint,
@@ -1102,6 +1242,54 @@ export function ListingForm() {
     setPublishedCard(null);
   }
 
+  /* Live preview and progress for the sticky sidebar. */
+  const previewIrr = priceIRR();
+  const hasPreviewPrice = Number.isFinite(previewIrr) && previewIrr > 0;
+  const previewCover = photos[0]?.previewUrl ?? photos[0]?.url ?? null;
+  const previewTitle =
+    (mode === 'part' ? partDraft.title : draft.model).trim() ||
+    t('عنوان آگهی', 'Listing title');
+  const previewOverline =
+    mode === 'part'
+      ? (partCategoryOptions.find((option) => option.value === partDraft.category)?.label ?? '')
+      : [
+          draft.customBrand.trim() ||
+            (lang === 'en' ? activeBrand?.latin : activeBrand?.label) ||
+            '',
+          draft.year,
+          conditionOptions.find((option) => option.value === draft.condition)?.label ?? '',
+        ]
+          .filter(Boolean)
+          .join(' · ');
+  const requiredFields =
+    mode === 'vehicle'
+      ? [
+          Boolean(draft.model.trim()),
+          Boolean(draft.bodyType),
+          Boolean(draft.year),
+          Boolean(draft.mileageKm.trim()),
+          Boolean(draft.condition),
+          Boolean(draft.color.trim()),
+          Boolean(draft.plateType),
+          Boolean(draft.priceIRR),
+          photos.length > 0,
+        ]
+      : [
+          Boolean(partDraft.category),
+          Boolean(partDraft.title.trim()),
+          Boolean(partDraft.condition),
+          Boolean(partDraft.origin),
+          Boolean(draft.priceIRR),
+          photos.length > 0,
+        ];
+  const requiredDone = requiredFields.filter(Boolean).length;
+  const progressPct = Math.round((requiredDone / requiredFields.length) * 100);
+  const submitLabel = submitting
+    ? t('در حال ارسال…', 'Publishing…')
+    : photosBusy
+      ? t('در حال پردازش عکس‌ها…', 'Processing photos…')
+      : t('انتشار آگهی', 'Publish listing');
+
   if (successSlug) {
     return (
       <div className="mx-auto max-w-4xl space-y-5" role="status">
@@ -1196,64 +1384,81 @@ export function ListingForm() {
   }
 
   return (
-    <form onSubmit={(e) => void handleSubmit(e)} noValidate className="mx-auto flex max-w-3xl flex-col gap-5">
-      {/* The page's only heading: the category is picked in step 1 below, so a
-          second title that names the category was both duplicated and wrong on
-          first paint. */}
-      <div>
+    <form
+      onSubmit={(e) => void handleSubmit(e)}
+      noValidate
+      className="listing-entry mx-auto grid max-w-6xl grid-cols-1 gap-6 lg:grid-cols-[minmax(0,1fr)_360px] lg:items-start lg:gap-8"
+    >
+      {/* Main column: one flat workspace split by hairlines, no nested cards. */}
+      <div className="min-w-0 space-y-6">
         <h1 className="text-xl font-extrabold">{t('ثبت آگهی', 'Post an ad')}</h1>
-      </div>
 
-      {/* Step 1 — the category comes first. */}
-      <StepCard title={t('دسته‌بندی آگهی', 'Listing category')}>
-        <div
-          className="grid gap-2 sm:grid-cols-2"
-          role="group"
-          aria-label={t('دسته‌بندی آگهی', 'Listing category')}
-        >
-          {CATEGORY_OPTIONS.map((option) => {
-            const active = mode === 'vehicle' && category === option.key;
-            return (
-              <button
-                key={option.key}
-                type="button"
-                aria-pressed={active}
-                onClick={() => {
-                  switchMode('vehicle');
-                  switchCategory(option.key);
-                }}
-                className={`rounded-field border p-3 text-start text-sm transition ${
-                  active
-                    ? 'border-cta bg-cta-soft font-extrabold text-ink'
-                    : 'border-line bg-card text-muted hover:border-line-strong'
-                }`}
-              >
-                <span className="block">{t(option.label, option.en)}</span>
-                <span className="mt-0.5 block text-[11px] font-bold text-faint">
-                  {t(option.hint, option.enHint)}
-                </span>
-              </button>
-            );
-          })}
-          <button
-            type="button"
-            aria-pressed={mode === 'part'}
-            onClick={() => switchMode('part')}
-            className={`rounded-field border p-3 text-start text-sm transition ${
-              mode === 'part'
-                ? 'border-cta bg-cta-soft font-extrabold text-ink'
-                : 'border-line bg-card text-muted hover:border-line-strong'
-            }`}
+        <Section title={t('دسته‌بندی آگهی', 'Listing category')} columns="two">
+          <div
+            className="col-span-full grid gap-2 sm:grid-cols-2"
+            role="group"
+            aria-label={t('دسته‌بندی آگهی', 'Listing category')}
           >
-            <span className="block">{t('قطعه و لوازم جانبی', 'Spare Parts & Accessories')}</span>
-            <span className="mt-0.5 block text-[11px] font-bold text-faint">
-              {t('قطعات یدکی، بدنه و لوازم', 'Replacement parts, body panels and accessories')}
-            </span>
-          </button>
-        </div>
-      </StepCard>
+            {CATEGORY_OPTIONS.map((option) => {
+              const active = mode === 'vehicle' && category === option.key;
+              return (
+                <button
+                  key={option.key}
+                  type="button"
+                  aria-pressed={active}
+                  onClick={() => {
+                    switchMode('vehicle');
+                    switchCategory(option.key);
+                  }}
+                  className={`relative rounded-xl border p-3 text-start text-sm transition ${
+                    active
+                      ? 'border-[#223382] bg-[#223382]/[0.06] font-extrabold text-ink dark:bg-white/10'
+                      : 'border-line bg-card text-muted hover:border-line-strong'
+                  }`}
+                >
+                  {active && (
+                    <span
+                      aria-hidden="true"
+                      className="absolute end-3 top-3 flex h-4 w-4 items-center justify-center rounded-full bg-[#F98513] text-white"
+                    >
+                      <Icon name="check" size={10} />
+                    </span>
+                  )}
+                  <span className="block pe-5">{t(option.label, option.en)}</span>
+                  <span className="mt-0.5 block pe-5 text-[11px] font-bold text-faint">
+                    {t(option.hint, option.enHint)}
+                  </span>
+                </button>
+              );
+            })}
+            <button
+              type="button"
+              aria-pressed={mode === 'part'}
+              onClick={() => switchMode('part')}
+              className={`relative rounded-xl border p-3 text-start text-sm transition ${
+                mode === 'part'
+                  ? 'border-[#223382] bg-[#223382]/[0.06] font-extrabold text-ink dark:bg-white/10'
+                  : 'border-line bg-card text-muted hover:border-line-strong'
+              }`}
+            >
+              {mode === 'part' && (
+                <span
+                  aria-hidden="true"
+                  className="absolute end-3 top-3 flex h-4 w-4 items-center justify-center rounded-full bg-[#F98513] text-white"
+                >
+                  <Icon name="check" size={10} />
+                </span>
+              )}
+              <span className="block pe-5">
+                {t('قطعه و لوازم جانبی', 'Spare Parts & Accessories')}
+              </span>
+              <span className="mt-0.5 block pe-5 text-[11px] font-bold text-faint">
+                {t('قطعات یدکی، بدنه و لوازم', 'Replacement parts, body panels and accessories')}
+              </span>
+            </button>
+          </div>
+        </Section>
 
-      <StepCard title={t('مشخصات', 'Specifications')}>
         {mode === 'vehicle' && (
           <>
             <Section
@@ -1310,32 +1515,12 @@ export function ListingForm() {
                 htmlFor="model"
                 label={t('مدل', 'Model')}
                 required
-                hint={t(
-                  'می‌توانید از فهرست پیشنهادی انتخاب کنید یا مدل/برند دیگری بنویسید.',
-                  'Pick from the suggestions or type another brand/model.',
-                )}
                 error={fieldErrors['vehicle.model']}
               >
                 <ModelPicker
                   suggestions={activeBrand?.models ?? []}
                   value={draft.model}
                   onChange={(next) => set('model', next)}
-                />
-              </Field>
-
-              <Field
-                htmlFor="bodyType"
-                label={t('تیپ / کلاس بدنه', 'Trim / body class')}
-                required
-                error={fieldErrors['vehicle.bodyType']}
-              >
-                <CustomSelect
-                  id="bodyType"
-                  value={draft.bodyType}
-                  onChange={(next) => set('bodyType', next)}
-                  options={bodyTypeOptions}
-                  placeholder={t('کلاس بدنه را انتخاب کنید…', 'Choose a body class…')}
-                  invalid={Boolean(fieldErrors['vehicle.bodyType'])}
                 />
               </Field>
 
@@ -1354,6 +1539,22 @@ export function ListingForm() {
                   value={draft.year}
                   onChange={(next) => set('year', next)}
                   invalid={Boolean(fieldErrors['vehicle.year'])}
+                />
+              </Field>
+
+              <Field
+                htmlFor="bodyType"
+                label={t('تیپ / کلاس بدنه', 'Trim / body class')}
+                required
+                error={fieldErrors['vehicle.bodyType']}
+              >
+                <CustomSelect
+                  id="bodyType"
+                  value={draft.bodyType}
+                  onChange={(next) => set('bodyType', next)}
+                  options={bodyTypeOptions}
+                  placeholder={t('کلاس بدنه را انتخاب کنید…', 'Choose a body class…')}
+                  invalid={Boolean(fieldErrors['vehicle.bodyType'])}
                 />
               </Field>
 
@@ -1511,13 +1712,15 @@ export function ListingForm() {
                 required
                 error={fieldErrors['vehicle.condition']}
               >
-                <CustomSelect
-                  id="condition"
+                <SegmentedControl
+                  options={conditionOptions}
                   value={draft.condition}
                   onChange={(next) => set('condition', next)}
-                  options={conditionOptions}
-                  placeholder={t('انتخاب کنید…', 'Choose…')}
                   invalid={Boolean(fieldErrors['vehicle.condition'])}
+                  ariaLabel={t(
+                    category === 'heavy' ? 'وضعیت' : 'وضعیت خودرو',
+                    category === 'heavy' ? 'Condition' : 'Vehicle condition',
+                  )}
                 />
               </Field>
 
@@ -1590,53 +1793,60 @@ export function ListingForm() {
                 'Insurance, paint, chassis & inspection',
               )}
             >
-              <Field htmlFor="thirdPartyInsurance" label={t('بیمه شخص ثالث', 'Third-party insurance')}>
-                <CustomSelect
-                  id="thirdPartyInsurance"
-                  value={draft.thirdPartyInsurance}
-                  onChange={(next) => set('thirdPartyInsurance', next)}
-                  options={yesNoOptions}
-                  placeholder={t('وضعیت بیمه…', 'Insurance status…')}
-                />
-              </Field>
-              {draft.thirdPartyInsurance === 'yes' && (
-                <Field
-                  htmlFor="thirdPartyMonths"
-                  label={t('باقی‌مانده بیمه شخص ثالث', 'Third-party insurance remaining')}
-                >
-                  <CustomSelect
-                    id="thirdPartyMonths"
-                    value={draft.thirdPartyMonths}
-                    onChange={(next) => set('thirdPartyMonths', next)}
-                    options={monthOptions}
-                    placeholder={t('۱ تا ۱۲ ماه', '1 to 12 months')}
+              <div className="col-span-full grid gap-3 sm:grid-cols-2">
+                <div>
+                  <ToggleSwitch
+                    label={t('بیمه شخص ثالث', 'Third-party insurance')}
+                    checked={draft.thirdPartyInsurance === 'yes'}
+                    onChange={(next) => set('thirdPartyInsurance', next ? 'yes' : 'no')}
                   />
-                </Field>
-              )}
+                  <div
+                    className={`grid transition-all duration-200 ${
+                      draft.thirdPartyInsurance === 'yes'
+                        ? 'mt-2 grid-rows-[1fr] opacity-100'
+                        : 'grid-rows-[0fr] opacity-0'
+                    }`}
+                  >
+                    <div className="overflow-hidden">
+                      {draft.thirdPartyInsurance === 'yes' && (
+                        <MonthChips
+                          label={t(
+                            'باقی‌مانده بیمه شخص ثالث',
+                            'Third-party insurance remaining',
+                          )}
+                          value={draft.thirdPartyMonths}
+                          onChange={(next) => set('thirdPartyMonths', next)}
+                        />
+                      )}
+                    </div>
+                  </div>
+                </div>
 
-              <Field htmlFor="bodyInsurance" label={t('بیمه بدنه', 'Body insurance')}>
-                <CustomSelect
-                  id="bodyInsurance"
-                  value={draft.bodyInsurance}
-                  onChange={(next) => set('bodyInsurance', next)}
-                  options={yesNoOptions}
-                  placeholder={t('وضعیت بیمه بدنه…', 'Body insurance status…')}
-                />
-              </Field>
-              {draft.bodyInsurance === 'yes' && (
-                <Field
-                  htmlFor="bodyMonths"
-                  label={t('باقی‌مانده بیمه بدنه', 'Body insurance remaining')}
-                >
-                  <CustomSelect
-                    id="bodyMonths"
-                    value={draft.bodyMonths}
-                    onChange={(next) => set('bodyMonths', next)}
-                    options={monthOptions}
-                    placeholder={t('۱ تا ۱۲ ماه', '1 to 12 months')}
+                <div>
+                  <ToggleSwitch
+                    label={t('بیمه بدنه', 'Body insurance')}
+                    checked={draft.bodyInsurance === 'yes'}
+                    onChange={(next) => set('bodyInsurance', next ? 'yes' : 'no')}
                   />
-                </Field>
-              )}
+                  <div
+                    className={`grid transition-all duration-200 ${
+                      draft.bodyInsurance === 'yes'
+                        ? 'mt-2 grid-rows-[1fr] opacity-100'
+                        : 'grid-rows-[0fr] opacity-0'
+                    }`}
+                  >
+                    <div className="overflow-hidden">
+                      {draft.bodyInsurance === 'yes' && (
+                        <MonthChips
+                          label={t('باقی‌مانده بیمه بدنه', 'Body insurance remaining')}
+                          value={draft.bodyMonths}
+                          onChange={(next) => set('bodyMonths', next)}
+                        />
+                      )}
+                    </div>
+                  </div>
+                </div>
+              </div>
 
               <Field
                 htmlFor="paintCondition"
@@ -1664,26 +1874,19 @@ export function ListingForm() {
                 />
               </Field>
 
-              <div className="col-span-full grid grid-cols-1 gap-4 sm:grid-cols-2">
-                <Field
-                  htmlFor="technicalInspection"
+              <div className="col-span-full">
+                <ToggleSwitch
                   label={t('معاینه فنی', 'Technical inspection')}
-                >
-                  <CustomSelect
-                    id="technicalInspection"
-                    value={draft.technicalInspection}
-                    onChange={(next) => set('technicalInspection', next)}
-                    options={yesNoOptions}
-                    placeholder={t('معاینه فنی دارد؟', 'Has a technical inspection?')}
-                  />
-                </Field>
-
-                <InspectionSheetField
-                  value={draft.inspectionSheetUrl}
-                  onChange={(next) => set('inspectionSheetUrl', next)}
-                  error={fieldErrors.inspectionSheetUrl}
+                  checked={draft.technicalInspection === 'yes'}
+                  onChange={(next) => set('technicalInspection', next ? 'yes' : 'no')}
                 />
               </div>
+
+              <InspectionSheetField
+                value={draft.inspectionSheetUrl}
+                onChange={(next) => set('inspectionSheetUrl', next)}
+                error={fieldErrors.inspectionSheetUrl}
+              />
             </Section>
           </>
         )}
@@ -1818,10 +2021,7 @@ export function ListingForm() {
             </Field>
           </Section>
         )}
-      </StepCard>
-
-      <StepCard title={t('قیمت و عکس‌ها', 'Price & photos')}>
-        <Section title={t('قیمت، شهر و تماس', 'Price, city and contact')}>
+        <Section title={t('قیمت و توضیحات', 'Price and description')}>
           <div className="col-span-full rounded-field border border-line bg-page px-3 py-2">
             <p className="mb-0.5 text-[11px] font-bold text-faint">
               {t('نرخ روز درهم', 'Today’s AED rate')}
@@ -1830,6 +2030,7 @@ export function ListingForm() {
           </div>
 
           <Field
+            className="sm:col-span-2"
             htmlFor="priceIRR"
             label={t(
               `قیمت (${unit === 'toman' ? 'تومان' : 'درهم'})`,
@@ -1910,13 +2111,15 @@ export function ListingForm() {
 
           {/* Vehicle comps only: a part has no brand/model/year of its own. */}
           {mode === 'vehicle' && (
-            <PriceEstimateHelper
-              brand={draft.brand}
-              model={draft.model}
-              year={draft.year}
-              plateType={draft.plateType}
-              category={category}
-            />
+            <div className="col-span-full">
+              <PriceEstimateHelper
+                brand={draft.brand}
+                model={draft.model}
+                year={draft.year}
+                plateType={draft.plateType}
+                category={category}
+              />
+            </div>
           )}
 
           {/* City is a disabled select with کیش as the only option. */}
@@ -1936,51 +2139,37 @@ export function ListingForm() {
             />
           </Field>
 
-          <label className="col-span-full flex cursor-pointer items-start gap-2 text-sm font-semibold">
-            <input
-              type="checkbox"
-              checked={draft.hideAed}
-              onChange={(e) => set('hideAed', e.target.checked)}
-              className="mt-1 accent-[var(--color-accent)]"
-            />
-            <span>
-              {t(
-                'عدم نمایش قیمت درهم در آگهی (فقط نمایش قیمت به تومان)',
-                'Hide the AED price on this listing (Toman only)',
-              )}
-              <span className="hint mt-0 block">
-                {t(
-                  'خط «≈ … AED» روی کارت، فهرست و صفحه‌ی آگهی نمایش داده نمی‌شود.',
-                  'The “≈ … AED” line is hidden on cards, feeds and the listing page.',
-                )}
-              </span>
-            </span>
-          </label>
+          <ToggleSwitch
+            className="col-span-full"
+            label={t(
+              'عدم نمایش قیمت درهم در آگهی',
+              'Hide the AED price on this listing',
+            )}
+            hint={t(
+              'خط «≈ … AED» روی کارت، فهرست و صفحه‌ی آگهی نمایش داده نمی‌شود.',
+              'The “≈ … AED” line is hidden on cards, feeds and the listing page.',
+            )}
+            checked={draft.hideAed}
+            onChange={(next) => set('hideAed', next)}
+          />
 
-          {/* Phone visibility is ON by default; the checkbox is the opt-out. */}
-          <label className="col-span-full flex cursor-pointer items-start gap-2 text-sm font-semibold">
-            <input
-              type="checkbox"
-              checked={!draft.allowPhoneReveal}
-              onChange={(e) => set('allowPhoneReveal', !e.target.checked)}
-              className="mt-1 accent-[var(--color-accent)]"
-            />
-            <span>
-              {t(
-                'عدم نمایش شماره تماس در آگهی (فقط چت درون‌برنامه‌ای)',
-                'Hide my phone number (in-app chat only)',
-              )}
-              <span className="hint mt-0 block">
-                {t(
-                  'به‌صورت پیش‌فرض شماره تماس شما نمایش داده می‌شود؛ با تیک زدن این گزینه، خریداران فقط از طریق پیام‌رسان داخلی با شما در تماس خواهند بود.',
-                  'Your phone number is shown by default; tick this to let buyers contact you through in-app chat only.',
-                )}
-              </span>
-            </span>
-          </label>
+          {/* Phone visibility is ON by default; the switch is the opt-out. */}
+          <ToggleSwitch
+            className="col-span-full"
+            label={t(
+              'عدم نمایش شماره تماس در آگهی (فقط چت درون‌برنامه‌ای)',
+              'Hide my phone number (in-app chat only)',
+            )}
+            hint={t(
+              'به‌صورت پیش‌فرض شماره تماس شما نمایش داده می‌شود؛ با فعال کردن این گزینه، خریداران فقط از طریق پیام‌رسان داخلی با شما در تماس خواهند بود.',
+              'Your phone number is shown by default; turn this on to let buyers contact you through in-app chat only.',
+            )}
+            checked={!draft.allowPhoneReveal}
+            onChange={(next) => set('allowPhoneReveal', !next)}
+          />
         </Section>
 
-        <Section title={t('توضیحات', 'Description')}>
+        <Section title={t('توضیحات', 'Description')} columns="two">
           <Field
             className="col-span-full"
             htmlFor="description"
@@ -2021,58 +2210,133 @@ export function ListingForm() {
               onBusyChange={setPhotosBusy}
               error={fieldErrors['photos']}
             />
-            <label className="mt-3 flex cursor-pointer items-start gap-2 text-sm font-semibold">
-              <input
-                type="checkbox"
-                checked={draft.isJournalPhoto}
-                onChange={(e) => set('isJournalPhoto', e.target.checked)}
-                className="mt-1 accent-[var(--color-accent)]"
-              />
-              <span>
-                {t(
-                  'عکس ژورنال است (تصویر اینترنتی/کاتالوگ)',
-                  'This is a journal photo (catalogue/internet image)',
-                )}
-                <span className="hint mt-0 block">
-                  {t(
-                    'با فعال بودن این گزینه، برچسب «عکس ژورنال» در مشخصات تکمیلی آگهی نمایش داده می‌شود تا خریدار بداند تصویر کاتالوگی است.',
-                    'When enabled, a “Journal photo” tag appears in the supplementary specs so buyers know it is a catalogue image.',
-                  )}
-                </span>
-              </span>
-            </label>
+            <ToggleSwitch
+              className="mt-3"
+              label={t(
+                'عکس ژورنال است (تصویر اینترنتی/کاتالوگ)',
+                'This is a journal photo (catalogue/internet image)',
+              )}
+              hint={t(
+                'با فعال بودن این گزینه، برچسب «عکس ژورنال» در مشخصات تکمیلی آگهی نمایش داده می‌شود تا خریدار بداند تصویر کاتالوگی است.',
+                'When enabled, a “Journal photo” tag appears in the supplementary specs so buyers know it is a catalogue image.',
+              )}
+              checked={draft.isJournalPhoto}
+              onChange={(next) => set('isJournalPhoto', next)}
+            />
           </div>
         </Section>
-      </StepCard>
+      </div>
 
-      {/* Submission errors sit with the button, so a failure is visible where
-          the seller pressed rather than at the top of a long form. */}
-      {formError && (
-        <div
-          className="rounded-field border-2 border-red-500 bg-red-50 px-4 py-3 text-sm font-bold text-red-700 dark:bg-red-950/30 dark:text-red-300"
-          role="alert"
-        >
-          {formError}
-        </div>
-      )}
+      {/* Sticky sidebar (desktop): live preview, submission errors and the one
+          submit action, exactly where the seller is looking. */}
+      <aside className="hidden lg:sticky lg:top-[7.75rem] lg:block">
+        <div className="space-y-3">
+          <div className="rounded-card border border-line bg-card p-4">
+            <div className="flex items-center justify-between gap-2">
+              <p className="text-xs font-extrabold text-ink">
+                {t('پیش‌نمایش زنده آگهی', 'Live listing preview')}
+              </p>
+              <span className="text-[11px] font-bold text-faint">
+                {t('آنچه خریدار می‌بیند', 'What buyers see')}
+              </span>
+            </div>
 
-      <div className="flex flex-wrap items-center justify-between gap-3 pb-2 sm:pb-0">
-        <p className="text-xs text-faint">
-          {t(
-            'با ثبت آگهی، صحت اطلاعات و وضعیت پلاک را تأیید می‌کنید.',
-            'By posting, you confirm the accuracy of the information and plate status.',
+            <div className="relative mt-3 aspect-[16/10] overflow-hidden rounded-xl bg-page">
+              {previewCover ? (
+                <img src={previewCover} alt="" className="h-full w-full object-cover" />
+              ) : (
+                <span className="flex h-full w-full items-center justify-center px-4 text-center text-[11px] font-bold text-faint">
+                  {t('عکس اول کاور آگهی است', 'Your first photo becomes the cover')}
+                </span>
+              )}
+            </div>
+
+            <p className="mt-2 truncate text-sm font-extrabold text-ink">{previewTitle}</p>
+            <p className="mt-0.5 truncate text-[11px] font-bold text-muted">
+              {previewOverline || t('برند، سال و وضعیت', 'Brand, year and condition')}
+            </p>
+
+            <div className="mt-2 flex items-baseline gap-2">
+              {hasPreviewPrice ? (
+                <>
+                  <span className="text-sm font-extrabold text-ink">
+                    {formatAmountLatin(irrToToman(previewIrr))}{' '}
+                    <span className="text-[11px] font-bold text-muted">
+                      {t('تومان', 'Toman')}
+                    </span>
+                  </span>
+                  {!draft.hideAed && (
+                    <span dir="ltr" className="text-[11px] font-bold text-faint">
+                      ≈ {formatAmountLatin(irrToAED(previewIrr, perAed))} AED
+                    </span>
+                  )}
+                </>
+              ) : (
+                <span className="text-[11px] font-bold text-faint">
+                  {t('قیمت را وارد کنید', 'Enter a price')}
+                </span>
+              )}
+            </div>
+
+            <div className="mt-3">
+              <div className="flex items-center justify-between text-[11px] font-bold text-muted">
+                <span>{t('تکمیل اطلاعات', 'Profile completeness')}</span>
+                <span>
+                  {lang === 'en'
+                    ? `${progressPct}%`
+                    : `${new Intl.NumberFormat('fa-IR').format(progressPct)}٪`}
+                </span>
+              </div>
+              <div className="mt-1 h-1.5 overflow-hidden rounded-full bg-page">
+                <div
+                  className="h-full rounded-full bg-[#223382] transition-all duration-300 dark:bg-[#9BACD8]"
+                  style={{ width: `${progressPct}%` }}
+                />
+              </div>
+            </div>
+          </div>
+
+          {formError && (
+            <div
+              className="rounded-field border-2 border-red-500 bg-red-50 px-4 py-3 text-xs font-bold leading-5 text-red-700 dark:bg-red-950/30 dark:text-red-300"
+              role="alert"
+            >
+              {formError}
+            </div>
           )}
-        </p>
+
+          <button
+            type="submit"
+            disabled={submitting || photosBusy}
+            className="btn-cta w-full text-sm disabled:opacity-60"
+          >
+            {submitLabel}
+          </button>
+          <p className="text-center text-[11px] leading-5 text-faint">
+            {t(
+              'با ثبت آگهی، صحت اطلاعات و وضعیت پلاک را تأیید می‌کنید.',
+              'By posting, you confirm the accuracy of the information and plate status.',
+            )}
+          </p>
+        </div>
+      </aside>
+
+      {/* Mobile: errors and publish stay at the end of the form, full width. */}
+      <div className="space-y-3 pb-2 lg:hidden">
+        {formError && (
+          <div
+            className="rounded-field border-2 border-red-500 bg-red-50 px-4 py-3 text-sm font-bold text-red-700 dark:bg-red-950/30 dark:text-red-300"
+            role="alert"
+          >
+            {formError}
+          </div>
+        )}
         <button
           type="submit"
           disabled={submitting || photosBusy}
-          className="btn-cta text-sm disabled:opacity-60"
+          className="btn-cta w-full text-sm disabled:opacity-60"
         >
-          {submitting
-            ? t('در حال ارسال…', 'Publishing…')
-            : photosBusy
-              ? t('در حال پردازش عکس‌ها…', 'Processing photos…')
-              : t('انتشار آگهی', 'Publish listing')}
+          {submitLabel}
         </button>
       </div>
     </form>
