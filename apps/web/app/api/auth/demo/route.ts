@@ -57,5 +57,8 @@ async function handleGet(request: Request): Promise<NextResponse> {
   });
   await setSessionCookie(token);
 
-  return NextResponse.redirect(new URL(next, url.origin));
+  // A relative Location keeps the redirect on whichever host served the
+  // request (proxy, preview domain or localhost) instead of pinning the
+  // origin parsed from the internal URL.
+  return new NextResponse(null, { status: 303, headers: { Location: next } });
 }

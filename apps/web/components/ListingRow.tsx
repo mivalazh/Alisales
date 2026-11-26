@@ -72,7 +72,9 @@ export function ListingRow({
           )}
         </div>
 
-        <div className="flex min-w-0 flex-1 flex-col gap-1.5">
+        {/* `pe-12` keeps the title and badges clear of the bookmark, which now
+            sits on the card's corner instead of on the vehicle photo. */}
+        <div className="flex min-w-0 flex-1 flex-col gap-1.5 pe-12">
           <div className="flex flex-wrap items-center gap-1.5">
             {sold && <SoldBadge />}
             {listing.state !== 'active' && listing.state !== 'sold' && (
@@ -132,7 +134,7 @@ export function ListingRow({
         slug={listing.slug}
         listingId={listing.id}
         compact
-        className="absolute top-3 start-3 z-10"
+        className="absolute top-3 end-3 z-10"
         snapshot={{
           model: part ? part.title : `${listing.model}${listing.trim ? ` ${listing.trim}` : ''}`,
           year: listing.year,

@@ -121,17 +121,24 @@ export function Catalog({
   const [wide, setWide] = useState(false);
   // Lists read better than a grid on a phone, and every chip/filter row stays
   // aligned with the cards; the toggle still lets a buyer switch to the grid.
+  // A phone reads best as a list, but a wide screen shows half-empty 1100px
+  // rows; from `md` up the grid is the default. A stored choice always wins.
   const [view, setView] = useState<ViewMode>('row');
   const [isPending, startTransition] = useTransition();
   const showPending = useDelayedBusy(isPending);
 
   useEffect(() => {
+    let stored: string | null = null;
     try {
-      const stored = localStorage.getItem(VIEW_KEY);
-      if (stored === 'grid' || stored === 'row') setView(stored);
+      stored = localStorage.getItem(VIEW_KEY);
     } catch {
-      // private mode — default view stays
+      // private mode — the responsive default applies
     }
+    if (stored === 'grid' || stored === 'row') {
+      setView(stored);
+      return;
+    }
+    if (window.matchMedia('(min-width: 768px)').matches) setView('grid');
   }, []);
 
   useEffect(() => {
@@ -183,7 +190,7 @@ export function Catalog({
       type="button"
       onClick={() => setPanelOpen((v) => !v)}
       aria-expanded={panelOpen}
-      className="flex min-h-9 shrink-0 items-center gap-1.5 rounded-[var(--radius-pill)] border border-line bg-card px-2.5 py-1.5 text-[11px] font-extrabold text-ink transition hover:border-line-strong sm:min-h-10 sm:px-3 sm:py-2 sm:text-xs"
+      className="flex min-h-11 shrink-0 items-center gap-1.5 rounded-[var(--radius-pill)] border border-line bg-card px-2.5 py-1.5 text-[11px] font-extrabold text-ink transition hover:border-line-strong sm:px-3 sm:py-2 sm:text-xs"
     >
       <Icon name="sliders" size={15} />
       {t('فیلترها', 'Filters')}
@@ -200,7 +207,7 @@ export function Catalog({
       type="button"
       onClick={() => setSheetOpen(true)}
       aria-expanded={sheetOpen}
-      className="flex min-h-9 shrink-0 items-center gap-1.5 rounded-[var(--radius-pill)] border border-line bg-card px-2.5 py-1.5 text-[11px] font-extrabold text-ink transition hover:border-line-strong sm:min-h-10 sm:px-3 sm:py-2 sm:text-xs"
+      className="flex min-h-11 shrink-0 items-center gap-1.5 rounded-[var(--radius-pill)] border border-line bg-card px-2.5 py-1.5 text-[11px] font-extrabold text-ink transition hover:border-line-strong sm:px-3 sm:py-2 sm:text-xs"
     >
       <Icon name="sliders" size={15} />
       {t('فیلترها', 'Filters')}

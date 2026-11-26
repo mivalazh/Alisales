@@ -104,7 +104,7 @@ function PillOption({
       type="button"
       aria-pressed={checked}
       onClick={onToggle}
-      className={`inline-flex min-h-9 items-center gap-1 rounded-full border px-3 py-1.5 text-xs transition active:scale-[0.98] ${
+      className={`inline-flex min-h-11 items-center gap-1 rounded-full border px-3 py-1.5 text-xs transition active:scale-[0.98] ${
         checked
           ? 'border-[#F98513] bg-[#F98513] font-bold text-[#111144] shadow-xs'
           : 'border-slate-200/80 bg-[#F4F1EC] font-medium text-slate-700 hover:border-slate-300 dark:border-white/10 dark:bg-white/5 dark:text-slate-200 dark:hover:border-white/20'
@@ -856,7 +856,7 @@ export function FilterBar({
       <button
         type="button"
         onClick={onOpen}
-        className="flex min-h-10 shrink-0 items-center gap-1.5 rounded-[var(--radius-pill)] border border-line bg-card px-3 py-2 text-xs font-extrabold text-ink transition hover:border-line-strong"
+        className="flex min-h-11 shrink-0 items-center gap-1.5 rounded-[var(--radius-pill)] border border-line bg-card px-3 py-2 text-xs font-extrabold text-ink transition hover:border-line-strong"
       >
         <Icon name="sliders" size={15} />
         {t('فیلترها', 'Filters')}

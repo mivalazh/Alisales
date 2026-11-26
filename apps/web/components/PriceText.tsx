@@ -11,7 +11,8 @@ import { usePriceUnit } from './PriceUnitProvider';
  * light-mode fallback for environments that never load the token sheet.
  */
 const PRICE_INK = 'var(--price-ink, #B45309)';
-const SECONDARY_INK = '#64748B';
+/** Muted token: #475569 on cream, #B8C0D0 on the dark card (both ≥ 4.5:1). */
+const SECONDARY_INK = 'var(--color-text-secondary, #475569)';
 
 /**
  * Price block for cards, rows and the detail page.
@@ -77,7 +78,9 @@ export function PriceText({
         style={{ color: sold ? SECONDARY_INK : PRICE_INK }}
       >
         {main}
-        <span className="ms-1 text-[0.7em] font-bold">{unitLabel}</span>
+        {/* Margin on the end edge: in RTL the unit sits after the number, so a
+            start margin pushed it away from the figure it belongs to. */}
+        <span className="me-1 text-[0.7em] font-bold">{unitLabel}</span>
       </span>
       {/* Fixed slot: an absent reference line keeps the same vertical rhythm,
           so cards in a row stay equal height with or without AED. */}

@@ -53,7 +53,7 @@ export function SortControl({
         aria-haspopup="listbox"
         aria-expanded={open}
         onClick={() => setOpen((v) => !v)}
-        className="flex min-h-9 items-center gap-1 whitespace-nowrap rounded-[var(--radius-pill)] border border-line bg-card px-2.5 py-1.5 text-[11px] font-extrabold text-ink transition hover:border-line-strong sm:min-h-10 sm:gap-1.5 sm:px-3 sm:py-2 sm:text-xs"
+        className="flex min-h-11 items-center gap-1 whitespace-nowrap rounded-[var(--radius-pill)] border border-line bg-card px-2.5 py-1.5 text-[11px] font-extrabold text-ink transition hover:border-line-strong sm:gap-1.5 sm:px-3 sm:py-2 sm:text-xs"
       >
         <span className="hidden text-muted sm:inline">{t('مرتب‌سازی:', 'Sort:')}</span>
         <span>{t(SORT_LABELS[value], EN_SORT[value] ?? SORT_LABELS[value])}</span>
@@ -126,7 +126,7 @@ export function ViewModeToggle({
           aria-pressed={value === mode}
           aria-label={label}
           title={label}
-          className={`flex h-8 w-8 items-center justify-center rounded-full transition sm:h-10 sm:w-10 ${
+          className={`flex h-11 w-11 items-center justify-center rounded-full transition sm:h-10 sm:w-10 ${
             value === mode ? 'bg-cta-soft text-ink' : 'text-faint hover:text-ink'
           }`}
         >

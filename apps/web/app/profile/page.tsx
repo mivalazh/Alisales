@@ -66,7 +66,7 @@ export default async function ProfilePage() {
   } catch (error) {
     if (!isDataUnavailable(error)) throw error;
     return (
-      <div className="mx-auto mt-3 max-w-2xl sm:mt-4">
+      <div className="mx-auto mt-3 max-w-4xl sm:mt-4">
         <DataUnavailableNotice />
       </div>
     );
@@ -146,7 +146,7 @@ export default async function ProfilePage() {
     : [...coreShortcuts, settingsShortcut];
 
   return (
-    <div className="mx-auto mt-3 max-w-2xl space-y-4 sm:mt-4">
+    <div className="mx-auto mt-3 max-w-4xl space-y-4 sm:mt-4">
       <section className="overflow-hidden rounded-3xl border border-line bg-card shadow-sm">
         <div className="relative h-32 w-full overflow-hidden bg-sunken sm:h-40">
           {custom?.coverUrl ? (
@@ -173,22 +173,24 @@ export default async function ProfilePage() {
           )}
           <ProfileMediaButton kind="cover" label={t('تغییر کاور پروفایل')} />
         </div>
-        <div className="px-4 pb-4 sm:px-5">
-          <div className="flex items-end gap-3">
+        <div className="px-4 pb-4 sm:px-6">
+          <div className="flex items-end gap-4 sm:gap-5">
             <div className="relative -mt-9 shrink-0 sm:-mt-11">
-              <div className="flex h-20 w-20 items-center justify-center overflow-hidden rounded-full border-4 border-card bg-cta-soft text-2xl font-extrabold text-ink shadow-lg sm:h-24 sm:w-24">
+              <div className="inline-flex h-20 w-20 items-center justify-center overflow-hidden rounded-full border-4 border-card bg-cta-soft text-2xl font-extrabold leading-none text-ink shadow-lg select-none sm:h-24 sm:w-24 sm:text-3xl">
                 {custom?.avatarUrl ? (
                   // eslint-disable-next-line @next/next/no-img-element
                   <img src={custom.avatarUrl} alt="" width={512} height={512} className="h-full w-full object-cover" />
                 ) : (
-                  initial
+                  <span aria-hidden="true" className="inline-flex items-center justify-center leading-none select-none">
+                    {initial}
+                  </span>
                 )}
               </div>
               <ProfileMediaButton kind="avatar" label={t('تغییر عکس پروفایل')} />
             </div>
-            <div className="min-w-0 flex-1 pb-1">
+            <div className="min-w-0 flex-1 pb-1 ps-1 sm:ps-2">
               <h1 className="truncate text-lg font-extrabold sm:text-xl">{session.displayName}</h1>
-              <p className="mt-0.5 text-xs text-muted sm:text-sm">
+              <p className="mt-1.5 text-xs leading-5 text-muted sm:text-sm">
                 <span dir="ltr">{maskPhone(session.phone)}</span>
                 {isBusiness && (
                   <>

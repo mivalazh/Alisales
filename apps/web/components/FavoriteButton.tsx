@@ -186,7 +186,7 @@ export function FavoriteButton({
             ? t('حذف از ذخیره‌شده‌ها', 'Remove from saved')
             : t('ذخیره آگهی', 'Save listing')
         }
-        className={`flex h-10 w-10 items-center justify-center rounded-full shadow-md backdrop-blur transition active:scale-95 ${className}`}
+        className={`flex h-11 w-11 items-center justify-center rounded-full shadow-md backdrop-blur transition active:scale-95 ${className}`}
         style={{
           backgroundColor: 'rgba(255, 255, 255, 0.88)',
           color: active ? '#F98513' : '#111144',

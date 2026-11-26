@@ -164,15 +164,32 @@ export function Stories({ stories, label = 'داستان‌های آگهی' }: {
 
   return (
     <section aria-label={t(label)} className="rounded-card border border-line bg-card p-3 sm:p-4">
-      <ul
-        aria-label={t(label)}
-        className="flex snap-x snap-mandatory items-start gap-3 overflow-x-auto overflow-y-visible px-0.5 py-2.5 pt-3 [scrollbar-width:none] [&::-webkit-scrollbar]:hidden"
-      >
-        <AddStoryTile onClick={openAdd} />
-        {rail.map((story, index) => (
-          <StoryTile key={story.slug} story={story} onOpen={() => setOpenIndex(index)} />
-        ))}
-      </ul>
+      {rail.length === 0 ? (
+        // No stories yet: a compact invitation instead of an empty 160px box.
+        <div className="flex flex-wrap items-center justify-between gap-2">
+          <p className="text-xs font-bold text-muted">
+            {t('اولین استوری را شما ثبت کنید', 'Be the first to post a story')}
+          </p>
+          <button
+            type="button"
+            onClick={openAdd}
+            className="inline-flex min-h-11 items-center gap-1.5 rounded-[var(--radius-pill)] border border-cta bg-cta-soft px-3 text-xs font-extrabold text-ink transition hover:border-cta hover:bg-cta hover:text-white"
+          >
+            <Icon name="cameraPlus" size={16} />
+            {t('افزودن استوری', 'Add Story')}
+          </button>
+        </div>
+      ) : (
+        <ul
+          aria-label={t(label)}
+          className="flex snap-x snap-mandatory items-start gap-3 overflow-x-auto overflow-y-visible px-0.5 py-2.5 pt-3 [scrollbar-width:none] [&::-webkit-scrollbar]:hidden"
+        >
+          <AddStoryTile onClick={openAdd} />
+          {rail.map((story, index) => (
+            <StoryTile key={story.slug} story={story} onOpen={() => setOpenIndex(index)} />
+          ))}
+        </ul>
+      )}
 
       <input
         ref={mediaInput}

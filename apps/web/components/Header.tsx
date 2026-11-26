@@ -260,7 +260,7 @@ export function Header() {
               // signed-in buyer has to watch disappear.
               <span
                 aria-hidden="true"
-                className="hidden h-8 w-16 animate-pulse rounded-[var(--radius-pill)] bg-sunken md:block"
+                className="hidden h-9 w-24 animate-pulse rounded-[var(--radius-pill)] bg-sunken md:block"
               />
             ) : authed ? (
               <Link
@@ -280,7 +280,7 @@ export function Header() {
             <Link
               href="/"
               aria-label="Ali Sales — صفحه اصلی"
-              className="flex min-h-10 shrink-0 items-center"
+              className="flex min-h-11 shrink-0 items-center"
             >
               <BrandLockup />
             </Link>
@@ -298,8 +298,10 @@ export function Header() {
                     href={item.href}
                     prefetch
                     aria-current={active ? 'page' : undefined}
-                    className={`rounded-[var(--radius-pill)] px-3 py-2 text-sm font-semibold transition ${
-                      active ? 'bg-cta-soft text-ink font-extrabold' : 'text-muted hover:text-ink'
+                    className={`inline-flex min-h-11 items-center rounded-[var(--radius-pill)] px-3 text-sm font-semibold transition ${
+                      active
+                        ? 'bg-cta-soft font-extrabold text-ink dark:bg-white/10 dark:text-[#F4F1EC]'
+                        : 'text-muted hover:text-ink'
                     }`}
                   >
                     {t(item.label, EN_NAV[item.key] ?? item.label)}

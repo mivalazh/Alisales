@@ -69,10 +69,11 @@ export function BottomNav() {
                 href={item.href}
                 prefetch
                 aria-current={active ? 'page' : undefined}
-                className={`flex w-full touch-manipulation flex-col items-center justify-center gap-1 text-[11px] transition active:scale-[0.96] ${
-                  active ? 'font-extrabold' : 'font-bold'
+                className={`flex min-h-11 w-full touch-manipulation flex-col items-center justify-center gap-1 text-[11px] transition active:scale-[0.96] ${
+                  active
+                    ? 'font-extrabold text-[#B45309] dark:text-[#F98513]'
+                    : 'font-bold text-muted'
                 }`}
-                style={{ color: active ? '#F98513' : '#64748B' }}
               >
                 <Icon name={item.icon} size={22} />
                 {label}

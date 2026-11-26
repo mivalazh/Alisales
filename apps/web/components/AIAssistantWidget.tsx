@@ -90,7 +90,17 @@ export function AIAssistantWidget() {
   // help surface itself: its two-column guide grid runs under the orb's corner,
   // so the fixed orb sat on top of the first card's «خواندن راهنما» action at
   // 375px. No fixed corner is free there, so the orb stands down on that page.
-  if (/^\/chats\/[^/]+/.test(pathname ?? '') || pathname === '/support') return null;
+  // The publish flow and a listing detail are form/reading surfaces: a floating
+  // orb sat over the price row, the spec tiles and the phone keyboard. The
+  // assistant stands down on both (the chat list keeps it).
+  if (
+    /^\/chats\/[^/]+/.test(pathname ?? '') ||
+    pathname === '/support' ||
+    pathname === '/new' ||
+    /^\/listing\/[^/]+/.test(pathname ?? '')
+  ) {
+    return null;
+  }
 
   const ask = async (question: string) => {
     const q = question.trim();
@@ -159,7 +169,7 @@ export function AIAssistantWidget() {
           onPointerDown={(event) => {
             if (event.target === event.currentTarget) setOpen(false);
           }}
-          className="fixed inset-0 z-50"
+          className="fixed inset-0 z-50 bg-[#111144]/20 backdrop-blur-sm"
         >
           <div className="absolute bottom-24 right-4 flex h-[390px] max-h-[60dvh] w-[calc(100vw-2rem)] max-w-[340px] flex-col overflow-hidden rounded-2xl border border-line bg-card shadow-2xl sm:bottom-6 sm:right-6 sm:h-[460px] sm:max-h-[72dvh] sm:max-w-[380px]">
             <div className="flex items-center gap-2 bg-[#111144] px-3 py-2.5 text-white">
@@ -259,7 +269,17 @@ export function AIAssistantWidget() {
 
             {!messages.some((message) => message.role === 'user') && (
               <div className="shrink-0 border-t border-line px-2.5 py-2">
-                <div className="flex gap-1.5 overflow-x-auto pb-0.5 [scrollbar-width:none] [&::-webkit-scrollbar]:hidden">
+                <div
+                  className="flex gap-1.5 overflow-x-auto pb-0.5 [scrollbar-width:none] [&::-webkit-scrollbar]:hidden"
+                  // Soft edge fade instead of a hard cut-off when the chip row
+                  // scrolls sideways.
+                  style={{
+                    maskImage:
+                      'linear-gradient(to right, transparent, black 12px, black calc(100% - 12px), transparent)',
+                    WebkitMaskImage:
+                      'linear-gradient(to right, transparent, black 12px, black calc(100% - 12px), transparent)',
+                  }}
+                >
                   {SMART_CHIPS.map((chip) => (
                     <button
                       key={chip}
@@ -316,7 +336,7 @@ export function AIAssistantWidget() {
           aria-expanded={false}
           data-assistant-trigger=""
           aria-label={t('باز کردن دستیار هوشمند')}
-          className="ai-fab fixed bottom-[calc(88px+env(safe-area-inset-bottom))] right-4 z-40 flex h-14 w-14 items-center justify-center rounded-full border-2 border-[#F98513]/70 bg-[#111144] shadow-[0_12px_30px_-4px_rgba(249,133,19,0.5),0_6px_16px_-2px_rgba(17,17,68,0.4)] ring-2 ring-[#F98513]/70 transition-all duration-200 hover:-translate-y-1 sm:bottom-6 sm:right-6"
+          className="ai-fab fixed bottom-[calc(88px+env(safe-area-inset-bottom))] right-4 z-40 flex h-12 w-12 items-center justify-center rounded-full border-2 border-[#F98513]/70 bg-[#111144] shadow-[0_8px_20px_-6px_rgba(17,17,68,0.55)] ring-2 ring-[#F98513]/70 transition-all duration-200 hover:-translate-y-1 sm:bottom-6 sm:right-6"
         >
           <span className="ai-orb" aria-hidden="true">
             <span className="ai-orb-eye" />

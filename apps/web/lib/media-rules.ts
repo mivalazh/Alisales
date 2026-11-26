@@ -3,8 +3,9 @@ import { ALLOWED_PHOTO_MIME, ALLOWED_VIDEO_MIME } from '@alisales/schemas';
 /**
  * Profile/story media rules shared by the browser, upload routes and tests.
  *
- * Images are compressed client-side before upload (avatars 320px, covers
- * 1280px, stories 1080px JPEG). The server still enforces type/size/dimension limits
+ * Images are compressed client-side before upload (avatars 600px, covers
+ * 1400px WebP at 0.82, stories 1080px JPEG). The server still enforces
+ * type/size/dimension limits
  * and re-checks that a submitted story URL belongs to its own bucket.
  */
 
@@ -18,8 +19,8 @@ export const MAX_STORY_IMAGE_BYTES = 8 * 1024 * 1024;
 export const MAX_STORY_VIDEO_BYTES = 40 * 1024 * 1024;
 export const MAX_MEDIA_URL_CHARS = 2048;
 
-export const AVATAR_EDGE_PX = 320;
-export const COVER_EDGE_PX = 1280;
+export const AVATAR_EDGE_PX = 600;
+export const COVER_EDGE_PX = 1400;
 export const PROFILE_EDGE_PX: Record<ProfileMediaKind, number> = {
   avatar: AVATAR_EDGE_PX,
   cover: COVER_EDGE_PX,

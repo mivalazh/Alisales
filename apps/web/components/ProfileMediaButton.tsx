@@ -49,12 +49,15 @@ export function ProfileMediaButton({
         return;
       }
       uploadedUrl = uploaded.url;
+      // A fresh key per upload: the object path is unique anyway, and this also
+      // busts any CDN/browser cache holding the previous artwork.
+      const versionedUrl = `${uploaded.url}${uploaded.url.includes('?') ? '&' : '?'}v=${Date.now()}`;
 
       const res = await fetch('/api/profile', {
         method: 'PUT',
         headers: { 'content-type': 'application/json' },
         body: JSON.stringify(
-          kind === 'avatar' ? { avatarUrl: uploaded.url } : { coverUrl: uploaded.url },
+          kind === 'avatar' ? { avatarUrl: versionedUrl } : { coverUrl: versionedUrl },
         ),
       });
       const body = (await res.json().catch(() => ({}))) as { error?: string };
@@ -68,6 +71,8 @@ export function ProfileMediaButton({
         setError(body.error ?? t('ذخیره تصویر ناموفق بود.', 'Could not save the image.'));
         return;
       }
+      // The header and every avatar read this event, so the new picture lands
+      // in React state immediately — no manual reload.
       notifyAccountChanged();
       router.refresh();
     } catch (err) {
@@ -100,10 +105,10 @@ export function ProfileMediaButton({
         className={
           kind === 'cover'
             ? 'absolute left-3 top-3 z-10 flex h-9 w-9 items-center justify-center rounded-full border border-white/30 bg-[#111144]/80 text-white shadow-lg backdrop-blur transition hover:bg-[#111144] disabled:opacity-60'
-            : 'absolute -bottom-0.5 -end-0.5 z-10 flex h-7 w-7 items-center justify-center rounded-full border-2 border-card bg-[#F98513] text-white shadow-md transition hover:bg-[#e0770f] disabled:opacity-60'
+            : 'absolute bottom-0 left-0 z-10 flex h-7 w-7 items-center justify-center rounded-full bg-[#F98513] text-white shadow-md ring-2 ring-white transition hover:bg-[#e0770f] disabled:opacity-60 dark:ring-[#111144]'
         }
       >
-        <Icon name="camera" size={kind === 'cover' ? 17 : 13} />
+        <Icon name="camera" size={kind === 'cover' ? 17 : 14} />
       </button>
       <input
         ref={input}
@@ -113,7 +118,10 @@ export function ProfileMediaButton({
         onChange={(event) => void picked(event.target.files?.[0])}
       />
       {error && (
-        <span className="absolute bottom-2 left-2 z-20 rounded-lg bg-red-600 px-2 py-1 text-[10px] font-bold text-white">
+        <span
+          role="alert"
+          className="absolute bottom-2 left-2 z-20 max-w-[min(20rem,calc(100vw-2rem))] rounded-lg bg-red-600 px-2.5 py-1.5 text-[11px] font-bold leading-5 text-white shadow-lg"
+        >
           {error}
         </span>
       )}

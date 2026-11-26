@@ -132,6 +132,7 @@ export function FavoritesList() {
         )}
         actionHref="/"
         actionLabel={t('مشاهده آگهی‌ها', 'View listings')}
+        descriptionAlign="start"
       />
     );
   }

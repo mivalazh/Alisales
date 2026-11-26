@@ -324,7 +324,7 @@ export function LoginForm() {
       <div
         role="tablist"
         aria-label={t('روش ورود', 'Sign-in method')}
-        className="mt-5 grid grid-cols-2 gap-1 rounded-card border border-line bg-page p-1"
+        className="mt-5 grid grid-cols-2 gap-1 rounded-card border border-line bg-sunken p-1"
       >
         {(
           [
@@ -345,8 +345,10 @@ export function LoginForm() {
               setResetConfirm('');
               setDemoCode(null);
             }}
-            className={`min-h-10 rounded-field px-3 py-2 text-sm font-extrabold transition ${
-              mode === tab.key ? 'bg-cta-soft text-ink' : 'text-muted hover:text-ink'
+            className={`min-h-11 rounded-field border px-3 py-2 text-sm font-extrabold transition ${
+              mode === tab.key
+                ? 'border-[#111144] bg-white text-[#111144] shadow-sm dark:border-[#F98513] dark:bg-white/10 dark:text-[#F4F1EC]'
+                : 'border-transparent text-muted hover:text-ink'
             }`}
           >
             {tab.label}

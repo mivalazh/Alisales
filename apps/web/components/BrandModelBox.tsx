@@ -183,7 +183,7 @@ export function BrandModelBox({
                     aria-pressed={selected}
                     aria-label={item.label}
                     title={item.label}
-                    className={`flex w-full items-center justify-center rounded-lg p-0.5 transition hover:bg-cta-soft/60 active:scale-95 ${
+                    className={`flex min-h-11 w-full items-center justify-center rounded-lg p-0.5 transition hover:bg-cta-soft/60 active:scale-95 ${
                       selected ? 'bg-cta-soft' : ''
                     }`}
                   >
@@ -215,7 +215,7 @@ function ModelPill({
         type="button"
         onClick={onPick}
         aria-pressed={selected}
-        className={`inline-flex items-center justify-center rounded-full border px-3 py-1.5 text-xs font-extrabold leading-tight transition active:scale-95 ${
+        className={`inline-flex min-h-11 items-center justify-center rounded-full border px-3 py-1.5 text-xs font-extrabold leading-tight transition active:scale-95 ${
           selected
             ? 'border-[#F98513] bg-cta-soft text-ink'
             : 'border-line bg-page text-muted hover:border-line-strong hover:text-ink'

@@ -12,12 +12,15 @@ export function ListEmptyState({
   description,
   actionHref,
   actionLabel,
+  descriptionAlign = 'center',
 }: {
   icon: IconName;
   title: string;
   description: string;
   actionHref: string;
   actionLabel: string;
+  /** Long-form descriptions read better start-aligned (saved ads). */
+  descriptionAlign?: 'center' | 'start';
 }) {
   return (
     <div className="mx-auto max-w-lg rounded-2xl border border-slate-200/80 bg-white p-10 text-center shadow-sm dark:border-white/10 dark:bg-white/[0.03]">
@@ -25,7 +28,13 @@ export function ListEmptyState({
         <Icon name={icon} size={26} />
       </span>
       <p className="mt-4 text-base font-extrabold text-ink">{title}</p>
-      <p className="mx-auto mt-1 max-w-xs text-sm leading-6 text-muted">{description}</p>
+      <p
+        className={`mx-auto mt-1 max-w-xs text-sm leading-6 text-muted ${
+          descriptionAlign === 'start' ? 'text-start' : ''
+        }`}
+      >
+        {description}
+      </p>
       <Link
         href={actionHref}
         className="mt-6 inline-flex min-h-10 items-center justify-center rounded-[var(--radius-pill)] bg-[#111144] px-5 py-2.5 text-sm font-bold text-white shadow-sm transition hover:bg-[#1b1b57] active:scale-[0.98] dark:bg-[#F98513] dark:text-[#111144] dark:hover:bg-[#ffa13d]"
