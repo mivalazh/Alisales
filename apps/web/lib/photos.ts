@@ -5,6 +5,7 @@ import {
   ALLOWED_VIDEO_MIME,
   type ListingPhoto,
 } from '@alisales/schemas';
+import { MAX_STORY_IMAGE_BYTES } from './media-rules';
 
 /**
  * Client-side listing photo pipeline (spec §6 / storage migration header):
@@ -150,17 +151,22 @@ async function decodeImage(file: File): Promise<DecodedImage> {
   }
 }
 
-export async function processListingPhoto(file: File): Promise<ProcessedPhoto> {
+interface StillEncodeOptions {
+  mime: 'image/webp' | 'image/jpeg';
+  /** Longest edge after downscale. */
+  maxEdge: number;
+  limitBytes: number;
+  tooLarge: string;
+}
+
+/** Decode → downscale → re-encode one still, shared by listings and stories. */
+async function processStill(file: File, options: StillEncodeOptions): Promise<ProcessedPhoto> {
   ensureSupportedMime(file);
   if (file.size === 0) throw new PhotoPipelineError('فایل عکس خالی است.');
 
-  // A HEIC is stored as JPEG: no browser but Safari paints HEIC, and the
-  // server stores bytes exactly as received.
-  const mime = isHeic(file) ? 'image/jpeg' : 'image/webp';
-
   const decoded = await decodeImage(file);
   try {
-    const scale = Math.min(1, MAX_EDGE_PX / Math.max(decoded.width, decoded.height));
+    const scale = Math.min(1, options.maxEdge / Math.max(decoded.width, decoded.height));
     const width = Math.max(1, Math.round(decoded.width * scale));
     const height = Math.max(1, Math.round(decoded.height * scale));
 
@@ -171,18 +177,18 @@ export async function processListingPhoto(file: File): Promise<ProcessedPhoto> {
     if (!ctx) throw new PhotoPipelineError('پردازش تصویر در این مرورگر در دسترس نیست.');
     ctx.drawImage(decoded.source, 0, 0, width, height);
 
-    let blob = await encodeCanvas(canvas, mime, IMAGE_QUALITY);
-    if (blob.size > MAX_PHOTO_BYTES) {
+    let blob = await encodeCanvas(canvas, options.mime, IMAGE_QUALITY);
+    if (blob.size > options.limitBytes) {
       // One retry at lower quality before giving up (huge panoramas).
-      blob = await encodeCanvas(canvas, mime, RETRY_QUALITY);
+      blob = await encodeCanvas(canvas, options.mime, RETRY_QUALITY);
     }
-    if (blob.size > MAX_PHOTO_BYTES) {
-      throw new PhotoPipelineError('حجم عکس حتی پس از فشرده‌سازی بیش از حد مجاز است.');
+    if (blob.size > options.limitBytes) {
+      throw new PhotoPipelineError(options.tooLarge);
     }
 
     return {
       kind: 'image',
-      mime,
+      mime: options.mime,
       blob,
       previewUrl: URL.createObjectURL(blob),
       width,
@@ -194,6 +200,40 @@ export async function processListingPhoto(file: File): Promise<ProcessedPhoto> {
   } finally {
     decoded.release();
   }
+}
+
+export async function processListingPhoto(file: File): Promise<ProcessedPhoto> {
+  // A HEIC is stored as JPEG: no browser but Safari paints HEIC, and the
+  // server stores bytes exactly as received.
+  return processStill(file, {
+    mime: isHeic(file) ? 'image/jpeg' : 'image/webp',
+    maxEdge: MAX_EDGE_PX,
+    limitBytes: MAX_PHOTO_BYTES,
+    tooLarge: 'حجم عکس حتی پس از فشرده‌سازی بیش از حد مجاز است.',
+  });
+}
+
+/** Story stills are JPEG, max 1080px, quality 0.8 — roughly 150–300 KB. */
+export const STORY_PHOTO_MAX_EDGE_PX = 1080;
+
+/**
+ * Story pick → always JPEG at ≤1080px.
+ *
+ * iPhone photos arrive as HEIC and a modern camera still is several MB, which
+ * is both past Vercel's 4.5 MB request body limit and far too slow on mobile
+ * LTE. The canvas re-encode happens before the upload starts, so the request
+ * that leaves the phone is the small JPEG the story route receives.
+ */
+export async function processStoryMedia(file: File): Promise<ProcessedPhoto> {
+  if ((ALLOWED_VIDEO_MIME as readonly string[]).includes(file.type)) {
+    return processListingVideo(file);
+  }
+  return processStill(file, {
+    mime: 'image/jpeg',
+    maxEdge: STORY_PHOTO_MAX_EDGE_PX,
+    limitBytes: MAX_STORY_IMAGE_BYTES,
+    tooLarge: 'حجم عکس استوری حتی پس از فشرده‌سازی بیش از حد مجاز است.',
+  });
 }
 
 const VIDEO_EXT: Record<string, string> = {

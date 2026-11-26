@@ -13,10 +13,12 @@ import { useI18n } from '@/lib/i18n';
  *
  * The strip is one closed container — outer `border` + `rounded-xl` — instead
  * of a top/bottom-only rule, so RTL shows the same closing edge on both ends
- * (the first tab sits at the right edge, the last at the left) and the bar
- * matches the banner and the search/filter surfaces under it. The internal
- * dividers are explicit `border-e` rules on tabs 1–3: `divide-x` could leave
- * the ماشین‌آلات | قطعات edge unpainted, while a logical end border is exactly
+ * (the first tab sits at the right edge, the last at the left). It carries the
+ * page's own width instead of negative margins: `-mx-4` made the bar two gutters
+ * wider than the rent banner and the search box below it, and pushed the last
+ * internal edge out of the clipped container on a phone. The internal dividers
+ * are explicit `border-e` rules on tabs 1–3: `divide-x` could leave the
+ * ماشین‌آلات | قطعات edge unpainted, while a logical end border is exactly
  * one line after every tab in RTL and LTR, on phone and desktop.
  *
  * Every tab prefetches its route so stepping between the four browse pages is
@@ -34,11 +36,11 @@ export function CategorySwitch() {
   const { t } = useI18n();
 
   return (
-    <nav aria-label={t('دسته‌بندی‌ها', 'Categories')} className="-mx-4 mt-3 sm:mx-0">
+    <nav aria-label={t('دسته‌بندی‌ها', 'Categories')} className="mt-3 w-full">
       {/* One closed strip: the grid itself carries the rounding, the outer
           border and the clipping, so all four tabs plus every divider between
           them sit inside the same symmetrical edge on phone and desktop. */}
-      <ul className="grid grid-cols-4 overflow-hidden rounded-xl border border-line bg-[#F4F1EC] dark:border-white/10 dark:bg-[#111144]">
+      <ul className="grid w-full grid-cols-4 overflow-hidden rounded-xl border border-line bg-[#F4F1EC] dark:border-white/10 dark:bg-[#111144]">
         {CATEGORIES.map((item, index) => {
           const active = pathname === item.href || pathname.startsWith(`${item.href}/`);
           const divided = index < CATEGORIES.length - 1;

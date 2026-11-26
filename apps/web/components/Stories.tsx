@@ -10,7 +10,7 @@ import { Icon } from './Icon';
 import { isPreSizedSource } from '@/lib/images';
 import { storyImageFallback } from '@/lib/story-images';
 import { mediaExtension } from '@/lib/media-rules';
-import { processListingMedia } from '@/lib/photos';
+import { processStoryMedia } from '@/lib/photos';
 import { useI18n } from '@/lib/i18n';
 
 const StoryViewer = dynamic(
@@ -112,7 +112,7 @@ export function Stories({ stories, label = 'داستان‌های آگهی' }: {
     if (!file) return;
     setPickerError(null);
     try {
-      const processed = await processListingMedia(file);
+      const processed = await processStoryMedia(file);
       if (!processed.blob) throw new Error(t('خواندن رسانه ممکن نشد.', 'Could not read that media.'));
       setDraft({
         previewUrl: processed.previewUrl,
@@ -305,7 +305,7 @@ function StoryComposer({
       );
       form.append('width', String(media.width));
       form.append('height', String(media.height));
-      // The bytes are already compressed to ≤1280px / 0.8 by the photo pipeline,
+      // The bytes left the canvas as a ≤1080px / 0.8 JPEG (a few hundred KB),
       // so a slow LTE request finishes well inside this budget. A request that
       // does not answer is reported as a timeout, not left spinning.
       const controller = new AbortController();
@@ -324,30 +324,38 @@ function StoryComposer({
                 'بارگذاری استوری بیش از حد طول کشید؛ اتصال اینترنت را بررسی کنید و دوباره تلاش کنید.',
                 'The story upload timed out; check your connection and try again.',
               )
-            : t('ارتباط با سرور برقرار نشد.', 'Could not connect to the server.'),
+            : t(
+                `ارتباط با سرور برقرار نشد: ${err instanceof Error ? err.message : String(err)}`,
+                `Could not reach the server: ${err instanceof Error ? err.message : String(err)}`,
+              ),
         );
         return;
       } finally {
         clearTimeout(timer);
       }
-      const uploaded = (await upload.json().catch(() => ({}))) as {
-        url?: string;
-        error?: string;
-      };
+      // Read the body as text first: an edge refusal (413) is plain text, not
+      // JSON, and discarding it is what turned every failure into a generic
+      // message. The modal shows the status and the server's own words.
+      const raw = await upload.text().catch(() => '');
+      let uploaded: { url?: string; error?: string } = {};
+      try {
+        uploaded = JSON.parse(raw) as { url?: string; error?: string };
+      } catch {
+        // Not JSON: `raw` already holds the server/proxy message.
+      }
       if (!upload.ok || !uploaded.url) {
-        // Show what the server actually said; a 413 is a size refusal, not a
-        // dropped connection, and the user needs to know which it was.
+        const serverText =
+          uploaded.error?.trim() ||
+          raw
+            .replace(/<[^>]*>/g, ' ')
+            .replace(/\s+/g, ' ')
+            .trim()
+            .slice(0, 240);
         setError(
-          uploaded.error ??
-            (upload.status === 413
-              ? t(
-                  'حجم رسانه پس از فشرده‌سازی بیش از حد مجاز است (خطای 413).',
-                  'The media is still too large after compression (413).',
-                )
-              : t(
-                  `بارگذاری رسانه انجام نشد (خطای ${upload.status}).`,
-                  `Could not upload the media (HTTP ${upload.status}).`,
-                )),
+          t(
+            `بارگذاری رسانه ناموفق بود (HTTP ${upload.status})${serverText ? `: ${serverText}` : ''}`,
+            `Media upload failed (HTTP ${upload.status})${serverText ? `: ${serverText}` : ''}`,
+          ),
         );
         return;
       }
@@ -365,7 +373,13 @@ function StoryComposer({
             : (displayName ?? 'استوری Ali Sales'),
         }),
       });
-      const body = (await res.json().catch(() => ({}))) as { ok?: boolean; error?: string };
+      const rawStory = await res.text().catch(() => '');
+      let body: { ok?: boolean; error?: string } = {};
+      try {
+        body = JSON.parse(rawStory) as { ok?: boolean; error?: string };
+      } catch {
+        // Not JSON: keep the raw text as the server's message.
+      }
       if (!res.ok) {
         // The story row failed; remove the just-uploaded object instead of
         // leaving an orphan in the story bucket.
@@ -374,7 +388,13 @@ function StoryComposer({
           headers: { 'content-type': 'application/json' },
           body: JSON.stringify({ url: uploaded.url }),
         });
-        setError(body.error ?? t('ثبت استوری انجام نشد.', 'Could not publish the story.'));
+        const serverText = body.error?.trim() || rawStory.trim().slice(0, 240);
+        setError(
+          t(
+            `ثبت استوری انجام نشد (HTTP ${res.status})${serverText ? `: ${serverText}` : ''}`,
+            `Could not publish the story (HTTP ${res.status})${serverText ? `: ${serverText}` : ''}`,
+          ),
+        );
         return;
       }
       onPublished();

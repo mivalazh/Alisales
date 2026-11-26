@@ -30,10 +30,23 @@ export function StoryViewer({
   const [index, setIndex] = useState(startIndex);
   const [progress, setProgress] = useState(0);
   const [muted, setMuted] = useState(true);
+  // The frame is not painted yet: show the blurred thumbnail instead of the
+  // video element's black first frame (and hold the progress bar). Keyed by
+  // slug so the next story never inherits the previous one's ready state.
+  const [readySlug, setReadySlug] = useState<string | null>(null);
   const timer = useRef<number | null>(null);
   const active = stories[index];
+  const ready = Boolean(active && readySlug === active.slug);
   const fallback = active ? storyImageFallback(active.slug) : '';
   const [imageSrc, setImageSrc] = useState(active?.coverUrl || fallback);
+
+  // An uploaded clip stores the video URL as its cover too, so the poster is a
+  // real image only when the two differ; otherwise the local fallback paints.
+  const posterSrc = active?.videoUrl
+    ? active.coverUrl && active.coverUrl !== active.videoUrl
+      ? active.coverUrl
+      : fallback
+    : active?.coverUrl || fallback;
 
   useEffect(() => {
     setImageSrc(active?.coverUrl || fallback);
@@ -51,9 +64,17 @@ export function StoryViewer({
 
   const prev = () => setIndex((current) => Math.max(0, current - 1));
 
-  // Auto-advance: one tick per 50ms, reset per story.
+  // A new story starts behind its thumbnail until its media reports ready.
   useEffect(() => {
     setProgress(0);
+  }, [index]);
+
+  // Auto-advance: one tick per 50ms, reset per story. Parked until the media
+  // paints, so a phone on a slow connection never spends the story's five
+  // seconds on a black screen.
+  useEffect(() => {
+    setProgress(0);
+    if (!ready) return;
     const started = Date.now();
     if (timer.current) window.clearInterval(timer.current);
     timer.current = window.setInterval(() => {
@@ -64,7 +85,7 @@ export function StoryViewer({
     return () => {
       if (timer.current) window.clearInterval(timer.current);
     };
-  }, [index, next]);
+  }, [index, ready, next]);
 
   useEffect(() => {
     const onKey = (event: KeyboardEvent) => {
@@ -135,27 +156,60 @@ export function StoryViewer({
           </button>
         </div>
 
+        {!ready && (
+          <div
+            aria-hidden="true"
+            className="pointer-events-none absolute inset-0 z-10 overflow-hidden"
+          >
+            <Image
+              src={posterSrc}
+              alt=""
+              fill
+              sizes="420px"
+              referrerPolicy="no-referrer"
+              unoptimized={isPreSizedSource(posterSrc)}
+              className="scale-105 object-cover blur-md"
+            />
+            <span className="absolute inset-0 flex items-center justify-center">
+              <span className="h-9 w-9 animate-spin rounded-full border-2 border-white/25 border-t-white" />
+            </span>
+          </div>
+        )}
+
         {active.videoUrl ? (
           <video
-            key={active.videoUrl}
+            key={active.slug}
             src={active.videoUrl}
             autoPlay
             playsInline
             muted={muted}
-            className="h-full w-full object-cover"
+            preload="auto"
+            onLoadedData={() => setReadySlug(active.slug)}
+            onError={() => setReadySlug(active.slug)}
+            className={`h-full w-full object-cover transition-opacity duration-200 ${
+              ready ? 'opacity-100' : 'opacity-0'
+            }`}
           />
         ) : (
           <Image
+            key={active.slug}
             src={imageSrc}
             alt={active.title}
             fill
             sizes="420px"
             referrerPolicy="no-referrer"
             unoptimized={isPreSizedSource(imageSrc)}
+            onLoad={() => setReadySlug(active.slug)}
             onError={() => {
-              if (imageSrc !== fallback) setImageSrc(fallback);
+              if (imageSrc !== fallback) {
+                setImageSrc(fallback);
+              } else {
+                setReadySlug(active.slug);
+              }
             }}
-            className="object-cover"
+            className={`object-cover transition-opacity duration-200 ${
+              ready ? 'opacity-100' : 'opacity-0'
+            }`}
           />
         )}
 

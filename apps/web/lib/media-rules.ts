@@ -4,7 +4,7 @@ import { ALLOWED_PHOTO_MIME, ALLOWED_VIDEO_MIME } from '@alisales/schemas';
  * Profile/story media rules shared by the browser, upload routes and tests.
  *
  * Images are compressed client-side before upload (avatars 320px, covers
- * 1280px, stories 1600px). The server still enforces type/size/dimension limits
+ * 1280px, stories 1080px JPEG). The server still enforces type/size/dimension limits
  * and re-checks that a submitted story URL belongs to its own bucket.
  */
 
