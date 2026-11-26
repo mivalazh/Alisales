@@ -56,7 +56,7 @@ import { ListingCard } from './ListingCard';
 import { DeleteListingButton } from './DeleteListingButton';
 import { CustomSelect, type SelectOption } from './CustomSelect';
 import { YearGridSelect } from './YearGridSelect';
-import { Icon } from './Icon';
+import { Icon, type IconName } from './Icon';
 import { PhotoUploader } from './PhotoUploader';
 import { PriceEstimateHelper } from './PriceEstimateHelper';
 import { PriceText } from './PriceText';
@@ -134,31 +134,12 @@ type ListingMode = 'vehicle' | 'part';
 const CATEGORY_OPTIONS: ReadonlyArray<{
   key: VehicleCategory;
   label: string;
-  hint: string;
   en: string;
-  enHint: string;
+  icon: IconName;
 }> = [
-  {
-    key: 'car',
-    label: 'خودرو',
-    hint: 'سواری، شاسی‌بلند و وارداتی',
-    en: 'Vehicles',
-    enHint: 'Cars, SUVs and imports',
-  },
-  {
-    key: 'motorcycle',
-    label: 'موتور و اسکوتر برقی',
-    hint: 'اسکوتر و موتور برقی، اسپرت و کلاسیک',
-    en: 'Electric Scooters & Bikes',
-    enHint: 'Electric scooters, sport and classic bikes',
-  },
-  {
-    key: 'heavy',
-    label: 'ماشین‌آلات سنگین',
-    hint: 'کامیون، کشنده و راه‌سازی',
-    en: 'Heavy Machinery',
-    enHint: 'Trucks, tractor units and construction equipment',
-  },
+  { key: 'car', label: 'خودرو', en: 'Vehicles', icon: 'car' },
+  { key: 'motorcycle', label: 'موتور برقی', en: 'Electric bikes', icon: 'mileage' },
+  { key: 'heavy', label: 'ماشین‌آلات سنگین', en: 'Heavy machinery', icon: 'gear' },
 ];
 
 const BODY_EN: Record<string, string> = {
@@ -1246,10 +1227,12 @@ export function ListingForm() {
   const previewIrr = priceIRR();
   const hasPreviewPrice = Number.isFinite(previewIrr) && previewIrr > 0;
   const previewCover = photos[0]?.previewUrl ?? photos[0]?.url ?? null;
-  const previewTitle =
+  // The preview is a numeric surface: years, prices and mileage stay Latin.
+  const previewTitle = toAsciiDigits(
     (mode === 'part' ? partDraft.title : draft.model).trim() ||
-    t('عنوان آگهی', 'Listing title');
-  const previewOverline =
+      t('عنوان آگهی', 'Listing title'),
+  );
+  const previewOverline = toAsciiDigits(
     mode === 'part'
       ? (partCategoryOptions.find((option) => option.value === partDraft.category)?.label ?? '')
       : [
@@ -1257,10 +1240,12 @@ export function ListingForm() {
             (lang === 'en' ? activeBrand?.latin : activeBrand?.label) ||
             '',
           draft.year,
+          draft.mileageKm.trim() ? `${toAsciiDigits(draft.mileageKm)} km` : '',
           conditionOptions.find((option) => option.value === draft.condition)?.label ?? '',
         ]
           .filter(Boolean)
-          .join(' · ');
+          .join(' · '),
+  );
   const requiredFields =
     mode === 'vehicle'
       ? [
@@ -1387,7 +1372,7 @@ export function ListingForm() {
     <form
       onSubmit={(e) => void handleSubmit(e)}
       noValidate
-      className="listing-entry mx-auto grid max-w-6xl grid-cols-1 gap-6 lg:grid-cols-[minmax(0,1fr)_360px] lg:items-start lg:gap-8"
+      className="listing-entry mx-auto grid max-w-7xl grid-cols-1 gap-6 lg:grid-cols-[minmax(0,1fr)_360px] lg:items-start lg:gap-8"
     >
       {/* Main column: one flat workspace split by hairlines, no nested cards. */}
       <div className="min-w-0 space-y-6">
@@ -1395,7 +1380,7 @@ export function ListingForm() {
 
         <Section title={t('دسته‌بندی آگهی', 'Listing category')} columns="two">
           <div
-            className="col-span-full grid gap-2 sm:grid-cols-2"
+            className="col-span-full grid max-w-xl grid-cols-2 gap-3 sm:grid-cols-4"
             role="group"
             aria-label={t('دسته‌بندی آگهی', 'Listing category')}
           >
@@ -1410,23 +1395,25 @@ export function ListingForm() {
                     switchMode('vehicle');
                     switchCategory(option.key);
                   }}
-                  className={`relative rounded-xl border p-3 text-start text-sm transition ${
+                  className={`relative flex aspect-square flex-col items-center justify-center gap-2 rounded-xl border p-2 text-center transition ${
                     active
-                      ? 'border-[#223382] bg-[#223382]/[0.06] font-extrabold text-ink dark:bg-white/10'
-                      : 'border-line bg-card text-muted hover:border-line-strong'
+                      ? 'border-[#111144] bg-[#111144]/[0.06] text-ink dark:border-[#F98513] dark:bg-white/10'
+                      : 'border-line bg-card text-muted hover:border-line-strong hover:text-ink'
                   }`}
                 >
                   {active && (
                     <span
                       aria-hidden="true"
-                      className="absolute end-3 top-3 flex h-4 w-4 items-center justify-center rounded-full bg-[#F98513] text-white"
-                    >
-                      <Icon name="check" size={10} />
-                    </span>
+                      className="absolute start-2.5 top-2.5 h-2 w-2 rounded-full bg-[#F98513]"
+                    />
                   )}
-                  <span className="block pe-5">{t(option.label, option.en)}</span>
-                  <span className="mt-0.5 block pe-5 text-[11px] font-bold text-faint">
-                    {t(option.hint, option.enHint)}
+                  <Icon
+                    name={option.icon}
+                    size={22}
+                    className={active ? 'text-[#111144] dark:text-[#F98513]' : ''}
+                  />
+                  <span className="text-xs font-extrabold leading-4">
+                    {t(option.label, option.en)}
                   </span>
                 </button>
               );
@@ -1435,25 +1422,25 @@ export function ListingForm() {
               type="button"
               aria-pressed={mode === 'part'}
               onClick={() => switchMode('part')}
-              className={`relative rounded-xl border p-3 text-start text-sm transition ${
+              className={`relative flex aspect-square flex-col items-center justify-center gap-2 rounded-xl border p-2 text-center transition ${
                 mode === 'part'
-                  ? 'border-[#223382] bg-[#223382]/[0.06] font-extrabold text-ink dark:bg-white/10'
-                  : 'border-line bg-card text-muted hover:border-line-strong'
+                  ? 'border-[#111144] bg-[#111144]/[0.06] text-ink dark:border-[#F98513] dark:bg-white/10'
+                  : 'border-line bg-card text-muted hover:border-line-strong hover:text-ink'
               }`}
             >
               {mode === 'part' && (
                 <span
                   aria-hidden="true"
-                  className="absolute end-3 top-3 flex h-4 w-4 items-center justify-center rounded-full bg-[#F98513] text-white"
-                >
-                  <Icon name="check" size={10} />
-                </span>
+                  className="absolute start-2.5 top-2.5 h-2 w-2 rounded-full bg-[#F98513]"
+                />
               )}
-              <span className="block pe-5">
-                {t('قطعه و لوازم جانبی', 'Spare Parts & Accessories')}
-              </span>
-              <span className="mt-0.5 block pe-5 text-[11px] font-bold text-faint">
-                {t('قطعات یدکی، بدنه و لوازم', 'Replacement parts, body panels and accessories')}
+              <Icon
+                name="tag"
+                size={22}
+                className={mode === 'part' ? 'text-[#111144] dark:text-[#F98513]' : ''}
+              />
+              <span className="text-xs font-extrabold leading-4">
+                {t('قطعات', 'Parts')}
               </span>
             </button>
           </div>

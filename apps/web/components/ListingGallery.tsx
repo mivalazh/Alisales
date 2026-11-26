@@ -36,9 +36,8 @@ export function ListingGallery({
 
   const go = (step: number) => setIndex((i) => (i + step + count) % count);
 
-  /** «۱ از ۳» — never «3 / 1» mirrored by the RTL paragraph direction. */
-  const numberFa = new Intl.NumberFormat('fa-IR');
-  const counterLabel = lang === 'en' ? `${index + 1} / ${count}` : `${numberFa.format(index + 1)} از ${numberFa.format(count)}`;
+  /** Latin digits in RTL reading order: «1 از 3», never a mirrored «3 / 1». */
+  const counterLabel = lang === 'en' ? `${index + 1} / ${count}` : `${index + 1} از ${count}`;
 
   // The fullscreen viewer is modal: the page behind it is inert, Tab stays on
   // the zoom/close controls and focus returns to the thumbnail that opened it.
