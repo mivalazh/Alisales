@@ -3,8 +3,6 @@ import { DEFAULT_FILTERS } from '@alisales/schemas';
 import { PartsCatalog, PartsCatalogFallback } from '@/components/PartsCatalog';
 import { CategorySwitch } from '@/components/CategorySwitch';
 import { searchPublicListings } from '@/lib/data/listings';
-import { approvedStories } from '@/lib/data/moderation';
-import { storiesFrom } from '@/lib/stories';
 import { staticMetadata } from '@/lib/i18n/metadata';
 
 /**
@@ -22,22 +20,10 @@ export const metadata = staticMetadata(
   '/parts',
 );
 
-/** Editorial parts highs for the parts rail (approved ones come first). */
-const PART_STORIES = [
-  'porsche-ceramic-brake-kit',
-  'land-cruiser-gearbox-part',
-  's-class-body-kit',
-  'bmw-turbocharger',
-  'cayenne-brake-kit-part',
-] as const;
-
 export default async function PartsPage() {
-  const [pool, approved] = await Promise.all([
-    searchPublicListings(DEFAULT_FILTERS),
-    approvedStories(),
-  ]);
+  const pool = await searchPublicListings(DEFAULT_FILTERS);
   const parts = pool.filter((listing) => listing.kind === 'part');
-  const stories = storiesFrom(parts, approved, PART_STORIES, 6);
+  const stories: never[] = [];
 
   return (
     <div className="space-y-4">

@@ -1,7 +1,12 @@
 import { NextResponse } from 'next/server';
 import { getSession } from '@/lib/auth/session';
 import { listingsBySeller } from '@/lib/data/s2-store';
-import { adminSettings, addStory, listStories } from '@/lib/data/platform-store';
+import {
+  adminSettings,
+  addStory,
+  listStories,
+  listStoriesByAuthor,
+} from '@/lib/data/platform-store';
 import { profileCustomization } from '@/lib/data/social-store';
 import { MAX_MEDIA_URL_CHARS, isStoryMediaUrl, ownsMediaUrl } from '@/lib/media-rules';
 import { dataUnavailableResponse } from '@/lib/http/data-unavailable';
@@ -50,8 +55,19 @@ export async function GET(): Promise<NextResponse> {
   }
 
   let mine: Array<{ slug: string; title: string; coverUrl: string | null }> = [];
+  let mineStories: Array<{
+    id: string;
+    title: string;
+    mediaUrl: string;
+    mediaKind: 'image' | 'video';
+    listingSlug: string | null;
+    status: string;
+  }> = [];
   if (session) {
-    const listings = await listingsBySeller(session.sub);
+    const [listings, own] = await Promise.all([
+      listingsBySeller(session.sub),
+      listStoriesByAuthor(session.sub),
+    ]);
     mine = listings
       .filter((listing) => listing.state === 'active')
       .slice(0, 12)
@@ -60,11 +76,20 @@ export async function GET(): Promise<NextResponse> {
         title: listing.part ? listing.part.title : `${listing.model} ${listing.year}`,
         coverUrl: listing.coverUrl,
       }));
+    mineStories = own.map((story) => ({
+      id: story.id,
+      title: story.title,
+      mediaUrl: story.mediaUrl,
+      mediaKind: story.mediaKind,
+      listingSlug: story.listingSlug,
+      status: story.status,
+    }));
   }
 
   return NextResponse.json({
     stories: approved,
     mine,
+    mineStories,
     paidGuard: settings.storyPaidGuard,
   });
 }

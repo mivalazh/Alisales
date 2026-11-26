@@ -14,8 +14,9 @@ import { averageRating, reviewsFor } from '@/lib/data/reviews';
 import { followedSellerIds, profileCustomization } from '@/lib/data/social-store';
 import { coverForSeller } from '@/lib/data/profile-cover';
 import { isPreSizedSource } from '@/lib/images';
-import { storiesFrom } from '@/lib/stories';
+import { listStoriesByAuthor } from '@/lib/data/platform-store';
 import { Icon, type IconName } from '@/components/Icon';
+import { ProfileStories } from '@/components/ProfileStories';
 import { LogoutButton } from '@/components/LogoutButton';
 import { DataUnavailableNotice } from '@/components/DataUnavailableNotice';
 import { isDataUnavailable } from '@/lib/data/unavailable';
@@ -75,7 +76,13 @@ export default async function ProfilePage() {
   const isBusiness = profileMode === 'business';
   const active = listings.filter((listing) => listing.state === 'active');
   const rating = averageRating(reviews);
-  const stories = storiesFrom(active, [], [], 8);
+  // The profile lists the user's real story submissions, never their listings.
+  let myStories: Awaited<ReturnType<typeof listStoriesByAuthor>> = [];
+  try {
+    myStories = await listStoriesByAuthor(session.sub);
+  } catch {
+    // Stories are an enhancement; the profile still renders without them.
+  }
   const initial = (session.displayName ?? '?').trim().charAt(0) || '?';
 
   const followedIds = isBusiness ? await followedSellerIds(session.sub) : [];
@@ -107,9 +114,9 @@ export default async function ProfilePage() {
     icon: 'gear',
   };
   const storyShortcut: Shortcut = {
-    href: `/seller/${session.sub}?tab=stories`,
+    href: '#my-stories',
     label: t('استوری‌های من'),
-    hint: t(`${stories.length} استوری از آگهی‌های شما`),
+    hint: t(`${myStories.length} استوری منتشرشده`),
     icon: 'camera',
   };
 
@@ -223,8 +230,8 @@ export default async function ProfilePage() {
               },
               {
                 label: t('استوری‌ها'),
-                value: formatAmountLatin(stories.length),
-                href: `/seller/${session.sub}?tab=stories`,
+                value: formatAmountLatin(myStories.length),
+                href: '#my-stories',
                 tone: 'text-[#F98513]',
               },
             ].map((stat) => (
@@ -289,6 +296,17 @@ export default async function ProfilePage() {
           </Link>
         ))}
       </section>
+
+      <ProfileStories
+        initial={myStories.map((story) => ({
+          id: story.id,
+          title: story.title,
+          mediaUrl: story.mediaUrl,
+          mediaKind: story.mediaKind,
+          listingSlug: story.listingSlug,
+          status: story.status,
+        }))}
+      />
 
       <section className="rounded-card border border-line bg-card p-4">
         <LogoutButton />

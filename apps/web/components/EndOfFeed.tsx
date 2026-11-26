@@ -8,7 +8,8 @@ export function EndOfFeed({ count }: { count: number }) {
   if (count === 0) return null;
 
   return (
-    <div className="mt-6">
+    // `pb-28` clears the floating centre «+» and the tab bar on phones.
+    <div className="mt-6 pb-28 sm:pb-0">
       <div className="flex items-center gap-3">
         <span aria-hidden className="h-px flex-1 bg-line" />
         <span className="inline-flex items-center gap-2 rounded-full border border-line bg-card px-4 py-2 text-center text-[11px] font-bold text-muted sm:text-xs">

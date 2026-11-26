@@ -3,8 +3,6 @@ import { DEFAULT_FILTERS } from '@alisales/schemas';
 import { CategoryCatalog, CategoryCatalogFallback } from '@/components/CategoryCatalog';
 import { CategorySwitch } from '@/components/CategorySwitch';
 import { searchPublicListings } from '@/lib/data/listings';
-import { approvedStories } from '@/lib/data/moderation';
-import { storiesFrom } from '@/lib/stories';
 import { staticMetadata } from '@/lib/i18n/metadata';
 
 /** «موتور و اسکوتر برقی» — static pool, URL-driven filters (see /cars). */
@@ -16,19 +14,10 @@ export const metadata = staticMetadata(
   '/motorcycles',
 );
 
-const BIKE_STORIES = [
-  'yamaha-mt09-kish',
-  'honda-cbr500r-kish',
-  'kawasaki-ninja400-tehran',
-  'harley-sportster-s-kish',
-] as const;
-
 export default async function MotorcyclesPage() {
-  const [pool, approved] = await Promise.all([
-    searchPublicListings(DEFAULT_FILTERS, 'motorcycle'),
-    approvedStories(),
-  ]);
-  const stories = storiesFrom(pool, approved, BIKE_STORIES, 6);
+  const pool = await searchPublicListings(DEFAULT_FILTERS, 'motorcycle');
+  // Only user-submitted stories reach the rail; listings are not stories.
+  const stories: never[] = [];
 
   return (
     <div className="space-y-4">

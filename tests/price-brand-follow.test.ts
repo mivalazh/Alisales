@@ -15,7 +15,6 @@ import {
   removedListingIds,
 } from '../apps/web/lib/data/dev-store';
 import { readJson, writeJson } from '../apps/web/lib/storage/demo-store';
-import { storiesFrom } from '../apps/web/lib/stories';
 import type { ListingCardData } from '../apps/web/lib/data/listings';
 
 const ROOT = join(__dirname, '..');
@@ -117,16 +116,5 @@ describe('follow priority', () => {
   it('counts followed listings without reordering', () => {
     expect(followedListingCount(feed, ['seller-a'])).toBe(2);
     expect(followedListingCount(feed, [])).toBe(0);
-  });
-
-  it('puts followed sellers at the front of the story rail', () => {
-    const listings = [
-      card('editorial', 'seller-b', '/a.webp'),
-      card('followed', 'seller-a', '/b.webp'),
-      card('other', 'seller-c', '/c.webp'),
-    ];
-    const stories = storiesFrom(listings, [], ['editorial'], 6, ['seller-a']);
-    expect(stories[0]?.slug).toBe('followed');
-    expect(stories.map((s) => s.slug)).toContain('editorial');
   });
 });

@@ -3,8 +3,6 @@ import { Suspense } from 'react';
 import { DEFAULT_FILTERS } from '@alisales/schemas';
 import { HomeCatalogue, HomeCatalogueFallback } from '@/components/HomeCatalogue';
 import { searchPublicListings } from '@/lib/data/listings';
-import { approvedStories } from '@/lib/data/moderation';
-import { storiesFrom } from '@/lib/stories';
 import { absoluteUrl, RENTAL_URL, SITE_URL } from '@/lib/seo';
 
 /**
@@ -17,25 +15,16 @@ import { absoluteUrl, RENTAL_URL, SITE_URL } from '@/lib/seo';
  */
 export const revalidate = 60;
 
-/** Approved demo highs for the story rail — one per luxury listing. */
-const STORY_SLUGS = [
-  'land-cruiser-kish',
-  'patrol-platinum-kish',
-  's-class-kish',
-  'cayenne-kish',
-] as const;
-
 export const metadata: Metadata = {
   alternates: { canonical: '/' },
   openGraph: { url: absoluteUrl('/') },
 };
 
 export default async function HomePage() {
-  const [pool, approved] = await Promise.all([
-    searchPublicListings(DEFAULT_FILTERS),
-    approvedStories(),
-  ]);
-  const stories = storiesFrom(pool, approved, STORY_SLUGS, 4);
+  const pool = await searchPublicListings(DEFAULT_FILTERS);
+  // The rail carries only user-submitted stories (fetched client-side from
+  // `/api/stories`); listings never become story circles on their own.
+  const stories: never[] = [];
 
   return (
     <>

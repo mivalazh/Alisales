@@ -374,10 +374,11 @@ function BrandPicker({
                   brand.slug === value ? 'bg-cta-soft text-ink' : 'text-muted'
                 }`}
               >
-                <span>{brand.latin}</span>
-                <span dir="ltr" className="text-[11px] font-bold text-faint">
+                {/* Persian on the RTL start (right), Latin on the LTR end. */}
+                <span className="truncate font-extrabold">{brand.label}</span>
+                <bdi dir="ltr" className="shrink-0 text-[11px] font-bold text-faint">
                   {brand.latin}
-                </span>
+                </bdi>
               </button>
             </li>
           ))}

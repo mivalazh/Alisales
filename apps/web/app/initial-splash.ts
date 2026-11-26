@@ -33,8 +33,8 @@ export const INITIAL_SPLASH_CSS = `
 /* Paint the document itself before any stylesheet arrives. On iOS the web
    view is white until the document has a background, which is exactly the
    blank flash a cold PWA launch shows. */
-html{background:#F4F1EC}
-html[data-theme='dark']{background:#111144}
+html,body{background:#F4F1EC}
+html[data-theme='dark'],html[data-theme='dark'] body{background:#111144}
 /* Off everywhere until a phone viewport opts in below. */
 #ali-initial-splash{display:none}
 @media (max-width:767px){
@@ -59,15 +59,15 @@ html[data-splash-seen] #ali-initial-splash{display:none!important}
 #ali-initial-splash .ali-splash-letter{display:inline-block;color:#111144;opacity:0;transform-origin:50% 100%;animation:ali-splash-letter 560ms cubic-bezier(.34,1.56,.64,1) both}
 #ali-initial-splash .ali-splash-letter--sales{color:#F98513}
 #ali-initial-splash .ali-splash-space{display:inline-block;width:.34em}
-/* 62ms stagger over ALI then SALES, starting as the emblem settles. */
+/* 55ms stagger over ALI then SALES, starting as the emblem settles. */
 #ali-initial-splash .ali-splash-letter:nth-child(1){animation-delay:230ms}
-#ali-initial-splash .ali-splash-letter:nth-child(2){animation-delay:292ms}
-#ali-initial-splash .ali-splash-letter:nth-child(3){animation-delay:354ms}
-#ali-initial-splash .ali-splash-letter:nth-child(5){animation-delay:416ms}
-#ali-initial-splash .ali-splash-letter:nth-child(6){animation-delay:478ms}
-#ali-initial-splash .ali-splash-letter:nth-child(7){animation-delay:540ms}
-#ali-initial-splash .ali-splash-letter:nth-child(8){animation-delay:602ms}
-#ali-initial-splash .ali-splash-letter:nth-child(9){animation-delay:664ms}
+#ali-initial-splash .ali-splash-letter:nth-child(2){animation-delay:285ms}
+#ali-initial-splash .ali-splash-letter:nth-child(3){animation-delay:340ms}
+#ali-initial-splash .ali-splash-letter:nth-child(5){animation-delay:395ms}
+#ali-initial-splash .ali-splash-letter:nth-child(6){animation-delay:450ms}
+#ali-initial-splash .ali-splash-letter:nth-child(7){animation-delay:505ms}
+#ali-initial-splash .ali-splash-letter:nth-child(8){animation-delay:560ms}
+#ali-initial-splash .ali-splash-letter:nth-child(9){animation-delay:615ms}
 #ali-initial-splash .ali-splash-sweep{position:absolute;top:-25%;bottom:-25%;left:0;width:38%;opacity:0;pointer-events:none;background:linear-gradient(100deg,rgba(249,133,19,0) 0%,rgba(249,133,19,.85) 48%,rgba(255,232,199,.95) 62%,rgba(249,133,19,0) 100%);filter:blur(1px);transform:translateX(-160%) skewX(-18deg);animation:ali-splash-sweep 760ms cubic-bezier(.4,0,.2,1) 430ms both}
 @keyframes ali-splash-mark{0%{opacity:0;transform:scale(.9) translateY(10px)}100%{opacity:1;transform:scale(1) translateY(0)}}
 @keyframes ali-splash-path{0%{opacity:0;transform:translateY(10px) scale(.96)}100%{opacity:1;transform:translateY(0) scale(1)}}

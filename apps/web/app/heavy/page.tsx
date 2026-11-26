@@ -3,8 +3,6 @@ import { DEFAULT_FILTERS } from '@alisales/schemas';
 import { CategoryCatalog, CategoryCatalogFallback } from '@/components/CategoryCatalog';
 import { CategorySwitch } from '@/components/CategorySwitch';
 import { searchPublicListings } from '@/lib/data/listings';
-import { approvedStories } from '@/lib/data/moderation';
-import { storiesFrom } from '@/lib/stories';
 import { staticMetadata } from '@/lib/i18n/metadata';
 
 /** «ماشین‌آلات سنگین» — static pool, URL-driven filters (see /cars). */
@@ -16,19 +14,10 @@ export const metadata = staticMetadata(
   '/heavy',
 );
 
-const HEAVY_STORIES = [
-  'volvo-fh16-kish',
-  'scania-r500-kish',
-  'caterpillar-320d-kish',
-  'howo-a7-dump-kish',
-] as const;
-
 export default async function HeavyPage() {
-  const [pool, approved] = await Promise.all([
-    searchPublicListings(DEFAULT_FILTERS, 'heavy'),
-    approvedStories(),
-  ]);
-  const stories = storiesFrom(pool, approved, HEAVY_STORIES, 6);
+  const pool = await searchPublicListings(DEFAULT_FILTERS, 'heavy');
+  // Only user-submitted stories reach the rail; listings are not stories.
+  const stories: never[] = [];
 
   return (
     <div className="space-y-4">

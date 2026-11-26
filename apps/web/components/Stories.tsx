@@ -19,6 +19,8 @@ const StoryViewer = dynamic(
 );
 
 export interface StoryItem {
+  /** `story_submissions.id` — present for real stories, absent for legacy rails. */
+  id?: string;
   slug: string;
   title: string;
   coverUrl: string;
@@ -27,6 +29,10 @@ export interface StoryItem {
   brand?: string;
   /** Optional clip: when present the viewer plays it instead of the still. */
   videoUrl?: string;
+  /** Author account id — the viewer offers delete only to this user. */
+  authorId?: string;
+  /** The listing the story points at; without it there is no «مشاهده آگهی». */
+  listingSlug?: string | null;
 }
 
 /**
@@ -44,6 +50,7 @@ export function Stories({ stories, label = 'داستان‌های آگهی' }: {
   const [openIndex, setOpenIndex] = useState<number | null>(null);
   const [composerOpen, setComposerOpen] = useState(false);
   const [displayName, setDisplayName] = useState<string | null>(null);
+  const [currentUserId, setCurrentUserId] = useState<string | null>(null);
   const [mine, setMine] = useState<StoryListingOption[]>([]);
   const [created, setCreated] = useState<StoryItem[]>([]);
   const [draft, setDraft] = useState<StoryDraft | null>(null);
@@ -70,6 +77,7 @@ export function Stories({ stories, label = 'داستان‌های آگهی' }: {
       setMine(body.mine ?? []);
       setCreated(
         (body.stories ?? []).map((story) => ({
+          id: story.id,
           slug: `story-${story.id}`,
           title: story.title,
           coverUrl: story.mediaUrl,
@@ -78,6 +86,8 @@ export function Stories({ stories, label = 'داستان‌های آگهی' }: {
             : story.authorProfilePublic
               ? `/seller/${story.authorId}`
               : '/',
+          authorId: story.authorId,
+          listingSlug: story.listingSlug,
           ...(story.mediaKind === 'video' ? { videoUrl: story.mediaUrl } : {}),
         })),
       );
@@ -93,6 +103,7 @@ export function Stories({ stories, label = 'داستان‌های آگهی' }: {
       .then((body: { user?: { id?: string; displayName?: string | null } } | null) => {
         if (alive && body?.user) {
           setDisplayName(body.user.displayName ?? '');
+          setCurrentUserId(body.user.id ?? null);
         }
       })
       .catch(() => undefined);
@@ -103,6 +114,19 @@ export function Stories({ stories, label = 'داستان‌های آگهی' }: {
   }, [loadStories]);
 
   const rail = [...created, ...stories];
+
+  /** Owner-initiated delete: the row and its stored media both go server-side. */
+  const deleteStory = async (story: StoryItem): Promise<void> => {
+    if (!story.id) return;
+    const res = await fetch(`/api/stories/${encodeURIComponent(story.id)}`, {
+      method: 'DELETE',
+    });
+    if (!res.ok) {
+      const body = (await res.json().catch(() => ({}))) as { error?: string };
+      throw new Error(body.error || `HTTP ${res.status}`);
+    }
+    setCreated((list) => list.filter((item) => item.id !== story.id));
+  };
 
   const openAdd = () => {
     gallery.request(() => mediaInput.current?.click());
@@ -184,6 +208,8 @@ export function Stories({ stories, label = 'داستان‌های آگهی' }: {
         <StoryViewer
           stories={rail}
           startIndex={openIndex}
+          currentUserId={currentUserId}
+          onDelete={deleteStory}
           onClose={() => setOpenIndex(null)}
         />
       )}

@@ -8,11 +8,10 @@ import { adminCenterData } from './admin-center';
 import { moderationQueues } from './moderation';
 import { loadSellerProfile } from './seller-profile';
 import { devListings } from './dev-store';
-import { storiesFrom } from '../stories';
 
 /**
  * Launch-switch regression: with the demo seed hidden, the seller, admin,
- * moderation and story surfaces must all drop the fixtures while keeping a
+ * moderation and profile surfaces must all drop the fixtures while keeping a
  * user-created row. The row lives in an isolated real demo data directory, so
  * the fixture/live composition runs without mocking the data layer.
  */
@@ -65,9 +64,7 @@ describe('demo seed switch across server surfaces', () => {
     const profile = await loadSellerProfile(userListing.sellerId);
     expect(profile?.profileMode).toBe('personal');
     expect(profile?.listings.map((listing) => listing.id)).toEqual([userListing.id]);
-    expect(profile?.stories.map((story) => story.slug)).toEqual([userListing.slug]);
-
-    const rail = storiesFrom(visibleCatalog(fixtureListings, devListings()), [], [], 20);
-    expect(rail.map((story) => story.slug)).toEqual([userListing.slug]);
+    // A rail is built only from real story submissions, never from listings.
+    expect(profile?.stories).toEqual([]);
   });
 });

@@ -8,8 +8,6 @@ import { getSession } from './auth/session';
 import { followedSellerIds } from './data/social-store';
 import { boostFollowed } from './follow-priority';
 import { searchListings, type ListingCardData } from './data/listings';
-import { approvedStories } from './data/moderation';
-import { storiesFrom } from './stories';
 import { parseSortKey, type SortKey } from './sort';
 
 /**
@@ -58,19 +56,18 @@ export async function loadCategoryPage(
   const session = await getSession();
   const followed = await followedSellerIds(session?.sub);
 
-  const [listings, categoryPool, approved] = await Promise.all([
+  const [listings, categoryPool] = await Promise.all([
     searchListings(filters, category),
     searchListings(DEFAULT_FILTERS, category),
-    approvedStories(),
   ]);
-
-  const stories = storiesFrom(categoryPool, approved, STORIES[category], 6, followed);
 
   return {
     filters,
     sort,
     listings: boostFollowed(listings, followed),
     pool: categoryPool,
-    stories,
+    // The rail is fed by user-submitted stories in the client, never by the
+    // category's listings.
+    stories: [],
   };
 }

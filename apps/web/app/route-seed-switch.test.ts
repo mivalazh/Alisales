@@ -210,11 +210,12 @@ const sampleSeed = fixtureListings.find((listing) => listing.slug === 'land-crui
 const user = devListings()[0]!;
 
 describe('flag-on routes', () => {
-  it('home renders only the user-created story and listing', async () => {
+  it('home renders the user listing and no listing-derived story circles', async () => {
     const html = renderToStaticMarkup(await HomePage());
 
-    expect(html).toContain('data-story="user-created-listing"');
     expect(html).toContain('user-created-listing');
+    // The rail is fed by real submissions after hydration, never by listings.
+    expect(html).not.toContain('data-story="user-created-listing"');
     expect(html).not.toContain('data-story="land-cruiser-kish"');
     expect(html).not.toContain('Land Cruiser VXR');
   });

@@ -1,7 +1,6 @@
 import { afterEach, describe, expect, it, vi } from 'vitest';
 import { fixtureListings } from './fixtures';
 import { visibleCatalog } from './demo-seed';
-import { storiesFrom } from '../stories';
 import type { ListingCardData } from './listings';
 
 const ENV_KEY = 'NEXT_PUBLIC_HIDE_DEMO_LISTINGS';
@@ -32,16 +31,6 @@ describe('demo listing launch switch', () => {
     expect(visible.map((listing) => listing.id)).toEqual(['user-created-listing']);
     expect(visible.some((listing) => listing.sellerId === 'user-created-seller')).toBe(true);
     expect(visible.some((listing) => fixtureListings.some((seed) => seed.id === listing.id))).toBe(false);
-  });
-
-  it('drops seeded story picks while keeping user-created stories', () => {
-    process.env[ENV_KEY] = 'true';
-
-    const cases = visibleCatalog(fixtureListings, [userListing]);
-    const stories = storiesFrom(cases, [], [sampleSeed.slug], 8);
-
-    expect(stories.map((story) => story.slug)).toEqual(['user-created-listing']);
-    expect(stories.some((story) => story.slug === sampleSeed.slug)).toBe(false);
   });
 
   it('keeps the seeded catalogue in development while the flag is unset', () => {

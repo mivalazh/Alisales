@@ -6,7 +6,7 @@ import { devListings } from './dev-store';
 import { visibleCatalog } from './demo-seed';
 import { profileCustomization } from './social-store';
 import { coverForSeller } from './profile-cover';
-import { storiesFrom } from '../stories';
+import { listStoriesByAuthor } from './platform-store';
 import type { StoryItem } from '@/components/Stories';
 import type { ProfileMode } from '@alisales/schemas';
 import { resolveSellerProfileMode } from '../seller-visibility';
@@ -63,10 +63,11 @@ export async function loadSellerProfile(sellerId: string): Promise<SellerProfile
     : visibleCatalog(fixtureListings, devListings()).filter((listing) => listing.sellerId === sellerId);
   if (!account && listings.length === 0) return null;
 
-  const [reviews, phone, custom] = await Promise.all([
+  const [reviews, phone, custom, storyRows] = await Promise.all([
     reviewsFor(sellerId),
     accountPhone(sellerId),
     profileCustomization(sellerId),
+    listStoriesByAuthor(sellerId, 'approved').catch(() => []),
   ]);
 
   const active = listings.filter((listing) => listing.state === 'active');
@@ -80,8 +81,17 @@ export async function loadSellerProfile(sellerId: string): Promise<SellerProfile
     listings[0]?.showroomName?.trim() ||
     demo?.name ||
     'فروشنده آلی‌سیلز';
-  // The seller's own story rail: their live, photographed stock, newest first.
-  const stories = storiesFrom(active, [], [], 8);
+  // The seller's own rail: only stories they submitted, never their listings.
+  const stories: StoryItem[] = storyRows.map((story) => ({
+    id: story.id,
+    slug: `story-${story.id}`,
+    title: story.title,
+    coverUrl: story.mediaUrl,
+    href: story.listingSlug ? `/listing/${story.listingSlug}` : `/seller/${sellerId}`,
+    authorId: story.authorId,
+    listingSlug: story.listingSlug,
+    ...(story.mediaKind === 'video' ? { videoUrl: story.mediaUrl } : {}),
+  }));
   const rating = averageRating(reviews);
 
   // The seller's market: the city most of their listings are in.

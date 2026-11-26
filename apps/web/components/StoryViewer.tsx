@@ -20,16 +20,24 @@ const STORY_MS = 5200;
 export function StoryViewer({
   stories,
   startIndex,
+  currentUserId,
+  onDelete,
   onClose,
 }: {
   stories: StoryItem[];
   startIndex: number;
+  /** Signed-in account id; only this user sees the delete control. */
+  currentUserId?: string | null;
+  onDelete?: (story: StoryItem) => Promise<void> | void;
   onClose: () => void;
 }) {
   const { t } = useI18n();
   const [index, setIndex] = useState(startIndex);
   const [progress, setProgress] = useState(0);
   const [muted, setMuted] = useState(true);
+  const [confirmingDelete, setConfirmingDelete] = useState(false);
+  const [deleting, setDeleting] = useState(false);
+  const [deleteError, setDeleteError] = useState<string | null>(null);
   // The frame is not painted yet: show the blurred thumbnail instead of the
   // video element's black first frame (and hold the progress bar). Keyed by
   // slug so the next story never inherits the previous one's ready state.
@@ -67,6 +75,8 @@ export function StoryViewer({
   // A new story starts behind its thumbnail until its media reports ready.
   useEffect(() => {
     setProgress(0);
+    setConfirmingDelete(false);
+    setDeleteError(null);
   }, [index]);
 
   // Auto-advance: one tick per 50ms, reset per story. Parked until the media
@@ -102,6 +112,27 @@ export function StoryViewer({
     };
   }, [next, onClose]);
 
+  const own = Boolean(active && currentUserId && active.authorId === currentUserId && onDelete);
+  const linked = Boolean(active && (active.listingSlug || active.href.startsWith('/listing/')));
+
+  const removeStory = async () => {
+    if (!active || !onDelete || deleting) return;
+    setDeleting(true);
+    setDeleteError(null);
+    try {
+      await onDelete(active);
+      onClose();
+    } catch (error) {
+      setDeleteError(
+        error instanceof Error
+          ? error.message
+          : t('حذف استوری انجام نشد.', 'Could not delete the story.'),
+      );
+    } finally {
+      setDeleting(false);
+    }
+  };
+
   if (!active) return null;
 
   return (
@@ -135,17 +166,88 @@ export function StoryViewer({
           <div className="min-w-0 flex-1">
             <p className="truncate text-xs font-extrabold text-white">{active.title}</p>
             <p className="text-[10px] font-bold text-white/60">
-              {t('استوری آگهی', 'Listing story')}
+              {linked ? t('استوری آگهی', 'Listing story') : t('استوری', 'Story')}
             </p>
           </div>
-          <button
-            type="button"
-            onClick={() => setMuted((v) => !v)}
-            aria-label={muted ? t('صدا را روشن کن', 'Unmute') : t('صدا را قطع کن', 'Mute')}
-            className="flex h-8 items-center justify-center rounded-full bg-white/15 px-2 text-[10px] font-extrabold text-white"
-          >
-            {muted ? t('صدا قطع', 'Muted') : t('صدا روشن', 'Sound on')}
-          </button>
+          {/* Rendered for clips only: a static story has no sound to toggle. */}
+          {active.videoUrl && (
+            <button
+              type="button"
+              onClick={() => setMuted((v) => !v)}
+              aria-label={muted ? t('صدا را روشن کن', 'Unmute') : t('صدا را قطع کن', 'Mute')}
+              className="flex h-9 w-9 items-center justify-center rounded-full bg-white/15 text-white transition hover:bg-white/25"
+            >
+              <svg
+                viewBox="0 0 24 24"
+                width="17"
+                height="17"
+                fill="none"
+                stroke="currentColor"
+                strokeWidth="2"
+                strokeLinecap="round"
+                strokeLinejoin="round"
+                aria-hidden="true"
+              >
+                <polygon points="11 5 6 9 2 9 2 15 6 15 11 19 11 5" />
+                {muted ? (
+                  <>
+                    <line x1="23" y1="9" x2="17" y2="15" />
+                    <line x1="17" y1="9" x2="23" y2="15" />
+                  </>
+                ) : (
+                  <>
+                    <path d="M19.07 4.93a10 10 0 0 1 0 14.14" />
+                    <path d="M15.54 8.46a5 5 0 0 1 0 7.07" />
+                  </>
+                )}
+              </svg>
+            </button>
+          )}
+          {own &&
+            (confirmingDelete ? (
+              <div className="flex items-center gap-1">
+                <button
+                  type="button"
+                  onClick={() => void removeStory()}
+                  disabled={deleting}
+                  className="flex h-9 items-center justify-center rounded-full bg-red-600 px-3 text-[10px] font-extrabold text-white disabled:opacity-60"
+                >
+                  {deleting ? t('در حال حذف…', 'Deleting…') : t('حذف', 'Delete')}
+                </button>
+                <button
+                  type="button"
+                  onClick={() => setConfirmingDelete(false)}
+                  className="flex h-9 w-9 items-center justify-center rounded-full bg-white/15 text-white"
+                  aria-label={t('انصراف', 'Cancel')}
+                >
+                  <Icon name="close" size={14} />
+                </button>
+              </div>
+            ) : (
+              <button
+                type="button"
+                onClick={() => setConfirmingDelete(true)}
+                aria-label={t('حذف استوری', 'Delete story')}
+                className="flex h-9 w-9 items-center justify-center rounded-full bg-white/15 text-white transition hover:bg-red-600"
+              >
+                <svg
+                  viewBox="0 0 24 24"
+                  width="16"
+                  height="16"
+                  fill="none"
+                  stroke="currentColor"
+                  strokeWidth="2"
+                  strokeLinecap="round"
+                  strokeLinejoin="round"
+                  aria-hidden="true"
+                >
+                  <polyline points="3 6 5 6 21 6" />
+                  <path d="M19 6l-1 14a2 2 0 0 1-2 2H8a2 2 0 0 1-2-2L5 6" />
+                  <path d="M10 11v6M14 11v6" />
+                  <path d="M9 6V4a1 1 0 0 1 1-1h4a1 1 0 0 1 1 1v2" />
+                </svg>
+              </button>
+            ))}
           <button
             type="button"
             onClick={onClose}
@@ -155,6 +257,12 @@ export function StoryViewer({
             <Icon name="close" size={16} />
           </button>
         </div>
+
+        {deleteError && (
+          <p className="absolute inset-x-3 top-16 z-20 rounded-xl bg-red-600/90 px-3 py-2 text-[11px] font-bold text-white">
+            {deleteError}
+          </p>
+        )}
 
         {!ready && (
           <div
@@ -226,11 +334,13 @@ export function StoryViewer({
           className="absolute inset-y-16 start-0 w-1/2"
         />
 
-        <div className="absolute inset-x-3 bottom-3 z-20">
-          <a href={active.href} className="btn-cta w-full text-sm">
-            {t('مشاهده آگهی', 'View listing')}
-          </a>
-        </div>
+        {linked && (
+          <div className="absolute inset-x-3 bottom-3 z-20">
+            <a href={active.href} className="btn-cta w-full text-sm">
+              {t('مشاهده آگهی', 'View listing')}
+            </a>
+          </div>
+        )}
       </div>
     </div>
   );

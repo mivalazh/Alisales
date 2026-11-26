@@ -203,6 +203,28 @@ export async function listStories(
   }
 }
 
+/** One story row by id — ownership checks happen in the route. */
+export async function storyById(id: string): Promise<StorySubmission | null> {
+  const sb = admin();
+  if (!sb) return read().stories.find((story) => story.id === id) ?? null;
+  const { data, error } = await sb
+    .from('story_submissions')
+    .select(STORY_COLUMNS)
+    .eq('id', id)
+    .maybeSingle();
+  if (error) throw new Error(`read story failed: ${error.message}`);
+  return data ? mapStory(data as StoryRow) : null;
+}
+
+/** A seller's own stories, newest first — the profile list and its delete UI. */
+export async function listStoriesByAuthor(
+  authorId: string,
+  status?: StorySubmission['status'],
+): Promise<StorySubmission[]> {
+  const all = await listStories(status);
+  return all.filter((story) => story.authorId === authorId);
+}
+
 export async function addStory(
   input: Omit<StorySubmission, 'id' | 'createdAt' | 'status'>,
 ): Promise<StorySubmission> {

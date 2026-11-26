@@ -3,8 +3,6 @@ import { DEFAULT_FILTERS } from '@alisales/schemas';
 import { CategoryCatalog, CategoryCatalogFallback } from '@/components/CategoryCatalog';
 import { CategorySwitch } from '@/components/CategorySwitch';
 import { searchPublicListings } from '@/lib/data/listings';
-import { approvedStories } from '@/lib/data/moderation';
-import { storiesFrom } from '@/lib/stories';
 import { staticMetadata } from '@/lib/i18n/metadata';
 
 /**
@@ -22,20 +20,10 @@ export const metadata = staticMetadata(
   '/cars',
 );
 
-const CAR_STORIES = [
-  'land-cruiser-kish',
-  'patrol-platinum-kish',
-  's-class-kish',
-  'cayenne-kish',
-  'huracan-showroom',
-] as const;
-
 export default async function CarsPage() {
-  const [pool, approved] = await Promise.all([
-    searchPublicListings(DEFAULT_FILTERS, 'car'),
-    approvedStories(),
-  ]);
-  const stories = storiesFrom(pool, approved, CAR_STORIES, 6);
+  const pool = await searchPublicListings(DEFAULT_FILTERS, 'car');
+  // Only user-submitted stories reach the rail; listings are not stories.
+  const stories: never[] = [];
 
   return (
     <div className="space-y-4">

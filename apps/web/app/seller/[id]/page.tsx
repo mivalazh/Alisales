@@ -235,8 +235,8 @@ export default async function SellerPage({
             </p>
             <p className="mt-1 text-xs text-muted">
               {t(
-                'استوری‌ها از آگهی‌های فعال عکس‌دار ساخته می‌شوند.',
-                'Stories are created from active listings with photos.',
+                'این فروشنده هنوز استوری‌ای منتشر نکرده است.',
+                'This seller has not published a story yet.',
               )}
             </p>
           </div>

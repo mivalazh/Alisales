@@ -1,6 +1,5 @@
 import { describe, expect, it } from 'vitest';
 import { filterPartsByAttributes, parsePartCategory } from './browse';
-import { storiesFrom } from './stories';
 import type { ListingCardData } from './data/listings';
 
 function part(overrides: Partial<ListingCardData> = {}): ListingCardData {
@@ -76,26 +75,5 @@ describe('filterPartsByAttributes', () => {
   it('parses only known part categories from the URL', () => {
     expect(parsePartCategory('brake')).toBe('brake');
     expect(parsePartCategory('engines')).toBeNull();
-  });
-});
-
-describe('parts story rail', () => {
-  it('shows parts only, with approved stories pinned first', () => {
-    const vehicle = part({ id: 'v1', slug: 'v1', kind: 'vehicle', part: null });
-    const pool = [part({ slug: 'a' }), part({ slug: 'b' }), part({ slug: 'c' }), vehicle];
-
-    const stories = storiesFrom(pool, ['c'], ['a'], 3);
-    expect(stories.map((s) => s.slug)).toEqual(['c', 'a', 'b']);
-    expect(stories.every((s) => s.href.startsWith('/listing/'))).toBe(true);
-    expect(stories.some((s) => s.slug === 'v1')).toBe(false);
-  });
-
-  it('skips listings without a cover and never repeats one', () => {
-    const pool = [
-      part({ slug: 'a', coverUrl: null }),
-      part({ slug: 'b' }),
-      part({ slug: 'b' }),
-    ];
-    expect(storiesFrom(pool, ['b'], ['b'], 6).map((s) => s.slug)).toEqual(['b']);
   });
 });
