@@ -3,16 +3,21 @@
 import { useEffect, useRef, useState, type FormEvent } from 'react';
 import { useRouter } from 'next/navigation';
 import {
+  MAX_PHOTOS,
   aedToIRR,
-  groupDigits,
+  formatAmountLatin,
   irrToAED,
   irrToToman,
   toAsciiDigits,
   tomanToIRR,
-  toPersianDigits,
 } from '@alisales/schemas';
 import { Icon } from './Icon';
 import { PhotoUploader } from './PhotoUploader';
+import { FormField } from './listing-form/FormField';
+import { FormSection } from './listing-form/FormSection';
+import { SegmentedControl } from './listing-form/SegmentedControl';
+import { StickyPublishBar } from './listing-form/StickyPublishBar';
+import { ToggleRow } from './listing-form/ToggleRow';
 import type { ProcessedPhoto } from '@/lib/photos';
 import type { OwnerPhotoMeta } from '@/lib/data/listings';
 import { useI18n } from '@/lib/i18n';
@@ -24,12 +29,21 @@ function parseNumber(raw: string): number {
   return cleaned === '' ? Number.NaN : Number(cleaned);
 }
 
+/** Group while typing: «34000000000» → «34,000,000,000» (Latin digits). */
+function groupAmount(raw: string): string {
+  const digits = toAsciiDigits(raw).replace(/\D/g, '').replace(/^0+(?=\d)/, '');
+  if (!digits) return '';
+  return formatAmountLatin(Number(digits));
+}
+
 /**
  * Edit form (price, description, phone-reveal, photo set).
  *
- * The price field accepts Toman or AED entry and always submits IRR — the unit
- * switch is an entry convenience, not a currency transaction. Photos keep their
- * order: the first item is the cover, «کاور شود» moves a photo to position 0.
+ * It is the same workspace as `/new`: one centred `max-w-4xl` column on a 4px
+ * rhythm, hairline-divided sections, paired fields on desktop, the one navy
+ * segmented control for the price unit beside the price input, and the same
+ * switches and photo grid. Only the values sent to `PATCH /api/listings/:id`
+ * are editable — brand, model, year and plate stay server-owned.
  */
 export function EditListingForm({
   id,
@@ -52,9 +66,11 @@ export function EditListingForm({
   photos: OwnerPhotoMeta[];
 }) {
   const router = useRouter();
-  const { t } = useI18n();
+  const { t, lang } = useI18n();
   const [unit, setUnit] = useState<PriceUnit>('toman');
-  const [price, setPrice] = useState<string>(String(irrToToman(priceIRR)));
+  const [price, setPrice] = useState<string>(
+    formatAmountLatin(irrToToman(priceIRR)),
+  );
   const [text, setText] = useState(description);
   const [showPhone, setShowPhone] = useState(allowPhoneReveal);
   const [tomanOnly, setTomanOnly] = useState(hideAed);
@@ -98,7 +114,9 @@ export function EditListingForm({
     const current = parseNumber(price);
     if (Number.isFinite(current)) {
       const irr = irrFor(current, unit);
-      setPrice(String(next === 'toman' ? irrToToman(irr) : irrToAED(irr)));
+      setPrice(
+        groupAmount(String(next === 'toman' ? irrToToman(irr) : irrToAED(irr))),
+      );
     }
     setUnit(next);
   }
@@ -170,209 +188,201 @@ export function EditListingForm({
     }
   }
 
+  const saveLabel = saving
+    ? t('در حال ذخیره…', 'Saving…')
+    : photosBusy
+      ? t('در حال بارگذاری عکس‌ها…', 'Uploading photos…')
+      : t('ذخیره تغییرات', 'Save changes');
+
   return (
     <form
       onSubmit={(e) => void handleSubmit(e)}
       noValidate
-      className="mx-auto flex max-w-3xl flex-col gap-5"
+      className="listing-entry mx-auto w-full max-w-4xl pb-[calc(10rem+env(safe-area-inset-bottom))] lg:pb-0"
     >
-      <section className="rounded-card border border-line bg-card p-4 sm:p-5">
-        <h2 className="mb-1 border-b border-line pb-2 text-md font-extrabold">{title}</h2>
-        <p className="mt-2 text-xs text-muted">
+      <header>
+        <p className="text-sm font-extrabold leading-6 text-ink">{title}</p>
+        <p className="mt-1 text-sm leading-6 text-muted">
           {t(
             'برند، مدل، سال ساخت و وضعیت پلاک پس از ثبت قابل ویرایش نیستند.',
             'Brand, model, model year and plate status cannot be edited after publishing.',
           )}
         </p>
-      </section>
+      </header>
 
       {error && (
-        <div className="rounded-field border border-[var(--color-danger-fg)] bg-bad-soft px-4 py-3 text-sm font-bold text-bad" role="alert">
-          {error}
+        <div
+          className="mt-4 flex items-start gap-2 rounded-xl border border-red-500/60 bg-red-50 px-4 py-3 text-sm font-medium leading-6 text-red-700 dark:bg-red-950/30 dark:text-red-300"
+          role="alert"
+        >
+          <Icon name="alertCircle" size={16} className="mt-0.5 shrink-0" />
+          <span>{error}</span>
         </div>
       )}
       {saved && (
-        <p className="rounded-field border border-line bg-cta-soft px-4 py-3 text-sm font-bold" role="status">
+        <p
+          className="mt-4 rounded-xl border border-line bg-cta-soft px-4 py-3 text-sm font-bold text-ink"
+          role="status"
+        >
           {t('تغییرات ذخیره شد.', 'Changes saved.')}
         </p>
       )}
 
-      <section className="rounded-card border border-line bg-card p-4 sm:p-5">
-        <h2 className="mb-4 border-b border-line pb-2 text-md font-extrabold">
-          {t('قیمت و تماس', 'Price and contact')}
-        </h2>
-
-        <label className="label" htmlFor="price">
-          {t(
-            `قیمت (${unit === 'toman' ? 'تومان' : 'درهم'})`,
-            `Price (${unit === 'toman' ? 'Toman' : 'AED'})`,
-          )}
-        </label>
-        <div className="flex min-h-11 items-stretch gap-1 rounded-field border border-line-strong bg-card p-0.5 ps-3 transition focus-within:border-cta">
-          <input
-            id="price"
-            inputMode="numeric"
-            className="min-w-0 flex-1 bg-transparent text-sm text-ink outline-none placeholder:text-faint"
-            value={price}
-            onChange={(e) => setPrice(e.target.value)}
-            placeholder={
-              unit === 'toman'
-                ? t('مثلاً ۱٬۱۰۰٬۰۰۰٬۰۰۰', 'e.g. 1,100,000,000')
-                : t('مثلاً ۴۰٬۰۰۰', 'e.g. 40,000')
+      <div className="mt-8 space-y-8">
+        <FormSection title={t('قیمت و تماس', 'Price and contact')}>
+          <FormField
+            htmlFor="price"
+            label={t(
+              `قیمت (${unit === 'toman' ? 'تومان' : 'درهم'})`,
+              `Price (${unit === 'toman' ? 'Toman' : 'AED'})`,
+            )}
+            required
+            hint={
+              irrPreview !== null
+                ? t(
+                    `معادل ${formatAmountLatin(irrToToman(irrPreview))} تومان در فهرست`,
+                    `Equivalent to ${formatAmountLatin(irrToToman(irrPreview))} Toman in listings`,
+                  )
+                : t(
+                    'قیمت در فهرست به تومان نمایش داده می‌شود.',
+                    'The listing price is displayed in Toman.',
+                  )
             }
-          />
-          {price && (
-            <button
-              type="button"
-              onClick={() => setPrice('')}
-              aria-label={t('پاک کردن قیمت', 'Clear price')}
-              className="flex h-10 w-10 shrink-0 items-center justify-center rounded-full text-muted transition hover:bg-page hover:text-ink"
-            >
-              <Icon name="close" size={15} />
-            </button>
-          )}
-          <span
-            role="group"
-            aria-label={t('واحد قیمت', 'Price currency')}
-            className="flex shrink-0 items-center rounded-full bg-page p-0.5"
           >
-            {(
-              [
-                { key: 'toman', label: t('تومان', 'Toman') },
-                { key: 'aed', label: t('درهم', 'AED') },
-              ] as const
-            ).map((option) => (
-              <button
-                key={option.key}
-                type="button"
-                aria-pressed={unit === option.key}
-                onClick={() => switchUnit(option.key)}
-                className={`flex h-10 min-w-11 items-center justify-center rounded-full px-2 text-[11px] font-extrabold transition ${
-                  unit === option.key
-                    ? 'bg-cta text-[color:var(--color-text-on-accent)] shadow-xs'
-                    : 'text-muted hover:text-ink'
-                }`}
-              >
-                {option.label}
-              </button>
-            ))}
-          </span>
-        </div>
-        <p className="hint">
-          {irrPreview !== null
-            ? t(
-                `معادل ${groupDigits(irrToToman(irrPreview))} تومان در فهرست`,
-                `Equivalent to ${groupDigits(irrToToman(irrPreview))} Toman in listings`,
-              )
-            : t(
-                'قیمت در فهرست به تومان نمایش داده می‌شود.',
-                'The listing price is displayed in Toman.',
-              )}
-        </p>
+            <div className="flex items-stretch gap-2">
+              <div className="relative min-w-0 flex-1">
+                <input
+                  id="price"
+                  inputMode="numeric"
+                  autoComplete="off"
+                  className="field pe-11 text-end"
+                  value={price}
+                  onChange={(e) => setPrice(groupAmount(e.target.value))}
+                  placeholder={
+                    unit === 'toman'
+                      ? t('مثلاً 1,100,000,000', 'e.g. 1,100,000,000')
+                      : t('مثلاً 40,000', 'e.g. 40,000')
+                  }
+                  dir="ltr"
+                />
+                {price && (
+                  <button
+                    type="button"
+                    onClick={() => setPrice('')}
+                    aria-label={t('پاک کردن قیمت', 'Clear price')}
+                    className="absolute end-1 top-1/2 flex h-9 w-9 -translate-y-1/2 items-center justify-center rounded-full text-muted transition hover:bg-page hover:text-ink"
+                  >
+                    <Icon name="close" size={15} />
+                  </button>
+                )}
+              </div>
+              {/* Same control as `/new`: the unit sits beside the field, never
+                  as a chip embedded in it. */}
+              <SegmentedControl
+                className="w-[128px] shrink-0"
+                size="sm"
+                ariaLabel={t('واحد قیمت', 'Price currency')}
+                options={[
+                  { value: 'toman', label: t('تومان', 'Toman') },
+                  { value: 'aed', label: t('درهم', 'AED') },
+                ]}
+                value={unit}
+                onChange={(next) => switchUnit(next as PriceUnit)}
+              />
+            </div>
+          </FormField>
 
-        <label className="mt-4 flex cursor-pointer items-start gap-2 text-sm font-semibold">
-          <input
-            type="checkbox"
-            checked={tomanOnly}
-            onChange={(e) => setTomanOnly(e.target.checked)}
-            className="mt-1 accent-[var(--color-accent)]"
-          />
-          <span>
-            {t(
+          <ToggleRow
+            className="col-span-full"
+            label={t(
               'عدم نمایش قیمت درهم در آگهی (فقط نمایش قیمت به تومان)',
               'Hide the AED price on this listing (Toman only)',
             )}
-            <span className="hint mt-0 block">
-              {t(
-                'خط «≈ … AED» روی کارت، فهرست و صفحه‌ی آگهی نمایش داده نمی‌شود.',
-                'The “≈ … AED” line is hidden on cards, feeds and the listing page.',
-              )}
-            </span>
-          </span>
-        </label>
-
-        <label className="mt-4 flex cursor-pointer items-start gap-2 text-sm font-semibold">
-          <input
-            type="checkbox"
-            checked={showPhone}
-            onChange={(e) => setShowPhone(e.target.checked)}
-            className="mt-1 accent-[var(--color-accent)]"
+            hint={t(
+              'خط «≈ … AED» روی کارت، فهرست و صفحه‌ی آگهی نمایش داده نمی‌شود.',
+              'The “≈ … AED” line is hidden on cards, feeds and the listing page.',
+            )}
+            checked={tomanOnly}
+            onChange={setTomanOnly}
           />
-          <span>
-            {t(
+
+          <ToggleRow
+            className="col-span-full"
+            label={t(
               'شماره تماس من در آگهی نمایش داده شود',
               'Show my phone number on this listing',
             )}
-            <span className="hint mt-0 block">
-              {t(
-                'در غیر این صورت خریداران فقط از طریق پیام‌رسان داخلی تماس می‌گیرند.',
-                'Otherwise buyers can only reach you through in-app chat.',
+            hint={t(
+              'در غیر این صورت خریداران فقط از طریق پیام‌رسان داخلی تماس می‌گیرند.',
+              'Otherwise buyers can only reach you through in-app chat.',
+            )}
+            checked={showPhone}
+            onChange={setShowPhone}
+          />
+        </FormSection>
+
+        <FormSection title={t('توضیحات', 'Description')} columns="one">
+          <FormField
+            htmlFor="description"
+            label={t('توضیحات آگهی (اختیاری)', 'Listing description (optional)')}
+            hint={t(
+              `اختیاری است و حداقل نویسه ندارد — اکنون ${text.trim().length} نویسه`,
+              `Optional with no minimum — currently ${text.trim().length} characters`,
+            )}
+          >
+            <textarea
+              id="description"
+              rows={5}
+              className="field resize-y"
+              value={text}
+              onChange={(e) => setText(e.target.value)}
+              placeholder={t(
+                'وضعیت فنی، دلیل فروش، لوازم همراه…',
+                'Mechanical condition, reason for selling, included accessories…',
               )}
-            </span>
-          </span>
-        </label>
-      </section>
+            />
+          </FormField>
+        </FormSection>
 
-      <section className="rounded-card border border-line bg-card p-4 sm:p-5">
-        <h2 className="mb-4 border-b border-line pb-2 text-md font-extrabold">
-          {t('توضیحات', 'Description')}
-        </h2>
-        <label className="label" htmlFor="description">
-          {t('توضیحات آگهی (اختیاری)', 'Listing description (optional)')}
-        </label>
-        <textarea
-          id="description"
-          rows={5}
-          className="field resize-y"
-          value={text}
-          onChange={(e) => setText(e.target.value)}
-          placeholder={t(
-            'وضعیت فنی، دلیل فروش، لوازم همراه…',
-            'Mechanical condition, reason for selling, included accessories…',
-          )}
-        />
-        <p className="hint">
-          {t(
-            `اختیاری است و حداقل نویسه ندارد — اکنون ${toPersianDigits(text.trim().length)} نویسه`,
-            `Optional with no minimum — currently ${text.trim().length} characters`,
-          )}
-        </p>
-      </section>
-
-      <section className="rounded-card border border-line bg-card p-4 sm:p-5">
-        <h2 className="mb-4 border-b border-line pb-2 text-md font-extrabold">
-          {t('عکس‌های آگهی', 'Listing photos')}
-        </h2>
-        <PhotoUploader
-          photos={photos}
-          onChange={setPhotos}
-          onBusyChange={setPhotosBusy}
-          label={t('عکس‌های آگهی', 'Listing photos')}
-        />
-        <p className="hint mt-2">
-          {t(
+        <FormSection
+          title={t('عکس‌های آگهی', 'Listing photos')}
+          hint={t(
             'ترتیب عکس‌ها همان ترتیب نمایش است؛ عکس اول کاور آگهی می‌شود.',
             'Photos appear in this order; the first photo is the listing cover.',
           )}
-        </p>
-      </section>
+          meta={
+            lang === 'en'
+              ? `${photos.length} of ${MAX_PHOTOS}`
+              : `${photos.length} از ${MAX_PHOTOS}`
+          }
+        >
+          <div className="col-span-full">
+            <PhotoUploader
+              photos={photos}
+              onChange={setPhotos}
+              onBusyChange={setPhotosBusy}
+              showCounter={false}
+            />
+          </div>
+        </FormSection>
+      </div>
 
-      <div className="flex flex-wrap items-center justify-between gap-3">
+      {/* Desktop: cancel and save at the end of the form. */}
+      <div className="mt-8 hidden items-center justify-between gap-3 lg:flex">
         <button type="button" onClick={() => router.back()} className="btn-ghost text-sm">
           {t('انصراف', 'Cancel')}
         </button>
         <button
           type="submit"
           disabled={saving || photosBusy}
-          className="btn-cta text-sm disabled:opacity-60"
+          className="btn-cta max-w-[280px] text-sm disabled:opacity-60"
         >
-          {saving
-            ? t('در حال ذخیره…', 'Saving…')
-            : photosBusy
-              ? t('در حال بارگذاری عکس‌ها…', 'Uploading photos…')
-              : t('ذخیره تغییرات', 'Save changes')}
+          {saveLabel}
         </button>
       </div>
+
+      {/* Phone/tablet: the same sticky save bar as `/new`. */}
+      <StickyPublishBar label={saveLabel} disabled={saving || photosBusy} />
     </form>
   );
 }

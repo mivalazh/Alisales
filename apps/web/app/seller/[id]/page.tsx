@@ -12,7 +12,7 @@ import { FollowSellerButton } from '@/components/FollowSellerButton';
 import { SellerActions } from '@/components/SellerActions';
 import { Stories } from '@/components/Stories';
 import { VerifiedStar } from '@/components/SellerVerified';
-import { NativeBackHeader } from '@/components/NativeBackHeader';
+import { DetailBackButton } from '@/components/DetailBackButton';
 import { isPreSizedSource } from '@/lib/images';
 import { getLanguage } from '@/lib/i18n/server';
 import { serverT } from '@/lib/i18n/server';
@@ -88,8 +88,12 @@ export default async function SellerPage({
   const following = await isFollowing(session?.sub, profile.id);
 
   return (
-    <div className="mx-auto mt-3 max-w-4xl space-y-4 sm:mt-4">
-      <NativeBackHeader title={displayName} fallbackHref="/" />
+    <div className="mx-auto max-w-4xl space-y-4">
+      {/* One compact back control instead of a full white title strip: the
+          profile's own heading is two rows below and repeated it verbatim. */}
+      <div className="flex items-center justify-between gap-2">
+        <DetailBackButton fallbackHref="/" />
+      </div>
       {/* Cover + identity */}
       <section className="overflow-hidden rounded-card border border-line bg-card">
         {/* Stable vehicle photograph chosen from the profile id — never a
@@ -109,7 +113,7 @@ export default async function SellerPage({
               on the solid card surface so nothing is ever printed on the photo. */}
           <span
             aria-hidden
-            className="relative z-10 -mt-10 flex h-20 w-20 shrink-0 items-center justify-center overflow-hidden rounded-full bg-card text-2xl font-extrabold text-ink shadow ring-4 ring-white dark:ring-[#161A38]"
+            className="relative z-10 -mt-10 flex h-20 w-20 shrink-0 items-center justify-center overflow-hidden rounded-full bg-[#E5E7EB] text-2xl font-extrabold text-[#111144] shadow ring-4 ring-white dark:bg-white/15 dark:text-[#F4F1EC] dark:ring-[#111144]"
           >
             {profile.avatarUrl ? (
               // eslint-disable-next-line @next/next/no-img-element
@@ -118,41 +122,42 @@ export default async function SellerPage({
               profile.initials
             )}
           </span>
-          <div className="pt-2">
-            <h1 className="flex min-w-0 items-center gap-1.5 text-lg font-extrabold leading-tight">
-              <span className="truncate">{displayName}</span>
-              {profile.verified && <VerifiedStar label={t('تأییدشده توسط آلی سیلز', 'Verified by Ali Sales')} />}
-            </h1>
-            <p className="mt-1 flex flex-wrap items-center gap-x-2 text-xs font-bold text-muted">
-              <span className="inline-flex items-center gap-1">
-                <Icon name="pin" size={13} />
-                {CITY_LABELS[profile.city] ?? profile.city}
-              </span>
-            </p>
+          {/* Identity row: name and city on the start edge, the two compact
+              actions in the empty end (left, in RTL) side of the same row — no
+              second full-width action row under it. */}
+          <div className="flex items-start justify-between gap-3 pt-2">
+            <div className="min-w-0">
+              <h1 className="flex min-w-0 items-center gap-1.5 text-lg font-extrabold leading-tight">
+                <span className="truncate">{displayName}</span>
+                {profile.verified && <VerifiedStar label={t('تأییدشده توسط آلی سیلز', 'Verified by Ali Sales')} />}
+              </h1>
+              <p className="mt-1 flex flex-wrap items-center gap-x-2 text-xs font-bold text-muted">
+                <span className="inline-flex items-center gap-1">
+                  <Icon name="pin" size={13} />
+                  {CITY_LABELS[profile.city] ?? profile.city}
+                </span>
+              </p>
+            </div>
+            <div className="flex shrink-0 items-center gap-2">
+              {!isOwner && (
+                <FollowSellerButton
+                  sellerId={profile.id}
+                  initialFollowing={following}
+                  authed={Boolean(session)}
+                  isOwner={isOwner}
+                />
+              )}
+              <SellerActions
+                sellerId={profile.id}
+                name={displayName}
+                isOwner={isOwner}
+              />
+            </div>
           </div>
 
           {displayBio && (
             <p className="mt-3 whitespace-pre-line text-sm leading-7 text-ink/85">{displayBio}</p>
           )}
-
-          {/* Profile actions sit beside the follow control: share/edit on the
-              start edge, follow on the end edge. Messaging and calling stay on
-              the listings themselves. */}
-          <div className="mt-3 grid grid-cols-2 gap-2.5 sm:flex sm:flex-wrap sm:items-center">
-            <SellerActions
-              sellerId={profile.id}
-              name={displayName}
-              isOwner={isOwner}
-            />
-            {!isOwner && (
-              <FollowSellerButton
-                sellerId={profile.id}
-                initialFollowing={following}
-                authed={Boolean(session)}
-                isOwner={isOwner}
-              />
-            )}
-          </div>
 
           {/* Three numbers — active listings, stories, rating. No follower
               count is shown to anyone. */}

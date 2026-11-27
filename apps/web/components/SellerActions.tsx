@@ -50,7 +50,7 @@ export function SellerActions({
           it lines up with the follow control. */}
       <div className="contents">
         {isOwner ? (
-          <a href="/profile" className="btn-ghost w-full text-sm sm:w-auto">
+          <a href="/profile" className="btn-ghost h-9 px-3.5 text-sm">
             <Icon name="pencil" size={16} />
             {t('ویرایش پروفایل', 'Edit profile')}
           </a>
@@ -59,7 +59,7 @@ export function SellerActions({
             type="button"
             onClick={() => void share()}
             disabled={busy}
-            className="btn-ghost w-full text-sm disabled:opacity-50 sm:w-auto"
+            className="btn-ghost h-9 px-3.5 text-sm disabled:opacity-50"
           >
             <Icon name="share" size={16} />
             {t('اشتراک‌گذاری', 'Share')}
@@ -68,7 +68,7 @@ export function SellerActions({
       </div>
 
       {note && (
-        <p className="col-span-2 mt-1 text-xs font-bold text-muted sm:w-full" role="status">
+        <p className="mt-1 text-xs font-bold text-muted" role="status">
           {note}
         </p>
       )}

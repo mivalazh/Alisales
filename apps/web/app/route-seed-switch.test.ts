@@ -90,6 +90,7 @@ vi.mock('@/components/AdminDashboard', async () => {
 vi.mock('@/components/CategorySwitch', () => ({ CategorySwitch: () => null }));
 vi.mock('@/components/Icon', () => ({ Icon: () => null }));
 vi.mock('@/components/NativeBackHeader', () => ({ NativeBackHeader: () => null }));
+vi.mock('@/components/DetailBackButton', () => ({ DetailBackButton: () => null }));
 vi.mock('@/components/FollowSellerButton', () => ({ FollowSellerButton: () => null }));
 vi.mock('@/components/SellerActions', () => ({ SellerActions: () => null }));
 vi.mock('@/components/Stories', () => ({ Stories: () => null }));

@@ -13,7 +13,8 @@ function isVideoUrl(url: string): boolean {
 }
 
 /**
- * Detail-page gallery: one hero frame with next/prev arrows, a thumbnail strip
+ * Detail-page gallery: one 4:3 hero frame (a car is never sliced top/bottom)
+ * with next/prev arrows, a thumbnail strip
  * that jumps to a photo, horizontal swipe on touch devices, and a fullscreen
  * viewer with 2× zoom. Video slots always get native controls and play inline.
  */
@@ -62,7 +63,7 @@ export function ListingGallery({
   return (
     <div className="space-y-2">
       <div
-        className="relative aspect-[16/10] max-h-[420px] w-full overflow-hidden rounded-2xl border border-line bg-sunken"
+        className="relative aspect-[4/3] max-h-[560px] w-full overflow-hidden rounded-2xl border border-line bg-sunken"
         onTouchStart={(e) => {
           startX.current = e.touches[0]?.clientX ?? null;
         }}

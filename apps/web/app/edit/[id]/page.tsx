@@ -36,11 +36,13 @@ export default async function EditListingPage({
     : `${listing.model}${listing.trim ? ` ${listing.trim}` : ''} — ${listing.year}`;
 
   return (
-    <div className="space-y-4">
+    <div className="mx-auto w-full max-w-4xl space-y-4">
       <div className="flex flex-wrap items-center justify-between gap-2">
         <div>
-          <h1 className="text-xl font-extrabold">{t('ویرایش آگهی', 'Edit listing')}</h1>
-          <p className="mt-1 text-xs text-muted">
+          <h1 className="text-2xl font-extrabold text-ink sm:text-[28px]">
+            {t('ویرایش آگهی', 'Edit listing')}
+          </h1>
+          <p className="mt-1 text-sm leading-6 text-muted">
             {t(
               'تاریخ انتشار و سن آگهی با ویرایش تغییر نمی‌کند.',
               'Editing does not change the publish date or the age of the listing.',

@@ -1,6 +1,6 @@
 'use client';
 
-import { useRef, useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import { MAX_PHOTOS } from '@alisales/schemas';
 import {
   PhotoPipelineError,
@@ -9,6 +9,7 @@ import {
   type ProcessedPhoto,
 } from '@/lib/photos';
 import { useI18n } from '@/lib/i18n';
+import { PhotoCropModal } from './listing-form/PhotoCropModal';
 
 function isVideoFile(file: File): boolean {
   return file.type.startsWith('video/');
@@ -49,8 +50,26 @@ export function PhotoUploader({
   const filesRef = useRef<HTMLInputElement>(null);
   const [busy, setBusy] = useState(false);
   const [localError, setLocalError] = useState<string | null>(null);
+  /** Newly picked stills, framed one at a time before they are uploaded. */
+  const [queue, setQueue] = useState<ProcessedPhoto[]>([]);
+  const [queueTotal, setQueueTotal] = useState(0);
+  /** «تنظیم کادر» on an already uploaded thumbnail. */
+  const [editing, setEditing] = useState<{ photo: ProcessedPhoto; index: number } | null>(null);
+
+  const photosRef = useRef(photos);
+  useEffect(() => {
+    photosRef.current = photos;
+  }, [photos]);
 
   const remaining = MAX_PHOTOS - photos.length;
+
+  const finishIfIdle = (left: number) => {
+    if (left > 0) return;
+    setQueue([]);
+    setQueueTotal(0);
+    setBusy(false);
+    onBusyChange?.(false);
+  };
 
   async function handleFiles(files: FileList | null): Promise<void> {
     if (!files || files.length === 0) return;
@@ -77,15 +96,25 @@ export function PhotoUploader({
 
     setBusy(true);
     onBusyChange?.(true);
+    let current = [...photosRef.current];
+    const framed: ProcessedPhoto[] = [];
     try {
-      const added: ProcessedPhoto[] = [];
       for (const file of accepted) {
         let processed: ProcessedPhoto | null = null;
         try {
           // Images are compressed (EXIF dropped, WebP); clips go up as-is.
           // Either way the publish payload carries storage paths, not bytes.
           processed = await processListingMedia(file);
-          added.push(await uploadProcessedPhoto(processed));
+          // A still is framed first: the seller chooses the 4:3 crop before a
+          // single byte leaves the device, so a tall photo never loses the car.
+          if (processed.kind === 'image') {
+            framed.push(processed);
+            continue;
+          }
+          const uploaded = await uploadProcessedPhoto(processed);
+          current = [...current, uploaded];
+          photosRef.current = current;
+          onChange(current);
         } catch (e) {
           if (processed) URL.revokeObjectURL(processed.previewUrl);
           setLocalError(
@@ -98,12 +127,64 @@ export function PhotoUploader({
           );
         }
       }
-      if (added.length > 0) onChange([...photos, ...added]);
+    } finally {
+      // Re-selecting the same file must fire `change` again.
+      if (filesRef.current) filesRef.current.value = '';
+      if (framed.length > 0) {
+        setQueueTotal(framed.length);
+        setQueue(framed);
+      } else {
+        finishIfIdle(0);
+      }
+    }
+  }
+
+  /** Upload one framed image (or the original when the seller skipped). */
+  async function resolveCrop(next: ProcessedPhoto): Promise<void> {
+    const head = queue[0];
+    if (!head) return;
+    const rest = queue.slice(1);
+    setQueue(rest);
+    try {
+      const uploaded = await uploadProcessedPhoto(next);
+      photosRef.current = [...photosRef.current, uploaded];
+      onChange(photosRef.current);
+      setLocalError(null);
+    } catch (e) {
+      setLocalError(
+        e instanceof PhotoPipelineError
+          ? e.message
+          : t('بارگذاری عکس ناموفق بود؛ دوباره تلاش کنید.', 'Could not upload the photo; please try again.'),
+      );
+    } finally {
+      finishIfIdle(rest.length);
+    }
+  }
+
+  /** Re-frame an already uploaded thumbnail in place. */
+  async function applyEdit(next: ProcessedPhoto): Promise<void> {
+    const target = editing;
+    setEditing(null);
+    if (!target) return;
+    setBusy(true);
+    onBusyChange?.(true);
+    try {
+      const uploaded = await uploadProcessedPhoto(next);
+      const replaced = photosRef.current.map((photo, index) =>
+        index === target.index ? uploaded : photo,
+      );
+      photosRef.current = replaced;
+      onChange(replaced);
+      setLocalError(null);
+    } catch (e) {
+      setLocalError(
+        e instanceof PhotoPipelineError
+          ? e.message
+          : t('بارگذاری عکس ناموفق بود؛ دوباره تلاش کنید.', 'Could not upload the photo; please try again.'),
+      );
     } finally {
       setBusy(false);
       onBusyChange?.(false);
-      // Re-selecting the same file must fire `change` again.
-      if (filesRef.current) filesRef.current.value = '';
     }
   }
 
@@ -127,6 +208,8 @@ export function PhotoUploader({
     onChange(next);
   }
 
+  const cropTarget = editing?.photo ?? queue[0] ?? null;
+
   return (
     <div>
       {showCounter && (
@@ -138,7 +221,6 @@ export function PhotoUploader({
           </span>
         </div>
       )}
-
 
       {/* Square thumbs: three to a phone row, five from `sm` up. */}
       <ul className="grid grid-cols-3 gap-2 sm:grid-cols-5">
@@ -160,10 +242,7 @@ export function PhotoUploader({
               // eslint-disable-next-line @next/next/no-img-element
               <img
                 src={photo.previewUrl}
-                alt={t(
-                  `پیش‌نمایش عکس ${index + 1}`,
-                  `Photo preview ${index + 1}`,
-                )}
+                alt={t(`پیش‌نمایش عکس ${index + 1}`, `Photo preview ${index + 1}`)}
                 width={640}
                 height={480}
                 className="h-full w-full object-cover"
@@ -186,13 +265,19 @@ export function PhotoUploader({
                 {t('کاور شود', 'Make cover')}
               </button>
             )}
+            {photo.kind === 'image' && (
+              <button
+                type="button"
+                onClick={() => setEditing({ photo, index })}
+                className="absolute bottom-1 start-1 rounded-[var(--radius-pill)] border border-white/40 bg-[#111144]/80 px-2 py-0.5 text-[10px] font-bold text-white backdrop-blur hover:bg-[#111144]"
+              >
+                {t('تنظیم کادر', 'Frame')}
+              </button>
+            )}
             <button
               type="button"
               onClick={() => removeAt(index)}
-              aria-label={t(
-                `حذف عکس ${index + 1}`,
-                `Remove photo ${index + 1}`,
-              )}
+              aria-label={t(`حذف عکس ${index + 1}`, `Remove photo ${index + 1}`)}
               className="absolute bottom-1 end-1 flex h-7 w-7 items-center justify-center rounded-full bg-inverse/80 text-sm font-bold text-white backdrop-blur hover:bg-inverse"
             >
               ✕
@@ -233,7 +318,9 @@ export function PhotoUploader({
 
       {busy && (
         <p className="hint" role="status">
-          {t('در حال پردازش و بارگذاری عکس‌ها…', 'Processing and uploading photos…')}
+          {queue.length > 0
+            ? t('در حال تنظیم کادر و بارگذاری عکس‌ها…', 'Framing and uploading photos…')
+            : t('در حال پردازش و بارگذاری عکس‌ها…', 'Processing and uploading photos…')}
         </p>
       )}
       {localError && (
@@ -245,6 +332,27 @@ export function PhotoUploader({
         <p className="error-text" role="alert">
           {error}
         </p>
+      )}
+
+      {cropTarget && (
+        <PhotoCropModal
+          key={cropTarget.previewUrl}
+          photo={cropTarget}
+          position={editing ? editing.index + 1 : queueTotal - queue.length + 1}
+          total={editing ? photos.length : queueTotal}
+          onApply={(next) => {
+            if (editing) void applyEdit(next);
+            else void resolveCrop(next);
+          }}
+          onSkip={() => {
+            if (editing) {
+              setEditing(null);
+              return;
+            }
+            const head = queue[0];
+            if (head) void resolveCrop(head);
+          }}
+        />
       )}
     </div>
   );

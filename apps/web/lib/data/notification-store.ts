@@ -31,6 +31,8 @@ export interface ListingEvent {
 interface NotificationData {
   events: ListingEvent[];
   reads: Record<string, string>;
+  /** Item-level read ids, on top of the account-wide `read_at` marker. */
+  readItems: Record<string, string[]>;
 }
 
 const FILE = 'notifications.json';
@@ -42,6 +44,8 @@ function read(): NotificationData {
   return {
     events: Array.isArray(raw.events) ? raw.events : [],
     reads: raw.reads && typeof raw.reads === 'object' ? raw.reads : {},
+    readItems:
+      raw.readItems && typeof raw.readItems === 'object' ? raw.readItems : {},
   };
 }
 
@@ -137,6 +141,95 @@ export async function listListingEvents(
     return ((data ?? []) as EventRow[]).map(mapEvent);
   } catch (error) {
     throw dataUnavailable('notifications', error);
+  }
+}
+
+/**
+ * Full read state for one account: the account-wide marker (mark all) plus the
+ * ids of single items the reader has opened.
+ */
+export interface NotificationReadState {
+  readAt: string | null;
+  readIds: string[];
+}
+
+function normalizeReadIds(value: unknown): string[] {
+  return Array.isArray(value)
+    ? value.filter((id): id is string => typeof id === 'string')
+    : [];
+}
+
+export async function notificationReadState(
+  userId: string,
+): Promise<NotificationReadState> {
+  const sb = admin();
+  if (!sb) {
+    const data = read();
+    return {
+      readAt: data.reads[userId] ?? null,
+      readIds: data.readItems[userId] ?? [],
+    };
+  }
+  try {
+    const { data, error } = await sb
+      .from('notification_reads')
+      .select('*')
+      .eq('user_id', userId)
+      .maybeSingle();
+    if (error) throw dataUnavailable('notifications', error);
+    if (!data) return { readAt: null, readIds: [] };
+    const row = data as { read_at: string; read_items?: unknown };
+    const value = String(row.read_at);
+    return {
+      readAt: Number.isNaN(Date.parse(value)) ? value : new Date(value).toISOString(),
+      readIds: normalizeReadIds(row.read_items),
+    };
+  } catch (error) {
+    throw dataUnavailable('notifications', error);
+  }
+}
+
+/**
+ * Mark ONE bell item as read for this account.
+ *
+ * The id is appended to the account's `read_items` array, so the header badge
+ * drops by exactly one and every device agrees after the next read. A missing
+ * column (migration 0020 not applied yet) is logged and the click still keeps
+ * its optimistic state instead of failing in the reader's face.
+ */
+export async function markNotificationItemRead(
+  userId: string,
+  itemId: string,
+): Promise<string[]> {
+  const id = itemId.trim();
+  if (!id) return [];
+  const sb = admin();
+  if (!sb) {
+    const data = read();
+    const merged = Array.from(new Set([...(data.readItems[userId] ?? []), id])).slice(-200);
+    data.readItems[userId] = merged;
+    write(data);
+    return merged;
+  }
+  try {
+    const { data, error } = await sb
+      .from('notification_reads')
+      .select('read_items')
+      .eq('user_id', userId)
+      .maybeSingle();
+    if (error) throw dataUnavailable('notifications', error);
+    const existing = normalizeReadIds(
+      (data as { read_items?: unknown } | null)?.read_items,
+    );
+    const merged = Array.from(new Set([...existing, id])).slice(-200);
+    const { error: writeError } = await sb
+      .from('notification_reads')
+      .upsert({ user_id: userId, read_items: merged }, { onConflict: 'user_id' });
+    if (writeError) throw dataUnavailable('notifications', writeError);
+    return merged;
+  } catch (error) {
+    console.warn('[alisales] per-item notification read unavailable:', error);
+    return [id];
   }
 }
 

@@ -72,6 +72,8 @@ export function NotificationBell({ authed }: { authed: boolean }) {
   const [loading, setLoading] = useState(false);
   const [localReadAt, setLocalReadAt] = useState<string | null>(null);
   const [serverReadAt, setServerReadAt] = useState<string | null>(null);
+  // Ids opened one by one — the account-wide marker still covers «mark all».
+  const [readIds, setReadIds] = useState<string[]>([]);
   const root = useRef<HTMLDivElement>(null);
   const panel = useRef<HTMLDivElement>(null);
   const requestId = useRef(0);
@@ -111,6 +113,7 @@ export function NotificationBell({ authed }: { authed: boolean }) {
         return (await res.json()) as {
           items?: ServerNotification[];
           readAt?: string | null;
+          readIds?: string[];
         };
       })
       .then((data) => {
@@ -122,6 +125,7 @@ export function NotificationBell({ authed }: { authed: boolean }) {
         setSyncError(false);
         if (Array.isArray(data.items)) setServerItems(data.items);
         if ('readAt' in data) setServerReadAt(data.readAt ?? null);
+        if (Array.isArray(data.readIds)) setReadIds(data.readIds);
       })
       .catch(() => {
         if (id === requestId.current) setSyncError(true);
@@ -173,9 +177,36 @@ export function NotificationBell({ authed }: { authed: boolean }) {
     .slice(0, 12) as Item[];
   const isUnread = (item: Item): boolean =>
     isServerItem(item)
-      ? !serverReadAt || timeValue(item.createdAt) > timeValue(serverReadAt)
+      ? !readIds.includes(item.id) &&
+        (!serverReadAt || timeValue(item.createdAt) > timeValue(serverReadAt))
       : !localReadAt || timeValue(item.createdAt) > timeValue(localReadAt);
   const unread = items.filter(isUnread).length;
+
+  /**
+   * Opening an unread item clears exactly that item, immediately.
+   *
+   * The id leaves the badge count in the same tick (the badge unmounts at 0),
+   * then the server stores it so routes and reloads agree. A failed write is
+   * retried by the next inbox read instead of showing an error mid-navigation.
+   */
+  function markItemRead(item: Item): void {
+    if (!isServerItem(item) || !isUnread(item)) return;
+    setReadIds((current) =>
+      current.includes(item.id) ? current : [...current, item.id],
+    );
+    if (!authed) return;
+    fetch('/api/notifications', {
+      method: 'POST',
+      cache: 'no-store',
+      headers: { 'content-type': 'application/json' },
+      body: JSON.stringify({ itemId: item.id }),
+    })
+      .then(async (res) => (res.ok ? res.json() : null))
+      .then((data: { readIds?: string[] } | null) => {
+        if (Array.isArray(data?.readIds)) setReadIds(data.readIds);
+      })
+      .catch(() => undefined);
+  }
 
   function markAllRead(): void {
     const now = new Date().toISOString();
@@ -291,7 +322,14 @@ export function NotificationBell({ authed }: { authed: boolean }) {
                   const unreadItem = isUnread(item);
                   return (
                     <li key={item.id}>
-                      <Link href={item.href} onClick={() => setOpen(false)} className="flex gap-2.5 px-3 py-2.5 transition hover:bg-cta-soft">
+                      <Link
+                        href={item.href}
+                        onClick={() => {
+                          markItemRead(item);
+                          setOpen(false);
+                        }}
+                        className="flex gap-2.5 px-3 py-2.5 transition hover:bg-cta-soft"
+                      >
                         <span className="mt-0.5 flex h-8 w-8 shrink-0 items-center justify-center rounded-full bg-[#F98513]/15 text-[#F98513]">
                           <Icon name={ICON_FOR[item.kind] ?? 'bell'} size={15} />
                         </span>

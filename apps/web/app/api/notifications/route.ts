@@ -8,8 +8,9 @@ import { followedSellerIds } from '@/lib/data/social-store';
 import { listInspections } from '@/lib/data/platform-store';
 import {
   listListingEvents,
+  markNotificationItemRead,
   markNotificationsRead,
-  notificationReadAt,
+  notificationReadState,
 } from '@/lib/data/notification-store';
 import { dataUnavailableResponse } from '@/lib/http/data-unavailable';
 
@@ -60,12 +61,12 @@ async function handleGet(): Promise<NextResponse> {
     return NextResponse.json({ error: 'برای دیدن اعلان‌ها وارد حساب شوید.' }, { status: 401 });
   }
 
-  const [lang, favorites, followedIds, allListings, readAt] = await Promise.all([
+  const [lang, favorites, followedIds, allListings, readState] = await Promise.all([
     getLanguage(),
     listFavoriteRows(session.sub),
     followedSellerIds(session.sub),
     searchListings(DEFAULT_FILTERS),
-    notificationReadAt(session.sub),
+    notificationReadState(session.sub),
   ]);
   const t = (fa: string, en: string) => serverT(lang, fa, en);
   const followed = new Set(followedIds);
@@ -156,16 +157,33 @@ async function handleGet(): Promise<NextResponse> {
   }
 
   items.sort((a, b) => timeValue(b.createdAt) - timeValue(a.createdAt));
-  return NextResponse.json({ items: items.slice(0, 14), readAt });
+  return NextResponse.json({
+    items: items.slice(0, 14),
+    readAt: readState.readAt,
+    readIds: readState.readIds,
+  });
 }
 
-/** Mark all of this account's bell items as read on every device. */
-export async function POST(): Promise<NextResponse> {
+/**
+ * Mark bell items as read on every device.
+ *
+ * With `{ itemId }` exactly that item is marked (a single click clears one
+ * badge); without a body it is «mark all», as before.
+ */
+export async function POST(request: Request): Promise<NextResponse> {
   const session = await getSession();
   if (!session) {
     return NextResponse.json({ error: 'برای تغییر اعلان‌ها وارد حساب شوید.' }, { status: 401 });
   }
   try {
+    const body = (await request.json().catch(() => null)) as {
+      itemId?: unknown;
+    } | null;
+    const itemId = typeof body?.itemId === 'string' ? body.itemId : '';
+    if (itemId) {
+      const readIds = await markNotificationItemRead(session.sub, itemId);
+      return NextResponse.json({ ok: true, itemId, readIds });
+    }
     // Never answer "ok" with a timestamp the database did not store.
     const readAt = await markNotificationsRead(session.sub);
     return NextResponse.json({ ok: true, readAt });

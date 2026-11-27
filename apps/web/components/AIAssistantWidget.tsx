@@ -97,6 +97,7 @@ export function AIAssistantWidget() {
     /^\/chats\/[^/]+/.test(pathname ?? '') ||
     pathname === '/support' ||
     pathname === '/new' ||
+    pathname?.startsWith('/edit/') ||
     /^\/listing\/[^/]+/.test(pathname ?? '')
   ) {
     return null;

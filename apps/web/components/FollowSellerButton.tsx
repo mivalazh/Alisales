@@ -3,7 +3,6 @@
 import Link from 'next/link';
 import { useRouter } from 'next/navigation';
 import { useEffect, useState } from 'react';
-import { Icon } from './Icon';
 import { useI18n } from '@/lib/i18n';
 
 const CACHE_KEY = 'alisales.following';
@@ -30,7 +29,7 @@ function cacheFollow(following: boolean, sellerId: string): string[] {
 }
 
 /**
- * «دنبال کردن / دنبال‌شده ✓» on a showroom profile.
+ * «دنبال کردن / دنبال می‌کنید» on a showroom profile.
  *
  * Optimistically flips, then persists through `/api/follows`; a failure rolls
  * the label back so the button never lies. Followed showrooms lead the story
@@ -77,9 +76,8 @@ export function FollowSellerButton({
     return (
       <Link
         href={`/login?next=/seller/${sellerId}`}
-        className="inline-flex h-11 w-full items-center justify-center gap-1.5 rounded-[var(--radius-pill)] border border-[#F98513] bg-[#F98513] px-5 text-sm font-extrabold text-white transition hover:brightness-95 sm:w-auto"
+        className="inline-flex h-9 items-center justify-center rounded-[var(--radius-pill)] border border-[#F98513] bg-[#F98513] px-3.5 text-sm font-extrabold text-white transition hover:brightness-95"
       >
-        <Icon name="plus" size={16} />
         {t('دنبال کردن', 'Follow')}
       </Link>
     );
@@ -116,19 +114,19 @@ export function FollowSellerButton({
   }
 
   return (
-    <div className="flex w-full flex-col items-start gap-1 sm:w-auto">
+    <div className="flex flex-col items-start gap-1">
+      {/* Following is plain text — no check badge to read as a second action. */}
       <button
         type="button"
         onClick={toggle}
         disabled={busy}
         aria-pressed={following}
-        className={`inline-flex h-11 w-full items-center justify-center gap-1.5 rounded-[var(--radius-pill)] border px-5 text-sm font-extrabold transition sm:w-auto ${
+        className={`inline-flex h-9 items-center justify-center rounded-[var(--radius-pill)] border px-3.5 text-sm font-extrabold transition ${
           following
             ? 'border-line bg-sunken/60 text-muted hover:text-ink dark:border-white/10 dark:bg-white/10 dark:text-slate-300'
             : 'border-[#F98513] bg-[#F98513] text-white hover:brightness-95'
         } disabled:opacity-60`}
       >
-        <Icon name={following ? 'checkCircle' : 'plus'} size={16} />
         {following ? t('دنبال می‌کنید', 'Following') : t('دنبال کردن', 'Follow')}
       </button>
       {note && <span className="text-[11px] font-bold text-red-600">{note}</span>}

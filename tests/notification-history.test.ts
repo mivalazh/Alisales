@@ -208,4 +208,37 @@ describe('fixture notification history', () => {
     const readAt = await store.markNotificationsRead(IDS.alice);
     expect(await store.notificationReadAt(IDS.alice)).toBe(readAt);
   });
+
+  it('records single-item reads without touching the account marker', async () => {
+    const store = await import('../apps/web/lib/data/notification-store');
+    const before = await store.notificationReadState(IDS.bob);
+    expect(before.readIds).toEqual([]);
+
+    const ids = await store.markNotificationItemRead(IDS.bob, 'listing-event-1');
+    expect(ids).toEqual(['listing-event-1']);
+    // The same id twice is still one badge.
+    const again = await store.markNotificationItemRead(IDS.bob, 'listing-event-1');
+    expect(again).toEqual(['listing-event-1']);
+
+    const after = await store.notificationReadState(IDS.bob);
+    expect(after.readIds).toEqual(['listing-event-1']);
+    expect(after.readAt).toBeNull();
+  });
+});
+
+describe('0013 per-item notification reads', () => {
+  it('stores opened item ids on the account marker', async () => {
+    await asSuper(db);
+    await db.query(
+      `insert into public.notification_reads (user_id, read_items)
+       values ($1, array['listing-event-1'])
+       on conflict (user_id) do update set read_items = array['listing-event-1']`,
+      [IDS.carol],
+    );
+    const rows = await db.query<{ read_items: string[] }>(
+      `select read_items from public.notification_reads where user_id = $1`,
+      [IDS.carol],
+    );
+    expect(rows.rows[0]!.read_items).toEqual(['listing-event-1']);
+  });
 });
