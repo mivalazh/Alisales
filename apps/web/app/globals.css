@@ -247,21 +247,68 @@
 /**
  * Fitts's Law floor for touch layouts.
  *
- * Every button, select and text field is at least 40×40 on phones, including
- * compact icon controls and chips declared with a smaller height. The floor
- * only enlarges the hit target; colours, order and hierarchy are untouched.
- * Checkboxes and radios stay at their native size inside a larger label.
+ * Every button, select and text field is at least 44×44 on phones — the design
+ * system's `--touch-min` — including compact icon controls and chips declared
+ * with a smaller height. The floor only enlarges the hit target; colours, order
+ * and hierarchy are untouched. Checkboxes and radios stay at their native size
+ * inside a larger label.
  */
 @media (max-width: 767px) {
   button {
-    min-width: 40px;
-    min-height: 40px;
+    min-width: var(--touch-min);
+    min-height: var(--touch-min);
   }
 
   input:not([type='checkbox']):not([type='radio']),
   select {
-    min-height: 40px;
+    min-height: var(--touch-min);
   }
+}
+
+/**
+ * Small round badge on the profile cover/avatar.
+ *
+ * The dot keeps its own 28/36px size (a 44px dot would swamp an 80px avatar),
+ * but an invisible 44px pseudo-element carries the phone tap target — the
+ * button floor above must not inflate the artwork itself.
+ */
+.media-badge {
+  min-width: 0;
+  min-height: 0;
+}
+
+/**
+ * Compact switch (48×28) inside the phone touch floor.
+ *
+ * The phone-wide `button` floor would inflate the track to 44px tall and push
+ * the knob off-centre, so the track keeps its own height and an invisible 44px
+ * pseudo-element carries the tap target instead.
+ */
+.switch-hit {
+  min-width: 0;
+  min-height: 0;
+}
+
+.switch-hit::after {
+  content: '';
+  position: absolute;
+  inset-block-start: 50%;
+  inset-inline-start: 50%;
+  width: var(--touch-min);
+  height: var(--touch-min);
+  transform: translate(-50%, -50%);
+  border-radius: 9999px;
+}
+
+.media-badge::after {
+  content: '';
+  position: absolute;
+  inset-block-start: 50%;
+  inset-inline-start: 50%;
+  width: var(--touch-min);
+  height: var(--touch-min);
+  transform: translate(-50%, -50%);
+  border-radius: 9999px;
 }
 
 /**
@@ -485,6 +532,277 @@ html.app-standalone button {
 }
 @media (prefers-reduced-motion: reduce) {
   .filter-drawer { animation: none; }
+}
+
+/* ── Publish form: one 4px-based control rhythm ───────────────────────────
+ * Labels 14px with an 8px gap to the control, 48px controls, 16px text (so
+ * iOS never zooms on focus) and 4px from a control to its message. Unlayered
+ * on purpose: these must beat the generic `.field` sizing utilities.
+ */
+.listing-entry .label {
+  margin-bottom: 8px;
+  font-size: 14px;
+  font-weight: 500;
+  line-height: 20px;
+}
+
+.listing-entry .field {
+  min-height: 48px;
+  padding: 12px;
+  font-size: 16px;
+  line-height: 24px;
+}
+
+.listing-entry textarea.field {
+  line-height: 26px;
+}
+
+.listing-entry .hint,
+.listing-entry .error-text {
+  margin-top: 4px;
+  font-size: 12.5px;
+  line-height: 18px;
+}
+
+.listing-entry .error-text {
+  display: flex;
+  align-items: flex-start;
+  gap: 4px;
+  font-weight: 600;
+}
+
+/* ── Catalog results: CSS-first view ──────────────────────────────────────
+ * Browse pages are prerendered once and served to every visitor, so the
+ * document itself cannot know the viewport. The default layout is therefore
+ * decided here — compact rows on a phone, grid tiles from 768px — and an
+ * explicit choice is applied through `<html data-catalog-view>`, which the head
+ * bootstrap script sets before the first paint (see lib/catalog-view.ts).
+ *
+ * Both views share one list markup, so the prerendered HTML is already correct
+ * for the breakpoint and hydration never sees a different tree: no mount
+ * effect, no layout jump. These rules are deliberately unlayered — they must
+ * win over the direction utilities on the same elements.
+ */
+.catalog-results {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+
+.catalog-results > li {
+  min-width: 0;
+}
+
+/* The card as authored — also the layout of a lone card outside the results
+   list (the saved-ads grid, the published-listing confirmation). */
+.catalog-item {
+  display: flex;
+  flex-direction: column;
+}
+
+.catalog-item-media {
+  position: relative;
+  flex: none;
+  width: 100%;
+  height: auto;
+  aspect-ratio: 5 / 4;
+  overflow: hidden;
+}
+
+@media (min-width: 640px) {
+  .catalog-item-media {
+    aspect-ratio: var(--photo-aspect);
+  }
+}
+
+.catalog-item-body {
+  min-width: 0;
+  flex: 1 1 auto;
+  padding: 12px;
+}
+
+.catalog-item-slot,
+.catalog-dots {
+  display: flex;
+}
+
+.catalog-favorite {
+  position: absolute;
+  top: 8px;
+  inset-inline-start: 8px;
+}
+
+/* Results list: compact row on a phone (96px cover at the start edge), tile
+   from `md` — the same markup, so the server HTML is already right. */
+.catalog-results {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+
+.catalog-results > li {
+  min-width: 0;
+}
+
+.catalog-results .catalog-item {
+  flex-direction: row;
+  align-items: stretch;
+  gap: 12px;
+  padding: 12px;
+}
+
+.catalog-results .catalog-item-media {
+  width: 96px;
+  height: 96px;
+  aspect-ratio: auto;
+  border-radius: 12px;
+}
+
+.catalog-results .catalog-item .catalog-favorite {
+  top: 12px;
+  inset-inline-start: auto;
+  inset-inline-end: 12px;
+}
+
+.catalog-results .catalog-item-body {
+  padding: 0;
+  padding-inline-end: 48px;
+}
+
+.catalog-results .catalog-item-slot,
+.catalog-results .catalog-dots {
+  display: none;
+}
+
+@media (min-width: 768px) {
+  .catalog-results {
+    display: grid;
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+    gap: 16px;
+  }
+
+  .catalog-results .catalog-item {
+    flex-direction: column;
+    gap: 0;
+    padding: 0;
+  }
+
+  .catalog-results .catalog-item-media {
+    width: 100%;
+    height: auto;
+    aspect-ratio: var(--photo-aspect);
+    border-radius: 0;
+  }
+
+  .catalog-results .catalog-item .catalog-favorite {
+    top: 8px;
+    inset-inline-start: 8px;
+    inset-inline-end: auto;
+  }
+
+  .catalog-results .catalog-item-body {
+    padding: 12px;
+  }
+
+  .catalog-results .catalog-item-slot,
+  .catalog-results .catalog-dots {
+    display: flex;
+  }
+}
+
+@media (min-width: 1024px) {
+  .catalog-results {
+    grid-template-columns: repeat(4, minmax(0, 1fr));
+  }
+}
+
+/* Stored choice: force the grid at any width. */
+html[data-catalog-view='grid'] .catalog-results {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 12px;
+}
+
+html[data-catalog-view='grid'] .catalog-results .catalog-item {
+  flex-direction: column;
+  gap: 0;
+  padding: 0;
+}
+
+html[data-catalog-view='grid'] .catalog-results .catalog-item-media {
+  width: 100%;
+  height: auto;
+  aspect-ratio: 5 / 4;
+  border-radius: 0;
+}
+
+html[data-catalog-view='grid'] .catalog-results .catalog-item .catalog-favorite {
+  top: 8px;
+  inset-inline-start: 8px;
+  inset-inline-end: auto;
+}
+
+html[data-catalog-view='grid'] .catalog-results .catalog-item-body {
+  padding: 12px;
+}
+
+html[data-catalog-view='grid'] .catalog-results .catalog-item-slot,
+html[data-catalog-view='grid'] .catalog-results .catalog-dots {
+  display: flex;
+}
+
+@media (min-width: 640px) {
+  html[data-catalog-view='grid'] .catalog-results {
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+    gap: 16px;
+  }
+
+  html[data-catalog-view='grid'] .catalog-results .catalog-item-media {
+    aspect-ratio: var(--photo-aspect);
+  }
+}
+
+@media (min-width: 1024px) {
+  html[data-catalog-view='grid'] .catalog-results {
+    grid-template-columns: repeat(4, minmax(0, 1fr));
+  }
+}
+
+/* Stored choice: force the list at any width. */
+html[data-catalog-view='row'] .catalog-results {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+
+html[data-catalog-view='row'] .catalog-results .catalog-item {
+  flex-direction: row;
+  align-items: stretch;
+  gap: 12px;
+  padding: 12px;
+}
+
+html[data-catalog-view='row'] .catalog-results .catalog-item-media {
+  width: 96px;
+  height: 96px;
+  aspect-ratio: auto;
+  border-radius: 12px;
+}
+
+html[data-catalog-view='row'] .catalog-results .catalog-item .catalog-favorite {
+  top: 12px;
+  inset-inline-start: auto;
+  inset-inline-end: 12px;
+}
+
+html[data-catalog-view='row'] .catalog-results .catalog-item-body {
+  padding: 0;
+  padding-inline-end: 48px;
+}
+
+html[data-catalog-view='row'] .catalog-results .catalog-item-slot,
+html[data-catalog-view='row'] .catalog-results .catalog-dots {
+  display: none;
 }
 
 /* theme tokens: navy #223382, price ink #b45309 (light) */

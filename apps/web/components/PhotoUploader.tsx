@@ -1,7 +1,7 @@
 'use client';
 
 import { useRef, useState } from 'react';
-import { MAX_PHOTOS, toPersianDigits } from '@alisales/schemas';
+import { MAX_PHOTOS } from '@alisales/schemas';
 import {
   PhotoPipelineError,
   processListingMedia,
@@ -28,6 +28,8 @@ interface Props {
   error?: string;
   /** Section label («عکس‌های خودرو» on create, «عکس‌های آگهی» on edit). */
   label?: string;
+  /** The publish form lifts the counter into its section title row. */
+  showCounter?: boolean;
 }
 
 export function PhotoUploader({
@@ -36,6 +38,7 @@ export function PhotoUploader({
   onBusyChange,
   error,
   label,
+  showCounter = true,
 }: Props) {
   const { t, lang } = useI18n();
   const coverRuleMessage = t(
@@ -65,7 +68,7 @@ export function PhotoUploader({
     if (accepted.length < list.length) {
       setLocalError(
         t(
-          `حداکثر ${toPersianDigits(MAX_PHOTOS)} عکس برای هر آگهی مجاز است.`,
+          `حداکثر ${MAX_PHOTOS} عکس برای هر آگهی مجاز است.`,
           `A listing can have at most ${MAX_PHOTOS} photos.`,
         ),
       );
@@ -126,21 +129,23 @@ export function PhotoUploader({
 
   return (
     <div>
-      <div className="flex items-baseline justify-between gap-2">
-        <span className="label mb-0">{resolvedLabel}</span>
-        <span className="text-xs font-bold text-muted">
-          {lang === 'en'
-            ? `${photos.length} of ${MAX_PHOTOS}`
-            : `${toPersianDigits(photos.length)} از ${toPersianDigits(MAX_PHOTOS)}`}
-        </span>
-      </div>
+      {showCounter && (
+        <div className="flex items-baseline justify-between gap-2">
+          <span className="label mb-0">{resolvedLabel}</span>
+          {/* Counted in Latin digits, like every other number in the form. */}
+          <span className="text-xs font-bold tabular-nums text-muted">
+            {lang === 'en' ? `${photos.length} of ${MAX_PHOTOS}` : `${photos.length} از ${MAX_PHOTOS}`}
+          </span>
+        </div>
+      )}
 
 
-      <ul className="grid grid-cols-3 gap-2 sm:grid-cols-4">
+      {/* Square thumbs: three to a phone row, five from `sm` up. */}
+      <ul className="grid grid-cols-3 gap-2 sm:grid-cols-5">
         {photos.map((photo, index) => (
           <li
             key={photo.previewUrl}
-            className="relative aspect-[var(--photo-aspect)] overflow-hidden rounded-field border border-line bg-sunken"
+            className="relative aspect-square overflow-hidden rounded-field border border-line bg-sunken"
           >
             {/* Object URLs are browser-local previews; next/image cannot process them. */}
             {photo.kind === 'video' ? (
@@ -156,7 +161,7 @@ export function PhotoUploader({
               <img
                 src={photo.previewUrl}
                 alt={t(
-                  `پیش‌نمایش عکس ${toPersianDigits(index + 1)}`,
+                  `پیش‌نمایش عکس ${index + 1}`,
                   `Photo preview ${index + 1}`,
                 )}
                 width={640}
@@ -185,7 +190,7 @@ export function PhotoUploader({
               type="button"
               onClick={() => removeAt(index)}
               aria-label={t(
-                `حذف عکس ${toPersianDigits(index + 1)}`,
+                `حذف عکس ${index + 1}`,
                 `Remove photo ${index + 1}`,
               )}
               className="absolute bottom-1 end-1 flex h-7 w-7 items-center justify-center rounded-full bg-inverse/80 text-sm font-bold text-white backdrop-blur hover:bg-inverse"
@@ -202,7 +207,7 @@ export function PhotoUploader({
             type="button"
             onClick={() => filesRef.current?.click()}
             disabled={remaining === 0 || busy}
-            className="flex aspect-[var(--photo-aspect)] w-full flex-col items-center justify-center gap-1 rounded-field border border-dashed border-line-strong bg-card text-muted transition hover:border-cta hover:text-ink disabled:cursor-not-allowed disabled:opacity-50"
+            className="flex aspect-square w-full flex-col items-center justify-center gap-1 rounded-field border border-dashed border-line-strong bg-card px-1 text-center text-muted transition hover:border-cta hover:text-ink disabled:cursor-not-allowed disabled:opacity-50"
           >
             <span className="text-2xl leading-none">+</span>
             <span className="text-xs font-bold">

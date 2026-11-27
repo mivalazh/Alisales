@@ -6,6 +6,7 @@ import { useEffect, useState, type ReactNode } from 'react';
 import type { IconName } from '@studio/design';
 import { onAccountChanged } from '@/lib/auth/account-events';
 import { useI18n } from '@/lib/i18n';
+import { MENU_CATEGORY } from '@/lib/categories';
 import { NAV_ITEMS, type NavItem } from '@/lib/nav';
 import { BrandLockup } from './BrandLockup';
 import { CitySelect } from './CitySelect';
@@ -361,10 +362,10 @@ export function Header() {
               <div className="mt-3">
                 <DrawerSection>
                   <DrawerAccordion
-                    href="/cars"
-                    label={t('خودرو', 'Cars')}
-                    iconSrc="/icons/menu/khodro.svg"
-                    active={pathname === '/cars'}
+                    href={MENU_CATEGORY.car.href}
+                    label={t(MENU_CATEGORY.car.label, MENU_CATEGORY.car.en)}
+                    iconSrc={MENU_CATEGORY.car.iconSrc}
+                    active={pathname === MENU_CATEGORY.car.href}
                     allLabel={t('همه خودروها', 'All cars')}
                     links={[
                       { href: '/cars?bodyType=suv', label: t('شاسی‌بلند (SUV)', 'SUV') },
@@ -378,10 +379,10 @@ export function Header() {
                     ]}
                   />
                   <DrawerAccordion
-                    href="/motorcycles"
-                    label={t('موتور و اسکوتر برقی', 'Electric bikes & scooters')}
-                    iconSrc="/icons/menu/motorcycle.svg"
-                    active={pathname === '/motorcycles'}
+                    href={MENU_CATEGORY.motorcycle.href}
+                    label={t(MENU_CATEGORY.motorcycle.label, MENU_CATEGORY.motorcycle.en)}
+                    iconSrc={MENU_CATEGORY.motorcycle.iconSrc}
+                    active={pathname === MENU_CATEGORY.motorcycle.href}
                     allLabel={t('همه موتورها', 'All bikes')}
                     links={[
                       { href: '/motorcycles?bikeType=scooter', label: t('اسکوتر برقی', 'Electric scooter') },
@@ -392,10 +393,10 @@ export function Header() {
                     ]}
                   />
                   <DrawerAccordion
-                    href="/heavy"
-                    label={t('ماشین‌آلات سنگین', 'Heavy machinery')}
-                    iconSrc="/icons/menu/truck-empty-1.svg"
-                    active={pathname === '/heavy'}
+                    href={MENU_CATEGORY.heavy.href}
+                    label={t(MENU_CATEGORY.heavy.label, MENU_CATEGORY.heavy.en)}
+                    iconSrc={MENU_CATEGORY.heavy.iconSrc}
+                    active={pathname === MENU_CATEGORY.heavy.href}
                     allLabel={t('همه ماشین‌آلات', 'All machinery')}
                     links={[
                       { href: '/heavy?heavyType=truck', label: t('کامیون', 'Truck') },
@@ -406,10 +407,10 @@ export function Header() {
                     ]}
                   />
                   <DrawerAccordion
-                    href="/parts"
-                    label={t('قطعات و لوازم یدکی', 'Spare parts')}
-                    iconSrc="/icons/menu/wrench.svg"
-                    active={pathname === '/parts'}
+                    href={MENU_CATEGORY.parts.href}
+                    label={t(MENU_CATEGORY.parts.label, MENU_CATEGORY.parts.en)}
+                    iconSrc={MENU_CATEGORY.parts.iconSrc}
+                    active={pathname === MENU_CATEGORY.parts.href}
                     allLabel={t('همه قطعات', 'All parts')}
                     links={[
                       { href: '/parts?category=engine_battery', label: t('موتور و باتری', 'Engine & battery') },
