@@ -4,6 +4,7 @@ import { useEffect, useRef, useState } from 'react';
 import { CustomSelect } from '@/components/CustomSelect';
 import { Icon } from '@/components/Icon';
 import { useI18n } from '@/lib/i18n';
+import type { CreatedTicket } from './types';
 import {
   PhotoPipelineError,
   processListingPhoto,
@@ -35,7 +36,7 @@ export function NewTicketDialog({
   authed: boolean;
   defaultTopic?: NewTicketTopic;
   onClose: () => void;
-  onCreated: (ticket: { id: string; code: string }) => void;
+  onCreated: (ticket: CreatedTicket) => void;
 }) {
   const { t, lang } = useI18n();
   const [topic, setTopic] = useState<NewTicketTopic>(defaultTopic);
@@ -98,6 +99,8 @@ export function NewTicketDialog({
       setError(t('متن پیام را کامل‌تر بنویسید.', 'Write a little more in the message.'));
       return;
     }
+    const createdSubject = subject.trim();
+    const createdMessage = message.trim();
     setSending(true);
     try {
       const res = await fetch('/api/support', {
@@ -105,8 +108,8 @@ export function NewTicketDialog({
         headers: { 'content-type': 'application/json' },
         body: JSON.stringify({
           topic,
-          subject: subject.trim(),
-          message: message.trim(),
+          subject: createdSubject,
+          message: createdMessage,
           attachmentUrl: attachment?.url ?? null,
           name: authed ? undefined : name.trim(),
           contact: authed ? undefined : contact.trim(),
@@ -124,7 +127,14 @@ export function NewTicketDialog({
       setSubject('');
       setMessage('');
       setAttachment(null);
-      onCreated({ id: data.id, code: data.code });
+      onCreated({
+        id: data.id,
+        code: data.code,
+        subject: createdSubject,
+        topic,
+        message: createdMessage,
+        createdAt: new Date().toISOString(),
+      });
     } catch {
       setError(t('ارتباط با سرور برقرار نشد.', 'Could not reach the server.'));
     } finally {

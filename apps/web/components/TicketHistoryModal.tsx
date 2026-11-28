@@ -6,11 +6,12 @@ import { useI18n } from '@/lib/i18n';
 import { CarLoader } from './CarLoader';
 import { Icon } from './Icon';
 import { useDelayedBusy } from '@/lib/useDelayedBusy';
+import { formatStamp, statusLabel, STATUS_PILL, toTicketStatus } from './support/status';
 
 interface Ticket {
   code: string;
   topic: string;
-  status: 'pending' | 'answered';
+  status: string;
   reply: string | null;
   message: string;
   createdAt: string;
@@ -162,8 +163,8 @@ export function TicketHistoryModal() {
           ) : (
             <ul className="space-y-2.5">
               {tickets.map((ticket) => {
-                const answered = ticket.status === 'answered';
                 const topic = TOPIC_LABELS[ticket.topic];
+                const status = toTicketStatus(ticket.status);
                 return (
                   <li key={ticket.code} className="rounded-xl border border-line bg-card p-3">
                     <div className="flex flex-wrap items-center gap-2">
@@ -172,20 +173,16 @@ export function TicketHistoryModal() {
                       </span>
                       <span
                         className={`rounded-full px-2 py-0.5 text-[10px] font-extrabold ${
-                          answered
-                            ? 'bg-emerald-500/15 text-emerald-700 dark:text-emerald-300'
-                            : 'bg-amber-500/15 text-amber-700 dark:text-amber-300'
+                          STATUS_PILL[status]
                         }`}
                       >
-                        {answered ? t('پاسخ داده شد', 'Answered') : t('در حال بررسی', 'Under review')}
+                        {statusLabel(status, lang)}
                       </span>
                       <span className="text-[10px] font-bold text-muted">
                         {topic ? (lang === 'en' ? topic.en : topic.fa) : ticket.topic}
                       </span>
                       <time className="ms-auto text-[10px] text-faint">
-                        {new Intl.DateTimeFormat(lang === 'en' ? 'en-GB' : 'fa-IR', {
-                          dateStyle: 'medium',
-                        }).format(new Date(ticket.createdAt))}
+                        <bdi dir="ltr">{formatStamp(ticket.createdAt)}</bdi>
                       </time>
                     </div>
                     <p className="mt-2 rounded-lg bg-page px-3 py-2 text-xs leading-6 text-ink/80">

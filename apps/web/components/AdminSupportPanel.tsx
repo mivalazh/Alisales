@@ -1,6 +1,6 @@
 'use client';
 
-import { useState } from 'react';
+import { useEffect, useState } from 'react';
 import { useRouter } from 'next/navigation';
 import { Icon } from './Icon';
 import { TicketThread } from './support/TicketThread';
@@ -9,9 +9,17 @@ import type { ThreadMessage, TicketStatus } from './support/types';
 import type { AdminSupportItem } from '@/lib/data/admin-center';
 import { useI18n } from '@/lib/i18n';
 
-interface Override {
-  status: TicketStatus;
-  messages: ThreadMessage[];
+interface PostResult {
+  error?: string;
+  message?: ThreadMessage;
+  status?: TicketStatus;
+}
+
+/** Server rows plus only the local messages the server has not returned yet. */
+function mergeMessages(base: ThreadMessage[], extra?: ThreadMessage[]): ThreadMessage[] {
+  if (!extra?.length) return base;
+  const seen = new Set(base.map((message) => message.id));
+  return [...base, ...extra.filter((message) => !seen.has(message.id))];
 }
 
 /**
@@ -20,25 +28,37 @@ interface Override {
  * It reads exactly the thread the seller sees (`data.tickets[].messages`) and
  * answers into the same table, so there is one conversation, not two. A reply
  * sets the ticket to «پاسخ داده شد»; «بسته شدن» closes it for both sides.
+ *
+ * New messages are kept only until the refreshed server row carries them
+ * (matched by their real id), so a re-render can never show a message twice.
  */
 export function AdminSupportPanel({ tickets }: { tickets: AdminSupportItem[] }) {
   const { t, lang } = useI18n();
   const router = useRouter();
   const [activeId, setActiveId] = useState<string | null>(tickets[0]?.id ?? null);
-  const [overrides, setOverrides] = useState<Record<string, Override>>({});
+  const [pending, setPending] = useState<Record<string, ThreadMessage[]>>({});
+  const [statusHints, setStatusHints] = useState<Record<string, TicketStatus>>({});
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
   const active = tickets.find((ticket) => ticket.id === activeId) ?? null;
-  const messages = active
-    ? (overrides[active.id]?.messages ?? active.messages)
-    : [];
-  const status = active
-    ? (overrides[active.id]?.status ?? active.status)
-    : ('open' as TicketStatus);
+  const messages = active ? mergeMessages(active.messages, pending[active.id]) : [];
+  const status = active ? (statusHints[active.id] ?? active.status) : 'open';
 
-  async function act(action: string, payload: Record<string, unknown>): Promise<boolean> {
-    if (!active || busy) return false;
+  // Drop a local status once the server row agrees with it.
+  useEffect(() => {
+    setStatusHints((current) => {
+      if (!tickets.some((ticket) => current[ticket.id] === ticket.status)) return current;
+      const next = { ...current };
+      for (const ticket of tickets) {
+        if (next[ticket.id] === ticket.status) delete next[ticket.id];
+      }
+      return next;
+    });
+  }, [tickets]);
+
+  async function post(action: string, payload: Record<string, unknown> = {}): Promise<PostResult | null> {
+    if (!active || busy) return null;
     setBusy(true);
     setError(null);
     try {
@@ -47,48 +67,42 @@ export function AdminSupportPanel({ tickets }: { tickets: AdminSupportItem[] }) 
         headers: { 'content-type': 'application/json' },
         body: JSON.stringify({ action, id: active.id, ...payload }),
       });
+      const data = (await res.json().catch(() => ({}))) as PostResult;
       if (!res.ok) {
-        const data = (await res.json().catch(() => ({}))) as { error?: string };
         setError(data.error ?? t('عملیات انجام نشد.', 'The action failed.'));
-        return false;
+        return null;
       }
-      router.refresh();
-      return true;
+      return data;
     } catch {
       setError(t('ارتباط با سرور برقرار نشد.', 'Could not reach the server.'));
-      return false;
+      return null;
     } finally {
       setBusy(false);
     }
   }
 
   async function reply(body: string): Promise<boolean> {
-    if (!active) return false;
-    const ok = await act('support-reply', { message: body });
-    if (!ok) return false;
-    const optimistic: ThreadMessage = {
-      id: `local-${Date.now()}`,
-      senderRole: 'admin',
-      senderId: 'support',
-      body,
-      attachmentUrl: null,
-      createdAt: new Date().toISOString(),
-    };
-    setOverrides((current) => ({
-      ...current,
-      [active.id]: { status: 'answered', messages: [...messages, optimistic] },
-    }));
+    const ticketId = active?.id;
+    const data = await post('support-reply', { message: body });
+    if (!ticketId || !data) return false;
+    const saved = data.message;
+    if (saved) {
+      setPending((current) => ({
+        ...current,
+        [ticketId]: [...(current[ticketId] ?? []), saved],
+      }));
+    }
+    setStatusHints((current) => ({ ...current, [ticketId]: 'answered' }));
+    router.refresh();
     return true;
   }
 
   async function closeTicket(): Promise<void> {
-    if (!active) return;
-    const ok = await act('support-close', {});
-    if (!ok) return;
-    setOverrides((current) => ({
-      ...current,
-      [active.id]: { status: 'closed', messages },
-    }));
+    const ticketId = active?.id;
+    const data = await post('support-close');
+    if (!ticketId || !data) return;
+    setStatusHints((current) => ({ ...current, [ticketId]: 'closed' }));
+    router.refresh();
   }
 
   return (
@@ -117,10 +131,8 @@ export function AdminSupportPanel({ tickets }: { tickets: AdminSupportItem[] }) 
         <div className="mt-2 grid gap-2 lg:grid-cols-[minmax(0,300px)_minmax(0,1fr)]">
           <ul className="max-h-72 divide-y divide-line overflow-y-auto rounded-card border border-line bg-card lg:max-h-[560px]">
             {tickets.map((ticket) => {
-              const currentStatus = overrides[ticket.id]?.status ?? ticket.status;
-              const lastMessage =
-                overrides[ticket.id]?.messages ??
-                ticket.messages;
+              const currentStatus = statusHints[ticket.id] ?? ticket.status;
+              const latest = mergeMessages(ticket.messages, pending[ticket.id]);
               return (
                 <li key={ticket.id}>
                   <button
@@ -142,7 +154,7 @@ export function AdminSupportPanel({ tickets }: { tickets: AdminSupportItem[] }) 
                       </span>
                     </span>
                     <span className="line-clamp-1 w-full text-[11px] text-muted">
-                      {lastMessage[lastMessage.length - 1]?.body ?? ticket.message}
+                      {latest[latest.length - 1]?.body ?? ticket.message}
                     </span>
                     <span className="mt-0.5 flex w-full items-center gap-1.5">
                       <span

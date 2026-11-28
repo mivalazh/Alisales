@@ -88,8 +88,13 @@ interface TicketRow {
   model: string;
   message: string;
   attachment_url?: string | null;
-  created_at: string;
+  /** Fixture rows are written in camelCase (a `SupportRequest`). */
+  created_at?: string;
   updated_at?: string | null;
+  userId?: string | null;
+  attachmentUrl?: string | null;
+  createdAt?: string;
+  updatedAt?: string | null;
 }
 
 interface MessageRow {
@@ -107,9 +112,10 @@ function normalizeStatus(value: string | undefined): SupportStatus {
 }
 
 function mapTicket(row: TicketRow): SupportRequest {
+  const createdAt = row.created_at ?? row.createdAt ?? new Date(0).toISOString();
   return {
     id: row.id,
-    userId: row.user_id ?? null,
+    userId: row.user_id ?? row.userId ?? null,
     kind: row.kind,
     topic: row.topic,
     subject: row.subject?.trim() || row.message.slice(0, 72) || '',
@@ -120,9 +126,9 @@ function mapTicket(row: TicketRow): SupportRequest {
     contact: row.contact,
     model: row.model,
     message: row.message,
-    attachmentUrl: row.attachment_url ?? null,
-    createdAt: row.created_at,
-    updatedAt: row.updated_at ?? row.created_at,
+    attachmentUrl: row.attachment_url ?? row.attachmentUrl ?? null,
+    createdAt,
+    updatedAt: row.updated_at ?? row.updatedAt ?? createdAt,
   };
 }
 
@@ -172,7 +178,9 @@ export async function listSupportRequests(): Promise<SupportRequest[]> {
       .select('*')
       .order('created_at', { ascending: false })
       .limit(MAX_ENTRIES);
-    return ((data ?? []) as TicketRow[]).map(mapTicket);
+    return ((data ?? []) as TicketRow[])
+      .map(mapTicket)
+      .sort((a, b) => b.updatedAt.localeCompare(a.updatedAt));
   } catch {
     return [];
   }
@@ -243,6 +251,49 @@ export async function listSupportMessages(ticketId: string): Promise<SupportMess
   }
 }
 
+function buildMessage(
+  ticketId: string,
+  input: {
+    role: SupportSenderRole;
+    senderId: string | null;
+    body: string;
+    attachmentUrl?: string | null;
+    createdAt?: string;
+  },
+): SupportMessage {
+  return {
+    id: crypto.randomUUID(),
+    ticketId,
+    senderRole: input.role,
+    senderId: input.senderId,
+    body: input.body.trim().slice(0, 4000),
+    attachmentUrl: input.attachmentUrl ?? null,
+    createdAt: input.createdAt ?? new Date().toISOString(),
+  };
+}
+
+/** Append messages without touching the envelope — used when a ticket opens. */
+async function appendMessages(messages: SupportMessage[]): Promise<void> {
+  if (messages.length === 0) return;
+  const sb = admin();
+  if (!sb) {
+    writeFixtureMessages([...readFixtureMessages(), ...messages]);
+    return;
+  }
+  const { error } = await sb.from('support_ticket_messages').insert(
+    messages.map((message) => ({
+      id: message.id,
+      ticket_id: message.ticketId,
+      sender_role: message.senderRole,
+      sender_id: message.senderId,
+      body: message.body,
+      attachment_url: message.attachmentUrl,
+      created_at: message.createdAt,
+    })),
+  );
+  if (error) throw new Error(`store support message failed: ${error.message}`);
+}
+
 /**
  * Create a ticket and its opening message.
  *
@@ -281,30 +332,25 @@ export async function createSupportRequest(input: {
     updatedAt: now,
   };
 
+  const opening = buildMessage(entry.id, {
+    role: 'user',
+    senderId: entry.userId,
+    body: entry.message,
+    attachmentUrl: entry.attachmentUrl,
+    createdAt: now,
+  });
+  const acknowledgement = buildMessage(entry.id, {
+    role: 'admin',
+    senderId: 'system',
+    body: ACK[entry.topic],
+    // One tick later, so the pair always reads in order.
+    createdAt: new Date(Date.parse(now) + 1).toISOString(),
+  });
+
   const sb = admin();
   if (!sb) {
     writeFixtureTicket(entry);
-    writeFixtureMessages([
-      ...readFixtureMessages(),
-      {
-        id: crypto.randomUUID(),
-        ticketId: entry.id,
-        senderRole: 'user',
-        senderId: entry.userId,
-        body: entry.message,
-        attachmentUrl: entry.attachmentUrl,
-        createdAt: now,
-      },
-      {
-        id: crypto.randomUUID(),
-        ticketId: entry.id,
-        senderRole: 'admin',
-        senderId: 'system',
-        body: ACK[entry.topic],
-        attachmentUrl: null,
-        createdAt: now,
-      },
-    ]);
+    await appendMessages([opening, acknowledgement]);
     return entry;
   }
 
@@ -320,16 +366,19 @@ export async function createSupportRequest(input: {
     model: entry.model,
     message: entry.message,
   };
-  const extended = {
-    ...row,
-    user_id: entry.userId,
-    subject: entry.subject,
-    attachment_url: entry.attachmentUrl,
-  };
 
-  let inserted = await sb.from('support_requests').insert(extended).select('*').single();
+  let inserted = await sb
+    .from('support_requests')
+    .insert({
+      ...row,
+      user_id: entry.userId,
+      subject: entry.subject,
+      attachment_url: entry.attachmentUrl,
+    })
+    .select('*')
+    .single();
   // A deployment that has not applied 0021 keeps working on the legacy columns.
-  if (inserted.error && !entry.userId) {
+  if (inserted.error) {
     inserted = await sb.from('support_requests').insert(row).select('*').single();
   }
   if (inserted.error || !inserted.data) {
@@ -339,27 +388,15 @@ export async function createSupportRequest(input: {
   }
 
   const saved = mapTicket(inserted.data as TicketRow);
-  await addSupportMessage(saved.id, {
-    role: 'user',
-    senderId: saved.userId,
-    body: saved.message,
-    attachmentUrl: saved.attachmentUrl,
-    statusAfter: 'open',
-  });
-  await addSupportMessage(saved.id, {
-    role: 'admin',
-    senderId: 'system',
-    body: ACK[saved.topic],
-    statusAfter: 'open',
-  });
+  await appendMessages([opening, acknowledgement]);
   return saved;
 }
 
 /**
  * Append one message and move the ticket to the matching status:
  * a user reply re-opens the work («در حال بررسی»), a support reply marks the
- * ticket «پاسخ داده شد». The update is the caller's decision via `statusAfter`
- * so an acknowledgement can be added without claiming the ticket was answered.
+ * ticket «پاسخ داده شد». `statusAfter: null` appends without touching the
+ * envelope.
  */
 export async function addSupportMessage(
   ticketId: string,
@@ -368,42 +405,27 @@ export async function addSupportMessage(
     senderId: string | null;
     body: string;
     attachmentUrl?: string | null;
-    statusAfter?: SupportStatus;
+    statusAfter?: SupportStatus | null;
   },
 ): Promise<SupportMessage> {
-  const now = new Date().toISOString();
-  const message: SupportMessage = {
-    id: crypto.randomUUID(),
-    ticketId,
-    senderRole: input.role,
-    senderId: input.senderId,
-    body: input.body.trim().slice(0, 4000),
-    attachmentUrl: input.attachmentUrl ?? null,
-    createdAt: now,
-  };
+  const message = buildMessage(ticketId, input);
   const statusAfter =
-    input.statusAfter ?? (input.role === 'admin' ? 'answered' : 'pending');
+    input.statusAfter === undefined
+      ? input.role === 'admin'
+        ? 'answered'
+        : 'pending'
+      : input.statusAfter;
 
+  await appendMessages([message]);
+  if (!statusAfter) return message;
+
+  const now = new Date().toISOString();
   const sb = admin();
   if (!sb) {
-    writeFixtureMessages([...readFixtureMessages(), message]);
     const ticket = readFixtureTickets().find((row) => row.id === ticketId);
-    if (ticket) {
-      writeFixtureTicket({ ...ticket, status: statusAfter, updatedAt: now });
-    }
+    if (ticket) writeFixtureTicket({ ...ticket, status: statusAfter, updatedAt: now });
     return message;
   }
-
-  const { error } = await sb.from('support_ticket_messages').insert({
-    id: message.id,
-    ticket_id: message.ticketId,
-    sender_role: message.senderRole,
-    sender_id: message.senderId,
-    body: message.body,
-    attachment_url: message.attachmentUrl,
-    created_at: message.createdAt,
-  });
-  if (error) throw new Error(`store support message failed: ${error.message}`);
 
   await sb
     .from('support_requests')

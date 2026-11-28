@@ -11,6 +11,15 @@ export interface ThreadMessage {
   createdAt: string;
 }
 
+export interface CreatedTicket {
+  id: string;
+  code: string;
+  subject: string;
+  topic: string;
+  message: string;
+  createdAt: string;
+}
+
 export interface TicketSummary {
   id: string;
   code: string;

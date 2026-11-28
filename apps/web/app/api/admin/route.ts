@@ -116,19 +116,20 @@ export async function POST(request: Request): Promise<NextResponse> {
       if (text.length < 1) {
         return NextResponse.json({ error: 'متن پاسخ را بنویسید.' }, { status: 400 });
       }
-      await addSupportMessage(ticket.id, {
+      const message = await addSupportMessage(ticket.id, {
         role: 'admin',
         senderId: 'support',
         body: text,
         statusAfter: 'answered',
       });
-      result = { ok: true };
-      break;
+      // The saved row goes back so the panel can show it immediately.
+      return NextResponse.json({ ok: true, message });
     }
     case 'support-close': {
-      const ok = await updateSupportStatus(id, 'closed');
-      result = ok ? { ok: true } : { ok: false, error: 'تیکت پیدا نشد.' };
-      break;
+      if (!(await updateSupportStatus(id, 'closed'))) {
+        return NextResponse.json({ error: 'تیکت پیدا نشد.' }, { status: 400 });
+      }
+      return NextResponse.json({ ok: true, status: 'closed' });
     }
     case 'inspection-update': {
       const status = body.status;

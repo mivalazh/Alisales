@@ -17,6 +17,13 @@ export const STATUS_PILL: Record<TicketStatus, string> = {
   closed: 'bg-sunken text-muted dark:bg-white/10',
 };
 
+/** Wire values arrive as plain JSON: anything that is not a known status reads as «در حال بررسی». */
+export function toTicketStatus(value: unknown): TicketStatus {
+  return typeof value === 'string' && Object.hasOwn(STATUS_LABEL, value)
+    ? (value as TicketStatus)
+    : 'pending';
+}
+
 export function statusLabel(status: TicketStatus, lang: 'fa' | 'en'): string {
   return STATUS_LABEL[status]?.[lang] ?? status;
 }

@@ -45,10 +45,12 @@ export function TicketThread({
   const [error, setError] = useState<string | null>(null);
   const scroller = useRef<HTMLDivElement>(null);
 
+  // Jump to the newest message on arrival and on every new one; `code` covers
+  // switching between two conversations that happen to have the same count.
   useEffect(() => {
     const node = scroller.current;
     if (node) node.scrollTop = node.scrollHeight;
-  }, [messages.length]);
+  }, [code, messages.length]);
 
   async function submit(): Promise<void> {
     const body = draft.trim();
@@ -132,7 +134,8 @@ export function TicketThread({
                         mine ? 'text-white/60' : 'text-muted'
                       }`}
                     >
-                      {formatStamp(message.createdAt)}
+                      {/* Isolated so the RTL paragraph cannot reorder the stamp. */}
+                      <bdi dir="ltr">{formatStamp(message.createdAt)}</bdi>
                     </p>
                   </div>
                 </li>

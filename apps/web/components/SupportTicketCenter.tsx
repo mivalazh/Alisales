@@ -1,14 +1,20 @@
 'use client';
 
-import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
+import { useCallback, useEffect, useRef, useState } from 'react';
 import { useI18n } from '@/lib/i18n';
 import { Icon } from './Icon';
 import { TicketThread } from './support/TicketThread';
 import { NewTicketDialog, type NewTicketTopic } from './support/NewTicketDialog';
 import { relativeAge, statusLabel, STATUS_PILL } from './support/status';
-import type { ThreadMessage, TicketStatus, TicketSummary } from './support/types';
+import type {
+  CreatedTicket,
+  ThreadMessage,
+  TicketStatus,
+  TicketSummary,
+} from './support/types';
 
 const CODES_KEY = 'alisales-ticket-codes';
+const MAX_CODES = 8;
 
 const TOPIC_LABELS: Record<string, { fa: string; en: string }> = {
   technical: { fa: 'پشتیبانی فنی', en: 'Technical support' },
@@ -28,12 +34,24 @@ function readCodes(): string[] {
   }
 }
 
-/** Guest tickets tracked by code keep working, without an account. */
+/** Guest tickets are tracked by code, the only credential they have. */
+function rememberCode(code: string): void {
+  try {
+    const previous = readCodes();
+    localStorage.setItem(
+      CODES_KEY,
+      JSON.stringify([code, ...previous.filter((value) => value !== code)].slice(0, MAX_CODES)),
+    );
+  } catch {
+    // Private mode — the ticket still opens this session, just not after a reload.
+  }
+}
+
 async function guestTickets(): Promise<TicketSummary[]> {
-  const codes = readCodes();
+  const codes = readCodes().slice(0, MAX_CODES);
   if (codes.length === 0) return [];
   const rows = await Promise.all(
-    codes.slice(0, 12).map(async (code) => {
+    codes.map(async (code) => {
       try {
         const response = await fetch(`/api/support?code=${encodeURIComponent(code)}`, {
           cache: 'no-store',
@@ -77,7 +95,7 @@ async function guestTickets(): Promise<TicketSummary[]> {
  * fills the rest. Phone: the list is the page, and a ticket opens as a
  * full-screen thread with its own sticky header and composer. Both panes read
  * the same `/api/support` thread, so a reply from support appears without a
- * page load.
+ * page load. The list is the single source of truth for the open ticket.
  */
 export function SupportTicketCenter() {
   const { t, lang } = useI18n();
@@ -85,27 +103,33 @@ export function SupportTicketCenter() {
   const [tickets, setTickets] = useState<TicketSummary[]>([]);
   const [loading, setLoading] = useState(true);
   const [failed, setFailed] = useState(false);
-  const [selected, setSelected] = useState<TicketSummary | null>(null);
+  const [selectedId, setSelectedId] = useState<string | null>(null);
   const [thread, setThread] = useState<ThreadMessage[]>([]);
-  const [threadStatus, setThreadStatus] = useState<TicketStatus>('open');
   const [threadLoading, setThreadLoading] = useState(false);
   const [mobileOpen, setMobileOpen] = useState(false);
   const [createOpen, setCreateOpen] = useState(false);
   const requestId = useRef(0);
+  const selected = tickets.find((ticket) => ticket.id === selectedId) ?? null;
 
-  const load = useCallback(async () => {
+  const load = useCallback(async (): Promise<TicketSummary[]> => {
     setLoading(true);
     setFailed(false);
     try {
       const res = await fetch('/api/support', { cache: 'no-store' });
       if (!res.ok) throw new Error(`support ${res.status}`);
       const data = (await res.json()) as { authed?: boolean; tickets?: TicketSummary[] };
+      const list = data.authed
+        ? Array.isArray(data.tickets)
+          ? data.tickets
+          : []
+        : await guestTickets();
       setAuthed(Boolean(data.authed));
-      const list = Array.isArray(data.tickets) ? data.tickets : [];
-      setTickets(data.authed ? list : await guestTickets());
+      setTickets(list);
+      return list;
     } catch {
       setFailed(true);
       setTickets([]);
+      return [];
     } finally {
       setLoading(false);
     }
@@ -117,10 +141,9 @@ export function SupportTicketCenter() {
 
   const openThread = useCallback(
     async (ticket: TicketSummary, mobile: boolean) => {
-      setSelected(ticket);
+      setSelectedId(ticket.id);
       setMobileOpen(mobile);
       setThread([]);
-      setThreadStatus(ticket.status);
       setThreadLoading(true);
       const id = ++requestId.current;
       try {
@@ -135,7 +158,12 @@ export function SupportTicketCenter() {
         };
         if (id !== requestId.current) return;
         setThread(Array.isArray(data.messages) ? data.messages : []);
-        if (data.ticket?.status) setThreadStatus(data.ticket.status);
+        const status = data.ticket?.status;
+        if (status) {
+          setTickets((current) =>
+            current.map((row) => (row.id === ticket.id ? { ...row, status } : row)),
+          );
+        }
       } catch {
         // The pane keeps its empty state; the list still works.
       } finally {
@@ -147,14 +175,15 @@ export function SupportTicketCenter() {
 
   // Desktop lands on the newest conversation instead of an empty pane.
   useEffect(() => {
-    if (loading || selected || tickets.length === 0) return;
+    if (loading || selectedId || tickets.length === 0) return;
     void openThread(tickets[0]!, false);
-  }, [loading, openThread, selected, tickets]);
+  }, [loading, openThread, selectedId, tickets]);
 
   async function send(body: string): Promise<boolean> {
     if (!selected || !authed) return false;
+    const ticketId = selected.id;
     try {
-      const res = await fetch(`/api/support/${selected.id}/messages`, {
+      const res = await fetch(`/api/support/${ticketId}/messages`, {
         method: 'POST',
         headers: { 'content-type': 'application/json' },
         body: JSON.stringify({ body }),
@@ -166,47 +195,48 @@ export function SupportTicketCenter() {
       if (!res.ok) return false;
       const nextStatus = data.status ?? 'pending';
       if (Array.isArray(data.messages)) setThread(data.messages);
-      setThreadStatus(nextStatus);
       setTickets((current) =>
-        current.map((ticket) =>
-          ticket.id === selected.id
-            ? { ...ticket, status: nextStatus, preview: body, updatedAt: new Date().toISOString() }
-            : ticket,
+        current.map((row) =>
+          row.id === ticketId
+            ? { ...row, status: nextStatus, preview: body, updatedAt: new Date().toISOString() }
+            : row,
         ),
       );
-      setSelected((current) => (current ? { ...current, status: nextStatus } : current));
       return true;
     } catch {
       return false;
     }
   }
 
-  async function handleCreated(created: { id: string; code: string }) {
+  async function handleCreated(created: CreatedTicket) {
     setCreateOpen(false);
-    await load();
-    const res = await fetch('/api/support', { cache: 'no-store' });
-    const data = (await res.json().catch(() => ({}))) as { tickets?: TicketSummary[] };
-    const fresh = (data.tickets ?? []).find((ticket) => ticket.id === created.id);
+    // Unknown (list still loading) counts as guest, like the dialog's fields.
+    if (authed !== true) rememberCode(created.code);
+    const list = await load();
+    const fresh = list.find((ticket) => ticket.id === created.id);
     if (fresh) {
       void openThread(fresh, false);
       return;
     }
-    setSelected({
+    // The list can lag the write; open the new ticket locally meanwhile.
+    const summary: TicketSummary = {
       id: created.id,
       code: created.code,
-      subject: t('تیکت جدید', 'New ticket'),
-      topic: 'technical',
+      subject: created.subject,
+      topic: created.topic,
       status: 'open',
-      preview: '',
-      createdAt: new Date().toISOString(),
-      updatedAt: new Date().toISOString(),
-    });
+      preview: created.message,
+      createdAt: created.createdAt,
+      updatedAt: created.createdAt,
+    };
+    setTickets((current) => [summary, ...current]);
+    void openThread(summary, false);
   }
 
-  const counts = useMemo(() => {
-    const open = tickets.filter((ticket) => ticket.status !== 'closed').length;
-    return { open, total: tickets.length };
-  }, [tickets]);
+  const counts = {
+    open: tickets.filter((ticket) => ticket.status !== 'closed').length,
+    total: tickets.length,
+  };
 
   const emptyState = (
     <div className="flex flex-col items-center px-5 py-12 text-center">
@@ -260,7 +290,7 @@ export function SupportTicketCenter() {
       ) : (
         <ul className="min-h-0 flex-1 divide-y divide-line overflow-y-auto">
           {tickets.map((ticket) => {
-            const active = selected?.id === ticket.id;
+            const active = selectedId === ticket.id;
             const topic = TOPIC_LABELS[ticket.topic];
             return (
               <li key={ticket.id}>
@@ -269,8 +299,7 @@ export function SupportTicketCenter() {
                   onClick={() =>
                     void openThread(
                       ticket,
-                      typeof window !== 'undefined' &&
-                        !window.matchMedia('(min-width: 1024px)').matches,
+                      !window.matchMedia('(min-width: 1024px)').matches,
                     )
                   }
                   aria-current={active ? 'true' : undefined}
@@ -311,23 +340,30 @@ export function SupportTicketCenter() {
     </div>
   );
 
+  // A closed ticket is read-only on both sides; the admin panel notes the same.
+  const closed = selected?.status === 'closed';
+  const composerNote = threadLoading
+    ? t('در حال بارگذاری گفتگو…', 'Loading the conversation…')
+    : closed
+      ? t(
+          'این تیکت بسته شده است. برای ادامه، تیکت جدیدی ثبت کنید.',
+          'This ticket is closed. Open a new ticket to continue.',
+        )
+      : authed
+        ? undefined
+        : t('برای ادامه گفتگو وارد حساب شوید.', 'Sign in to continue this conversation.');
+
   const threadPane = (
     <div className="min-h-0 flex-1 bg-card">
       {selected ? (
         <TicketThread
           subject={selected.subject}
           code={selected.code}
-          status={threadStatus}
+          status={selected.status}
           messages={threadLoading ? [] : thread}
           role="user"
-          onSend={authed ? send : undefined}
-          composerNote={
-            threadLoading
-              ? t('در حال بارگذاری گفتگو…', 'Loading the conversation…')
-              : authed
-                ? undefined
-                : t('برای ادامه گفتگو وارد حساب شوید.', 'Sign in to continue this conversation.')
-          }
+          onSend={authed && !closed ? send : undefined}
+          composerNote={composerNote}
           emptyLabel={
             threadLoading
               ? t('در حال بارگذاری گفتگو…', 'Loading the conversation…')
@@ -395,18 +431,12 @@ export function SupportTicketCenter() {
           <TicketThread
             subject={selected.subject}
             code={selected.code}
-            status={threadStatus}
+            status={selected.status}
             messages={threadLoading ? [] : thread}
             role="user"
-            onSend={authed ? send : undefined}
+            onSend={authed && !closed ? send : undefined}
             onBack={() => setMobileOpen(false)}
-            composerNote={
-              threadLoading
-                ? t('در حال بارگذاری گفتگو…', 'Loading the conversation…')
-                : authed
-                  ? undefined
-                  : t('برای ادامه گفتگو وارد حساب شوید.', 'Sign in to continue this conversation.')
-            }
+            composerNote={composerNote}
           />
         </div>
       )}
