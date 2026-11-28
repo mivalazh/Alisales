@@ -18,6 +18,7 @@ interface FakeDatabase {
   story_submissions: Row[];
   inspection_bookings: Row[];
   support_requests: Row[];
+  support_ticket_messages: Row[];
   ai_faq_counts: Row[];
   platform_settings: Row[];
 }
@@ -28,6 +29,7 @@ export const socialTables: FakeDatabase = {
   story_submissions: [],
   inspection_bookings: [],
   support_requests: [],
+  support_ticket_messages: [],
   ai_faq_counts: [],
   platform_settings: [],
 };

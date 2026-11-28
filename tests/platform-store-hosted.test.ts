@@ -19,9 +19,12 @@ import {
   updateInspection,
 } from '../apps/web/lib/data/platform-store';
 import {
+  addSupportMessage,
   createSupportRequest,
   findSupportByCode,
+  listSupportMessages,
   listSupportRequests,
+  updateSupportStatus,
 } from '../apps/web/lib/support-store';
 import { storeStoryMedia } from '../apps/web/lib/data/media-store';
 import { resetSocialDb, socialStorage, socialTables } from './helpers/fake-supabase';
@@ -135,18 +138,38 @@ describe('platform flows hosted path', () => {
       message: 'I would like to advertise.',
     });
 
-    expect(ticket.status).toBe('answered');
+    // A new ticket is open until support answers; the acknowledgement is the
+    // first message in the thread, not a claimed answer.
+    expect(ticket.status).toBe('open');
     expect(ticket.code).toMatch(/^AS-[A-F0-9]{8}$/);
     await expect(findSupportByCode(ticket.code.toLowerCase())).resolves.toMatchObject({
       id: ticket.id,
       topic: 'advertising',
-      reply: expect.any(String),
+      status: 'open',
     });
     expect(await listSupportRequests()).toHaveLength(1);
     expect(socialTables.support_requests[0]).toMatchObject({
       code: ticket.code,
       contact: '09120000000',
     });
+
+    const thread = await listSupportMessages(ticket.id);
+    expect(thread.map((message) => message.senderRole)).toEqual(['user', 'admin']);
+    expect(thread[0]?.body).toBe('I would like to advertise.');
+
+    await addSupportMessage(ticket.id, {
+      role: 'user',
+      senderId: ALICE,
+      body: 'Any update?',
+    });
+    expect((await listSupportRequests())[0]?.status).toBe('pending');
+    expect(await listSupportMessages(ticket.id)).toHaveLength(3);
+
+    await addSupportMessage(ticket.id, { role: 'admin', senderId: 'support', body: 'On it.' });
+    expect((await listSupportRequests())[0]?.status).toBe('answered');
+
+    expect(await updateSupportStatus(ticket.id, 'closed')).toBe(true);
+    expect((await listSupportRequests())[0]?.status).toBe('closed');
   });
 
   it('increments AI topic counters atomically and ranks them', async () => {

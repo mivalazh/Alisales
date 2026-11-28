@@ -11,7 +11,7 @@ import {
   type StorySubmission,
 } from './platform-store';
 import { getAedRate } from './rate-store';
-import { listSupportRequests } from '../support-store';
+import { listSupportMessages, listSupportRequests } from '../support-store';
 import type { AedRate, ListingState } from '@alisales/schemas';
 
 /**
@@ -39,11 +39,26 @@ export interface AdminListingRow {
 export interface AdminSupportItem {
   id: string;
   kind: 'brand' | 'ticket';
+  code: string;
+  subject: string;
+  topic: string;
+  status: import('../support-store').SupportStatus;
+  userId: string | null;
   name: string;
   contact: string;
   model: string;
   message: string;
   createdAt: string;
+  updatedAt: string;
+  /** The exact thread the user sees — support answers from it. */
+  messages: Array<{
+    id: string;
+    senderRole: 'user' | 'admin';
+    senderId: string | null;
+    body: string;
+    attachmentUrl: string | null;
+    createdAt: string;
+  }>;
 }
 
 export interface AdminCenterData {
@@ -81,15 +96,31 @@ export async function adminCenterData(): Promise<AdminCenterData> {
     }))
     .sort((a, b) => (b.publishedAt ?? '').localeCompare(a.publishedAt ?? ''));
 
-  const tickets: AdminSupportItem[] = supportRequests.map((ticket) => ({
-    id: ticket.id,
-    kind: ticket.kind,
-    name: ticket.name,
-    contact: ticket.contact,
-    model: ticket.model,
-    message: ticket.message,
-    createdAt: ticket.createdAt,
-  }));
+  const tickets: AdminSupportItem[] = await Promise.all(
+    supportRequests.slice(0, 30).map(async (ticket) => ({
+      id: ticket.id,
+      kind: ticket.kind,
+      code: ticket.code,
+      subject: ticket.subject,
+      topic: ticket.topic,
+      status: ticket.status,
+      userId: ticket.userId,
+      name: ticket.name,
+      contact: ticket.contact,
+      model: ticket.model,
+      message: ticket.message,
+      createdAt: ticket.createdAt,
+      updatedAt: ticket.updatedAt,
+      messages: (await listSupportMessages(ticket.id)).map((message) => ({
+        id: message.id,
+        senderRole: message.senderRole,
+        senderId: message.senderId,
+        body: message.body,
+        attachmentUrl: message.attachmentUrl,
+        createdAt: message.createdAt,
+      })),
+    })),
+  );
 
   return {
     queues,

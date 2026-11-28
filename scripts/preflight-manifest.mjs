@@ -31,6 +31,7 @@ export const MIGRATION_FILES = [
   '0018_photo_bucket.sql',
   '0019_photo_bucket.sql',
   '0020_notification_item_reads.sql',
+  '0021_support_threads.sql',
 ];
 
 /** Rows in `public` that the app reads or writes directly. */
@@ -59,6 +60,7 @@ export const TABLES = [
   { name: 'story_submissions', migration: '0010_platform_flows.sql' },
   { name: 'inspection_bookings', migration: '0010_platform_flows.sql' },
   { name: 'support_requests', migration: '0010_platform_flows.sql' },
+  { name: 'support_ticket_messages', migration: '0021_support_threads.sql' },
   { name: 'ai_faq_counts', migration: '0010_platform_flows.sql' },
   { name: 'platform_settings', migration: '0010_platform_flows.sql' },
   { name: 'listing_events', migration: '0012_notification_history.sql' },

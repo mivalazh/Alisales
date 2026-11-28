@@ -171,3 +171,49 @@ describe('0010 ai_faq_counts and settings', () => {
     expect(updated.rows[0]?.story_paid_guard).toBe(true);
   });
 });
+
+describe('0021 support ticket threads', () => {
+  it('stores a real multi-message thread behind a closed status set', async () => {
+    await asSuper(db);
+    const ticket = await db.query<{ id: string }>(
+      `insert into public.support_requests
+         (kind, topic, code, name, contact, message, subject, status)
+       values ('ticket', 'technical', 'AS-THREAD01', 'سارا', '09120000000',
+               'متن اول', 'موضوع تیکت', 'open')
+       returning id`,
+    );
+    const id = ticket.rows[0]!.id;
+
+    await db.query(
+      `insert into public.support_ticket_messages (ticket_id, sender_role, sender_id, body)
+       values ($1, 'user', $2, 'پیام اول'),
+              ($1, 'admin', 'support', 'پاسخ پشتیبانی')`,
+      [id, IDS.alice],
+    );
+    const rows = await db.query<{ sender_role: string; body: string }>(
+      `select sender_role, body from public.support_ticket_messages where ticket_id = $1`,
+      [id],
+    );
+    expect(rows.rows).toHaveLength(2);
+    expect(rows.rows.map((row) => row.sender_role).sort()).toEqual(['admin', 'user']);
+
+    await expectError(
+      db.query(
+        `insert into public.support_ticket_messages (ticket_id, sender_role, body)
+         values ($1, 'system', 'x')`,
+        [id],
+      ),
+      'support_ticket_messages_sender_role_check',
+    );
+    await expectError(
+      db.query(`update public.support_requests set status = 'weird' where id = $1`, [id]),
+      'support_requests_status_check',
+    );
+
+    await asAnonymous(db);
+    await expectError(
+      db.query(`select body from public.support_ticket_messages`),
+      'permission denied',
+    );
+  });
+});

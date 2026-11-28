@@ -6,6 +6,7 @@ import { useRouter } from 'next/navigation';
 import { useMemo, useState } from 'react';
 import { formatJalaliDate } from '@alisales/schemas';
 import { Icon } from './Icon';
+import { AdminSupportPanel } from './AdminSupportPanel';
 import { AdminRateForm } from './AdminRateForm';
 import { isPreSizedSource } from '@/lib/images';
 import type { AdminCenterData, AdminListingRow } from '@/lib/data/admin-center';
@@ -529,30 +530,7 @@ export function AdminDashboard({ data }: { data: AdminCenterData }) {
             </ul>
           </div>
 
-          <div>
-            <h2 className="text-sm font-extrabold">تیکت‌ها و پیشنهادات کاربران</h2>
-            <ul className="mt-2 space-y-2">
-              {data.tickets.length === 0 && (
-                <li className="rounded-card border border-dashed border-line bg-page p-4 text-sm text-muted">
-                  پیامی از کاربران ثبت نشده است. فرم پشتیبانی و پیشنهادات در /support است.
-                </li>
-              )}
-              {data.tickets.slice(0, 30).map((ticket) => (
-                <li key={ticket.id} className="rounded-card border border-line bg-card p-3">
-                  <p className="text-sm font-extrabold">
-                    {ticket.kind === 'brand' ? 'پیشنهاد' : 'تیکت'} از {ticket.name}
-                  </p>
-                  <p className="mt-1 text-[11px] text-muted">
-                    <span dir="ltr">{ticket.contact}</span> · {dateLabel(ticket.createdAt)}
-                    {ticket.model && ` · ${ticket.model}`}
-                  </p>
-                  <p className="mt-1 whitespace-pre-line text-xs leading-6 text-ink/85">
-                    {ticket.message}
-                  </p>
-                </li>
-              ))}
-            </ul>
-          </div>
+          <AdminSupportPanel tickets={data.tickets} />
 
           <div>
             <h2 className="text-sm font-extrabold">درخواست‌های احراز نمایشگاه ({queues.verifications.length})</h2>

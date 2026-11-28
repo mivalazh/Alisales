@@ -19,6 +19,11 @@ import {
   updateInspection,
   type InspectionBooking,
 } from '@/lib/data/platform-store';
+import {
+  addSupportMessage,
+  findSupportById,
+  updateSupportStatus,
+} from '@/lib/support-store';
 
 /**
  * POST /api/admin — owner moderation actions.
@@ -49,6 +54,7 @@ export async function POST(request: Request): Promise<NextResponse> {
     featured?: unknown;
     enabled?: unknown;
     status?: unknown;
+    message?: unknown;
   };
   const action = typeof body.action === 'string' ? body.action : '';
   const id = typeof body.id === 'string' ? body.id : '';
@@ -103,6 +109,27 @@ export async function POST(request: Request): Promise<NextResponse> {
       await setStoryPaidGuard(Boolean(body.enabled));
       result = { ok: true };
       break;
+    case 'support-reply': {
+      const text = typeof body.message === 'string' ? body.message.trim().slice(0, 4000) : '';
+      const ticket = await findSupportById(id);
+      if (!ticket) return NextResponse.json({ error: 'تیکت پیدا نشد.' }, { status: 400 });
+      if (text.length < 1) {
+        return NextResponse.json({ error: 'متن پاسخ را بنویسید.' }, { status: 400 });
+      }
+      await addSupportMessage(ticket.id, {
+        role: 'admin',
+        senderId: 'support',
+        body: text,
+        statusAfter: 'answered',
+      });
+      result = { ok: true };
+      break;
+    }
+    case 'support-close': {
+      const ok = await updateSupportStatus(id, 'closed');
+      result = ok ? { ok: true } : { ok: false, error: 'تیکت پیدا نشد.' };
+      break;
+    }
     case 'inspection-update': {
       const status = body.status;
       if (
