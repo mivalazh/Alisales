@@ -6,8 +6,8 @@ import { useId } from 'react';
  * The one switch used by every binary option in the form.
  *
  * Same 48×28 track and the same navy track in both themes (brand orange once
- * the page is dark), the label is the click target, and the row itself is a
- * flat divider line instead of a card nested in a card.
+ * the page is dark), the label is the click target, and every row is its own
+ * low, white surface card so the switch never floats on the cream page.
  */
 export function ToggleRow({
   checked,
@@ -27,7 +27,7 @@ export function ToggleRow({
 
   return (
     <div
-      className={`flex min-h-[56px] items-center justify-between gap-4 border-b border-line py-2 last:border-b-0 ${className}`.trim()}
+      className={`flex items-center justify-between gap-4 rounded-xl border border-[#111144]/10 bg-white px-4 py-3.5 shadow-[0_1px_2px_rgba(17,17,68,0.03)] dark:border-white/10 dark:bg-white/[0.04] ${className}`.trim()}
     >
       <div className="min-w-0 flex-1">
         <label

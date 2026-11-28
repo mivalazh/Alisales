@@ -16,7 +16,7 @@ export function StickyPublishBar({
   disabled?: boolean;
 }) {
   return (
-    <div className="fixed inset-x-0 bottom-[calc(6.5rem+env(safe-area-inset-bottom))] z-30 border-t border-line bg-card/95 px-4 pb-3 pt-2.5 shadow-[0_-10px_24px_-18px_rgba(17,17,68,0.55)] backdrop-blur-md sm:bottom-0 sm:pb-[calc(0.75rem+env(safe-area-inset-bottom))] lg:hidden">
+    <div className="fixed inset-x-0 bottom-[calc(6.5rem+env(safe-area-inset-bottom))] z-30 border-t border-[#111144]/10 bg-[#F4F1EC]/95 px-4 py-3 shadow-[0_-10px_24px_-18px_rgba(17,17,68,0.55)] backdrop-blur-md dark:border-white/10 dark:bg-[#0B0D26]/95 sm:bottom-0 sm:pb-[calc(0.75rem+env(safe-area-inset-bottom))] lg:hidden">
       <div className="mx-auto w-full max-w-4xl">
         <button
           type="submit"

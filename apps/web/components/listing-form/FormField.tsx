@@ -24,7 +24,7 @@ export function FormField({
   label: string;
   hint?: string;
   error?: string;
-  /** Required fields carry a soft orange dot, not a red asterisk. */
+  /** Required fields carry the standard red asterisk. */
   required?: boolean;
   children: ReactNode;
   className?: string;
@@ -38,10 +38,9 @@ export function FormField({
       <label id={labelId} className="label" htmlFor={htmlFor}>
         {label}
         {required && (
-          <span
-            aria-hidden="true"
-            className="ms-1.5 inline-block h-1.5 w-1.5 -translate-y-px rounded-full bg-[#F98513]/80 align-middle"
-          />
+          <span aria-hidden="true" className="ms-1 font-semibold text-rose-600 dark:text-rose-400">
+            *
+          </span>
         )}
       </label>
       <div

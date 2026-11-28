@@ -31,10 +31,9 @@ export function FormSection({
         <h2 className="text-[17px] font-semibold leading-6 text-ink">
           {title}
           {required && (
-            <span
-              aria-hidden="true"
-              className="ms-1.5 inline-block h-1.5 w-1.5 -translate-y-px rounded-full bg-[#F98513]/80 align-middle"
-            />
+            <span aria-hidden="true" className="ms-1 font-semibold text-rose-600 dark:text-rose-400">
+              *
+            </span>
           )}
         </h2>
         {meta && (

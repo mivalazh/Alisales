@@ -226,7 +226,7 @@ export function PhotoCropModal({
           >
             <canvas
               ref={canvasRef}
-              aria-label={t('پیش‌نمایش کادر ۴:۳', '4:3 crop preview')}
+              aria-label={t('پیش‌نمایش کادر 4:3', '4:3 crop preview')}
               className="h-full w-full cursor-move"
             />
             {!image && !failed && (
@@ -270,7 +270,7 @@ export function PhotoCropModal({
 
           <p className="text-[11px] leading-5 text-muted">
             {t(
-              'عکس را بکشید تا جای خودرو در کادر ۴:۳ مشخص شود؛ نسبت کادر با نمایش آگهی یکسان است.',
+              'عکس را بکشید تا جای خودرو در کادر 4:3 مشخص شود؛ نسبت کادر با نمایش آگهی یکسان است.',
               'Drag the photo to place the car inside the 4:3 frame — the same ratio the listing shows.',
             )}
           </p>

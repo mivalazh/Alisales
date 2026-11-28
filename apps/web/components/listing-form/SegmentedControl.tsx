@@ -18,8 +18,8 @@ function nextIndex(event: KeyboardEvent, count: number, current: number): number
 
 /**
  * Two-or-more choice control (نو/کارکرده، تومان/درهم، اتوماتیک/دنده‌ای) with one
- * selected state: a solid navy pill on a cream track, arrows to move, roving
- * tabindex.
+ * selected state: an elevated white pill on a tinted track, arrows to move,
+ * roving tabindex.
  */
 export function SegmentedControl({
   options,
@@ -56,8 +56,8 @@ export function SegmentedControl({
         const buttons = root.current?.querySelectorAll<HTMLElement>('[role="radio"]');
         buttons?.[target]?.focus();
       }}
-      className={`flex items-stretch rounded-xl border border-line bg-sunken/50 p-1 dark:border-white/10 dark:bg-white/5 ${
-        invalid ? 'border-transparent ring-2 ring-red-500' : ''
+      className={`flex items-stretch rounded-xl bg-[#E9E4DC] p-1 dark:bg-white/10 ${
+        invalid ? 'ring-2 ring-red-500' : ''
       } ${className}`.trim()}
     >
       {options.map((option) => {
@@ -74,7 +74,7 @@ export function SegmentedControl({
               size === 'sm' ? 'px-2 text-[13px]' : 'px-3 text-sm'
             } ${
               selected
-                ? 'bg-[#111144] text-white shadow-sm dark:bg-[#F4F1EC] dark:text-[#111144]'
+                ? 'bg-white font-semibold text-[#111144] shadow-sm dark:bg-[#111144] dark:text-white'
                 : 'text-muted hover:text-ink'
             }`}
           >

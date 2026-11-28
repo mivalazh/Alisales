@@ -26,6 +26,7 @@ import {
   PLATE_DECLARATION_FOOTER,
   PLATE_TYPE_LABELS,
   aedToIRR,
+  aedToToman,
   bodyTypes,
   chassisConditions,
   conditions,
@@ -67,7 +68,6 @@ import { ToggleRow } from './listing-form/ToggleRow';
 import { PhotoUploader } from './PhotoUploader';
 import { PriceEstimateHelper } from './PriceEstimateHelper';
 import { PriceText } from './PriceText';
-import { RateLine } from './RateLine';
 import { useAedRate } from './RateProvider';
 import { useI18n } from '@/lib/i18n';
 import {
@@ -230,7 +230,13 @@ const SPEC_TITLE: Record<VehicleCategory, string> = {
 };
 
 
-/** «۱ تا ۱۲ ماه» chips, revealed inline when an insurance toggle is on. */
+/**
+ * «اعتبار باقی‌مانده» tray, revealed inline when an insurance toggle is on.
+ *
+ * An elevated white card with a live value pill and two rows of six month
+ * buttons, so the remaining months are a deliberate choice instead of loose
+ * numbers on the cream page.
+ */
 function MonthChips({
   label,
   value,
@@ -240,24 +246,38 @@ function MonthChips({
   value: string;
   onChange: (next: string) => void;
 }) {
+  const { t } = useI18n();
   return (
     <div
       role="group"
       aria-label={label}
-      className="rounded-xl border border-dashed border-line px-3 py-2.5"
+      className="rounded-2xl border border-[#111144]/10 border-r-[3px] border-r-[#111144] bg-white p-3.5 shadow-sm dark:border-white/10 dark:border-r-[#F98513] dark:bg-white/[0.05]"
     >
-      <p className="text-[11px] font-bold text-muted">{label}</p>
-      <div className="mt-2 grid grid-cols-6 gap-1.5 sm:grid-cols-12">
+      <div className="flex items-center justify-between gap-2">
+        <p className="text-[11px] font-bold text-muted">
+          {t('اعتبار باقی‌مانده', 'Remaining validity')}
+        </p>
+        <span
+          className={`rounded-full px-2.5 py-1 text-[10px] font-extrabold tabular-nums ${
+            value
+              ? 'bg-[#111144] text-white dark:bg-[#F98513] dark:text-[#111144]'
+              : 'bg-[#111144]/[0.07] text-[#111144]/70 dark:bg-white/10 dark:text-white/70'
+          }`}
+        >
+          {value ? t(`${value} ماه`, `${value} months`) : t('انتخاب کنید', 'Choose')}
+        </span>
+      </div>
+      <div className="mt-3 grid grid-cols-6 gap-2">
         {Array.from({ length: 12 }, (_, index) => String(index + 1)).map((month) => (
           <button
             key={month}
             type="button"
             aria-pressed={value === month}
             onClick={() => onChange(month)}
-            className={`flex h-8 items-center justify-center rounded-lg text-[11px] font-extrabold transition ${
+            className={`h-10 rounded-xl text-sm font-semibold transition-all ${
               value === month
-                ? 'bg-[#111144] text-white dark:bg-[#F4F1EC] dark:text-[#111144]'
-                : 'bg-page text-muted hover:text-ink dark:bg-white/5'
+                ? 'bg-[#111144] text-white shadow-sm ring-2 ring-[#111144]/20 dark:bg-[#F98513] dark:text-[#111144]'
+                : 'border border-[#111144]/10 bg-[#F4F1EC] text-[#111144]/80 hover:border-[#111144]/30 dark:border-white/10 dark:bg-white/10 dark:text-white/80'
             }`}
           >
             {month}
@@ -512,43 +532,48 @@ function InspectionSheetField({
   const [localError, setLocalError] = useState<string | null>(null);
 
   return (
-    <div>
-      <label className="label">
-        {t('برگه کارشناسی سلامت خودرو (اختیاری)', 'Vehicle inspection sheet (optional)')}
-      </label>
-      <div className="flex flex-wrap items-center gap-2">
+    <div className="col-span-full">
+      <div className="flex items-center justify-between gap-3 rounded-xl border border-dashed border-[#111144]/20 bg-white/70 px-4 py-3 dark:border-white/15 dark:bg-white/[0.03]">
+        <div className="flex min-w-0 items-center gap-2.5">
+          <span className="flex h-9 w-9 shrink-0 items-center justify-center rounded-lg bg-[#111144]/[0.06] text-[#111144] dark:bg-white/10 dark:text-[#F4F1EC]">
+            <Icon name="cameraPlus" size={17} />
+          </span>
+          <span className="min-w-0 text-xs font-semibold leading-5 text-ink">
+            {t('برگه کارشناسی سلامت خودرو (اختیاری)', 'Vehicle inspection sheet (optional)')}
+          </span>
+        </div>
         <button
           type="button"
           onClick={() => input.current?.click()}
           disabled={busy}
-          className="rounded-field border border-line bg-page px-3 py-2 text-xs font-bold text-ink transition hover:border-line-strong disabled:opacity-60"
+          className="inline-flex h-9 shrink-0 items-center gap-1.5 rounded-lg border border-[#111144]/15 bg-white px-3 text-xs font-bold text-[#111144] shadow-sm transition hover:border-[#111144]/30 disabled:opacity-60 dark:border-white/15 dark:bg-white/10 dark:text-white"
         >
           {busy
             ? t('در حال بارگذاری…', 'Uploading…')
             : value
-              ? t('تغییر برگه کارشناسی', 'Replace inspection sheet')
-              : t('بارگذاری عکس برگه کارشناسی', 'Upload inspection sheet')}
+              ? t('تغییر تصویر', 'Change image')
+              : t('انتخاب تصویر', 'Choose image')}
         </button>
-        {value && (
-          <>
-            <a
-              href={value}
-              target="_blank"
-              rel="noreferrer"
-              className="inline-flex min-h-9 items-center rounded-full bg-cta-soft px-3 py-1.5 text-xs font-extrabold text-ink"
-            >
-              {t('مشاهده برگه', 'View sheet')}
-            </a>
-            <button
-              type="button"
-              onClick={() => onChange('')}
-              className="rounded-full border border-line px-3 py-1.5 text-xs font-bold text-muted transition hover:border-line-strong hover:text-ink"
-            >
-              {t('حذف', 'Remove')}
-            </button>
-          </>
-        )}
       </div>
+      {value && (
+        <div className="mt-2 flex items-center justify-end gap-3 text-xs">
+          <a
+            href={value}
+            target="_blank"
+            rel="noreferrer"
+            className="font-bold text-cta hover:underline"
+          >
+            {t('مشاهده برگه', 'View sheet')}
+          </a>
+          <button
+            type="button"
+            onClick={() => onChange('')}
+            className="font-bold text-muted transition hover:text-ink"
+          >
+            {t('حذف', 'Remove')}
+          </button>
+        </div>
+      )}
       <input
         ref={input}
         type="file"
@@ -726,7 +751,8 @@ export function ListingForm() {
       line:
         lang === 'en'
           ? `${formatAmountLatin(toman)} Toman · ≈ ${aed} AED`
-          : `${words} · ≈ ${aed} درهم`,
+          : // The words formatter emits Persian digits; this page reads Latin only.
+            `${toAsciiDigits(words)} · ≈ ${aed} درهم`,
     };
   })();
 
@@ -1205,24 +1231,12 @@ export function ListingForm() {
         <h1 className="text-2xl font-extrabold text-ink sm:text-[28px]">
           {t('ثبت آگهی', 'Post an ad')}
         </h1>
-        <p className="mt-1 text-sm leading-6 text-muted">
-          {t(
-            'اطلاعات آگهی را تکمیل کنید؛ آگهی بلافاصله پس از ثبت منتشر می‌شود.',
-            'Complete the details; your ad goes live as soon as you publish.',
-          )}
-        </p>
       </header>
 
       {/* One flat column split by hairlines — no nested cards. */}
       <div className="mt-8 space-y-8">
 
-        <FormSection
-          title={t('دسته‌بندی آگهی', 'Listing category')}
-          hint={t(
-            'نوع آگهی را انتخاب کنید تا فیلدهای همان دسته نمایش داده شود.',
-            'Pick a type to see the fields for that category.',
-          )}
-        >
+        <FormSection title={t('دسته‌بندی آگهی', 'Listing category')}>
           <CategorySelector
             ariaLabel={t('دسته‌بندی آگهی', 'Listing category')}
             value={mode === 'part' ? PART_CATEGORY_CHOICE.key : category}
@@ -1265,10 +1279,6 @@ export function ListingForm() {
                 htmlFor="brand"
                 label={t('برند', 'Brand')}
                 required
-                hint={t(
-                  'می‌توانید از فهرست پیشنهادی انتخاب کنید یا مدل/برند دیگری بنویسید.',
-                  'Pick from the suggestions or type another brand/model.',
-                )}
                 error={fieldErrors['vehicle.brand']}
               >
                 <BrandPicker
@@ -1318,10 +1328,6 @@ export function ListingForm() {
                 htmlFor="year"
                 label={t('سال ساخت (میلادی)', 'Model year')}
                 required
-                hint={t(
-                  'سال میلادی خودرو را انتخاب کنید؛ معادل شمسی کنار هر گزینه نوشته شده است.',
-                  'Choose the model year; the Persian year appears beside each option.',
-                )}
                 error={fieldErrors['vehicle.year']}
               >
                 <YearGridSelect
@@ -1336,7 +1342,6 @@ export function ListingForm() {
                 htmlFor="mileageKm"
                 label={t('کارکرد (کیلومتر)', 'Mileage (km)')}
                 required
-                hint={t('عدد صحیح؛ صفر کیلومتر: 0', 'Whole kilometres; enter 0 for a new vehicle.')}
                 error={fieldErrors['vehicle.mileageKm']}
               >
                 <input
@@ -1481,10 +1486,6 @@ export function ListingForm() {
                 htmlFor="color"
                 label={t('رنگ', 'Colour')}
                 required
-                hint={t(
-                  'رنگ دقیق را خودتان بنویسید؛ همان عبارت در آگهی نمایش داده می‌شود.',
-                  'Describe the exact colour; it appears verbatim on the listing.',
-                )}
                 error={fieldErrors['vehicle.color']}
               >
                 <input
@@ -1516,8 +1517,7 @@ export function ListingForm() {
 
               <FormField
                 htmlFor="vin"
-                label={t('شماره شاسی (VIN) — اختیاری', 'VIN — optional')}
-                hint={t('17 کاراکتر؛ فقط حروف و ارقام انگلیسی', '17 characters; Latin letters and digits only.')}
+                label={t('شماره شاسی (VIN)', 'VIN')}
                 error={fieldErrors['vehicle.vin']}
               >
                 <input
@@ -1526,7 +1526,7 @@ export function ListingForm() {
                   dir="ltr"
                   value={draft.vin}
                   onChange={(e) => set('vin', e.target.value)}
-                  placeholder="VF3XXXXXXXXXXXXXX"
+                  placeholder={t('اختیاری — 17 کاراکتر انگلیسی', 'Optional — 17 Latin characters')}
                 />
               </FormField>
             </FormSection>
@@ -1800,11 +1800,15 @@ export function ListingForm() {
           </FormSection>
         )}
         <FormSection title={t('قیمت و توضیحات', 'Price and description')}>
-          <div className="col-span-full rounded-field border border-line bg-page px-3 py-2">
-            <p className="mb-0.5 text-[11px] font-bold text-faint">
+          <div className="col-span-full flex items-center justify-between gap-3 rounded-xl border border-[#111144]/10 bg-white px-4 py-2.5 dark:border-white/10 dark:bg-white/[0.04]">
+            <p className="text-[11px] font-bold text-faint">
               {t('نرخ روز درهم', 'Today’s AED rate')}
             </p>
-            <RateLine />
+            <p className="text-[11px] font-extrabold leading-5 text-ink tabular-nums">
+              {lang === 'en'
+                ? `1 AED ≈ ${formatAmountLatin(aedToToman(perAed))} Toman`
+                : `1 درهم ≈ ${formatAmountLatin(aedToToman(perAed))} تومان`}
+            </p>
           </div>
 
           <FormField
@@ -1814,10 +1818,6 @@ export function ListingForm() {
               `Price (${unit === 'toman' ? 'Toman' : 'AED'})`,
             )}
             required
-            hint={t(
-              `قیمت را به ${unit === 'toman' ? 'تومان' : 'درهم'} بنویسید؛ ارقام فارسی یا انگلیسی مجاز است و جداکننده هزار خودکار اضافه می‌شود.`,
-              `Enter the price in ${unit === 'toman' ? 'Toman' : 'AED'}; Persian or Latin digits are accepted and thousands separators are added automatically.`,
-            )}
             error={fieldErrors['priceIRR']}
           >
             <div className="flex items-stretch gap-2">
@@ -1860,25 +1860,21 @@ export function ListingForm() {
                 onChange={(next) => switchUnit(next as PriceUnit)}
               />
             </div>
-            <p
-              id="priceIRR-words"
-              aria-live="polite"
-              className="mt-1.5 min-h-4 text-[11px] font-bold leading-5 text-muted"
-            >
-              {priceWords
-                ? priceWords.line
-                : t(
-                    'مبلغ را با ارقام وارد کنید تا به حروف و درهم همین‌جا نوشته شود.',
-                    'Enter the amount to see it in words and AED here.',
-                  )}
-            </p>
+            {priceWords && (
+              <p
+                id="priceIRR-words"
+                aria-live="polite"
+                className="mt-1.5 text-[11px] font-bold leading-5 text-muted"
+              >
+                {priceWords.line}
+              </p>
+            )}
           </FormField>
 
           {/* City is a disabled select with کیش as the only option. */}
           <FormField
             htmlFor="city"
             label={t('شهر', 'City')}
-            hint={t('در این مرحله فقط کیش فعال است.', 'Only Kish is available at launch.')}
             error={fieldErrors['city']}
           >
             <CustomSelect
@@ -1911,8 +1907,8 @@ export function ListingForm() {
               'Hide the AED price on this listing',
             )}
             hint={t(
-              'خط «≈ … AED» روی کارت، فهرست و صفحه‌ی آگهی نمایش داده نمی‌شود.',
-              'The “≈ … AED” line is hidden on cards, feeds and the listing page.',
+              'خط درهم روی کارت و صفحه آگهی نمایش داده نمی‌شود.',
+              'The AED line is hidden on cards and the listing page.',
             )}
             checked={draft.hideAed}
             onChange={(next) => set('hideAed', next)}
@@ -1926,8 +1922,8 @@ export function ListingForm() {
               'Hide my phone number (in-app chat only)',
             )}
             hint={t(
-              'به‌صورت پیش‌فرض شماره تماس شما نمایش داده می‌شود؛ با فعال کردن این گزینه، خریداران فقط از طریق پیام‌رسان داخلی با شما در تماس خواهند بود.',
-              'Your phone number is shown by default; turn this on to let buyers contact you through in-app chat only.',
+              'شماره تماس مخفی می‌شود؛ خریدار فقط از طریق چت پیام می‌دهد.',
+              'Your number stays hidden; buyers can only use in-app chat.',
             )}
             checked={!draft.allowPhoneReveal}
             onChange={(next) => set('allowPhoneReveal', !next)}
